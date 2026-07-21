@@ -3,7 +3,7 @@
 @section('auth-content')
 <div class="min-h-screen flex flex-col md:flex-row relative bg-[#f4f7f6]">
     <!-- Left Side: Image Banner & Brand Description -->
-    <div class="w-full md:w-[45%] lg:w-[40%] bg-[#0e5c3a] text-white p-8 md:p-16 flex flex-col justify-between relative min-h-[400px] md:min-h-screen overflow-hidden" style="background-image: linear-gradient(180deg, rgba(16, 92, 58, 0.75) 0%, rgba(10, 70, 44, 0.85) 100%), url('{{ asset('images/ndmu.jpg') }}'); background-size: cover; background-position: center;">
+    <div class="w-full md:w-[45%] lg:w-[40%] bg-[#0e5c3a] text-white p-6 md:p-10 lg:p-12 flex flex-col justify-between relative min-h-[400px] md:min-h-screen overflow-hidden" style="background-image: linear-gradient(180deg, rgba(16, 92, 58, 0.75) 0%, rgba(10, 70, 44, 0.85) 100%), url('{{ asset('images/ndmu.jpg') }}'); background-size: cover; background-position: center;">
         <!-- Logo -->
         <div class="flex items-center gap-3">
             <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" class="h-12 w-auto">
@@ -14,7 +14,7 @@
         </div>
 
         <!-- Banner Text Content -->
-        <div class="my-auto py-12 space-y-6">
+        <div class="my-auto py-6 space-y-4">
             <span class="text-xs font-bold tracking-widest text-[#eebc3f] uppercase block">Welcome Back</span>
             <h1 class="text-4xl md:text-5xl font-heading font-bold text-white leading-tight">
                 Access Your<br>Research Portal
