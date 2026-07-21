@@ -7,6 +7,10 @@ Route::view('/login', 'pages.authentication-not-configured')
     ->middleware(['guest', 'throttle:authentication'])
     ->name('login');
 
+Route::view('/register', 'pages.authentication-not-configured')
+    ->middleware(['guest'])
+    ->name('register');
+
 Route::view('/verify-email', 'pages.verify-email')
     ->middleware('auth')
     ->name('verification.notice');
