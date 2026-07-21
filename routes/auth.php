@@ -2,12 +2,12 @@
 
 use Illuminate\Support\Facades\Route;
 
-// Authentication UI will be added with the chosen first-party-compatible starter flow.
-Route::view('/login', 'pages.authentication-not-configured')
+// Placeholder authentication views until the full auth flow is implemented.
+Route::view('/login', 'pages.login')
     ->middleware(['guest', 'throttle:authentication'])
     ->name('login');
 
-Route::view('/register', 'pages.authentication-not-configured')
+Route::view('/register', 'pages.register')
     ->middleware(['guest'])
     ->name('register');
 

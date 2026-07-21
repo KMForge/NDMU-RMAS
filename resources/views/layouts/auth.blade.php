@@ -1,5 +1,5 @@
-@extends('layouts.app')
+@extends('layouts.blank')
 
 @section('content')
-    <div class="mx-auto max-w-md">@yield('auth-content')</div>
+    @yield('auth-content')
 @endsection
