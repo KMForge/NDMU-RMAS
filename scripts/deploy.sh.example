@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Deployment is disabled until host paths, protected secrets, backups, and rollback are configured."
+exit 1

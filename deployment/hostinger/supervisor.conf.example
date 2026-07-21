@@ -1,0 +1,8 @@
+[program:ndmu-rmas-worker]
+command=/usr/bin/php /absolute/path/to/ndmu-rmas/artisan queue:work --sleep=3 --tries=3 --max-time=3600
+directory=/absolute/path/to/ndmu-rmas
+autostart=true
+autorestart=true
+redirect_stderr=true
+stdout_logfile=/absolute/path/to/ndmu-rmas/storage/logs/worker.log
+stopwaitsecs=3600

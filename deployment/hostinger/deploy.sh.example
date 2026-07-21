@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Set RELEASE_PATH explicitly after implementing backups and rollback.
+: "${RELEASE_PATH:?Configure RELEASE_PATH}"
+cd "$RELEASE_PATH"
+
+composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+npm ci
+npm run build
+php artisan migrate --force
+php artisan optimize
+php artisan queue:restart

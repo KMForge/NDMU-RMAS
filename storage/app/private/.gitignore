@@ -1,0 +1,10 @@
+*
+!.gitignore
+!research/
+!research/**/
+!research/**/.gitkeep
+!profile-photos/
+!profile-photos/**/
+!profile-photos/**/.gitkeep
+!temporary-uploads/
+!temporary-uploads/.gitkeep

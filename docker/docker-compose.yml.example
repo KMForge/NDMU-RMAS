@@ -1,0 +1,21 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    working_dir: /var/www/html
+    volumes:
+      - ../:/var/www/html
+    depends_on:
+      - postgres
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ndmu_rmas
+      POSTGRES_USER: ndmu_rmas
+      POSTGRES_PASSWORD: local-development-only
+    volumes:
+      - ndmu-rmas-postgres:/var/lib/postgresql/data
+
+volumes:
+  ndmu-rmas-postgres:

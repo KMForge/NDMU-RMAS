@@ -1,0 +1,10 @@
+name: Deployment example (disabled)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  configure-before-enabling:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Configure protected environments, SSH keys, release paths, backups, and rollback before enabling deployment."
