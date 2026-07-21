@@ -499,36 +499,302 @@
             
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 <!-- Project 1 -->
-                <div class="bg-blue-600 h-56 rounded-3xl relative overflow-hidden shadow-lg group hover:-translate-y-1 transition-transform duration-300 cursor-pointer">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-6">
-                        <span class="text-white/80 text-xs font-semibold uppercase tracking-wider mb-1">Engineering</span>
-                        <h4 class="text-white font-bold text-lg font-heading leading-snug">Smart Grid Power Flow Controller</h4>
+                <div class="bg-white rounded-[2rem] overflow-hidden shadow-md border border-gray-100 flex flex-col group hover:-translate-y-2 transition-transform duration-300">
+                    <div class="bg-[#1e5adb] p-8 text-center flex flex-col items-center justify-center relative overflow-hidden">
+                        <div class="w-14 h-14 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center mb-5">
+                            <i class="ph ph-cpu text-3xl text-white"></i>
+                        </div>
+                        <h4 class="text-white font-bold text-lg font-heading mb-3">Artificial Intelligence</h4>
+                        <span class="text-white font-extrabold text-5xl font-heading mb-2 leading-none">85</span>
+                        <span class="text-white/80 text-xs font-medium">Research Papers</span>
+                    </div>
+                    <div class="py-5 text-center bg-white">
+                        <a href="#" class="text-gray-500 hover:text-gray-800 text-sm font-semibold transition-colors">
+                            View All Projects →
+                        </a>
                     </div>
                 </div>
+
                 <!-- Project 2 -->
-                <div class="bg-red-600 h-56 rounded-3xl relative overflow-hidden shadow-lg group hover:-translate-y-1 transition-transform duration-300 cursor-pointer">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-6">
-                        <span class="text-white/80 text-xs font-semibold uppercase tracking-wider mb-1">Health Science</span>
-                        <h4 class="text-white font-bold text-lg font-heading leading-snug">Remote Patient Health Monitor</h4>
+                <div class="bg-white rounded-[2rem] overflow-hidden shadow-md border border-gray-100 flex flex-col group hover:-translate-y-2 transition-transform duration-300">
+                    <div class="bg-[#d32f2f] p-8 text-center flex flex-col items-center justify-center relative overflow-hidden">
+                        <div class="w-14 h-14 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center mb-5">
+                            <i class="ph ph-heart text-3xl text-white"></i>
+                        </div>
+                        <h4 class="text-white font-bold text-lg font-heading mb-3">Healthcare</h4>
+                        <span class="text-white font-extrabold text-5xl font-heading mb-2 leading-none">62</span>
+                        <span class="text-white/80 text-xs font-medium">Research Papers</span>
+                    </div>
+                    <div class="py-5 text-center bg-white">
+                        <a href="#" class="text-gray-500 hover:text-gray-800 text-sm font-semibold transition-colors">
+                            View All Projects →
+                        </a>
                     </div>
                 </div>
+
                 <!-- Project 3 -->
-                <div class="bg-purple-600 h-56 rounded-3xl relative overflow-hidden shadow-lg group hover:-translate-y-1 transition-transform duration-300 cursor-pointer">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-6">
-                        <span class="text-white/80 text-xs font-semibold uppercase tracking-wider mb-1">Agriculture</span>
-                        <h4 class="text-white font-bold text-lg font-heading leading-snug">Soil Moisture Control System</h4>
+                <div class="bg-white rounded-[2rem] overflow-hidden shadow-md border border-gray-100 flex flex-col group hover:-translate-y-2 transition-transform duration-300">
+                    <div class="bg-[#7b2cbf] p-8 text-center flex flex-col items-center justify-center relative overflow-hidden">
+                        <div class="w-14 h-14 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center mb-5">
+                            <i class="ph ph-graduation-cap text-3xl text-white"></i>
+                        </div>
+                        <h4 class="text-white font-bold text-lg font-heading mb-3">Education</h4>
+                        <span class="text-white font-extrabold text-5xl font-heading mb-2 leading-none">94</span>
+                        <span class="text-white/80 text-xs font-medium">Research Papers</span>
+                    </div>
+                    <div class="py-5 text-center bg-white">
+                        <a href="#" class="text-gray-500 hover:text-gray-800 text-sm font-semibold transition-colors">
+                            View All Projects →
+                        </a>
                     </div>
                 </div>
+
                 <!-- Project 4 -->
-                <div class="bg-[#0e5c3a] h-56 rounded-3xl relative overflow-hidden shadow-lg group hover:-translate-y-1 transition-transform duration-300 cursor-pointer">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-6">
-                        <span class="text-white/80 text-xs font-semibold uppercase tracking-wider mb-1">Education</span>
-                        <h4 class="text-white font-bold text-lg font-heading leading-snug">Interactive Classroom Toolkit</h4>
+                <div class="bg-white rounded-[2rem] overflow-hidden shadow-md border border-gray-100 flex flex-col group hover:-translate-y-2 transition-transform duration-300">
+                    <div class="bg-[#0e5c3a] p-8 text-center flex flex-col items-center justify-center relative overflow-hidden">
+                        <div class="w-14 h-14 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center mb-5">
+                            <i class="ph ph-plant text-3xl text-white"></i>
+                        </div>
+                        <h4 class="text-white font-bold text-lg font-heading mb-3">Agriculture</h4>
+                        <span class="text-white font-extrabold text-5xl font-heading mb-2 leading-none">48</span>
+                        <span class="text-white/80 text-xs font-medium">Research Papers</span>
+                    </div>
+                    <div class="py-5 text-center bg-white">
+                        <a href="#" class="text-gray-500 hover:text-gray-800 text-sm font-semibold transition-colors">
+                            View All Projects →
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
     </section>
+
+    <!-- Research Impact Section -->
+    <section class="py-24 relative overflow-hidden" style="background-image: linear-gradient(180deg, rgba(14, 58, 38, 0.9) 0%, rgba(10, 44, 28, 0.92) 100%), url('{{ asset('images/ndmu.jpg') }}'); background-size: cover; background-position: center; background-attachment: fixed;">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8 text-center flex flex-col items-center">
+            <span class="text-sm font-bold tracking-widest text-[#d69f24] uppercase mb-2 block">By the Numbers</span>
+            <h2 class="text-4xl md:text-5xl font-heading font-bold text-white mb-4">Research Impact</h2>
+            <p class="text-gray-300 text-lg mb-16 max-w-2xl font-light">Our impact in research excellence across the Philippines</p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 w-full max-w-5xl">
+                <!-- Card 1 -->
+                <div class="glass-card rounded-2xl p-8 text-center transform hover:-translate-y-1 transition-transform duration-300">
+                    <div class="w-14 h-14 mx-auto rounded-full bg-white/10 flex items-center justify-center mb-6">
+                        <i class="ph ph-users text-3xl text-[#f8b803]"></i>
+                    </div>
+                    <h3 class="text-4xl font-heading font-bold text-white mb-2">500+</h3>
+                    <p class="text-sm text-gray-300 font-medium">Active Researchers</p>
+                </div>
+                <!-- Card 2 -->
+                <div class="glass-card rounded-2xl p-8 text-center transform hover:-translate-y-1 transition-transform duration-300">
+                    <div class="w-14 h-14 mx-auto rounded-full bg-white/10 flex items-center justify-center mb-6">
+                        <i class="ph ph-book-open-text text-3xl text-[#f8b803]"></i>
+                    </div>
+                    <h3 class="text-4xl font-heading font-bold text-white mb-2">1,200+</h3>
+                    <p class="text-sm text-gray-300 font-medium">Published Papers</p>
+                </div>
+                <!-- Card 3 -->
+                <div class="glass-card rounded-2xl p-8 text-center transform hover:-translate-y-1 transition-transform duration-300">
+                    <div class="w-14 h-14 mx-auto rounded-full bg-white/10 flex items-center justify-center mb-6">
+                        <i class="ph ph-medal text-3xl text-[#f8b803]"></i>
+                    </div>
+                    <h3 class="text-4xl font-heading font-bold text-white mb-2">150+</h3>
+                    <p class="text-sm text-gray-300 font-medium">International Awards</p>
+                </div>
+                <!-- Card 4 -->
+                <div class="glass-card rounded-2xl p-8 text-center transform hover:-translate-y-1 transition-transform duration-300">
+                    <div class="w-14 h-14 mx-auto rounded-full bg-white/10 flex items-center justify-center mb-6">
+                        <i class="ph ph-shield-check text-3xl text-[#f8b803]"></i>
+                    </div>
+                    <h3 class="text-4xl font-heading font-bold text-white mb-2">2,500+</h3>
+                    <p class="text-sm text-gray-300 font-medium">Completed Defenses</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="py-24 bg-white">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <span class="text-sm font-bold tracking-widest text-[#d69f24] uppercase mb-2 block">Testimonials</span>
+                <h2 class="text-4xl md:text-5xl font-heading font-bold text-[#0e5c3a] mb-4">What Our Community Says</h2>
+                <p class="text-gray-500 text-lg max-w-3xl mx-auto font-light">Voices from our researchers, advisers, and faculty</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Testimonial 1 -->
+                <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow duration-300">
+                    <div>
+                        <!-- Stars -->
+                        <div class="flex gap-1 mb-4 text-[#f8b803] text-lg">
+                            <i class="ph ph-star-fill"></i>
+                            <i class="ph ph-star-fill"></i>
+                            <i class="ph ph-star-fill"></i>
+                            <i class="ph ph-star-fill"></i>
+                            <i class="ph ph-star-fill"></i>
+                        </div>
+                        <p class="text-gray-600 italic text-sm leading-relaxed mb-6">
+                            "The research management system streamlined our entire research process. The platform is intuitive, efficient, and beautifully designed."
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-3 pt-4 border-t border-gray-50">
+                        <div class="w-10 h-10 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-sm">
+                            M
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-800">Maria Santos</h4>
+                            <p class="text-xs text-gray-400 font-medium">Student Researcher</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Testimonial 2 -->
+                <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow duration-300">
+                    <div>
+                        <div class="flex gap-1 mb-4 text-[#f8b803] text-lg">
+                            <i class="ph ph-star-fill"></i>
+                            <i class="ph ph-star-fill"></i>
+                            <i class="ph ph-star-fill"></i>
+                            <i class="ph ph-star-fill"></i>
+                            <i class="ph ph-star-fill"></i>
+                        </div>
+                        <p class="text-gray-600 italic text-sm leading-relaxed mb-6">
+                            "As an adviser, I can easily monitor my students' progress and provide timely feedback through the system. Excellent platform!"
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-3 pt-4 border-t border-gray-50">
+                        <div class="w-10 h-10 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-sm">
+                            R
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-800">Dr. Roberto Garcia</h4>
+                            <p class="text-xs text-gray-400 font-medium">Research Adviser</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Testimonial 3 -->
+                <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow duration-300">
+                    <div>
+                        <div class="flex gap-1 mb-4 text-[#f8b803] text-lg">
+                            <i class="ph ph-star-fill"></i>
+                            <i class="ph ph-star-fill"></i>
+                            <i class="ph ph-star-fill"></i>
+                            <i class="ph ph-star-fill"></i>
+                            <i class="ph ph-star-fill"></i>
+                        </div>
+                        <p class="text-gray-600 italic text-sm leading-relaxed mb-6">
+                            "The evaluation and grading system is professional and comprehensive. It makes our work as panelists much more organized."
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-3 pt-4 border-t border-gray-50">
+                        <div class="w-10 h-10 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-sm">
+                            P
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-800">Prof. Patricia Cruz</h4>
+                            <p class="text-xs text-gray-400 font-medium">Panelist</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Section -->
+    <footer id="contact" class="bg-[#052315] text-gray-300 pt-20 pb-8 border-t border-[#0e5c3a]/20">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <!-- Top Footer Content -->
+            <div class="flex flex-col lg:flex-row justify-between items-start gap-12 mb-16">
+                <!-- Left: Logo, Description & Social Icons -->
+                <div class="space-y-6 max-w-xl">
+                    <div class="flex items-center gap-3">
+                        <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" class="h-12 w-auto">
+                        <div class="flex flex-col leading-none">
+                            <span class="font-heading font-extrabold text-2xl text-white tracking-tight">NDMU</span>
+                            <span class="text-[10px] font-bold text-[#eebc3f] tracking-wider uppercase mt-1">Research Management System</span>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-400 leading-relaxed font-light">
+                        The official research repository and management portal of Notre Dame of Marbel University. Dedicated to advancing knowledge, fostering innovation, and archiving scholarly achievements.
+                    </p>
+                    <div class="flex items-center gap-3 pt-2">
+                        <a href="#" class="w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-[#eebc3f] hover:text-[#052315] hover:border-transparent transition-all duration-300 shadow-md">
+                            <i class="ph ph-facebook-logo text-xl"></i>
+                        </a>
+                        <a href="#" class="w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-[#eebc3f] hover:text-[#052315] hover:border-transparent transition-all duration-300 shadow-md">
+                            <i class="ph ph-instagram-logo text-xl"></i>
+                        </a>
+                        <a href="#" class="w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-[#eebc3f] hover:text-[#052315] hover:border-transparent transition-all duration-300 shadow-md">
+                            <i class="ph ph-youtube-logo text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Right: Call to Action / Info -->
+                <div class="bg-white/5 border border-white/10 rounded-3xl p-6 lg:p-8 max-w-md w-full">
+                    <span class="text-xs font-bold text-[#eebc3f] uppercase tracking-widest block mb-2">NDMU Portal</span>
+                    <h4 class="text-white font-bold font-heading text-xl mb-3">Empowering Research</h4>
+                    <p class="text-xs text-gray-400 leading-relaxed mb-4 font-light">
+                        Access guidelines, download templates, and start archiving your scholarly work inside our secure, modular monolith ecosystem.
+                    </p>
+                    <a href="{{ route('login') }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-[#eebc3f] text-[#052315] text-xs font-bold rounded-xl hover:bg-[#d69f24] transition-colors">
+                        Access Portal <i class="ph ph-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Horizontal Separator -->
+            <div class="border-t border-white/10 my-10"></div>
+
+            <!-- Middle Row: Contact Info Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+                <!-- Location -->
+                <div class="bg-white/5 border border-white/10 rounded-2xl p-5 flex items-start gap-4 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
+                    <div class="w-11 h-11 rounded-xl bg-[#eebc3f]/10 flex items-center justify-center text-[#eebc3f] flex-shrink-0">
+                        <i class="ph ph-map-pin text-xl"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Our Location</span>
+                        <span class="text-sm text-gray-200">Alunan Avenue, Koronadal City, South Cotabato, Philippines</span>
+                    </div>
+                </div>
+
+                <!-- Phone -->
+                <div class="bg-white/5 border border-white/10 rounded-2xl p-5 flex items-start gap-4 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
+                    <div class="w-11 h-11 rounded-xl bg-[#eebc3f]/10 flex items-center justify-center text-[#eebc3f] flex-shrink-0">
+                        <i class="ph ph-phone text-xl"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Call Us</span>
+                        <span class="text-sm text-gray-200">(083) 228-3167</span>
+                    </div>
+                </div>
+
+                <!-- Email -->
+                <div class="bg-white/5 border border-white/10 rounded-2xl p-5 flex items-start gap-4 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
+                    <div class="w-11 h-11 rounded-xl bg-[#eebc3f]/10 flex items-center justify-center text-[#eebc3f] flex-shrink-0">
+                        <i class="ph ph-envelope-simple text-xl"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Email Us</span>
+                        <span class="text-sm text-gray-200">research@ndmu.edu.ph</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Copyright Row -->
+            <div class="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500 font-medium">
+                <p>© 2026 Notre Dame of Marbel University. All rights reserved.</p>
+                <div class="flex gap-4">
+                    <a href="#" class="hover:text-gray-300 transition">Privacy Policy</a>
+                    <span>·</span>
+                    <a href="#" class="hover:text-gray-300 transition">Terms of Use</a>
+                </div>
+            </div>
+        </div>
+    </footer>
 
 </body>
 </html>
