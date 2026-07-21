@@ -87,7 +87,15 @@
             </div>
 
             <!-- Form -->
-            <form class="space-y-5 mb-6">
+            <form method="POST" action="{{ route('login.store') }}" class="space-y-5 mb-6">
+                @csrf
+
+                @if ($errors->any())
+                    <div class="rounded-2xl border border-red-200 bg-red-50 p-3 text-xs text-red-700" role="alert">
+                        {{ $errors->first() }}
+                    </div>
+                @endif
+
                 <!-- Email Field -->
                 <div class="space-y-2">
                     <label for="email" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Email Address</label>
@@ -97,7 +105,11 @@
                         </span>
                         <input
                             id="email"
+                            name="email"
                             type="email"
+                            value="{{ old('email') }}"
+                            autocomplete="username"
+                            required
                             placeholder="your.email@ndmu.edu.ph"
                             class="w-full pl-11 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300"
                         >
@@ -113,7 +125,10 @@
                         </span>
                         <input
                             id="password"
+                            name="password"
                             type="password"
+                            autocomplete="current-password"
+                            required
                             placeholder="••••••••"
                             class="w-full pl-11 pr-11 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300"
                         >
@@ -123,8 +138,13 @@
                     </div>
                 </div>
 
+                <label class="flex items-center gap-2 text-xs text-gray-600">
+                    <input type="checkbox" name="remember" value="1" class="rounded border-gray-300 text-[#0e5c3a] focus:ring-[#0e5c3a]">
+                    Remember me
+                </label>
+
                 <!-- Submit Button -->
-                <button type="button" class="w-full py-4 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-sm font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-[#0e5c3a]/10 hover:shadow-xl transition-all duration-300">
+                <button type="submit" class="w-full py-4 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-sm font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-[#0e5c3a]/10 hover:shadow-xl transition-all duration-300">
                     <i class="ph ph-sign-in text-base"></i> Sign In
                 </button>
             </form>

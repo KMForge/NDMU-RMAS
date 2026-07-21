@@ -15,5 +15,9 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             SystemAdministratorSeeder::class,
         ]);
+
+        if (app()->environment(['local', 'testing'])) {
+            $this->call(TestUserSeeder::class);
+        }
     }
 }

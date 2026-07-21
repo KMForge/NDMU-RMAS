@@ -22,12 +22,25 @@ class RolePermissionSeeder extends Seeder
             'system-administrator' => ['research.view-all', 'documents.download', 'defenses.view', 'reports.view', 'reports.export', 'users.manage', 'audit-logs.view', 'settings.manage', 'notifications.broadcast'],
         ];
 
-        collect($matrix)->flatten()->unique()->each(
-            fn (string $name) => Permission::findOrCreate($name, 'web'),
+        $timestamp = now();
+        $permissionNames = collect($matrix)->flatten()->unique()->values();
+
+        Permission::query()->upsert(
+            $permissionNames->map(fn (string $name) => [
+                'name' => $name,
+                'guard_name' => 'web',
+                'created_at' => $timestamp,
+                'updated_at' => $timestamp,
+            ])->all(),
+            ['name', 'guard_name'],
+            ['updated_at'],
         );
 
         foreach ($matrix as $roleName => $permissions) {
-            Role::findOrCreate($roleName, 'web')->syncPermissions($permissions);
+            Role::query()->firstOrCreate([
+                'name' => $roleName,
+                'guard_name' => 'web',
+            ])->syncPermissions($permissions);
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

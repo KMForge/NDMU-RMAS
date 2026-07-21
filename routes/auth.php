@@ -1,11 +1,19 @@
 <?php
 
+use App\Http\Controllers\Authentication\AuthenticatedSessionController;
 use Illuminate\Support\Facades\Route;
 
-// Placeholder authentication views until the full auth flow is implemented.
 Route::view('/login', 'pages.login')
-    ->middleware(['guest', 'throttle:authentication'])
+    ->middleware('guest')
     ->name('login');
+
+Route::post('/login', [AuthenticatedSessionController::class, 'store'])
+    ->middleware(['guest', 'throttle:authentication'])
+    ->name('login.store');
+
+Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
+    ->middleware('auth')
+    ->name('logout');
 
 Route::view('/register', 'pages.register')
     ->middleware(['guest'])
