@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Enums\AccountStatus;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Component;
@@ -12,11 +13,6 @@ use Livewire\WithPagination;
 class AdminDashboard extends Component
 {
     use WithPagination;
-
-    // Navigation states
-    public string $activeTab = 'dashboard';
-
-    public string $userManagementTab = 'all-users';
 
     // Search and filter inputs
     public string $searchQuery = '';
@@ -37,23 +33,9 @@ class AdminDashboard extends Component
     public ?string $successMessage = null;
 
     protected $queryString = [
-        'activeTab' => ['except' => 'dashboard'],
-        'userManagementTab' => ['except' => 'all-users'],
         'searchQuery' => ['except' => ''],
         'selectedRole' => ['except' => ''],
     ];
-
-    public function updatedActiveTab(): void
-    {
-        $this->resetPage();
-        $this->successMessage = null;
-    }
-
-    public function updatedUserManagementTab(): void
-    {
-        $this->resetPage();
-        $this->successMessage = null;
-    }
 
     public function approveStudent(int $userId): void
     {
@@ -68,6 +50,7 @@ class AdminDashboard extends Component
             $user->assignRole('student-researcher');
         }
 
+        Cache::forget('admin-dashboard.overview');
         $this->successMessage = "Student {$user->name} has been approved.";
     }
 
@@ -79,6 +62,7 @@ class AdminDashboard extends Component
             'approved_at' => null,
         ]);
 
+        Cache::forget('admin-dashboard.overview');
         $this->successMessage = "Student {$user->name} registration has been rejected.";
     }
 
@@ -104,33 +88,67 @@ class AdminDashboard extends Component
 
         $user->assignRole($this->role);
 
+        Cache::forget('admin-dashboard.overview');
         $this->successMessage = "Staff account for {$this->name} created successfully.";
 
         $this->reset(['name', 'email', 'role', 'department', 'password']);
-        $this->userManagementTab = 'all-users';
+        $this->dispatch('staff-account-created');
     }
 
     public function render()
     {
-        // Analytics Counts
-        $totalUsersCount = User::count();
-        $pendingApprovalCount = User::where('status', AccountStatus::Pending)
-            ->whereHas('roles', function ($query) {
-                $query->where('name', 'student-researcher');
-            })
-            ->count();
-        $activeAccountsCount = User::where('status', AccountStatus::Active)->count();
-        $rejectedCount = User::where('status', AccountStatus::Rejected)->count();
+        $data = [
+            'totalUsersCount' => 0,
+            'pendingApprovalCount' => 0,
+            'activeAccountsCount' => 0,
+            'rejectedCount' => 0,
+            'studentCount' => 0,
+            'adviserCount' => 0,
+            'panelistCount' => 0,
+            'recentActivities' => [],
+            'usersList' => null,
+            'pendingStudents' => collect(),
+        ];
 
-        // Admin Dashboard Statistics
+        $data = array_merge(
+            $data,
+            $this->dashboardData(),
+            $this->userManagementData(),
+        );
+
+        return view('livewire.admin-dashboard-content', $data);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function dashboardData(): array
+    {
+        return Cache::remember(
+            'admin-dashboard.overview',
+            now()->addSeconds(30),
+            fn (): array => $this->freshDashboardData(),
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function freshDashboardData(): array
+    {
+        $totalUsersCount = User::query()->count();
         $studentCount = User::role('student-researcher')->count();
         $adviserCount = User::role('research-adviser')->count();
         $panelistCount = User::role('panelist')->count();
 
-        // Recent Activity List (Mocked for dashboard, but fetching actual database counts/registrations is premium!)
-        // Let's get the 4 most recently registered users
-        $recentUsers = User::orderBy('created_at', 'desc')->take(4)->get();
+        $recentUsers = User::query()
+            ->with('roles:id,name')
+            ->latest()
+            ->limit(4)
+            ->get();
+
         $recentActivities = [];
+
         foreach ($recentUsers as $user) {
             $roleLabel = $user->roles->first()?->name ?? 'User';
             $roleLabel = str_replace('-', ' ', Str::title($roleLabel));
@@ -158,38 +176,56 @@ class AdminDashboard extends Component
             }
         }
 
-        // Users Query (with Search and Filters)
-        $usersQuery = User::with('roles')
+        return [
+            'totalUsersCount' => $totalUsersCount,
+            'studentCount' => $studentCount,
+            'adviserCount' => $adviserCount,
+            'panelistCount' => $panelistCount,
+            'recentActivities' => $recentActivities,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function userManagementData(): array
+    {
+        $counts = User::query()
+            ->selectRaw(
+                'COUNT(*) AS total_users_count,
+                COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS active_accounts_count,
+                COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS rejected_count',
+                [AccountStatus::Active->value, AccountStatus::Rejected->value],
+            )
+            ->first();
+
+        $pendingStudentsQuery = User::role('student-researcher')
+            ->where('status', AccountStatus::Pending)
+            ->latest();
+
+        $pendingStudents = $pendingStudentsQuery->get();
+
+        $usersList = User::query()
+            ->with('roles:id,name')
             ->when($this->searchQuery, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('name', 'like', '%'.$this->searchQuery.'%')
+                $query->where(function ($query) {
+                    $query->where('name', 'like', '%'.$this->searchQuery.'%')
                         ->orWhere('email', 'like', '%'.$this->searchQuery.'%');
                 });
             })
             ->when($this->selectedRole, function ($query) {
                 $query->role($this->selectedRole);
             })
-            ->orderBy('id', 'asc');
+            ->orderBy('id')
+            ->paginate(10);
 
-        $usersList = $usersQuery->paginate(10);
-
-        // Pending Students Query
-        $pendingStudents = User::role('student-researcher')
-            ->where('status', AccountStatus::Pending)
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return view('livewire.admin-dashboard-content', [
-            'totalUsersCount' => $totalUsersCount,
-            'pendingApprovalCount' => $pendingApprovalCount,
-            'activeAccountsCount' => $activeAccountsCount,
-            'rejectedCount' => $rejectedCount,
-            'studentCount' => $studentCount,
-            'adviserCount' => $adviserCount,
-            'panelistCount' => $panelistCount,
-            'recentActivities' => $recentActivities,
+        return [
+            'totalUsersCount' => (int) $counts->total_users_count,
+            'pendingApprovalCount' => $pendingStudents->count(),
+            'activeAccountsCount' => (int) $counts->active_accounts_count,
+            'rejectedCount' => (int) $counts->rejected_count,
             'usersList' => $usersList,
             'pendingStudents' => $pendingStudents,
-        ]);
+        ];
     }
 }

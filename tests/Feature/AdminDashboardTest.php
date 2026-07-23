@@ -52,9 +52,12 @@ class AdminDashboardTest extends TestCase
         $this->actingAs($admin);
 
         Livewire::test(AdminDashboard::class)
-            ->set('activeTab', 'users')
             ->assertOk()
-            ->assertSee('Administrator');
+            ->assertDontSee('Updating dashboard')
+            ->assertSee('Admin Dashboard')
+            ->assertSee('User Management')
+            ->assertSee('Administrator')
+            ->assertSee('Temporary Password');
     }
 
     public function test_admin_can_approve_pending_student(): void

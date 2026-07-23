@@ -1,10 +1,17 @@
 {{-- Livewire UI rendered by the AdminDashboard component. --}}
-<div class="min-h-screen flex font-sans bg-[#f4f7f6]" x-data="{ 
+<style>[x-cloak] { display: none !important; }</style>
+<div
+    class="min-h-screen flex font-sans bg-[#f4f7f6]"
+    x-data="{
+    activeTab: 'dashboard',
+    userManagementTab: 'all-users',
     showPassword: false,
-    selectedDefense: null 
-}">
+    selectedDefense: null
+}"
+    @staff-account-created.window="activeTab = 'users'; userManagementTab = 'all-users'"
+>
     <!-- Left Sidebar: Navigation -->
-    <aside class="fixed inset-y-0 left-0 w-64 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5">
+    <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5">
         <div class="flex-shrink-0">
             <!-- Logo -->
             <div class="flex items-center gap-3 p-6 border-b border-white/10">
@@ -35,30 +42,30 @@
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
                 
                 <!-- Dashboard Link -->
-                <a href="#" 
-                   wire:click.prevent="$set('activeTab', 'dashboard')"
-                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 {{ $activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]' }}">
+                <button
+                   type="button"
+                   @click="activeTab = 'dashboard'"
+                   :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-squares-four text-lg"></i>
                         <span>Dashboard</span>
                     </div>
-                    @if($activeTab === 'dashboard')
-                        <span class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                    @endif
-                </a>
+                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                </button>
                 
                 <!-- User Management Link -->
-                <a href="#" 
-                   wire:click.prevent="$set('activeTab', 'users')"
-                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 {{ $activeTab === 'users' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]' }}">
+                <button
+                   type="button"
+                   @click="activeTab = 'users'"
+                   :class="activeTab === 'users' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-users text-lg"></i>
                         <span>User Management</span>
                     </div>
-                    @if($activeTab === 'users')
-                        <span class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                    @endif
-                </a>
+                    <span x-show="activeTab === 'users'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                </button>
 
                 <!-- Other navigation links (mocked read-only) -->
                 <a href="#" class="flex items-center justify-between px-3 py-2.5 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200">
@@ -142,7 +149,7 @@
     </aside>
 
     <!-- Main Content Area -->
-    <div class="flex-1 pl-64 flex flex-col min-h-screen">
+    <div class="flex-1 pl-72 flex flex-col min-h-screen">
         <!-- Top Header Navbar -->
         <header class="h-20 bg-white border-b border-gray-150 px-8 flex items-center justify-between sticky top-0 z-10">
             <!-- Search bar -->
@@ -182,7 +189,7 @@
         </header>
 
         <!-- Dynamic Content Body -->
-        <main class="flex-grow p-8 max-w-7xl w-full mx-auto">
+        <main class="flex-grow px-10 py-8 w-full">
             <!-- Alert / Success Notification Banner -->
             @if ($successMessage)
                 <div class="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-center gap-3 shadow-sm animate-fade-in relative" x-data="{ show: true }" x-show="show">
@@ -195,8 +202,7 @@
             @endif
 
             <!-- TAB 1: ADMIN DASHBOARD VIEW -->
-            @if($activeTab === 'dashboard')
-                <div class="space-y-8">
+            <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">
                     <!-- Title Section -->
                     <div>
                         <h1 class="text-3xl font-extrabold font-heading text-gray-800 tracking-tight">Admin Dashboard</h1>
@@ -315,12 +321,10 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            @endif
+            </div>
 
             <!-- TAB 2: USER MANAGEMENT VIEW -->
-            @if($activeTab === 'users')
-                <div class="space-y-8">
+            <div x-show="activeTab === 'users'" x-cloak class="space-y-8">
                     <!-- Title Section -->
                     <div>
                         <h1 class="text-3xl font-extrabold font-heading text-gray-800 tracking-tight">User Management</h1>
@@ -374,42 +378,53 @@
                         </div>
                     </div>
 
-                    <!-- Inner Navigation Tabs -->
-                    <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
-                        <div class="flex border-b border-gray-100 p-4 bg-gray-50/50">
-                            <!-- All Users Tab Button -->
-                            <button 
-                                wire:click.prevent="$set('userManagementTab', 'all-users')"
-                                class="px-6 py-3 text-sm font-bold rounded-xl transition-all duration-300 flex items-center gap-2 {{ $userManagementTab === 'all-users' ? 'bg-[#0e5c3a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100' }}">
-                                All Users
-                                <span class="px-2 py-0.5 rounded-full text-xs font-extrabold {{ $userManagementTab === 'all-users' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600' }}">
-                                    {{ $totalUsersCount }}
-                                </span>
-                            </button>
-
-                            <!-- Pending Students Tab Button -->
-                            <button 
-                                wire:click.prevent="$set('userManagementTab', 'pending-students')"
-                                class="ml-2 px-6 py-3 text-sm font-bold rounded-xl transition-all duration-300 flex items-center gap-2 {{ $userManagementTab === 'pending-students' ? 'bg-[#0e5c3a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100' }}">
-                                Pending Students
-                                <span class="px-2 py-0.5 rounded-full text-xs font-extrabold {{ $userManagementTab === 'pending-students' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-700' }}">
-                                    {{ $pendingApprovalCount }}
-                                </span>
-                            </button>
-
-                            <!-- Create User Tab Button -->
-                            <button 
-                                wire:click.prevent="$set('userManagementTab', 'create-user')"
-                                class="ml-2 px-6 py-3 text-sm font-bold rounded-xl transition-all duration-300 flex items-center gap-2 {{ $userManagementTab === 'create-user' ? 'bg-[#0e5c3a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100' }}">
-                                <i class="ph ph-user-plus text-base"></i> Create User
-                            </button>
-                        </div>
+                        <!-- Inner Navigation Tabs -->
+                        <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
+                            <div class="flex border-b border-gray-200 px-8 pt-6 bg-white gap-6">
+                                <!-- All Users Tab Button -->
+                                <button 
+                                    type="button"
+                                    @click="userManagementTab = 'all-users'"
+                                    :class="userManagementTab === 'all-users' ? 'border-[#0e5c3a] text-[#0e5c3a]' : 'border-transparent text-gray-500 hover:text-gray-800'"
+                                    class="pb-4 border-b-2 text-sm font-extrabold flex items-center gap-2 transition-all duration-200 focus:outline-none -mb-px">
+                                    All Users
+                                    <span
+                                        :class="userManagementTab === 'all-users' ? 'bg-[#0e5c3a] text-white' : 'bg-gray-100 text-gray-600'"
+                                        class="px-2.5 py-0.5 rounded-full text-xs font-extrabold transition-all duration-200"
+                                    >
+                                        {{ $totalUsersCount }}
+                                    </span>
+                                </button>
+    
+                                <!-- Pending Students Tab Button -->
+                                <button 
+                                    type="button"
+                                    @click="userManagementTab = 'pending-students'"
+                                    :class="userManagementTab === 'pending-students' ? 'border-[#0e5c3a] text-[#0e5c3a]' : 'border-transparent text-gray-500 hover:text-gray-800'"
+                                    class="pb-4 border-b-2 text-sm font-extrabold flex items-center gap-2 transition-all duration-200 focus:outline-none -mb-px">
+                                    Pending Students
+                                    <span
+                                        :class="userManagementTab === 'pending-students' ? 'bg-[#0e5c3a] text-white' : 'bg-gray-100 text-gray-600'"
+                                        class="px-2.5 py-0.5 rounded-full text-xs font-extrabold transition-all duration-200"
+                                    >
+                                        {{ $pendingApprovalCount }}
+                                    </span>
+                                </button>
+    
+                                <!-- Create User Tab Button -->
+                                <button 
+                                    type="button"
+                                    @click="userManagementTab = 'create-user'"
+                                    :class="userManagementTab === 'create-user' ? 'border-[#0e5c3a] text-[#0e5c3a]' : 'border-transparent text-gray-500 hover:text-gray-800'"
+                                    class="pb-4 border-b-2 text-sm font-extrabold flex items-center gap-2 transition-all duration-200 focus:outline-none -mb-px">
+                                    <i class="ph ph-user-plus text-base"></i> Create User
+                                </button>
+                            </div>
 
                         <!-- SUB-TAB CONTENT PANEL -->
                         <div class="p-6">
                             <!-- All Users Panel -->
-                            @if($userManagementTab === 'all-users')
-                                <div class="space-y-6">
+                            <div x-show="userManagementTab === 'all-users'" x-cloak class="space-y-6">
                                     <!-- Search & Filter Controls -->
                                     <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
                                         <!-- Search input -->
@@ -418,7 +433,7 @@
                                                 <i class="ph ph-magnifying-glass text-lg"></i>
                                             </span>
                                             <input 
-                                                wire:model.live="searchQuery"
+                                                wire:model.live.debounce.400ms="searchQuery"
                                                 type="text" 
                                                 placeholder="Search by name or email..." 
                                                 class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300"
@@ -542,12 +557,10 @@
                                     <div class="mt-4">
                                         {{ $usersList->links() }}
                                     </div>
-                                </div>
-                            @endif
+                            </div>
 
                             <!-- Pending Students Panel -->
-                            @if($userManagementTab === 'pending-students')
-                                <div class="space-y-6">
+                            <div x-show="userManagementTab === 'pending-students'" x-cloak class="space-y-6">
                                     @forelse($pendingStudents as $student)
                                         <!-- Pending Student Card -->
                                         <div class="p-6 bg-amber-50/30 border border-amber-200/60 rounded-[2rem] flex flex-col md:flex-row md:items-center justify-between gap-6 hover:shadow-sm transition-all duration-300">
@@ -605,12 +618,10 @@
                                             No pending student registrations at the moment.
                                         </div>
                                     @endforelse
-                                </div>
-                            @endif
+                            </div>
 
                             <!-- Create User Form Panel -->
-                            @if($userManagementTab === 'create-user')
-                                <div class="max-w-xl mx-auto py-4">
+                            <div x-show="userManagementTab === 'create-user'" x-cloak class="max-w-xl mx-auto py-4">
                                     <!-- Alert badge -->
                                     <div class="mb-6 p-4 bg-sky-50 border border-sky-100 text-sky-800 rounded-2xl flex gap-3 text-xs leading-relaxed">
                                         <i class="ph ph-info text-lg text-sky-600 flex-shrink-0"></i>
@@ -738,12 +749,10 @@
                                             <i class="ph ph-plus text-base"></i> Create Account
                                         </button>
                                     </form>
-                                </div>
-                            @endif
+                            </div>
                         </div>
                     </div>
-                </div>
-            @endif
+            </div>
         </main>
     </div>
 </div>
