@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Authentication;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Authentication\LoginRequest;
 use App\Models\User;
@@ -23,12 +24,12 @@ class AuthenticatedSessionController extends Controller
             ]);
         }
 
-        $request->session()->regenerate();
-
         /** @var User $user */
         $user = $request->user();
 
-        if (! $user->isActiveAndApproved()) {
+        $role = UserRole::highestFor($user);
+
+        if (! $user->isActiveAndApproved() || $role === null) {
             $this->endSession($request);
 
             throw ValidationException::withMessages([
@@ -36,12 +37,15 @@ class AuthenticatedSessionController extends Controller
             ]);
         }
 
-        $destination = $this->dashboardFor($user);
+        $request->session()->regenerate();
+
+        $destination = route($role->dashboardRoute());
 
         if ($request->expectsJson()) {
             return response()->json([
                 'message' => 'Login successful.',
                 'redirect_url' => $destination,
+                'role' => $role->value,
                 'user' => [
                     'name' => $user->name,
                     'email' => $user->email,
@@ -50,7 +54,7 @@ class AuthenticatedSessionController extends Controller
             ]);
         }
 
-        return redirect()->intended($destination);
+        return redirect()->to($destination);
     }
 
     public function destroy(Request $request): JsonResponse|RedirectResponse
@@ -69,25 +73,5 @@ class AuthenticatedSessionController extends Controller
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-    }
-
-    private function dashboardFor(User $user): string
-    {
-        $routes = [
-            'system-administrator' => 'admin.dashboard',
-            'college-dean' => 'dean.dashboard',
-            'research-facilitator' => 'facilitator.dashboard',
-            'research-adviser' => 'adviser.dashboard',
-            'panelist' => 'panelist.dashboard',
-            'student-researcher' => 'student.dashboard',
-        ];
-
-        foreach ($routes as $role => $route) {
-            if ($user->hasRole($role)) {
-                return route($route);
-            }
-        }
-
-        return route('home');
     }
 }
