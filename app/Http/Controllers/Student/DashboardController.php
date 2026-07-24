@@ -11,6 +11,9 @@ class DashboardController extends Controller
 {
     public function __invoke(Request $request, GetStudentDashboardData $dashboardData): View
     {
-        return view('pages.student-dashboard', $dashboardData->for($request->user()));
+        return view('pages.student-dashboard', $dashboardData->for(
+            $request->user(),
+            $request->query('dashboard_q'),
+        ));
     }
 }

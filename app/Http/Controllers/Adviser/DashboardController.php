@@ -5,14 +5,19 @@ namespace App\Http\Controllers\Adviser;
 use App\Http\Controllers\Controller;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
+use App\Modules\Consultations\Queries\GetAdviserConsultationData;
+use App\Modules\Documents\Queries\GetAdviserDocumentReviewData;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request): View
-    {
+    public function __invoke(
+        Request $request,
+        GetAdviserConsultationData $getConsultationData,
+        GetAdviserDocumentReviewData $getDocumentReviewData,
+    ): View {
         $classes = ResearchClass::query()
             ->where('adviser_id', $request->user()->getKey())
             ->withCount([
@@ -78,6 +83,19 @@ class DashboardController extends Controller
             ->paginate(10, ['*'], 'requests_page')
             ->withQueryString();
 
+        $consultationData = $getConsultationData->for(
+            $request->user(),
+            (string) $request->query('consultation_q', ''),
+            (string) $request->query('consultation_status', 'pending'),
+        );
+
+        $documentReviewData = $getDocumentReviewData->for(
+            $request->user(),
+            (string) $request->query('document_q', ''),
+            (string) $request->query('document_status', 'pending'),
+            $request->integer('document_id') ?: null,
+        );
+
         return view('pages.adviser-dashboard', [
             'area' => 'Research Adviser',
             'adviser' => $request->user(),
@@ -86,6 +104,8 @@ class DashboardController extends Controller
             'requestStats' => $requestStats,
             'requestSearch' => $requestSearch,
             'requestStatus' => $requestStatus,
+            ...$consultationData,
+            ...$documentReviewData,
         ]);
     }
 }

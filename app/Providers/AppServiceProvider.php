@@ -61,8 +61,16 @@ class AppServiceProvider extends ServiceProvider
                 });
         });
 
+        RateLimiter::for('document-reviews', fn (Request $request) => Limit::perMinute(60)->by(
+            'document-review|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
+        ));
+
         RateLimiter::for('consultation-bookings', fn (Request $request) => Limit::perHour(5)->by(
             'consultation-booking|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
+        ));
+
+        RateLimiter::for('consultation-decisions', fn (Request $request) => Limit::perMinute(30)->by(
+            'consultation-decision|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
         ));
 
         RateLimiter::for('class-creation', fn (Request $request) => Limit::perHour(10)->by(

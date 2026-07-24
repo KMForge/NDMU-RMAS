@@ -321,7 +321,10 @@ class ResearchClassWorkflowTest extends TestCase
             ->get(route('student.dashboard', ['tab' => 'classes']))
             ->assertOk()
             ->assertSee($researchClass->name)
-            ->assertDontSee('pending');
+            ->assertViewHas(
+                'classJoinRequests',
+                fn ($requests): bool => $requests->isEmpty(),
+            );
     }
 
     public function test_owning_adviser_can_reject_and_student_can_request_again(): void

@@ -9,14 +9,11 @@
             : (json_decode($researchProject->keywords, true) ?: []);
     }
 
-    $latestProgress = $progressUpdates->sortByDesc('submitted_at')->first();
-    $progressPercentage = (int) round((float) ($latestProgress?->progress_percentage ?? 0));
-    $pendingDocuments = $documents->where('status.value', 'pending')->count();
-    $pendingRevisions = $revisions->whereNotIn('status', ['completed', 'resolved'])->count();
-    $upcomingConsultation = $consultations
-        ->filter(fn ($consultation) => $consultation->next_consultation_at && \Illuminate\Support\Carbon::parse($consultation->next_consultation_at)->isFuture())
-        ->sortBy('next_consultation_at')
-        ->first();
+    $progressPercentage = $dashboardOverview['progress_percentage'];
+    $nextConsultation = $dashboardOverview['next_consultation'];
+    $nextDefense = $dashboardOverview['next_defense'];
+    $nextAction = $dashboardOverview['action_items']->first();
+    $firstName = \Illuminate\Support\Str::before($student->name, ' ');
     $allowedTabs = ['dashboard', 'classes', 'research', 'proposal', 'progress', 'consultation', 'revisions', 'defense', 'evaluations', 'repository', 'forms', 'notifications', 'settings'];
     $initialTab = in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard';
     $showConsultationModal = $errors->hasAny(['consultation', 'request_token', 'preferred_at', 'consultation_mode', 'agenda']);
@@ -124,12 +121,32 @@
 
     <div class="flex-1 flex flex-col min-h-screen pl-72">
         <header class="h-20 bg-white border-b border-gray-150 px-8 flex items-center justify-between sticky top-0 z-10">
-            <p class="text-xs text-gray-500">Authenticated student workspace</p>
+            <form method="GET" action="{{ route('student.dashboard') }}" class="relative w-full max-w-2xl">
+                <input type="hidden" name="tab" value="dashboard">
+                <i class="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input
+                    type="search"
+                    name="dashboard_q"
+                    value="{{ $dashboardSearchQuery }}"
+                    maxlength="100"
+                    placeholder="Search research, documents, classes, or tasks..."
+                    class="w-full h-11 pl-11 pr-4 rounded-2xl border border-gray-200 bg-gray-50 text-xs text-gray-700 focus:outline-none focus:bg-white focus:border-[#0e5c3a]"
+                >
+            </form>
             <div class="flex items-center gap-3">
+                <button type="button" @click="activeTab = 'notifications'" class="w-9 h-9 rounded-full hover:bg-gray-50 text-gray-500 flex items-center justify-center relative">
+                    <i class="ph ph-bell text-lg"></i>
+                    @if ($notifications->whereNull('read_at')->isNotEmpty())
+                        <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 border border-white"></span>
+                    @endif
+                </button>
                 <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-xs">
                     {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($student->name, 0, 1)) }}
                 </div>
-                <span class="font-bold text-xs text-gray-800">{{ $student->name }}</span>
+                <div class="hidden sm:block leading-tight">
+                    <span class="font-bold text-xs text-gray-800 block">{{ $student->name }}</span>
+                    <span class="text-[10px] text-gray-400">Research Portal</span>
+                </div>
             </div>
         </header>
 
@@ -185,49 +202,264 @@
             <section x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h1 class="text-2xl font-bold text-gray-800">Welcome, {{ $student->name }}</h1>
-                        <p class="text-xs text-gray-500 mt-1">Your current research records from the database.</p>
+                        <h1 class="text-3xl font-bold text-gray-900">Welcome Back, {{ $firstName }}!</h1>
+                        <p class="text-sm text-gray-500 mt-1">Here's your research journey overview</p>
                     </div>
-                    <button type="button" data-document-upload-trigger onclick="document.getElementById('student-document-upload-input').click()" class="px-4 py-2.5 bg-[#0e5c3a] text-white text-xs font-bold rounded-xl flex items-center gap-2 disabled:opacity-60">
+                    <button type="button" data-document-upload-trigger onclick="document.getElementById('student-document-upload-input').click()" class="px-5 py-3 bg-[#009b67] hover:bg-[#008558] text-white text-sm font-semibold rounded-xl flex items-center gap-2 shadow-md disabled:opacity-60">
                         <i class="ph ph-upload-simple text-base"></i>
                         <span>Submit Document</span>
                     </button>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    @foreach ([
-                        ['Research Progress', $progressPercentage.'%', 'ph-chart-line-up'],
-                        ['Pending Revisions', $pendingRevisions, 'ph-note-pencil'],
-                        ['Documents', $documents->count(), 'ph-file-text'],
-                        ['Pending Review', $pendingDocuments, 'ph-clock'],
-                    ] as [$label, $value, $icon])
-                        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
-                            <div class="flex justify-between text-gray-400">
-                                <span class="text-[10px] font-bold uppercase tracking-wider">{{ $label }}</span>
-                                <i class="ph {{ $icon }} text-lg"></i>
-                            </div>
-                            <span class="text-3xl font-bold text-gray-850 block mt-4">{{ $value }}</span>
+                @if ($dashboardSearchQuery !== '')
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                        <div class="flex items-center justify-between gap-4">
+                            <h2 class="font-bold text-gray-900">Search results for “{{ $dashboardSearchQuery }}”</h2>
+                            <a href="{{ route('student.dashboard') }}" class="text-xs font-semibold text-[#0e5c3a]">Clear search</a>
                         </div>
-                    @endforeach
+                        <div class="mt-4 divide-y divide-gray-100">
+                            @forelse ($dashboardSearchResults as $result)
+                                <button type="button" @click="activeTab = '{{ $result['tab'] }}'" class="w-full py-3 flex items-center justify-between gap-4 text-left">
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-semibold text-gray-800 truncate">{{ $result['title'] }}</p>
+                                        <p class="text-xs text-gray-500 truncate mt-1">{{ $result['description'] ?: 'No additional details.' }}</p>
+                                    </div>
+                                    <span class="text-[10px] font-bold uppercase text-[#0e5c3a]">{{ $result['type'] }}</span>
+                                </button>
+                            @empty
+                                <p class="py-5 text-sm text-gray-500 text-center">No records matched your search.</p>
+                            @endforelse
+                        </div>
+                    </div>
+                @endif
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-[#08af78] rounded-2xl p-6 shadow-sm text-white">
+                        <div class="flex justify-between items-start">
+                            <span class="text-sm font-medium">Research Progress</span>
+                            <i class="ph ph-trend-up text-2xl text-white/80"></i>
+                        </div>
+                        <span class="text-4xl font-bold block mt-4">{{ $progressPercentage }}%</span>
+                        <p class="text-xs text-white/90 mt-1">
+                            @if ($dashboardOverview['total_milestones'] > 0)
+                                {{ $dashboardOverview['completed_milestones'] }} of {{ $dashboardOverview['total_milestones'] }} milestones completed
+                            @else
+                                No milestones configured
+                            @endif
+                        </p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border-l-4 border-red-500">
+                        <div class="flex justify-between items-start">
+                            <span class="text-sm text-gray-600">Urgent Tasks</span>
+                            <i class="ph ph-warning-circle text-3xl text-red-500"></i>
+                        </div>
+                        <span class="text-3xl font-bold text-gray-900 block mt-4">{{ $dashboardOverview['urgent_task_count'] }}</span>
+                        <p class="text-xs text-red-500 mt-1">
+                            @if ($nextAction && $nextAction['due_at'])
+                                Next due {{ $nextAction['due_at']->diffForHumans() }}
+                            @else
+                                No upcoming deadline
+                            @endif
+                        </p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border-l-4 border-blue-500">
+                        <div class="flex justify-between items-start">
+                            <span class="text-sm text-gray-600">Next Consultation</span>
+                            <i class="ph ph-calendar-blank text-3xl text-blue-500"></i>
+                        </div>
+                        @if ($nextConsultation)
+                            <span class="text-xl font-bold text-gray-900 block mt-5">
+                                {{ $nextConsultation['starts_at']->isToday() ? 'Today' : $nextConsultation['starts_at']->format('M j') }}
+                            </span>
+                            <p class="text-xs text-blue-500 mt-1">
+                                {{ $nextConsultation['starts_at']->format('g:i A') }}
+                                @if ($nextConsultation['adviser_name'])
+                                    with {{ $nextConsultation['adviser_name'] }}
+                                @endif
+                            </p>
+                        @else
+                            <span class="text-xl font-bold text-gray-900 block mt-5">Not scheduled</span>
+                            <p class="text-xs text-gray-400 mt-1">Book a consultation when needed</p>
+                        @endif
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border-l-4 border-purple-500">
+                        <div class="flex justify-between items-start">
+                            <span class="text-sm text-gray-600">Documents</span>
+                            <i class="ph ph-file-text text-3xl text-purple-500"></i>
+                        </div>
+                        <span class="text-3xl font-bold text-gray-900 block mt-4">{{ $dashboardOverview['document_count'] }}</span>
+                        <p class="text-xs text-purple-500 mt-1">{{ $dashboardOverview['pending_document_count'] }} pending review</p>
+                    </div>
                 </div>
 
-                @if ($researchProject)
-                    <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                        <span class="text-[10px] font-bold uppercase text-gray-400">Current Research</span>
-                        <h2 class="font-bold text-lg text-gray-850 mt-2">{{ $researchProject->title }}</h2>
-                        <p class="text-xs text-gray-500 mt-2">{{ \Illuminate\Support\Str::limit($researchProject->abstract ?: 'No abstract has been provided.', 220) }}</p>
-                    </div>
-                @else
-                    <x-student-empty-state message="No research project is associated with your account yet." />
-                @endif
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+                    <div class="xl:col-span-2 space-y-6">
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h2 class="font-bold text-lg text-gray-900">My Research</h2>
+                                <i class="ph ph-book-open text-2xl text-[#00a36c]"></i>
+                            </div>
 
-                @if ($upcomingConsultation)
-                    <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                        <span class="text-[10px] font-bold uppercase text-gray-400">Next Consultation</span>
-                        <p class="font-bold text-gray-800 mt-2">{{ \Illuminate\Support\Carbon::parse($upcomingConsultation->next_consultation_at)->format('M j, Y g:i A') }}</p>
-                        <p class="text-xs text-gray-500 mt-1">{{ $upcomingConsultation->facilitator_name ?: 'Facilitator not assigned' }}</p>
+                            @if ($researchProject)
+                                <div class="rounded-2xl border border-emerald-300 bg-emerald-50 p-6">
+                                    <h3 class="font-bold text-lg text-gray-900">{{ $researchProject->title }}</h3>
+                                    <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                                        <span>ID: {{ $researchProject->id }}</span>
+                                        <span class="px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold">
+                                            {{ \Illuminate\Support\Str::headline($researchProject->status) }}
+                                        </span>
+                                    </div>
+
+                                    <div class="flex items-center justify-between mt-6 text-sm">
+                                        <span class="font-medium text-gray-700">Research Journey Progress</span>
+                                        <span class="font-bold text-emerald-700">{{ $progressPercentage }}%</span>
+                                    </div>
+                                    <div class="h-3 rounded-full bg-white mt-3 overflow-hidden">
+                                        <div class="h-full rounded-full bg-[#00a36c]" style="width: {{ $progressPercentage }}%"></div>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                                        <div class="rounded-xl bg-white p-4">
+                                            <span class="text-[10px] text-gray-500">Adviser</span>
+                                            <p class="font-semibold text-gray-900 mt-1">{{ $adviser?->name ?? 'Not assigned' }}</p>
+                                        </div>
+                                        <div class="rounded-xl bg-white p-4">
+                                            <span class="text-[10px] text-gray-500">Final Defense</span>
+                                            <p class="font-semibold text-gray-900 mt-1">
+                                                {{ $nextDefense?->starts_at ? \Illuminate\Support\Carbon::parse($nextDefense->starts_at)->format('F j, Y') : 'Not scheduled' }}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <button type="button" @click="activeTab = 'research'" class="w-full mt-4 py-3 rounded-xl bg-[#009b67] hover:bg-[#008558] text-white text-sm font-bold shadow">
+                                        View Full Research Details
+                                    </button>
+                                </div>
+                            @else
+                                <x-student-empty-state message="No research project is associated with your account yet." />
+                            @endif
+                        </div>
+
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                            <h2 class="font-bold text-lg text-gray-900 mb-5">Current Milestone</h2>
+                            <div class="space-y-3">
+                                @forelse ($dashboardOverview['current_milestones'] as $milestone)
+                                    @php
+                                        $milestoneComplete = in_array($milestone->status, ['accepted', 'approved', 'completed', 'resolved'], true);
+                                    @endphp
+                                    <button type="button" @click="activeTab = 'progress'" @class([
+                                        'w-full rounded-xl border p-4 flex items-start gap-4 text-left',
+                                        'border-emerald-300 bg-emerald-50' => $milestoneComplete,
+                                        'border-amber-300 bg-amber-50' => ! $milestoneComplete,
+                                    ])>
+                                        <i @class([
+                                            'ph text-2xl mt-0.5',
+                                            'ph-check-circle text-emerald-600' => $milestoneComplete,
+                                            'ph-target text-amber-500' => ! $milestoneComplete,
+                                        ])></i>
+                                        <span class="min-w-0">
+                                            <span class="font-semibold text-gray-900 block">{{ $milestone->name }}</span>
+                                            <span class="text-xs text-gray-600 block mt-1">
+                                                {{ $milestoneComplete ? 'Successfully completed' : ($milestone->status ? \Illuminate\Support\Str::headline($milestone->status) : 'Not started') }}
+                                                @if ($milestone->due_at)
+                                                    · Due {{ \Illuminate\Support\Carbon::parse($milestone->due_at)->format('M j, Y') }}
+                                                @endif
+                                            </span>
+                                            @if ($milestone->feedback)
+                                                <span class="text-xs text-emerald-700 block mt-1">{{ $milestone->feedback }}</span>
+                                            @endif
+                                        </span>
+                                    </button>
+                                @empty
+                                    <x-student-empty-state message="No research milestones are configured yet." />
+                                @endforelse
+                            </div>
+                        </div>
                     </div>
-                @endif
+
+                    <div class="space-y-6">
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                            <h2 class="font-bold text-lg text-gray-900 flex items-center gap-2">
+                                <i class="ph ph-warning-circle text-red-500"></i>
+                                Action Required
+                            </h2>
+                            <div class="space-y-3 mt-5">
+                                @forelse ($dashboardOverview['action_items'] as $item)
+                                    <button type="button" @click="activeTab = '{{ $item['tab'] }}'" @class([
+                                        'w-full border-l-4 rounded-r-lg p-3 text-left',
+                                        'border-red-500 bg-red-50' => $item['type'] === 'revision',
+                                        'border-amber-500 bg-amber-50' => $item['type'] !== 'revision',
+                                    ])>
+                                        <span class="font-semibold text-sm text-gray-900 block">{{ $item['title'] }}</span>
+                                        <span class="text-xs text-gray-600 block mt-1">
+                                            {{ $item['due_at'] ? 'Due '.$item['due_at']->diffForHumans() : \Illuminate\Support\Str::limit($item['description'] ?: 'Action required', 70) }}
+                                        </span>
+                                    </button>
+                                @empty
+                                    <p class="text-sm text-gray-500 py-5 text-center">No actions require your attention.</p>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        <div class="rounded-2xl p-6 shadow-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                            <h2 class="font-bold text-lg flex items-center gap-2">
+                                <i class="ph ph-chat-circle"></i>
+                                {{ $nextConsultation && $nextConsultation['starts_at']->isToday() ? "Today's Consultation" : 'Upcoming Consultation' }}
+                            </h2>
+                            @if ($nextConsultation)
+                                <div class="rounded-xl bg-blue-600/70 p-4 mt-4">
+                                    <p class="font-bold">{{ $nextConsultation['adviser_name'] ?? 'Research Adviser' }}</p>
+                                    <p class="text-xs text-blue-100 mt-2">{{ \Illuminate\Support\Str::headline((string) $nextConsultation['mode']) }}</p>
+                                    <p class="text-sm mt-3">
+                                        <i class="ph ph-clock mr-1"></i>
+                                        {{ $nextConsultation['starts_at']->format('M j, g:i A') }}
+                                    </p>
+                                    <p class="text-xs text-blue-100 mt-2">
+                                        {{ $nextConsultation['location'] ?: ($nextConsultation['meeting_url'] ? 'Online meeting' : 'Location to be confirmed') }}
+                                    </p>
+                                </div>
+                                <button type="button" @click="activeTab = 'consultation'" class="w-full mt-4 py-3 bg-white text-blue-600 text-sm font-semibold rounded-xl">
+                                    View All Consultations
+                                </button>
+                            @else
+                                <p class="text-sm text-blue-100 mt-4">No upcoming consultation is scheduled.</p>
+                                <button type="button" @click="activeTab = 'consultation'; showConsultationModal = true" class="w-full mt-4 py-3 bg-white text-blue-600 text-sm font-semibold rounded-xl">
+                                    Book Consultation
+                                </button>
+                            @endif
+                        </div>
+
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                            <h2 class="font-bold text-lg text-gray-900">Recent Updates</h2>
+                            <div class="divide-y divide-gray-100 mt-4">
+                                @forelse ($dashboardOverview['recent_updates'] as $update)
+                                    <button type="button" @click="activeTab = '{{ $update['tab'] }}'" class="w-full py-3 flex items-start gap-3 text-left">
+                                        <span class="w-9 h-9 rounded-full bg-emerald-50 text-[#009b67] flex items-center justify-center flex-shrink-0">
+                                            <i @class([
+                                                'ph',
+                                                'ph-chart-line-up' => $update['type'] === 'progress',
+                                                'ph-file-text' => $update['type'] === 'document',
+                                                'ph-note-pencil' => $update['type'] === 'revision',
+                                                'ph-chat-circle' => $update['type'] === 'consultation',
+                                            ])></i>
+                                        </span>
+                                        <span class="min-w-0">
+                                            <span class="text-sm font-semibold text-gray-800 truncate block">{{ $update['title'] }}</span>
+                                            <span class="text-xs text-gray-500 block mt-1">
+                                                {{ $update['description'] }} · {{ $update['occurred_at']->diffForHumans() }}
+                                            </span>
+                                        </span>
+                                    </button>
+                                @empty
+                                    <p class="text-sm text-gray-500 py-5 text-center">No recent updates yet.</p>
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <section x-show="activeTab === 'classes'" x-cloak class="space-y-8">

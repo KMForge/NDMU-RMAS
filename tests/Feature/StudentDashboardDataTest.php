@@ -114,11 +114,83 @@ class StudentDashboardDataTest extends TestCase
         $this->actingAs($student)
             ->get(route('student.dashboard'))
             ->assertOk()
+            ->assertViewHas('dashboardOverview', fn (array $overview): bool => $overview['document_count'] === 1
+                && $overview['pending_document_count'] === 1)
             ->assertSee('2.0 KB')
             ->assertSee('Official Forms')
             ->assertSee('Book Consultation')
             ->assertSee('Notifications')
             ->assertSee('Settings');
+
+        $this->actingAs($student)
+            ->get(route('student.dashboard', ['dashboard_q' => 'research-paper']))
+            ->assertOk()
+            ->assertViewHas(
+                'dashboardSearchResults',
+                fn ($results): bool => $results->count() === 1
+                    && $results->first()['title'] === 'research-paper.pdf',
+            )
+            ->assertSee('Search results for')
+            ->assertSee('research-paper.pdf');
+    }
+
+    public function test_dashboard_calculates_progress_from_real_milestone_records(): void
+    {
+        $student = $this->student('Milestone Student');
+        $this->createProgressTables();
+
+        DB::table('research_groups')->insert([
+            'id' => 30,
+            'program_id' => 5,
+            'academic_term_id' => 8,
+        ]);
+
+        $projectId = $this->attachProject(
+            $student,
+            30,
+            'Milestone Based Research',
+            'Progress is calculated from database milestones.',
+        );
+
+        $completedMilestoneId = DB::table('research_milestones')->insertGetId([
+            'academic_term_id' => 8,
+            'program_id' => 5,
+            'name' => 'Proposal Defense',
+            'description' => 'Complete the proposal defense.',
+            'due_at' => now()->subDay(),
+            'sequence' => 1,
+            'is_required' => true,
+        ]);
+        DB::table('research_milestones')->insert([
+            'academic_term_id' => 8,
+            'program_id' => 5,
+            'name' => 'Data Gathering',
+            'description' => 'Gather approved research data.',
+            'due_at' => now()->addWeek(),
+            'sequence' => 2,
+            'is_required' => true,
+        ]);
+        DB::table('research_progress_updates')->insert([
+            'research_project_id' => $projectId,
+            'milestone_id' => $completedMilestoneId,
+            'submitted_by' => $student->getKey(),
+            'version' => 1,
+            'status' => 'approved',
+            'progress_percentage' => 50,
+            'summary' => 'Proposal defense completed.',
+            'submitted_at' => now(),
+        ]);
+
+        $this->actingAs($student)
+            ->get(route('student.dashboard'))
+            ->assertOk()
+            ->assertViewHas('dashboardOverview', fn (array $overview): bool => $overview['progress_percentage'] === 50
+                && $overview['completed_milestones'] === 1
+                && $overview['total_milestones'] === 2
+                && $overview['urgent_task_count'] === 1)
+            ->assertSee('1 of 2 milestones completed')
+            ->assertSee('Proposal Defense')
+            ->assertSee('Data Gathering');
     }
 
     private function student(string $name): User
@@ -129,7 +201,7 @@ class StudentDashboardDataTest extends TestCase
         return $student;
     }
 
-    private function attachProject(User $student, int $groupId, string $title, string $abstract): void
+    private function attachProject(User $student, int $groupId, string $title, string $abstract): int
     {
         $profileId = DB::table('student_profiles')->insertGetId([
             'user_id' => $student->getKey(),
@@ -143,7 +215,7 @@ class StudentDashboardDataTest extends TestCase
             'joined_at' => now(),
         ]);
 
-        DB::table('research_projects')->insert([
+        return DB::table('research_projects')->insertGetId([
             'research_group_id' => $groupId,
             'title' => $title,
             'abstract' => $abstract,
@@ -154,5 +226,42 @@ class StudentDashboardDataTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+    }
+
+    private function createProgressTables(): void
+    {
+        Schema::create('research_groups', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('program_id');
+            $table->unsignedBigInteger('academic_term_id');
+        });
+
+        Schema::create('research_milestones', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('academic_term_id');
+            $table->unsignedBigInteger('program_id');
+            $table->string('name');
+            $table->text('description')->nullable();
+            $table->timestamp('due_at')->nullable();
+            $table->unsignedInteger('sequence');
+            $table->boolean('is_required')->default(true);
+        });
+
+        Schema::create('research_progress_updates', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('research_project_id');
+            $table->unsignedBigInteger('milestone_id');
+            $table->foreignId('submitted_by');
+            $table->foreignId('reviewed_by')->nullable();
+            $table->unsignedBigInteger('evidence_document_id')->nullable();
+            $table->unsignedInteger('version');
+            $table->string('status');
+            $table->unsignedSmallInteger('progress_percentage');
+            $table->text('summary')->nullable();
+            $table->text('feedback')->nullable();
+            $table->timestamp('submitted_at')->nullable();
+            $table->timestamp('reviewed_at')->nullable();
+            $table->timestamps();
+        });
     }
 }

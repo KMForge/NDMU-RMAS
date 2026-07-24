@@ -26,6 +26,11 @@ class ConsultationRequest extends Model
         return $this->belongsTo(User::class, 'requested_by');
     }
 
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
     protected function casts(): array
     {
         return [

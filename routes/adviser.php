@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Adviser\ClassJoinRequestController;
+use App\Http\Controllers\Adviser\ConsultationController;
 use App\Http\Controllers\Adviser\DashboardController;
+use App\Http\Controllers\Adviser\DocumentReviewController;
 use App\Http\Controllers\Adviser\ResearchClassController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,5 +28,30 @@ Route::prefix('adviser')->name('adviser.')->middleware([
                 ->name('classes.join-requests.approve');
             Route::patch('/reject', [ClassJoinRequestController::class, 'reject'])
                 ->name('classes.join-requests.reject');
+        });
+
+    Route::prefix('/consultations/{consultationRequest}')
+        ->whereNumber('consultationRequest')
+        ->middleware(['permission:consultations.manage-assigned', 'throttle:consultation-decisions'])
+        ->group(function (): void {
+            Route::post('/complete', [ConsultationController::class, 'complete'])
+                ->name('consultations.complete');
+            Route::patch('/approve', [ConsultationController::class, 'approve'])
+                ->name('consultations.approve');
+            Route::patch('/reject', [ConsultationController::class, 'reject'])
+                ->name('consultations.reject');
+        });
+
+    Route::prefix('/documents/{document}')
+        ->whereNumber('document')
+        ->middleware(['permission:documents.review', 'throttle:document-reviews'])
+        ->group(function (): void {
+            Route::post('/comments', [DocumentReviewController::class, 'comment'])
+                ->name('documents.comments.store');
+            Route::patch('/comments/{comment}/resolve', [DocumentReviewController::class, 'resolve'])
+                ->whereNumber('comment')
+                ->name('documents.comments.resolve');
+            Route::patch('/review', [DocumentReviewController::class, 'review'])
+                ->name('documents.review');
         });
 });
