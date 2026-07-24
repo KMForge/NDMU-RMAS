@@ -20,12 +20,13 @@
     $allowedTabs = ['dashboard', 'classes', 'research', 'proposal', 'progress', 'consultation', 'revisions', 'defense', 'evaluations', 'repository', 'forms', 'notifications', 'settings'];
     $initialTab = in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard';
     $showConsultationModal = $errors->hasAny(['consultation', 'request_token', 'preferred_at', 'consultation_mode', 'agenda']);
+    $showJoinClassModal = $errors->hasAny(['class', 'join_code']);
 @endphp
 
 @section('content')
 <style>[x-cloak] { display: none !important; }</style>
 
-<div class="min-h-screen flex font-sans bg-[#f4f7f6]" x-data="{ activeTab: @js($initialTab), showConsultationModal: @js($showConsultationModal) }">
+<div class="min-h-screen flex font-sans bg-[#f4f7f6]" x-data="{ activeTab: @js($initialTab), showConsultationModal: @js($showConsultationModal), showJoinClassModal: @js($showJoinClassModal) }">
     <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col z-20 border-r border-white/5">
         <div class="flex items-center gap-3 p-6 border-b border-white/10">
             <div class="p-1 bg-white/10 rounded-xl border border-white/20">
@@ -169,6 +170,18 @@
                 </div>
             @endif
 
+            @if (session('class_success'))
+                <div role="status" class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    {{ session('class_success') }}
+                </div>
+            @endif
+
+            @if ($errors->has('class'))
+                <div role="alert" class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {{ $errors->first('class') }}
+                </div>
+            @endif
+
             <section x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">
                 <div class="flex items-center justify-between">
                     <div>
@@ -218,8 +231,38 @@
             </section>
 
             <section x-show="activeTab === 'classes'" x-cloak class="space-y-8">
-                <x-student-section-heading title="My Classes" description="Classes associated with your student account." />
-                <x-student-empty-state message="No class-management records are available in the current database schema." />
+                <div class="flex items-center justify-between gap-4">
+                    <x-student-section-heading title="My Classes" description="Research classes joined by your account." />
+                    <button
+                        type="button"
+                        @click="showJoinClassModal = true"
+                        class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2"
+                    >
+                        <i class="ph ph-plus-circle text-base"></i>
+                        <span>Join Class</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @forelse ($classes as $class)
+                        <article class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
+                            <div>
+                                <h2 class="font-bold text-gray-800 text-sm">{{ $class->name }}</h2>
+                                <p class="text-[11px] text-gray-500 mt-1">Adviser: {{ $class->adviser_name }}</p>
+                            </div>
+                            @if ($class->description)
+                                <p class="text-xs text-gray-500 leading-6">{{ $class->description }}</p>
+                            @endif
+                            <p class="text-[10px] text-gray-400 pt-3 border-t border-gray-100">
+                                Joined {{ \Illuminate\Support\Carbon::parse($class->joined_at)->diffForHumans() }}
+                            </p>
+                        </article>
+                    @empty
+                        <div class="md:col-span-2 lg:col-span-3">
+                            <x-student-empty-state message="You have not joined a research class yet." />
+                        </div>
+                    @endforelse
+                </div>
             </section>
 
             <section x-show="activeTab === 'research'" x-cloak class="space-y-8">
@@ -529,6 +572,52 @@
                     </button>
                     <button type="submit" class="px-4 py-2.5 bg-[#009b67] hover:bg-[#008558] text-white text-xs font-bold rounded-xl">
                         Submit Request
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div x-show="showJoinClassModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/50" @click="showJoinClassModal = false"></div>
+        <div class="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden" @click.stop>
+            <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+                <div>
+                    <h2 class="font-bold text-lg text-gray-850">Join Research Class</h2>
+                    <p class="text-xs text-gray-500 mt-1">Enter the code provided by your adviser.</p>
+                </div>
+                <button type="button" @click="showJoinClassModal = false" class="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-500">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+
+            <form method="POST" action="{{ route('student.classes.join') }}" class="p-6 space-y-5">
+                @csrf
+                <div>
+                    <label for="join_code" class="text-xs font-bold text-gray-700 block mb-2">Class code</label>
+                    <input
+                        id="join_code"
+                        name="join_code"
+                        type="text"
+                        value="{{ old('join_code') }}"
+                        minlength="5"
+                        maxlength="16"
+                        autocomplete="off"
+                        required
+                        placeholder="Enter class code"
+                        class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm uppercase tracking-widest focus:border-[#0e5c3a] focus:outline-none"
+                    >
+                    @error('join_code')
+                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button type="button" @click="showJoinClassModal = false" class="px-4 py-2.5 border border-gray-200 text-gray-700 text-xs font-bold rounded-xl">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl">
+                        Join Class
                     </button>
                 </div>
             </form>

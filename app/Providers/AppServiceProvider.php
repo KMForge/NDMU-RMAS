@@ -64,5 +64,13 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('consultation-bookings', fn (Request $request) => Limit::perHour(5)->by(
             'consultation-booking|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
         ));
+
+        RateLimiter::for('class-creation', fn (Request $request) => Limit::perHour(10)->by(
+            'class-creation|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
+        ));
+
+        RateLimiter::for('class-joining', fn (Request $request) => Limit::perMinute(10)->by(
+            'class-joining|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
+        ));
     }
 }

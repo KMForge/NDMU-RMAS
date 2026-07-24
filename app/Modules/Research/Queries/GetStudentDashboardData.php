@@ -76,6 +76,8 @@ class GetStudentDashboardData
             ? $user->notifications()->latest()->limit(25)->get()
             : $empty;
 
+        $classes = $this->classesFor($user);
+
         return [
             'area' => 'Student Researcher',
             'student' => $user,
@@ -93,7 +95,7 @@ class GetStudentDashboardData
             'evaluations' => $evaluations,
             'documents' => $documents,
             'notifications' => $notifications,
-            'classes' => $empty,
+            'classes' => $classes,
         ];
     }
 
@@ -303,6 +305,33 @@ class GetStudentDashboardData
                 'evaluations.*',
                 'defense_requests.defense_type',
                 'defense_schedules.starts_at',
+            ])
+            ->get();
+    }
+
+    /**
+     * @return Collection<int, object>
+     */
+    private function classesFor(User $user): Collection
+    {
+        if (! $this->tablesExist(['research_classes', 'research_class_enrollments', 'users'])) {
+            return collect();
+        }
+
+        return DB::table('research_class_enrollments as enrollments')
+            ->join('research_classes as classes', 'classes.id', '=', 'enrollments.research_class_id')
+            ->join('users as advisers', 'advisers.id', '=', 'classes.adviser_id')
+            ->where('enrollments.student_id', $user->getKey())
+            ->where('enrollments.status', 'active')
+            ->where('classes.is_active', true)
+            ->latest('enrollments.joined_at')
+            ->select([
+                'classes.id',
+                'classes.name',
+                'classes.description',
+                'classes.max_students',
+                'advisers.name as adviser_name',
+                'enrollments.joined_at',
             ])
             ->get();
     }

@@ -1,5 +1,10 @@
 @extends('layouts.blank')
 
+@php
+    $initialTab = request()->query('tab') === 'classes' ? 'classes' : 'dashboard';
+    $showClassModal = $errors->hasAny(['class', 'creation_token', 'name', 'description', 'join_code', 'max_students']);
+@endphp
+
 @section('content')
 <style>
     [x-cloak] { display: none !important; }
@@ -20,9 +25,9 @@
 </style>
 
 <div class="min-h-screen flex font-sans bg-[#f4f7f6]" x-data="{ 
-    activeTab: 'dashboard',
+    activeTab: @js($initialTab),
     notificationsFilter: 'all',
-    showClassModal: false,
+    showClassModal: @js($showClassModal),
     showConsultationModal: false,
     selectedNotification: null,
     
@@ -115,12 +120,6 @@
         }
     ],
 
-    classes: [
-        { code: 'CS-401', name: 'Software Engineering Capstone', students: 12, submissions: 3 },
-        { code: 'IT-402', name: 'Information Technology Project', students: 8, submissions: 1 },
-        { code: 'CS-402', name: 'Artificial Intelligence Research', students: 6, submissions: 2 }
-    ],
-
     assignedResearchers: [
         { name: 'Juan Dela Cruz', project: 'AI-Powered Traffic Management System', status: 'Data Gathering', progress: 65, avatar: 'J' },
         { name: 'Maria Clara Santos', project: 'Blockchain-Based Voting System', status: 'Final Defense Prep', progress: 82, avatar: 'M' },
@@ -144,10 +143,10 @@
             <!-- Profile Badge -->
             <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
                 <div class="w-10 h-10 rounded-full bg-[#eebc3f] text-[#0e5c3a] font-bold flex items-center justify-center text-lg flex-shrink-0">
-                    D
+                    {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($adviser->name, 0, 1)) }}
                 </div>
                 <div class="flex flex-col leading-tight overflow-hidden">
-                    <span class="font-semibold text-sm text-white truncate">Dr. Reyna Garcia</span>
+                    <span class="font-semibold text-sm text-white truncate">{{ $adviser->name }}</span>
                     <span class="text-[10px] text-white/60 font-medium mt-0.5">Research Adviser</span>
                 </div>
             </div>
@@ -414,6 +413,18 @@
 
         <!-- Main Body Content -->
         <main class="flex-grow p-8">
+            @if (session('class_success'))
+                <div role="status" class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    {{ session('class_success') }}
+                </div>
+            @endif
+
+            @if ($errors->has('class'))
+                <div role="alert" class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {{ $errors->first('class') }}
+                </div>
+            @endif
+
             
             <!-- TAB: Dashboard (Active Default) -->
             <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">
@@ -886,7 +897,7 @@
                 </div>
             </div>
 
-            <!-- TAB: Classes Mockup -->
+            <!-- TAB: Classes -->
             <div x-show="activeTab === 'classes'" x-cloak class="space-y-8">
                 <div class="flex justify-between items-center">
                     <div>
@@ -900,22 +911,29 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <template x-for="c in classes">
+                    @forelse ($researchClasses as $researchClass)
                         <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4 hover:border-gray-200 transition-all">
                             <div class="flex justify-between items-start">
-                                <span class="px-3 py-1 bg-amber-50 text-amber-700 text-[10px] font-extrabold rounded-full" x-text="c.code">CODE-101</span>
+                                <span class="px-3 py-1 bg-amber-50 text-amber-700 text-[10px] font-extrabold rounded-full">{{ $researchClass->revealJoinCode() }}</span>
                                 <i class="ph ph-dots-three-vertical text-gray-400 text-lg"></i>
                             </div>
                             <div>
-                                <h3 class="font-bold text-gray-800 text-sm" x-text="c.name">Class Name</h3>
-                                <p class="text-[11px] text-gray-400 mt-1">2026 Academic Year</p>
+                                <h3 class="font-bold text-gray-800 text-sm">{{ $researchClass->name }}</h3>
+                                @if ($researchClass->description)
+                                    <p class="text-[11px] text-gray-400 mt-1">{{ $researchClass->description }}</p>
+                                @endif
                             </div>
                             <div class="flex justify-between items-center pt-4 border-t border-gray-50 text-xs">
-                                <span class="text-gray-500 font-semibold" x-text="`${c.students} Students`">12 Students</span>
-                                <span class="text-amber-600 font-bold" x-text="`${c.submissions} Submissions`">3 Submissions</span>
+                                <span class="text-gray-500 font-semibold">{{ $researchClass->active_students_count }} Students</span>
+                                <span class="text-amber-600 font-bold">Limit: {{ $researchClass->max_students }}</span>
                             </div>
                         </div>
-                    </template>
+                    @empty
+                        <div class="md:col-span-3 bg-white rounded-3xl p-10 border border-gray-100 shadow-sm text-center">
+                            <i class="ph ph-chalkboard-teacher text-3xl text-gray-300"></i>
+                            <p class="text-sm text-gray-500 mt-3">You have not created a research class yet.</p>
+                        </div>
+                    @endforelse
                 </div>
             </div>
 
@@ -968,7 +986,7 @@
         </div>
     </div>
 
-    <!-- Create Class Modal Mockup -->
+    <!-- Create Class Modal -->
     <div x-show="showClassModal" x-transition x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
         <div @click.away="showClassModal = false" class="bg-white rounded-3xl w-full max-w-md p-6 shadow-xl space-y-4">
             <div class="flex justify-between items-start">
@@ -978,24 +996,49 @@
                 </button>
             </div>
             <hr class="border-gray-100">
-            <div class="space-y-4">
+            <form method="POST" action="{{ route('adviser.classes.store') }}" class="space-y-4">
+                @csrf
+                <input type="hidden" name="creation_token" value="{{ old('creation_token', (string) Illuminate\Support\Str::uuid()) }}">
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1.5">Class Name</label>
-                    <input type="text" placeholder="e.g. Software Engineering Capstone" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
+                    <label for="class_name" class="block text-xs font-bold text-gray-600 mb-1.5">Class Name</label>
+                    <input id="class_name" name="name" type="text" value="{{ old('name') }}" minlength="3" maxlength="120" required placeholder="e.g. Software Engineering Capstone" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
+                    @error('name')
+                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1.5">Class Code</label>
-                    <input type="text" placeholder="e.g. CS-401" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
+                    <label for="class_description" class="block text-xs font-bold text-gray-600 mb-1.5">Description</label>
+                    <textarea id="class_description" name="description" rows="3" maxlength="1000" placeholder="Optional class description" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all resize-none">{{ old('description') }}</textarea>
+                    @error('description')
+                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
-            </div>
-            <div class="pt-4 flex justify-end gap-3">
-                <button @click="showClassModal = false" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors cursor-pointer">
-                    Cancel
-                </button>
-                <button @click="alert('Class created successfully! (Mock)'); showClassModal = false" class="px-4 py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md transition-colors cursor-pointer">
-                    Create
-                </button>
-            </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="class_code" class="block text-xs font-bold text-gray-600 mb-1.5">Class Code</label>
+                        <input id="class_code" name="join_code" type="text" value="{{ old('join_code') }}" minlength="6" maxlength="16" autocomplete="off" placeholder="Auto-generate" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs uppercase text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
+                        @error('join_code')
+                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="max_students" class="block text-xs font-bold text-gray-600 mb-1.5">Student Limit</label>
+                        <input id="max_students" name="max_students" type="number" value="{{ old('max_students', 50) }}" min="1" max="100" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
+                        @error('max_students')
+                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+                <p class="text-[10px] text-gray-400">Leave the class code blank to generate a secure 8-character code.</p>
+                <div class="pt-4 flex justify-end gap-3">
+                    <button type="button" @click="showClassModal = false" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors cursor-pointer">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md transition-colors cursor-pointer">
+                        Create
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 

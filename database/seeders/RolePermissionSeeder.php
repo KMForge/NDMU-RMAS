@@ -14,8 +14,8 @@ class RolePermissionSeeder extends Seeder
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $matrix = [
-            'student-researcher' => ['research.view-own', 'research.create', 'research.update-own', 'proposal.submit', 'documents.upload', 'documents.download', 'consultations.request', 'revisions.resolve', 'defenses.view', 'evaluations.view-own'],
-            'research-adviser' => ['research.view-assigned', 'proposal.review', 'documents.review', 'documents.download', 'revisions.create', 'revisions.resolve', 'defenses.view', 'evaluations.view-assigned'],
+            'student-researcher' => ['research.view-own', 'research.create', 'research.update-own', 'proposal.submit', 'documents.upload', 'documents.download', 'consultations.request', 'classes.join', 'classes.view-enrolled', 'revisions.resolve', 'defenses.view', 'evaluations.view-own'],
+            'research-adviser' => ['research.view-assigned', 'proposal.review', 'documents.review', 'documents.download', 'consultations.manage-assigned', 'classes.create', 'classes.view-own', 'revisions.create', 'revisions.resolve', 'defenses.view', 'evaluations.view-assigned'],
             'panelist' => ['research.view-assigned', 'documents.download', 'defenses.view', 'evaluations.create', 'evaluations.view-own', 'evaluations.view-assigned'],
             'research-facilitator' => ['research.view-all', 'proposal.review', 'proposal.approve', 'documents.review', 'documents.download', 'revisions.create', 'defenses.view', 'defenses.manage', 'evaluations.view-assigned', 'reports.view', 'reports.export', 'notifications.broadcast'],
             'college-dean' => ['research.view-college', 'research.approve', 'proposal.approve', 'documents.download', 'defenses.view', 'evaluations.view-assigned', 'reports.view', 'reports.export'],
