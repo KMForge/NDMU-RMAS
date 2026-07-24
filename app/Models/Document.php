@@ -25,6 +25,22 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Hidden(['submission_token', 'stored_filename', 'storage_disk', 'storage_path', 'content_sha256'])]
 class Document extends Model
 {
+    public function formattedFileSize(): string
+    {
+        $size = max(0, (int) $this->file_size);
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $unit = 0;
+
+        while ($size >= 1024 && $unit < count($units) - 1) {
+            $size /= 1024;
+            $unit++;
+        }
+
+        $precision = $unit === 0 ? 0 : 1;
+
+        return number_format($size, $precision).' '.$units[$unit];
+    }
+
     /**
      * @return BelongsTo<User, $this>
      */

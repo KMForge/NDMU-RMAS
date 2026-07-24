@@ -60,5 +60,9 @@ class AppServiceProvider extends ServiceProvider
                         ->with('document_error', $message);
                 });
         });
+
+        RateLimiter::for('consultation-bookings', fn (Request $request) => Limit::perHour(5)->by(
+            'consultation-booking|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
+        ));
     }
 }

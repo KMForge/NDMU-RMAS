@@ -2,6 +2,7 @@
 
 return [
     'institution' => 'Notre Dame of Marbel University',
+    'timezone' => env('INSTITUTION_TIMEZONE', 'Asia/Manila'),
     'document' => [
         'max_upload_kilobytes' => (int) env('DOCUMENT_MAX_UPLOAD_KB', 10240),
         'storage_disk' => env('DOCUMENT_STORAGE_DISK', 'local'),
