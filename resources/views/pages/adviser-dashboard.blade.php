@@ -937,8 +937,23 @@
                 </div>
             </div>
 
+            <!-- TAB: Settings -->
+            <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
+                @include('partials.settings', [
+                    'avatarInitials' => 'D',
+                    'userName' => 'Dr. Reyna Garcia',
+                    'emailAddress' => 'r.garcia@ndmu.edu.ph',
+                    'userRole' => 'Research Adviser',
+                    'userRoleBadge' => 'RESEARCH ADVISER',
+                    'department' => 'College of Information Technology',
+                    'userId' => 'ADV-2015-0002',
+                    'portalType' => 'Faculty Portal',
+                    'accessLevel' => 'Faculty & Guidance Access'
+                ])
+            </div>
+
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'classes'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'classes', 'settings'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
