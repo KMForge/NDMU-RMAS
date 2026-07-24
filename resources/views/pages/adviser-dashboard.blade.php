@@ -20,7 +20,7 @@
 </style>
 
 <div class="min-h-screen flex font-sans bg-[#f4f7f6]" x-data="{ 
-    activeTab: 'notifications',
+    activeTab: 'dashboard',
     notificationsFilter: 'all',
     showClassModal: false,
     showConsultationModal: false,
@@ -92,7 +92,7 @@
             isNew: false,
             badge: 'Approval',
             badgeClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700',
-            description: 'You endorsed the proposal \"Smart Agriculture IoT Platform\" for defense scheduling.',
+            description: 'You endorsed the proposal “Smart Agriculture IoT Platform” for defense scheduling.',
             time: '2 days ago',
             icon: 'ph ph-check-square',
             iconBg: 'bg-emerald-50 text-emerald-600',
@@ -122,9 +122,9 @@
     ],
 
     assignedResearchers: [
-        { name: 'Maria Santos', project: 'AI-Powered Traffic Management', status: 'Chapter 3 Review', avatar: 'M' },
-        { name: 'Carlo Bautista', project: 'Blockchain Voting Protocols', status: 'Revision Phase', avatar: 'C' },
-        { name: 'Sofia Vergara', project: 'Smart Crop Health Sensor Network', status: 'Chapter 1 Draft', avatar: 'S' }
+        { name: 'Juan Dela Cruz', project: 'AI-Powered Traffic Management System', status: 'Data Gathering', progress: 65, avatar: 'J' },
+        { name: 'Maria Clara Santos', project: 'Blockchain-Based Voting System', status: 'Final Defense Prep', progress: 82, avatar: 'M' },
+        { name: 'Ana Rodriguez', project: 'Mobile Health Monitoring App', status: 'Data Analysis', progress: 58, avatar: 'A' }
     ]
 }">
     <!-- Left Sidebar: Navigation -->
@@ -415,7 +415,274 @@
         <!-- Main Body Content -->
         <main class="flex-grow p-8">
             
-            <!-- TAB: Notifications Center (Active Default) -->
+            <!-- TAB: Dashboard (Active Default) -->
+            <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">
+                <!-- Header / Breadcrumbs & Buttons -->
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h1 class="text-2xl font-bold font-heading text-gray-800 animate-fade-in">Adviser Dashboard</h1>
+                        <p class="text-xs text-gray-450 mt-1">Monitor and guide your advisees' research progress</p>
+                    </div>
+                    
+                    <button @click="activeTab = 'researchers'" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-md transition-colors cursor-pointer">
+                        <i class="ph ph-users-three text-base"></i>
+                        <span>View All Advisees</span>
+                    </button>
+                </div>
+
+                <!-- Stats Cards Row (4 Columns matching layout) -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- Active Advisees (Solid Green) -->
+                    <div class="bg-[#0e5c3a] text-white rounded-3xl p-5 border border-[#0e5c3a]/10 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-white/80 font-medium block">Active Advisees</span>
+                            <span class="text-3xl font-bold mt-2 block">12</span>
+                            <span class="text-[10px] text-[#eebc3f] font-bold mt-1 block">3 nearing defense</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-white/10 text-[#eebc3f] flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-users-three"></i>
+                        </span>
+                    </div>
+
+                    <!-- Urgent Reviews (White/Red left border) -->
+                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-red-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Urgent Reviews</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block">7</span>
+                            <span class="text-[10px] text-red-500 font-bold mt-1 block">3 overdue submissions</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-warning-circle"></i>
+                        </span>
+                    </div>
+
+                    <!-- Today's Consultations (White/Blue left border) -->
+                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-blue-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Today's Consultations</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block">3</span>
+                            <span class="text-[10px] text-blue-500 font-bold mt-1 block">Next: 2:00 PM</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-calendar"></i>
+                        </span>
+                    </div>
+
+                    <!-- Completed Research (White/Purple left border) -->
+                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-purple-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Completed Research</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block">28</span>
+                            <span class="text-[10px] text-purple-500 font-bold mt-1 block">This academic year</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-500 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-trend-up"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Main Layout Columns (Left: 2/3 Progress Monitor, Right: 1/3 Schedule & Actions) -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Left: Advisees Progress Monitor -->
+                    <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6 lg:col-span-2">
+                        <div class="flex justify-between items-center pb-2 border-b border-gray-50">
+                            <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2">
+                                <i class="ph ph-chart-bar text-emerald-600 text-lg"></i>
+                                <span>Advisees Progress Monitor</span>
+                            </h3>
+                            <span class="text-xs font-semibold text-gray-450 hover:underline cursor-pointer">Sort by Name</span>
+                        </div>
+
+                        <!-- Progress Monitor List -->
+                        <div class="space-y-4">
+                            <template x-for="r in assignedResearchers" :key="r.name">
+                                <div class="border border-gray-100 bg-gray-50/10 rounded-2xl p-5 space-y-4 hover:border-emerald-100 hover:bg-emerald-50/5 transition-all">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <h4 class="font-bold text-gray-850 text-sm" x-text="r.name">Student Name</h4>
+                                            <span class="text-xs text-gray-400 block mt-0.5" x-text="r.project">Research project title goes here.</span>
+                                        </div>
+                                        <div class="text-right">
+                                            <span class="text-lg font-extrabold text-emerald-700 block" x-text="`${r.progress}%`">65%</span>
+                                            <span class="text-[9px] text-gray-400 uppercase tracking-wider">Complete</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Badges -->
+                                    <div class="flex gap-2">
+                                        <span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-bold" x-text="r.status">Data Gathering</span>
+                                        <span class="bg-emerald-50 border border-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold">On Track</span>
+                                    </div>
+
+                                    <!-- Progress Bar -->
+                                    <div class="space-y-1">
+                                        <div class="h-2 bg-gray-100 rounded-full w-full overflow-hidden">
+                                            <div class="h-full bg-emerald-600 rounded-full transition-all duration-500" :style="`width: ${r.progress}%`"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Action Buttons -->
+                                    <div class="flex gap-3 pt-1">
+                                        <button @click="alert(`Opening ${r.name}'s research proposal...`)" class="w-1/2 text-center py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl transition-colors cursor-pointer">
+                                            View Research
+                                        </button>
+                                        <button @click="alert(`Reviewing documents for ${r.name}...`)" class="w-1/2 text-center py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-sm transition-colors cursor-pointer">
+                                            Review Documents
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- View All Footer Link -->
+                        <button @click="activeTab = 'researchers'" class="w-full text-center py-3 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold text-xs rounded-2xl transition-colors cursor-pointer">
+                            View All 12 Advisees →
+                        </button>
+                    </div>
+
+                    <!-- Right: Pending, Schedule, Actions -->
+                    <div class="space-y-6">
+                        
+                        <!-- Side Widget 1: Pending Reviews -->
+                        <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
+                            <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
+                                <i class="ph ph-file-text text-amber-500 text-lg"></i>
+                                <span>Pending Reviews (3)</span>
+                            </h3>
+
+                            <div class="space-y-4">
+                                <!-- Item 1 -->
+                                <div class="border-l-4 border-l-amber-500 bg-amber-50/10 rounded-2xl p-4 border-t border-r border-b border-gray-100/50 space-y-3">
+                                    <div>
+                                        <span class="font-bold text-gray-800 text-xs block">Chapter 3 - Methodology</span>
+                                        <span class="text-[10px] text-gray-400 block mt-0.5">Juan Dela Cruz</span>
+                                        <span class="text-[10px] text-amber-600 font-bold mt-1.5 block flex items-center gap-1">
+                                            <i class="ph ph-clock"></i> Submitted 2 hours ago
+                                        </span>
+                                    </div>
+                                    <button @click="alert('Opening Chapter 3 Review window')" class="w-full text-center py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-[10px] font-bold rounded-lg transition-colors cursor-pointer">
+                                        Review Document
+                                    </button>
+                                </div>
+
+                                <!-- Item 2 -->
+                                <div class="border-l-4 border-l-red-500 bg-red-50/10 rounded-2xl p-4 border-t border-r border-b border-gray-100/50 space-y-3">
+                                    <div>
+                                        <span class="font-bold text-gray-800 text-xs block">Revised Proposal</span>
+                                        <span class="text-[10px] text-gray-400 block mt-0.5">Pedro Reyes</span>
+                                        <span class="text-[10px] text-red-500 font-bold mt-1.5 block flex items-center gap-1">
+                                            <i class="ph ph-clock"></i> Submitted 1 day ago
+                                        </span>
+                                    </div>
+                                    <button @click="alert('Opening Revised Proposal Review window')" class="w-full text-center py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-[10px] font-bold rounded-lg transition-colors cursor-pointer">
+                                        Review Document
+                                    </button>
+                                </div>
+
+                                <!-- Item 3 -->
+                                <div class="border-l-4 border-l-red-500 bg-red-50/10 rounded-2xl p-4 border-t border-r border-b border-gray-100/50 space-y-3">
+                                    <div>
+                                        <span class="font-bold text-gray-800 text-xs block">Chapter 2 - Literature Review</span>
+                                        <span class="text-[10px] text-gray-400 block mt-0.5">Ana Rodriguez</span>
+                                        <span class="text-[10px] text-red-500 font-bold mt-1.5 block flex items-center gap-1">
+                                            <i class="ph ph-clock"></i> Submitted 3 days ago
+                                        </span>
+                                    </div>
+                                    <button @click="alert('Opening Chapter 2 Review window')" class="w-full text-center py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-[10px] font-bold rounded-lg transition-colors cursor-pointer">
+                                        Review Document
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Side Widget 2: Today's Consultations (Solid Blue Card) -->
+                        <div class="bg-blue-600 text-white rounded-3xl p-6 shadow-md space-y-4">
+                            <h3 class="font-bold text-white text-sm flex items-center gap-2 pb-2 border-b border-white/10">
+                                <i class="ph ph-calendar text-lg"></i>
+                                <span>Today's Consultations</span>
+                            </h3>
+
+                            <div class="space-y-3">
+                                <!-- Consultation 1 -->
+                                <div class="flex items-center justify-between py-2 border-b border-white/10">
+                                    <div>
+                                        <span class="font-bold text-xs block">Juan Dela Cruz</span>
+                                        <span class="text-[10px] text-white/80 mt-0.5 block">Methodology Review</span>
+                                    </div>
+                                    <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded font-bold">2:00 PM</span>
+                                </div>
+
+                                <!-- Consultation 2 -->
+                                <div class="flex items-center justify-between py-2 border-b border-white/10">
+                                    <div>
+                                        <span class="font-bold text-xs block">Ana Rodriguez</span>
+                                        <span class="text-[10px] text-white/80 mt-0.5 block">Data Analysis</span>
+                                    </div>
+                                    <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded font-bold">3:30 PM</span>
+                                </div>
+
+                                <!-- Consultation 3 -->
+                                <div class="flex items-center justify-between py-2">
+                                    <div>
+                                        <span class="font-bold text-xs block">Maria Clara</span>
+                                        <span class="text-[10px] text-white/80 mt-0.5 block">Defense Preparation</span>
+                                    </div>
+                                    <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded font-bold">4:30 PM</span>
+                                </div>
+                            </div>
+
+                            <button @click="activeTab = 'consultation'" class="w-full text-center py-2 bg-white hover:bg-gray-50 text-blue-600 font-bold text-xs rounded-xl transition-colors cursor-pointer">
+                                View Full Schedule
+                            </button>
+                        </div>
+
+                        <!-- Side Widget 3: Quick Actions -->
+                        <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
+                            <h3 class="font-bold text-gray-800 text-sm pb-2 border-b border-gray-50">Quick Actions</h3>
+                            <div class="space-y-2.5">
+                                <button @click="activeTab = 'proposal'" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs w-full py-2.5 rounded-xl transition-colors cursor-pointer text-center">
+                                    Review Proposals
+                                </button>
+                                <button @click="activeTab = 'consultation'" class="bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs w-full py-2.5 rounded-xl transition-colors cursor-pointer text-center">
+                                    Schedule Consultation
+                                </button>
+                                <button @click="activeTab = 'endorsement'" class="bg-purple-50 hover:bg-purple-100 text-purple-800 font-bold text-xs w-full py-2.5 rounded-xl transition-colors cursor-pointer text-center">
+                                    Recommend for Defense
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Side Widget 4: Recent Activity -->
+                        <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
+                            <h3 class="font-bold text-gray-800 text-sm pb-2 border-b border-gray-50">Recent Activity</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-start gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm flex-shrink-0">
+                                        <i class="ph ph-check"></i>
+                                    </div>
+                                    <div>
+                                        <span class="font-bold text-gray-800 text-xs block">Approved Chapter 2</span>
+                                        <span class="text-[10px] text-gray-400 block mt-0.5">Juan Dela Cruz • 2h ago</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-sm flex-shrink-0">
+                                        <i class="ph ph-chat-teardrop"></i>
+                                    </div>
+                                    <div>
+                                        <span class="font-bold text-gray-800 text-xs block">Left feedback</span>
+                                        <span class="text-[10px] text-gray-400 block mt-0.5">Maria Clara • 5h ago</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- TAB: Notifications Center -->
             <div x-show="activeTab === 'notifications'" x-cloak class="space-y-8">
                 <!-- Header / Breadcrumbs & Buttons -->
                 <div class="flex flex-col gap-2">
@@ -597,7 +864,7 @@
                                 </div>
                             </div>
 
-                            <!-- Special Actions (e.g. Card 2 Revision Action Stack) -->
+                            <!-- Special Actions -->
                             <div x-show="item.hasActions" class="absolute right-6 top-6 bottom-6 flex flex-col justify-between items-end">
                                 <!-- Check circle tick -->
                                 <button @click="alert('Approved revision!'); item.unread = false" class="text-emerald-600 hover:text-emerald-800 text-lg transition-colors p-1 cursor-pointer">
@@ -616,52 +883,6 @@
                             </div>
                         </div>
                     </template>
-                </div>
-            </div>
-
-            <!-- TAB: Dashboard Mockup -->
-            <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">
-                <div>
-                    <h1 class="text-2xl font-bold font-heading text-gray-800">Adviser Dashboard</h1>
-                    <p class="text-xs text-gray-450 mt-1">Research Management System overview for Dr. Reyna Garcia</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
-                        <h4 class="font-bold text-gray-800 text-sm mb-4">Quick Stats</h4>
-                        <div class="space-y-4">
-                            <div class="flex justify-between items-center py-2 border-b border-gray-50">
-                                <span class="text-xs text-gray-500 font-semibold">Active Classes</span>
-                                <span class="text-sm font-bold text-gray-800">3</span>
-                            </div>
-                            <div class="flex justify-between items-center py-2 border-b border-gray-50">
-                                <span class="text-xs text-gray-500 font-semibold">Assigned Researchers</span>
-                                <span class="text-sm font-bold text-[#0e5c3a]">3 Teams</span>
-                            </div>
-                            <div class="flex justify-between items-center py-2">
-                                <span class="text-xs text-gray-500 font-semibold">Pending Reviews</span>
-                                <span class="text-sm font-bold text-amber-600">2 Files</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm col-span-2">
-                        <h4 class="font-bold text-gray-800 text-sm mb-4">Assigned Research Teams</h4>
-                        <div class="space-y-4">
-                            <template x-for="r in assignedResearchers">
-                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-2xl">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white flex items-center justify-center text-xs font-bold" x-text="r.avatar"></div>
-                                        <div>
-                                            <span class="text-xs font-bold text-gray-800 block" x-text="r.name">Researcher</span>
-                                            <span class="text-[10px] text-gray-400" x-text="r.project">Research Project Title</span>
-                                        </div>
-                                    </div>
-                                    <span class="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-bold" x-text="r.status">Status</span>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -705,10 +926,10 @@
                 </div>
                 <div>
                     <h2 class="text-lg font-bold text-gray-800 uppercase tracking-wide" x-text="activeTab.replace('_', ' ').replace('-', ' ')">Tab Title</h2>
-                    <p class="text-xs text-gray-400 mt-1">This protected page section is ready for its backend integration.</p>
+                    <p class="text-xs text-gray-455 mt-1">This protected page section is ready for its backend integration.</p>
                 </div>
-                <button @click="activeTab = 'notifications'" class="px-4 py-2 bg-[#0e5c3a] text-white text-xs font-bold rounded-xl transition-all cursor-pointer">
-                    Back to Notifications
+                <button @click="activeTab = 'dashboard'" class="px-4 py-2 bg-[#0e5c3a] text-white text-xs font-bold rounded-xl transition-all cursor-pointer">
+                    Back to Dashboard
                 </button>
             </div>
             
