@@ -32,12 +32,93 @@
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.12);
         }
+
+        [data-scroll-section] {
+            scroll-margin-top: 5rem;
+        }
+
+        .welcome-header {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+        }
+
+        .welcome-header.is-scrolled {
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 14px 40px rgba(15, 61, 36, 0.1);
+        }
+
+        .welcome-nav-link {
+            position: relative;
+            padding-block: 0.65rem;
+            color: #6b7280;
+            transition: color 220ms ease, transform 220ms ease;
+        }
+
+        .welcome-nav-link::after {
+            position: absolute;
+            right: 50%;
+            bottom: 0.1rem;
+            left: 50%;
+            height: 2px;
+            border-radius: 9999px;
+            background: linear-gradient(90deg, #0e5c3a, #d69f24);
+            content: '';
+            opacity: 0;
+            transition: right 260ms ease, left 260ms ease, opacity 180ms ease;
+        }
+
+        .welcome-nav-link:hover,
+        .welcome-nav-link.is-active {
+            color: #0e5c3a;
+        }
+
+        .welcome-nav-link.is-active {
+            transform: translateY(-1px);
+        }
+
+        .welcome-nav-link.is-active::after {
+            right: 0;
+            left: 0;
+            opacity: 1;
+        }
+
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(2.25rem) scale(0.99);
+            transition:
+                opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+                transform 850ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .scroll-reveal.is-visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html {
+                scroll-behavior: auto;
+            }
+
+            .welcome-nav-link,
+            .welcome-nav-link::after,
+            .scroll-reveal {
+                transition: none;
+            }
+
+            .scroll-reveal {
+                opacity: 1;
+                transform: none;
+            }
+        }
     </style>
 </head>
-<body class="font-sans antialiased text-gray-800 bg-white">
+<body data-welcome-page class="font-sans antialiased text-gray-800 bg-white">
 
     <!-- Navigation -->
-    <nav class="fixed w-full z-50 transition-all duration-300 bg-white border-b border-gray-100 shadow-sm">
+    <nav data-site-header class="welcome-header fixed w-full z-50 transition-all duration-300 border-b border-gray-100 shadow-sm">
+        <div data-scroll-progress class="absolute inset-x-0 bottom-0 h-0.5 origin-left bg-gradient-to-r from-[#0e5c3a] via-[#1a7042] to-[#d69f24]" style="transform: scaleX(0)"></div>
         <div class="w-full px-6 md:px-12">
             <div class="flex justify-between items-center h-20">
                 <!-- Logo -->
@@ -50,13 +131,13 @@
                 </div>
 
                 <!-- Desktop Menu -->
-                <div class="hidden md:flex items-center space-x-8">
-                    <a href="#" class="text-sm font-semibold text-[#0e5c3a] hover:text-[#0a4a2e] transition">Home</a>
-                    <a href="#about" class="text-sm font-semibold text-gray-500 hover:text-[#0e5c3a] transition">About</a>
-                    <a href="#achievements" class="text-sm font-semibold text-gray-500 hover:text-[#0e5c3a] transition">Achievements</a>
-                    <a href="#process" class="text-sm font-semibold text-gray-500 hover:text-[#0e5c3a] transition">Process</a>
-                    <a href="#events" class="text-sm font-semibold text-gray-500 hover:text-[#0e5c3a] transition">Events</a>
-                    <a href="#contact" class="text-sm font-semibold text-gray-500 hover:text-[#0e5c3a] transition">Contact</a>
+                <div data-scrollspy-nav class="hidden md:flex items-center space-x-8">
+                    <a href="#home" data-section-link="home" class="welcome-nav-link is-active text-sm font-semibold">Home</a>
+                    <a href="#about" data-section-link="about" class="welcome-nav-link text-sm font-semibold">About</a>
+                    <a href="#achievements" data-section-link="achievements" class="welcome-nav-link text-sm font-semibold">Achievements</a>
+                    <a href="#process" data-section-link="process" class="welcome-nav-link text-sm font-semibold">Process</a>
+                    <a href="#events" data-section-link="events" class="welcome-nav-link text-sm font-semibold">Events</a>
+                    <a href="#contact" data-section-link="contact" class="welcome-nav-link text-sm font-semibold">Contact</a>
                 </div>
 
                 <!-- Auth Buttons -->
@@ -73,7 +154,7 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero-bg min-h-screen flex flex-col justify-center relative pt-20">
+    <section id="home" data-scroll-section class="hero-bg min-h-screen flex flex-col justify-center relative pt-20">
         <div class="max-w-7xl mx-auto px-6 lg:px-8 w-full z-10 text-center flex flex-col items-center">
             
             <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#f8b803] mb-8 mt-12 bg-white/5 backdrop-blur-sm">
@@ -144,7 +225,7 @@
     </section>
 
     <!-- About Us Section -->
-    <section id="about" class="py-24 bg-white">
+    <section id="about" data-scroll-section class="py-24 bg-white">
         <div class="max-w-7xl mx-auto px-6 lg:px-8">
             <div class="text-center mb-16">
                 <span class="text-sm font-bold tracking-widest text-[#d69f24] uppercase mb-2 block">About Us</span>
@@ -208,7 +289,7 @@
     </section>
 
     <!-- Research Achievements Section -->
-    <section id="achievements" class="py-24 bg-white border-t border-gray-100">
+    <section id="achievements" data-scroll-section class="py-24 bg-white border-t border-gray-100">
         <div class="max-w-7xl mx-auto px-6 lg:px-8">
             <div class="text-center mb-16">
                 <span class="text-sm font-bold tracking-widest text-[#d69f24] uppercase mb-2 block">Excellence</span>
@@ -341,7 +422,7 @@
     </section>
 
     <!-- Research Journey Section -->
-    <section id="process" class="py-24 bg-[#f2f6f4]">
+    <section id="process" data-scroll-section class="py-24 bg-[#f2f6f4]">
         <div class="max-w-7xl mx-auto px-6 lg:px-8">
             <div class="text-center mb-16">
                 <span class="text-sm font-bold tracking-widest text-[#d69f24] uppercase mb-2 block">How It Works</span>
@@ -395,7 +476,7 @@
     </section>
 
     <!-- Research Forum & Events -->
-    <section id="events" class="py-24 bg-white">
+    <section id="events" data-scroll-section class="py-24 bg-white">
         <div class="max-w-7xl mx-auto px-6 lg:px-8">
             <div class="text-center mb-16">
                 <span class="text-sm font-bold tracking-widest text-[#d69f24] uppercase mb-2 block">Upcoming</span>
@@ -703,7 +784,7 @@
     </section>
 
     <!-- Footer Section -->
-    <footer id="contact" class="bg-[#052315] text-gray-300 pt-20 pb-8 border-t border-[#0e5c3a]/20">
+    <footer id="contact" data-scroll-section class="bg-[#052315] text-gray-300 pt-20 pb-8 border-t border-[#0e5c3a]/20">
         <div class="max-w-7xl mx-auto px-6 lg:px-8">
             <!-- Top Footer Content -->
             <div class="flex flex-col lg:flex-row justify-between items-start gap-12 mb-16">

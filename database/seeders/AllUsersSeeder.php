@@ -16,7 +16,7 @@ class AllUsersSeeder extends Seeder
      * ADMIN_EMAIL and ADMIN_PASSWORD and must never be committed here.
      */
     private const LOGIN_ACCOUNTS = [
-        ['role' => 'Student (test)', 'email' => 'student.test@ndmu.edu.ph', 'password' => 'TestOnly!2345'],
+        ['role' => 'Student (test)', 'email' => 'student.test@ndmu.edu.ph', 'password' => ' '],
         ['role' => 'System administrator', 'email' => 'admin@ndmu.edu.ph', 'password' => 'Password!12345'],
         ['role' => 'College dean', 'email' => 'l.castillo@ndmu.edu.ph', 'password' => 'Password!12345'],
         ['role' => 'Research facilitator', 'email' => 'r.dela-paz@ndmu.edu.ph', 'password' => 'Password!12345'],

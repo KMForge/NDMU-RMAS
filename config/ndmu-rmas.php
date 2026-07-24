@@ -3,10 +3,18 @@
 return [
     'institution' => 'Notre Dame of Marbel University',
     'document' => [
-        'max_upload_kilobytes' => (int) env('DOCUMENT_MAX_UPLOAD_KB', 20480),
-        'allowed_mime_types' => [
-            'application/pdf',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'max_upload_kilobytes' => (int) env('DOCUMENT_MAX_UPLOAD_KB', 10240),
+        'storage_disk' => env('DOCUMENT_STORAGE_DISK', 'local'),
+        'storage_directory' => env('DOCUMENT_STORAGE_DIRECTORY', 'documents'),
+        'allowed_types' => [
+            'pdf' => [
+                'application/pdf',
+            ],
+            'docx' => [
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/zip',
+                'application/x-zip-compressed',
+            ],
         ],
     ],
     'accounts' => [

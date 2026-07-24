@@ -268,6 +268,36 @@
         </header>
         <!-- Main Body -->
         <main class="flex-1 p-8">
+            <form
+                id="student-document-upload-form"
+                method="POST"
+                action="{{ route('student.documents.store') }}"
+                enctype="multipart/form-data"
+                class="hidden"
+            >
+                @csrf
+                <input type="hidden" name="submission_token" value="{{ (string) Illuminate\Support\Str::uuid() }}">
+                <input
+                    id="student-document-upload-input"
+                    type="file"
+                    name="document"
+                    accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onchange="if (this.files.length) { document.querySelectorAll('[data-document-upload-trigger]').forEach((button) => button.disabled = true); this.form.requestSubmit(); }"
+                >
+            </form>
+
+            @if (session('document_success'))
+                <div role="status" class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    {{ session('document_success') }}
+                </div>
+            @endif
+
+            @if (session('document_error') || $errors->has('document'))
+                <div role="alert" class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {{ session('document_error') ?: $errors->first('document') }}
+                </div>
+            @endif
+
             <!-- TAB: Dashboard -->
             <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">
                 <!-- Welcome title row -->
@@ -276,7 +306,7 @@
                         <h1 class="text-2xl font-bold font-heading text-gray-800">Welcome Back, Student!</h1>
                         <p class="text-xs text-gray-450 mt-1">Here's your research journey overview</p>
                     </div>
-                    <button class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-[#0e5c3a]/15 transition-all duration-200 hover:scale-[1.02]">
+                    <button type="button" data-document-upload-trigger onclick="document.getElementById('student-document-upload-input').click()" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-[#0e5c3a]/15 transition-all duration-200 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed">
                         <i class="ph ph-upload-simple text-base"></i>
                         <span>Submit Document</span>
                     </button>
@@ -1622,7 +1652,7 @@
                             <h1 class="text-2xl font-bold font-heading text-gray-800">Research Repository</h1>
                             <p class="text-xs text-gray-450 mt-1">Manage, upload, and track all your research files.</p>
                         </div>
-                        <button class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-[#0e5c3a]/15 transition-all duration-200 hover:scale-[1.02]">
+                        <button type="button" data-document-upload-trigger onclick="document.getElementById('student-document-upload-input').click()" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-[#0e5c3a]/15 transition-all duration-200 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed">
                             <i class="ph ph-upload-simple text-base font-bold"></i>
                             <span>Upload Document</span>
                         </button>
