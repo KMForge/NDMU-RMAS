@@ -26,6 +26,7 @@ class ResearchClassController extends Controller
         $search = Str::limit(trim((string) $request->query('q')), 100, '');
         $enrollmentQuery = $researchClass->enrollments()
             ->with('student:id,name,email')
+            ->where('status', 'active')
             ->latest('joined_at');
 
         if ($search !== '') {

@@ -1,7 +1,8 @@
 @extends('layouts.blank')
 
 @php
-    $initialTab = request()->query('tab') === 'classes' ? 'classes' : 'dashboard';
+    $allowedTabs = ['dashboard', 'classes', 'requests', 'notifications', 'settings'];
+    $initialTab = in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard';
     $showClassModal = $errors->hasAny(['class', 'creation_token', 'name', 'description', 'max_students']);
 @endphp
 
@@ -193,7 +194,14 @@
                         <i class="ph ph-user-plus text-lg"></i>
                         <span>Join Requests</span>
                     </div>
-                    <span x-show="activeTab === 'requests'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <div class="flex items-center gap-2">
+                        @if ($requestStats['pending'] > 0)
+                            <span class="min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                {{ $requestStats['pending'] }}
+                            </span>
+                        @endif
+                        <span x-show="activeTab === 'requests'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    </div>
                 </button>
 
                 <!-- Assigned Researchers -->
@@ -923,10 +931,12 @@
                                     <p class="text-[11px] text-gray-400 mt-1">{{ $researchClass->description }}</p>
                                 @endif
                             </div>
-                            <div class="flex justify-between items-center pt-4 border-t border-gray-50 text-xs">
-                                <span class="text-gray-500 font-semibold">{{ $researchClass->active_students_count }} Students</span>
-                                <span class="text-amber-600 font-bold">Limit: {{ $researchClass->max_students }}</span>
-                            </div>
+                             <div class="flex justify-between items-center pt-4 border-t border-gray-50 text-xs">
+                                 <span class="text-gray-500 font-semibold">{{ $researchClass->active_students_count }} Students</span>
+                                 <span class="text-amber-600 font-bold">
+                                     {{ $researchClass->pending_join_requests_count }} Pending · Limit: {{ $researchClass->max_students }}
+                                 </span>
+                             </div>
                         </a>
                     @empty
                         <div class="md:col-span-3 bg-white rounded-3xl p-10 border border-gray-100 shadow-sm text-center">
@@ -934,6 +944,144 @@
                             <p class="text-sm text-gray-500 mt-3">You have not created a research class yet.</p>
                         </div>
                     @endforelse
+                </div>
+             </div>
+
+            <!-- TAB: Join Requests -->
+            <div x-show="activeTab === 'requests'" x-cloak class="space-y-6">
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-800">Join Requests</h1>
+                    <p class="text-sm text-gray-500 mt-1">Review and manage student requests to join your classes</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    @foreach ([
+                        ['label' => 'Pending', 'value' => $requestStats['pending'], 'icon' => 'ph-calendar-blank', 'iconClass' => 'bg-orange-100 text-orange-600'],
+                        ['label' => 'Approved', 'value' => $requestStats['approved'], 'icon' => 'ph-check', 'iconClass' => 'bg-emerald-100 text-emerald-600'],
+                        ['label' => 'Rejected', 'value' => $requestStats['rejected'], 'icon' => 'ph-x', 'iconClass' => 'bg-red-100 text-red-500'],
+                        ['label' => 'Total', 'value' => $requestStats['total'], 'icon' => 'ph-user-focus', 'iconClass' => 'bg-blue-100 text-blue-600'],
+                    ] as $stat)
+                        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold text-gray-700">{{ $stat['label'] }}</span>
+                                <span class="w-10 h-10 rounded-xl {{ $stat['iconClass'] }} flex items-center justify-center">
+                                    <i class="ph {{ $stat['icon'] }} text-xl"></i>
+                                </span>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-900 mt-3">{{ $stat['value'] }}</p>
+                        </div>
+                    @endforeach
+                </div>
+
+                <form method="GET" action="{{ route('adviser.dashboard') }}" class="flex flex-col md:flex-row gap-4">
+                    <input type="hidden" name="tab" value="requests">
+                    <div class="relative flex-1">
+                        <i class="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-lg text-gray-400"></i>
+                        <input
+                            type="search"
+                            name="request_q"
+                            value="{{ $requestSearch }}"
+                            maxlength="100"
+                            placeholder="Search by student name, ID, email, or class..."
+                            class="w-full h-12 pl-12 pr-4 rounded-2xl border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:border-[#0e5c3a]"
+                        >
+                    </div>
+                    <div class="relative md:w-44">
+                        <i class="ph ph-funnel absolute left-4 top-1/2 -translate-y-1/2 text-lg text-gray-400 pointer-events-none"></i>
+                        <select
+                            name="request_status"
+                            onchange="this.form.submit()"
+                            class="w-full h-12 pl-12 pr-9 rounded-2xl border border-gray-200 bg-white text-sm text-gray-700 appearance-none focus:outline-none focus:border-[#0e5c3a]"
+                        >
+                            <option value="pending" @selected($requestStatus === 'pending')>Pending</option>
+                            <option value="active" @selected($requestStatus === 'active')>Approved</option>
+                            <option value="rejected" @selected($requestStatus === 'rejected')>Rejected</option>
+                            <option value="all" @selected($requestStatus === 'all')>All requests</option>
+                        </select>
+                        <i class="ph ph-caret-down absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none"></i>
+                    </div>
+                </form>
+
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    @forelse ($classJoinRequests as $joinRequest)
+                        <article class="p-6 border-b border-gray-100 last:border-b-0 flex flex-col xl:flex-row xl:items-center justify-between gap-5">
+                            <div class="flex items-start gap-4 min-w-0">
+                                <div class="w-12 h-12 rounded-full bg-emerald-50 text-[#0e5c3a] font-bold flex items-center justify-center flex-shrink-0">
+                                    {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($joinRequest->student->name, 0, 1)) }}
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h2 class="font-bold text-gray-900 text-sm">{{ $joinRequest->student->name }}</h2>
+                                        <span @class([
+                                            'px-2.5 py-1 rounded-full text-[9px] font-bold uppercase',
+                                            'bg-orange-50 text-orange-700' => $joinRequest->status === 'pending',
+                                            'bg-emerald-50 text-emerald-700' => $joinRequest->status === 'active',
+                                            'bg-red-50 text-red-700' => $joinRequest->status === 'rejected',
+                                        ])>
+                                            {{ $joinRequest->status === 'active' ? 'Approved' : $joinRequest->status }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 truncate mt-1">{{ $joinRequest->student->email }}</p>
+                                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-[11px] text-gray-500">
+                                        <span class="font-semibold text-[#0e5c3a]">{{ $joinRequest->researchClass->name }}</span>
+                                        @if ($joinRequest->student->student_id)
+                                            <span>ID: {{ $joinRequest->student->student_id }}</span>
+                                        @endif
+                                        @if ($joinRequest->student->program)
+                                            <span>{{ $joinRequest->student->program }}</span>
+                                        @endif
+                                        <span>Requested {{ $joinRequest->requested_at?->diffForHumans() ?? $joinRequest->created_at->diffForHumans() }}</span>
+                                        @if ($joinRequest->reviewed_at)
+                                            <span>Reviewed {{ $joinRequest->reviewed_at->diffForHumans() }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-3 flex-shrink-0">
+                                @if ($joinRequest->status === 'pending')
+                                    <form method="POST" action="{{ route('adviser.classes.join-requests.reject', [$joinRequest->researchClass, $joinRequest]) }}">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="px-4 py-2.5 border border-red-200 text-red-700 hover:bg-red-50 text-xs font-bold rounded-xl">
+                                            Reject
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ route('adviser.classes.join-requests.approve', [$joinRequest->researchClass, $joinRequest]) }}">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl">
+                                            Approve
+                                        </button>
+                                    </form>
+                                @else
+                                    <span class="text-xs text-gray-500">
+                                        {{ $joinRequest->status === 'active' ? 'Student enrolled' : 'Request declined' }}
+                                    </span>
+                                @endif
+                            </div>
+                        </article>
+                    @empty
+                        <div class="min-h-60 p-12 flex flex-col items-center justify-center text-center">
+                            <i class="ph ph-user-focus text-6xl text-gray-300"></i>
+                            <h2 class="font-bold text-gray-900 mt-4">No requests found</h2>
+                            <p class="text-sm text-gray-500 mt-2">
+                                @if ($requestSearch !== '')
+                                    No join requests match your search.
+                                @elseif ($requestStatus === 'pending')
+                                    Student join requests will appear here.
+                                @else
+                                    There are no {{ $requestStatus === 'active' ? 'approved' : $requestStatus }} requests.
+                                @endif
+                            </p>
+                        </div>
+                    @endforelse
+
+                    @if ($classJoinRequests->hasPages())
+                        <div class="px-6 py-4 border-t border-gray-100">
+                            {{ $classJoinRequests->links() }}
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -953,7 +1101,7 @@
             </div>
 
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'classes', 'settings'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'classes', 'requests', 'settings'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>

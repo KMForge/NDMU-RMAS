@@ -77,6 +77,7 @@ class GetStudentDashboardData
             : $empty;
 
         $classes = $this->classesFor($user);
+        $classJoinRequests = $this->classJoinRequestsFor($user);
 
         return [
             'area' => 'Student Researcher',
@@ -96,6 +97,7 @@ class GetStudentDashboardData
             'documents' => $documents,
             'notifications' => $notifications,
             'classes' => $classes,
+            'classJoinRequests' => $classJoinRequests,
         ];
     }
 
@@ -332,6 +334,32 @@ class GetStudentDashboardData
                 'classes.max_students',
                 'advisers.name as adviser_name',
                 'enrollments.joined_at',
+            ])
+            ->get();
+    }
+
+    /**
+     * @return Collection<int, object>
+     */
+    private function classJoinRequestsFor(User $user): Collection
+    {
+        if (! $this->tablesExist(['research_classes', 'research_class_enrollments', 'users'])) {
+            return collect();
+        }
+
+        return DB::table('research_class_enrollments as enrollments')
+            ->join('research_classes as classes', 'classes.id', '=', 'enrollments.research_class_id')
+            ->join('users as advisers', 'advisers.id', '=', 'classes.adviser_id')
+            ->where('enrollments.student_id', $user->getKey())
+            ->whereIn('enrollments.status', ['pending', 'rejected'])
+            ->latest('enrollments.requested_at')
+            ->select([
+                'enrollments.id',
+                'enrollments.status',
+                'enrollments.requested_at',
+                'enrollments.reviewed_at',
+                'classes.name as class_name',
+                'advisers.name as adviser_name',
             ])
             ->get();
     }

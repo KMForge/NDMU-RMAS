@@ -10,7 +10,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'research_class_id',
     'student_id',
     'status',
+    'requested_at',
     'joined_at',
+    'reviewed_by',
+    'reviewed_at',
 ])]
 class ResearchClassEnrollment extends Model
 {
@@ -24,10 +27,17 @@ class ResearchClassEnrollment extends Model
         return $this->belongsTo(User::class, 'student_id');
     }
 
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
     protected function casts(): array
     {
         return [
+            'requested_at' => 'immutable_datetime',
             'joined_at' => 'immutable_datetime',
+            'reviewed_at' => 'immutable_datetime',
         ];
     }
 }

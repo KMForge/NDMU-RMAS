@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Adviser\ClassJoinRequestController;
 use App\Http\Controllers\Adviser\DashboardController;
 use App\Http\Controllers\Adviser\ResearchClassController;
 use Illuminate\Support\Facades\Route;
@@ -16,4 +17,14 @@ Route::prefix('adviser')->name('adviser.')->middleware([
     Route::get('/classes/{researchClass}', [ResearchClassController::class, 'show'])
         ->whereNumber('researchClass')
         ->name('classes.show');
+
+    Route::prefix('/classes/{researchClass}/join-requests/{joinRequest}')
+        ->whereNumber(['researchClass', 'joinRequest'])
+        ->middleware('throttle:class-join-decisions')
+        ->group(function (): void {
+            Route::patch('/approve', [ClassJoinRequestController::class, 'approve'])
+                ->name('classes.join-requests.approve');
+            Route::patch('/reject', [ClassJoinRequestController::class, 'reject'])
+                ->name('classes.join-requests.reject');
+        });
 });

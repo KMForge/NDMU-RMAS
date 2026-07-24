@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Classes\JoinResearchClassRequest;
-use App\Modules\Classes\Actions\JoinResearchClass;
+use App\Modules\Classes\Actions\RequestToJoinResearchClass;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
 use Illuminate\Http\JsonResponse;
@@ -14,10 +14,10 @@ class ResearchClassController extends Controller
 {
     public function store(
         JoinResearchClassRequest $request,
-        JoinResearchClass $joinResearchClass,
+        RequestToJoinResearchClass $requestToJoinResearchClass,
     ): JsonResponse|RedirectResponse {
         try {
-            $enrollment = $joinResearchClass->handle(
+            $joinRequest = $requestToJoinResearchClass->handle(
                 $request->user(),
                 $request->string('join_code')->toString(),
             );
@@ -27,22 +27,24 @@ class ResearchClassController extends Controller
             return $this->errorResponse($request, $exception->getMessage(), 422);
         }
 
-        $researchClass = $enrollment->researchClass()->with('adviser:id,name')->firstOrFail();
+        $researchClass = $joinRequest->researchClass()->with('adviser:id,name')->firstOrFail();
 
         if ($request->expectsJson()) {
             return response()->json([
-                'message' => 'You joined the class successfully.',
-                'class' => [
-                    'id' => $researchClass->getKey(),
-                    'name' => $researchClass->name,
-                    'adviser' => $researchClass->adviser?->name,
-                    'joined_at' => $enrollment->joined_at->toIso8601String(),
+                'message' => 'Your join request was submitted for adviser review.',
+                'join_request' => [
+                    'id' => $joinRequest->getKey(),
+                    'status' => $joinRequest->status,
+                    'requested_at' => $joinRequest->requested_at->toIso8601String(),
+                    'class_id' => $researchClass->getKey(),
+                    'class_name' => $researchClass->name,
+                    'adviser_name' => $researchClass->adviser?->name,
                 ],
             ], 201);
         }
 
         return to_route('student.dashboard', ['tab' => 'classes'])
-            ->with('class_success', 'You joined the class successfully.');
+            ->with('class_success', 'Your join request was submitted for adviser review.');
     }
 
     private function errorResponse(

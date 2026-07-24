@@ -10,7 +10,7 @@ use App\Modules\Classes\Exceptions\DuplicateClassOperation;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
-class JoinResearchClass
+class RequestToJoinResearchClass
 {
     public function handle(User $student, string $joinCode): ResearchClassEnrollment
     {
@@ -29,10 +29,15 @@ class JoinResearchClass
                 $existing = ResearchClassEnrollment::query()
                     ->where('research_class_id', $researchClass->getKey())
                     ->where('student_id', $student->getKey())
+                    ->lockForUpdate()
                     ->first();
 
-                if ($existing !== null) {
-                    throw new DuplicateClassOperation('You have already joined this class.');
+                if ($existing?->status === 'active') {
+                    throw new DuplicateClassOperation('You are already enrolled in this class.');
+                }
+
+                if ($existing?->status === 'pending') {
+                    throw new DuplicateClassOperation('Your join request is already pending adviser review.');
                 }
 
                 $activeStudents = ResearchClassEnrollment::query()
@@ -44,17 +49,30 @@ class JoinResearchClass
                     throw new ClassOperationException('This class has reached its enrollment limit.');
                 }
 
+                $requestData = [
+                    'status' => 'pending',
+                    'requested_at' => now(),
+                    'joined_at' => null,
+                    'reviewed_by' => null,
+                    'reviewed_at' => null,
+                ];
+
+                if ($existing !== null) {
+                    $existing->update($requestData);
+
+                    return $existing->refresh();
+                }
+
                 return ResearchClassEnrollment::query()->create([
                     'research_class_id' => $researchClass->getKey(),
                     'student_id' => $student->getKey(),
-                    'status' => 'active',
-                    'joined_at' => now(),
+                    ...$requestData,
                 ]);
             }, 3);
         } catch (QueryException $exception) {
             report($exception);
 
-            throw new ClassOperationException('The class could not be joined. Please try again.');
+            throw new ClassOperationException('The join request could not be submitted. Please try again.');
         }
     }
 }

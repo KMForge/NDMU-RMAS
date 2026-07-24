@@ -12,4 +12,10 @@ class ResearchClassPolicy
         return $user->can('classes.view-own')
             && $researchClass->adviser_id === $user->getKey();
     }
+
+    public function manageJoinRequests(User $user, ResearchClass $researchClass): bool
+    {
+        return $user->can('classes.manage-join-requests')
+            && $researchClass->adviser_id === $user->getKey();
+    }
 }

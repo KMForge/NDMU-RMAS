@@ -232,16 +232,40 @@
 
             <section x-show="activeTab === 'classes'" x-cloak class="space-y-8">
                 <div class="flex items-center justify-between gap-4">
-                    <x-student-section-heading title="My Classes" description="Research classes joined by your account." />
+                    <x-student-section-heading title="My Classes" description="Approved classes and join requests for your account." />
                     <button
                         type="button"
                         @click="showJoinClassModal = true"
                         class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2"
                     >
                         <i class="ph ph-plus-circle text-base"></i>
-                        <span>Join Class</span>
+                        <span>Request to Join</span>
                     </button>
                 </div>
+
+                @if ($classJoinRequests->isNotEmpty())
+                    <div class="space-y-3">
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-gray-500">Join request status</h2>
+                        @foreach ($classJoinRequests as $joinRequest)
+                            <article class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between gap-4">
+                                <div class="min-w-0">
+                                    <h3 class="font-bold text-gray-800 text-sm">{{ $joinRequest->class_name }}</h3>
+                                    <p class="text-[11px] text-gray-500 mt-1">
+                                        Adviser: {{ $joinRequest->adviser_name }}
+                                        · Requested {{ \Illuminate\Support\Carbon::parse($joinRequest->requested_at)->diffForHumans() }}
+                                    </p>
+                                </div>
+                                <span @class([
+                                    'px-3 py-1 rounded-full text-[10px] font-bold uppercase',
+                                    'bg-amber-50 text-amber-700' => $joinRequest->status === 'pending',
+                                    'bg-red-50 text-red-700' => $joinRequest->status === 'rejected',
+                                ])>
+                                    {{ $joinRequest->status }}
+                                </span>
+                            </article>
+                        @endforeach
+                    </div>
+                @endif
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @forelse ($classes as $class)
@@ -585,8 +609,8 @@
         <div class="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden" @click.stop>
             <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100">
                 <div>
-                    <h2 class="font-bold text-lg text-gray-850">Join Research Class</h2>
-                    <p class="text-xs text-gray-500 mt-1">Enter the code provided by your adviser.</p>
+                    <h2 class="font-bold text-lg text-gray-850">Request to Join a Research Class</h2>
+                    <p class="text-xs text-gray-500 mt-1">Enter the class code. Your adviser must approve the request before you are enrolled.</p>
                 </div>
                 <button type="button" @click="showJoinClassModal = false" class="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-500">
                     <i class="ph ph-x"></i>
@@ -619,7 +643,7 @@
                         Cancel
                     </button>
                     <button type="submit" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl">
-                        Join Class
+                        Submit Request
                     </button>
                 </div>
             </form>
