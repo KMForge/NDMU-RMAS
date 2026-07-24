@@ -579,8 +579,23 @@
                 </div>
             </div>
 
+            <!-- TAB: Settings -->
+            <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
+                @include('partials.settings', [
+                    'avatarInitials' => 'D',
+                    'userName' => 'Dr. Lourdes Castillo',
+                    'emailAddress' => 'l.castillo@ndmu.edu.ph',
+                    'userRole' => 'College Dean',
+                    'userRoleBadge' => 'COLLEGE DEAN',
+                    'department' => 'College of Information Technology',
+                    'userId' => 'EXE-2015-0003',
+                    'portalType' => 'Executive Portal',
+                    'accessLevel' => 'Executive & Approval Access'
+                ])
+            </div>
+
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'settings'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>

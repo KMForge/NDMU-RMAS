@@ -443,15 +443,17 @@
             </section>
 
             <section x-show="activeTab === 'settings'" x-cloak class="space-y-8">
-                <x-student-section-heading title="Account Information" description="Current information stored for your account." />
-                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <x-student-detail label="Name" :value="$student->name" />
-                    <x-student-detail label="Email" :value="$student->email" />
-                    <x-student-detail label="Student Number" :value="$studentProfile?->student_number ?: $student->student_id" />
-                    <x-student-detail label="Program" :value="$program?->name ?: $student->program" />
-                    <x-student-detail label="Year Level" :value="$studentProfile?->year_level ?: $student->year_level" />
-                    <x-student-detail label="Account Status" :value="$student->status->value" />
-                </div>
+                @include('partials.settings', [
+                    'avatarInitials' => strtoupper(substr($student->name, 0, 1)),
+                    'userName' => $student->name,
+                    'emailAddress' => $student->email,
+                    'userRole' => 'Student Researcher',
+                    'userRoleBadge' => 'STUDENT RESEARCHER',
+                    'department' => $program?->name ?: $student->program,
+                    'userId' => $studentProfile?->student_number ?: $student->student_id,
+                    'portalType' => 'Student Portal',
+                    'accessLevel' => 'Student & Research Access'
+                ])
             </section>
         </main>
     </div>
