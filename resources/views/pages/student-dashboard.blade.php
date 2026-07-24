@@ -33,7 +33,7 @@
     ]
 }">
     <!-- Left Sidebar: Navigation -->
-    <aside class="fixed inset-y-0 left-0 w-64 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5">
+    <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5">
         <div class="flex-shrink-0">
             <!-- Logo -->
             <div class="flex items-center gap-3 p-6 border-b border-white/10">
@@ -63,127 +63,141 @@
             <div class="space-y-1.5">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
                 
-                <a href="#" 
-                   @click.prevent="activeTab = 'dashboard'"
-                   :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
-                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200">
+                <button 
+                   type="button" 
+                   @click="activeTab = 'dashboard'"
+                   :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-squares-four text-lg"></i>
                         <span>Dashboard</span>
                     </div>
                     <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </a>
+                </button>
                 
-                <a href="#" 
-                   @click.prevent="activeTab = 'classes'"
-                   :class="activeTab === 'classes' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
-                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200">
+                <button 
+                   type="button" 
+                   @click="activeTab = 'classes'"
+                   :class="activeTab === 'classes' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-users text-lg"></i>
                         <span>My Classes</span>
                     </div>
                     <span x-show="activeTab === 'classes'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </a>
+                </button>
 
-                <a href="#" 
-                   @click.prevent="activeTab = 'research'"
-                   :class="activeTab === 'research' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
-                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200">
+                <button 
+                   type="button" 
+                   @click="activeTab = 'research'"
+                   :class="activeTab === 'research' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-book-open text-lg"></i>
                         <span>My Research</span>
                     </div>
                     <span x-show="activeTab === 'research'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </a>
+                </button>
 
-                <a href="#" 
-                   @click.prevent="activeTab = 'proposal'"
-                   :class="activeTab === 'proposal' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
-                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200">
+                <button 
+                   type="button" 
+                   @click="activeTab = 'proposal'"
+                   :class="activeTab === 'proposal' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-file-text text-lg"></i>
                         <span>Research Proposal</span>
                     </div>
                     <span x-show="activeTab === 'proposal'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </a>
+                </button>
 
-                <a href="#" 
-                   @click.prevent="activeTab = 'progress'"
-                   :class="activeTab === 'progress' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
-                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200">
+                <button 
+                   type="button" 
+                   @click="activeTab = 'progress'"
+                   :class="activeTab === 'progress' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-chart-line-up text-lg"></i>
                         <span>Research Progress</span>
                     </div>
                     <span x-show="activeTab === 'progress'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </a>
+                </button>
 
-                <a href="#" 
-                   @click.prevent="activeTab = 'consultation'"
-                   :class="activeTab === 'consultation' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
-                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200">
+                <button 
+                   type="button" 
+                   @click="activeTab = 'consultation'"
+                   :class="activeTab === 'consultation' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-chat-teardrop text-lg"></i>
                         <span>Consultation Records</span>
                     </div>
                     <span x-show="activeTab === 'consultation'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </a>
+                </button>
 
-                <a href="#" 
-                   @click.prevent="activeTab = 'revisions'"
-                   :class="activeTab === 'revisions' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
-                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200">
+                <button 
+                   type="button" 
+                   @click="activeTab = 'revisions'"
+                   :class="activeTab === 'revisions' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-note-pencil text-lg"></i>
                         <span>Revision Tracker</span>
                     </div>
                     <span x-show="activeTab === 'revisions'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </a>
+                </button>
 
-                <a href="#" 
-                   @click.prevent="activeTab = 'defense'"
-                   :class="activeTab === 'defense' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
-                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200">
+                <button 
+                   type="button" 
+                   @click="activeTab = 'defense'"
+                   :class="activeTab === 'defense' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-calendar text-lg"></i>
                         <span>My Defense Schedule</span>
                     </div>
                     <span x-show="activeTab === 'defense'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </a>
+                </button>
 
-                <a href="#" 
-                   @click.prevent="activeTab = 'evaluations'"
-                   :class="activeTab === 'evaluations' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
-                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200">
+                <button 
+                   type="button" 
+                   @click="activeTab = 'evaluations'"
+                   :class="activeTab === 'evaluations' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-exam text-lg"></i>
                         <span>Evaluation Results</span>
                     </div>
                     <span x-show="activeTab === 'evaluations'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </a>
+                </button>
 
-                <a href="#" 
-                   @click.prevent="activeTab = 'repository'"
-                   :class="activeTab === 'repository' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
-                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200">
+                <button 
+                   type="button" 
+                   @click="activeTab = 'repository'"
+                   :class="activeTab === 'repository' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-folder text-lg"></i>
                         <span>Research Repository</span>
                     </div>
                     <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </a>
+                </button>
             </div>
 
             <div class="space-y-1.5">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Research Forms</span>
                 
-                <a href="#" class="flex items-center justify-between px-3 py-2.5 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200">
+                <button 
+                    type="button"
+                    @click="alert('Forms are available for download')"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200 text-left"
+                >
                     <div class="flex items-center gap-3">
                         <i class="ph ph-file-pdf text-lg"></i>
                         <span>Official Forms</span>
                     </div>
                     <i class="ph ph-caret-right text-xs text-white/60"></i>
-                </a>
+                </button>
             </div>
         </div>
 
@@ -219,9 +233,9 @@
     </aside>
 
     <!-- Right Side: Content Area -->
-    <div class="flex-1 flex flex-col min-h-screen pl-64">
+    <div class="flex-1 flex flex-col min-h-screen pl-72">
         <!-- Top Nav Header -->
-        <header class="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between flex-shrink-0">
+        <header class="h-20 bg-white border-b border-gray-150 px-8 flex items-center justify-between sticky top-0 z-10 flex-shrink-0">
             <!-- Search bar -->
             <div class="relative w-96">
                 <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 pointer-events-none">
