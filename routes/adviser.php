@@ -12,4 +12,8 @@ Route::prefix('adviser')->name('adviser.')->middleware([
     Route::post('/classes', [ResearchClassController::class, 'store'])
         ->middleware('throttle:class-creation')
         ->name('classes.store');
+
+    Route::get('/classes/{researchClass}', [ResearchClassController::class, 'show'])
+        ->whereNumber('researchClass')
+        ->name('classes.show');
 });

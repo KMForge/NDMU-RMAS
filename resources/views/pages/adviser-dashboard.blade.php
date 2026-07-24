@@ -2,7 +2,7 @@
 
 @php
     $initialTab = request()->query('tab') === 'classes' ? 'classes' : 'dashboard';
-    $showClassModal = $errors->hasAny(['class', 'creation_token', 'name', 'description', 'join_code', 'max_students']);
+    $showClassModal = $errors->hasAny(['class', 'creation_token', 'name', 'description', 'max_students']);
 @endphp
 
 @section('content')
@@ -912,7 +912,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     @forelse ($researchClasses as $researchClass)
-                        <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4 hover:border-gray-200 transition-all">
+                        <a href="{{ route('adviser.classes.show', $researchClass) }}" class="block bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4 hover:border-[#0e5c3a]/30 hover:shadow-md transition-all">
                             <div class="flex justify-between items-start">
                                 <span class="px-3 py-1 bg-amber-50 text-amber-700 text-[10px] font-extrabold rounded-full">{{ $researchClass->revealJoinCode() }}</span>
                                 <i class="ph ph-dots-three-vertical text-gray-400 text-lg"></i>
@@ -927,7 +927,7 @@
                                 <span class="text-gray-500 font-semibold">{{ $researchClass->active_students_count }} Students</span>
                                 <span class="text-amber-600 font-bold">Limit: {{ $researchClass->max_students }}</span>
                             </div>
-                        </div>
+                        </a>
                     @empty
                         <div class="md:col-span-3 bg-white rounded-3xl p-10 border border-gray-100 shadow-sm text-center">
                             <i class="ph ph-chalkboard-teacher text-3xl text-gray-300"></i>
@@ -1028,23 +1028,14 @@
                         <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
                     @enderror
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label for="class_code" class="block text-xs font-bold text-gray-600 mb-1.5">Class Code</label>
-                        <input id="class_code" name="join_code" type="text" value="{{ old('join_code') }}" minlength="6" maxlength="16" autocomplete="off" placeholder="Auto-generate" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs uppercase text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
-                        @error('join_code')
-                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-                    <div>
-                        <label for="max_students" class="block text-xs font-bold text-gray-600 mb-1.5">Student Limit</label>
-                        <input id="max_students" name="max_students" type="number" value="{{ old('max_students', 50) }}" min="1" max="100" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
-                        @error('max_students')
-                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
+                <div>
+                    <label for="max_students" class="block text-xs font-bold text-gray-600 mb-1.5">Student Limit</label>
+                    <input id="max_students" name="max_students" type="number" value="{{ old('max_students', 50) }}" min="1" max="100" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
+                    @error('max_students')
+                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
-                <p class="text-[10px] text-gray-400">Leave the class code blank to generate a secure 8-character code.</p>
+                <p class="text-[10px] text-gray-400">A unique secure 8-character class code will be generated automatically.</p>
                 <div class="pt-4 flex justify-end gap-3">
                     <button type="button" @click="showClassModal = false" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors cursor-pointer">
                         Cancel

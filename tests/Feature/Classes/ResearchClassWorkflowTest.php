@@ -23,7 +23,7 @@ class ResearchClassWorkflowTest extends TestCase
         $this->seed(RolePermissionSeeder::class);
     }
 
-    public function test_adviser_can_create_class_with_encrypted_join_code(): void
+    public function test_adviser_class_code_is_always_generated_and_encrypted(): void
     {
         $adviser = $this->adviser();
 
@@ -32,22 +32,24 @@ class ResearchClassWorkflowTest extends TestCase
                 'creation_token' => (string) Str::uuid(),
                 'name' => 'Secure Research Class <script>alert(1)</script>',
                 'description' => 'Research students only.',
-                'join_code' => 'CS-401',
+                'join_code' => 'CLIENT-CANNOT-CHOOSE',
                 'max_students' => 25,
             ]);
 
         $response->assertCreated()
             ->assertJsonPath('message', 'Class created successfully.')
             ->assertJsonPath('class.name', 'Secure Research Class alert(1)')
-            ->assertJsonPath('class.join_code', 'CS401')
             ->assertJsonPath('class.max_students', 25);
 
         $researchClass = ResearchClass::query()->sole();
+        $generatedCode = $response->json('class.join_code');
 
         $this->assertSame($adviser->getKey(), $researchClass->adviser_id);
-        $this->assertSame('CS401', $researchClass->revealJoinCode());
-        $this->assertStringNotContainsString('CS401', $researchClass->join_code_encrypted);
-        $this->assertNotSame('CS401', $researchClass->join_code_hash);
+        $this->assertMatchesRegularExpression('/^[A-Z0-9]{8}$/', $generatedCode);
+        $this->assertNotSame('CLIENTCANNOTCHOOSE', $generatedCode);
+        $this->assertSame($generatedCode, $researchClass->revealJoinCode());
+        $this->assertStringNotContainsString($generatedCode, $researchClass->join_code_encrypted);
+        $this->assertNotSame($generatedCode, $researchClass->join_code_hash);
     }
 
     public function test_blank_join_code_is_generated_securely(): void
@@ -76,7 +78,6 @@ class ResearchClassWorkflowTest extends TestCase
         $payload = [
             'creation_token' => (string) Str::uuid(),
             'name' => 'Idempotent Research Class',
-            'join_code' => 'IDEM-123',
             'max_students' => 50,
         ];
 
@@ -211,6 +212,69 @@ class ResearchClassWorkflowTest extends TestCase
             ->assertDontSee('Owned Adviser Class');
     }
 
+    public function test_adviser_can_open_owned_class_and_view_student_roster(): void
+    {
+        $adviser = $this->adviser();
+        $firstStudent = $this->student();
+        $secondStudent = $this->student();
+        $researchClass = $this->createClass(
+            $adviser,
+            'ROST-123',
+            name: 'Secure Roster Class',
+        );
+        $this->enroll($researchClass, $firstStudent);
+        $this->enroll($researchClass, $secondStudent);
+
+        $this->actingAs($adviser)
+            ->get(route('adviser.classes.show', $researchClass))
+            ->assertOk()
+            ->assertSee('Secure Roster Class')
+            ->assertSee('Class Adviser')
+            ->assertSee($adviser->name)
+            ->assertSee($researchClass->revealJoinCode())
+            ->assertSee($firstStudent->name)
+            ->assertSee($firstStudent->email)
+            ->assertSee($secondStudent->name)
+            ->assertSee('2 / 50');
+    }
+
+    public function test_adviser_cannot_open_another_advisers_class(): void
+    {
+        $owner = $this->adviser();
+        $otherAdviser = $this->adviser();
+        $researchClass = $this->createClass(
+            $owner,
+            'PRIV-123',
+            name: 'Private Adviser Roster',
+        );
+
+        $this->actingAs($otherAdviser)
+            ->get(route('adviser.classes.show', $researchClass))
+            ->assertForbidden()
+            ->assertDontSee('Private Adviser Roster');
+    }
+
+    public function test_adviser_can_search_owned_class_roster(): void
+    {
+        $adviser = $this->adviser();
+        $matchingStudent = $this->student();
+        $matchingStudent->update(['name' => 'Unique Search Student']);
+        $otherStudent = $this->student();
+        $otherStudent->update(['name' => 'Unrelated Student']);
+        $researchClass = $this->createClass($adviser, 'SRCH-123');
+        $this->enroll($researchClass, $matchingStudent);
+        $this->enroll($researchClass, $otherStudent);
+
+        $this->actingAs($adviser)
+            ->get(route('adviser.classes.show', [
+                'researchClass' => $researchClass,
+                'q' => 'Unique Search',
+            ]))
+            ->assertOk()
+            ->assertSee('Unique Search Student')
+            ->assertDontSee('Unrelated Student');
+    }
+
     private function adviser(): User
     {
         $adviser = User::factory()->create();
@@ -244,5 +308,17 @@ class ResearchClassWorkflowTest extends TestCase
         $researchClass->save();
 
         return $researchClass;
+    }
+
+    private function enroll(ResearchClass $researchClass, User $student): void
+    {
+        DB::table('research_class_enrollments')->insert([
+            'research_class_id' => $researchClass->getKey(),
+            'student_id' => $student->getKey(),
+            'status' => 'active',
+            'joined_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 }

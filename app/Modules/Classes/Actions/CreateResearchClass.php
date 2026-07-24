@@ -18,7 +18,6 @@ class CreateResearchClass
         string $creationToken,
         string $name,
         ?string $description,
-        ?string $requestedJoinCode,
         int $maxStudents,
     ): ResearchClass {
         $lock = Cache::lock("class-creation:{$adviser->getKey()}:{$creationToken}", 30);
@@ -35,19 +34,7 @@ class CreateResearchClass
                 throw new DuplicateClassOperation('This class has already been created.');
             }
 
-            $joinCode = $requestedJoinCode === null || $requestedJoinCode === ''
-                ? $this->generateJoinCode()
-                : ResearchClass::normalizeJoinCode($requestedJoinCode);
-
-            if (strlen($joinCode) < 5 || strlen($joinCode) > 16) {
-                throw new ClassOperationException('The normalized class code must contain 5 to 16 letters or numbers.');
-            }
-
-            if (ResearchClass::query()
-                ->where('join_code_hash', ResearchClass::joinCodeFingerprint($joinCode))
-                ->exists()) {
-                throw new ClassOperationException('That class code is already in use.');
-            }
+            $joinCode = $this->generateJoinCode();
 
             return DB::transaction(function () use (
                 $adviser,

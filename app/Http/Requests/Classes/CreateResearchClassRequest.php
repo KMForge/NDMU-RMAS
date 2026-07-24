@@ -23,7 +23,6 @@ class CreateResearchClassRequest extends FormRequest
             'creation_token' => ['bail', 'required', 'uuid'],
             'name' => ['bail', 'required', 'string', 'min:3', 'max:120'],
             'description' => ['bail', 'nullable', 'string', 'max:1000'],
-            'join_code' => ['bail', 'nullable', 'string', 'min:6', 'max:16', 'regex:/^[A-Z0-9-]+$/'],
             'max_students' => ['bail', 'required', 'integer', 'min:1', 'max:100'],
         ];
     }
@@ -33,7 +32,6 @@ class CreateResearchClassRequest extends FormRequest
         $this->merge([
             'name' => $this->sanitizeText($this->input('name')),
             'description' => $this->sanitizeText($this->input('description')),
-            'join_code' => strtoupper(trim((string) $this->input('join_code'))),
         ]);
     }
 
