@@ -2,7 +2,7 @@
 
 @php
     $allowedTabs = ['dashboard', 'classes', 'requests', 'consultation', 'docreview', 'notifications', 'settings'];
-    $initialTab = in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard';
+    $initialTab = $activeDashboardTab ?? (in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard');
     $showClassModal = $errors->hasAny(['class', 'creation_token', 'name', 'description', 'max_students']);
 @endphp
 
@@ -172,9 +172,9 @@
                 </button>
                 
                 <!-- My Classes -->
-                <button 
-                   type="button" 
-                   @click="activeTab = 'classes'"
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'classes']) }}"
+                   wire:navigate
                    :class="activeTab === 'classes' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
@@ -182,12 +182,12 @@
                         <span>My Classes</span>
                     </div>
                     <span x-show="activeTab === 'classes'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </button>
+                </a>
 
                 <!-- Join Requests -->
-                <button 
-                   type="button" 
-                   @click="activeTab = 'requests'"
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'requests']) }}"
+                   wire:navigate
                    :class="activeTab === 'requests' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
@@ -202,7 +202,7 @@
                         @endif
                         <span x-show="activeTab === 'requests'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                     </div>
-                </button>
+                </a>
 
                 <!-- Assigned Researchers -->
                 <button 
@@ -244,9 +244,9 @@
                 </button>
 
                 <!-- Consultation Records -->
-                <button 
-                   type="button" 
-                   @click="activeTab = 'consultation'"
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'consultation']) }}"
+                   wire:navigate
                    :class="activeTab === 'consultation' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
@@ -254,12 +254,12 @@
                         <span>Consultation Records</span>
                     </div>
                     <span x-show="activeTab === 'consultation'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </button>
+                </a>
 
                 <!-- Document Review -->
-                <button 
-                   type="button" 
-                   @click="activeTab = 'docreview'"
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'docreview']) }}"
+                   wire:navigate
                    :class="activeTab === 'docreview' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
@@ -267,7 +267,7 @@
                         <span>Document Review</span>
                     </div>
                     <span x-show="activeTab === 'docreview'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </button>
+                </a>
 
                 <!-- Revision Management -->
                 <button 
@@ -680,9 +680,9 @@
                                 </div>
                             </div>
 
-                            <button @click="activeTab = 'consultation'" class="w-full text-center py-2 bg-white hover:bg-gray-50 text-blue-600 font-bold text-xs rounded-xl transition-colors cursor-pointer">
+                            <a href="{{ route('adviser.dashboard', ['tab' => 'consultation']) }}" wire:navigate class="block w-full text-center py-2 bg-white hover:bg-gray-50 text-blue-600 font-bold text-xs rounded-xl transition-colors cursor-pointer">
                                 View Full Schedule
-                            </button>
+                            </a>
                         </div>
 
                         <!-- Side Widget 3: Quick Actions -->
@@ -692,9 +692,9 @@
                                 <button @click="activeTab = 'proposal'" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs w-full py-2.5 rounded-xl transition-colors cursor-pointer text-center">
                                     Review Proposals
                                 </button>
-                                <button @click="activeTab = 'consultation'" class="bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs w-full py-2.5 rounded-xl transition-colors cursor-pointer text-center">
+                                <a href="{{ route('adviser.dashboard', ['tab' => 'consultation']) }}" wire:navigate class="block bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs w-full py-2.5 rounded-xl transition-colors cursor-pointer text-center">
                                     Schedule Consultation
-                                </button>
+                                </a>
                                 <button @click="activeTab = 'endorsement'" class="bg-purple-50 hover:bg-purple-100 text-purple-800 font-bold text-xs w-full py-2.5 rounded-xl transition-colors cursor-pointer text-center">
                                     Recommend for Defense
                                 </button>
@@ -950,7 +950,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     @forelse ($researchClasses as $researchClass)
-                        <a href="{{ route('adviser.classes.show', $researchClass) }}" class="block bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4 hover:border-[#0e5c3a]/30 hover:shadow-md transition-all">
+                        <a href="{{ route('adviser.classes.show', $researchClass) }}" wire:navigate class="block bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4 hover:border-[#0e5c3a]/30 hover:shadow-md transition-all">
                             <div class="flex justify-between items-start">
                                 <span class="px-3 py-1 bg-amber-50 text-amber-700 text-[10px] font-extrabold rounded-full">{{ $researchClass->revealJoinCode() }}</span>
                                 <i class="ph ph-dots-three-vertical text-gray-400 text-lg"></i>
@@ -1157,6 +1157,7 @@
                     @forelse ($reviewDocuments as $reviewDocument)
                         <a
                             href="{{ route('adviser.dashboard', ['tab' => 'docreview', 'document_id' => $reviewDocument->id, 'document_status' => $documentReviewStatus, 'document_q' => $documentReviewSearch]) }}"
+                            wire:navigate
                             @class([
                                 'bg-white rounded-2xl p-4 border shadow-sm flex items-start gap-3 transition-all',
                                 'border-[#0e5c3a] ring-2 ring-[#0e5c3a]/10' => $selectedReviewDocument?->is($reviewDocument),

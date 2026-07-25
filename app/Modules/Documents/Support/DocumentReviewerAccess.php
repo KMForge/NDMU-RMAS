@@ -5,6 +5,7 @@ namespace App\Modules\Documents\Support;
 use App\Models\Document;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -35,39 +36,23 @@ class DocumentReviewerAccess
         }
 
         return $query->where(function (Builder $accessQuery) use ($reviewer): void {
-            $hasAccessScope = false;
+            $accessQuery->whereExists(function ($classQuery) use ($reviewer): void {
+                $classQuery
+                    ->selectRaw('1')
+                    ->from('research_class_enrollments as review_enrollments')
+                    ->join(
+                        'research_classes as review_classes',
+                        'review_classes.id',
+                        '=',
+                        'review_enrollments.research_class_id',
+                    )
+                    ->whereColumn('review_enrollments.student_id', 'documents.user_id')
+                    ->where('review_enrollments.status', 'active')
+                    ->where('review_classes.adviser_id', $reviewer->getKey());
+            });
 
-            if ($this->tablesExist([
-                'research_classes',
-                'research_class_enrollments',
-            ])) {
-                $hasAccessScope = true;
-                $accessQuery->whereExists(function ($classQuery) use ($reviewer): void {
-                    $classQuery
-                        ->selectRaw('1')
-                        ->from('research_class_enrollments as review_enrollments')
-                        ->join(
-                            'research_classes as review_classes',
-                            'review_classes.id',
-                            '=',
-                            'review_enrollments.research_class_id',
-                        )
-                        ->whereColumn('review_enrollments.student_id', 'documents.user_id')
-                        ->where('review_enrollments.status', 'active')
-                        ->where('review_classes.adviser_id', $reviewer->getKey());
-                });
-            }
-
-            if ($this->tablesExist([
-                'student_profiles',
-                'research_group_members',
-                'research_projects',
-                'adviser_assignments',
-                'faculty_profiles',
-            ])) {
-                $method = $hasAccessScope ? 'orWhereExists' : 'whereExists';
-
-                $accessQuery->{$method}(function ($assignmentQuery) use ($reviewer): void {
+            if ($this->assignmentTablesExist()) {
+                $accessQuery->orWhereExists(function ($assignmentQuery) use ($reviewer): void {
                     $assignmentQuery
                         ->selectRaw('1')
                         ->from('student_profiles as review_students')
@@ -102,22 +87,12 @@ class DocumentReviewerAccess
                         ->whereNull('review_members.left_at')
                         ->whereNull('review_projects.archived_at');
                 });
-
-                $hasAccessScope = true;
-            }
-
-            if (! $hasAccessScope) {
-                $accessQuery->whereRaw('1 = 0');
             }
         });
     }
 
     private function hasClassAccess(User $reviewer, Document $document): bool
     {
-        if (! $this->tablesExist(['research_classes', 'research_class_enrollments'])) {
-            return false;
-        }
-
         return DB::table('research_class_enrollments as enrollments')
             ->join('research_classes as classes', 'classes.id', '=', 'enrollments.research_class_id')
             ->where('enrollments.student_id', $document->user_id)
@@ -128,13 +103,7 @@ class DocumentReviewerAccess
 
     private function hasAssignmentAccess(User $reviewer, Document $document): bool
     {
-        if (! $this->tablesExist([
-            'student_profiles',
-            'research_group_members',
-            'research_projects',
-            'adviser_assignments',
-            'faculty_profiles',
-        ])) {
+        if (! $this->assignmentTablesExist()) {
             return false;
         }
 
@@ -152,13 +121,30 @@ class DocumentReviewerAccess
             ->exists();
     }
 
-    /**
-     * @param  array<int, string>  $tables
-     */
-    private function tablesExist(array $tables): bool
+    private function assignmentTablesExist(): bool
     {
-        return collect($tables)->every(
-            fn (string $table): bool => Schema::hasTable($table),
+        $tables = [
+            'student_profiles',
+            'research_group_members',
+            'research_projects',
+            'adviser_assignments',
+            'faculty_profiles',
+        ];
+
+        if (app()->environment('testing')) {
+            return collect($tables)->every(
+                fn (string $table): bool => Schema::hasTable($table),
+            );
+        }
+
+        return Cache::remember(
+            'schema:document-review-assignment-tables:v1',
+            now()->addHour(),
+            fn (): bool => DB::table('information_schema.tables')
+                ->where('table_schema', 'public')
+                ->whereIn('table_name', $tables)
+                ->distinct()
+                ->count('table_name') === count($tables),
         );
     }
 }

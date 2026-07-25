@@ -11,9 +11,7 @@ use App\Modules\Classes\Exceptions\DuplicateClassOperation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -25,7 +23,7 @@ class ResearchClassController extends Controller
 
         $search = Str::limit(trim((string) $request->query('q')), 100, '');
         $enrollmentQuery = $researchClass->enrollments()
-            ->with('student:id,name,email')
+            ->with('student:id,name,email,student_id')
             ->where('status', 'active')
             ->latest('joined_at');
 
@@ -42,21 +40,16 @@ class ResearchClassController extends Controller
         }
 
         $enrollments = $enrollmentQuery->paginate(20)->withQueryString();
-        $studentNumbers = collect();
-
-        if (Schema::hasTable('student_profiles')) {
-            $studentNumbers = DB::table('student_profiles')
-                ->whereIn('user_id', $enrollments->getCollection()->pluck('student_id'))
-                ->pluck('student_number', 'user_id');
-        }
+        $activeStudents = $search === ''
+            ? $enrollments->total()
+            : $researchClass->enrollments()->where('status', 'active')->count();
 
         return view('pages.adviser-class-details', [
             'adviser' => $request->user(),
             'researchClass' => $researchClass,
             'enrollments' => $enrollments,
-            'studentNumbers' => $studentNumbers,
             'search' => $search,
-            'activeStudents' => $researchClass->enrollments()->where('status', 'active')->count(),
+            'activeStudents' => $activeStudents,
         ]);
     }
 

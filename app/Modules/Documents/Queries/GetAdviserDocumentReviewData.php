@@ -93,26 +93,27 @@ class GetAdviserDocumentReviewData
                 ->get();
 
         $assignedDocumentIds = (clone $scope)->select('documents.id');
+        $statusCounts = (clone $scope)
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+        $commentCounts = DocumentReviewComment::query()
+            ->whereIn('document_id', clone $assignedDocumentIds)
+            ->selectRaw('COUNT(*) as comments_count')
+            ->selectRaw(
+                "SUM(CASE WHEN severity = 'critical' AND resolved_at IS NULL THEN 1 ELSE 0 END) as critical_count",
+            )
+            ->first();
 
         return [
             'reviewDocuments' => $documents,
             'selectedReviewDocument' => $selectedDocument,
             'documentReviewComments' => $comments,
             'documentReviewStats' => [
-                'approved' => (clone $scope)
-                    ->where('status', DocumentStatus::Accepted->value)
-                    ->count(),
-                'revisions' => (clone $scope)
-                    ->where('status', DocumentStatus::RevisionRequested->value)
-                    ->count(),
-                'comments' => DocumentReviewComment::query()
-                    ->whereIn('document_id', clone $assignedDocumentIds)
-                    ->count(),
-                'critical' => DocumentReviewComment::query()
-                    ->whereIn('document_id', clone $assignedDocumentIds)
-                    ->where('severity', 'critical')
-                    ->whereNull('resolved_at')
-                    ->count(),
+                'approved' => (int) $statusCounts->get(DocumentStatus::Accepted->value, 0),
+                'revisions' => (int) $statusCounts->get(DocumentStatus::RevisionRequested->value, 0),
+                'comments' => (int) ($commentCounts?->comments_count ?? 0),
+                'critical' => (int) ($commentCounts?->critical_count ?? 0),
             ],
             'documentReviewSearch' => $search,
             'documentReviewStatus' => $status,

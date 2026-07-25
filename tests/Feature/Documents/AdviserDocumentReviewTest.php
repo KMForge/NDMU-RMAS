@@ -10,6 +10,7 @@ use App\Models\ResearchClassEnrollment;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -190,6 +191,52 @@ class AdviserDocumentReviewTest extends TestCase
             ->assertExactJson(['message' => 'The document comment was not found.']);
 
         $this->assertNull($comment->fresh()->resolved_at);
+    }
+
+    public function test_classes_tab_does_not_query_hidden_consultation_or_document_tabs(): void
+    {
+        $adviser = $this->adviser();
+        $student = $this->student('Lazy Tab Student');
+        $this->enroll($adviser, $student);
+        $queries = [];
+
+        DB::listen(function ($query) use (&$queries): void {
+            $queries[] = strtolower($query->sql);
+        });
+
+        $this->actingAs($adviser)
+            ->get(route('adviser.dashboard', ['tab' => 'classes']))
+            ->assertOk();
+
+        $executedSql = implode("\n", $queries);
+
+        $this->assertStringNotContainsString('consultation_requests', $executedSql);
+        $this->assertStringNotContainsString('consultation_records', $executedSql);
+        $this->assertStringNotContainsString('document_review_comments', $executedSql);
+        $this->assertStringNotContainsString(' from "documents"', $executedSql);
+    }
+
+    public function test_class_authorized_document_view_avoids_schema_introspection_queries(): void
+    {
+        $adviser = $this->adviser();
+        $student = $this->student('Fast File Student');
+        $this->enroll($adviser, $student);
+        $document = $this->document($student, 'fast-paper.pdf');
+        Storage::disk('local')->put($document->storage_path, '%PDF-1.7 fast');
+        $queries = [];
+
+        DB::listen(function ($query) use (&$queries): void {
+            $queries[] = strtolower($query->sql);
+        });
+
+        $this->actingAs($adviser)
+            ->get(route('documents.view', $document))
+            ->assertOk();
+
+        $this->assertStringNotContainsString(
+            'information_schema',
+            implode("\n", $queries),
+        );
     }
 
     private function adviser(): User

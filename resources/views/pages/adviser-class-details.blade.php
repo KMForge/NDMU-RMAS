@@ -1,6 +1,11 @@
 @extends('layouts.blank')
 
 @php
+    $joinCode = rescue(
+        fn () => filled($researchClass->join_code_encrypted) ? $researchClass->revealJoinCode() : null,
+        null,
+        report: false,
+    );
     $capacityPercentage = $researchClass->max_students > 0
         ? min(100, (int) round(($activeStudents / $researchClass->max_students) * 100))
         : 0;
@@ -32,11 +37,11 @@
         </div>
 
         <nav class="flex-1 px-6 py-5 space-y-2">
-            <a href="{{ route('adviser.dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/90 hover:bg-white/5 text-[13px] font-semibold">
+            <a href="{{ route('adviser.dashboard') }}" wire:navigate class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/90 hover:bg-white/5 text-[13px] font-semibold">
                 <i class="ph ph-squares-four text-lg"></i>
                 <span>Dashboard</span>
             </a>
-            <a href="{{ route('adviser.dashboard', ['tab' => 'classes']) }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[#eebc3f] text-[#0e5c3a] text-[13px] font-bold">
+            <a href="{{ route('adviser.dashboard', ['tab' => 'classes']) }}" wire:navigate class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[#eebc3f] text-[#0e5c3a] text-[13px] font-bold">
                 <i class="ph ph-chalkboard-teacher text-lg"></i>
                 <span>My Classes</span>
             </a>
@@ -55,7 +60,7 @@
 
     <div class="flex-1 min-h-screen pl-72">
         <header class="h-20 bg-white border-b border-gray-150 px-8 flex items-center justify-between sticky top-0 z-10">
-            <a href="{{ route('adviser.dashboard', ['tab' => 'classes']) }}" class="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#0e5c3a]">
+            <a href="{{ route('adviser.dashboard', ['tab' => 'classes']) }}" wire:navigate class="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#0e5c3a]">
                 <i class="ph ph-arrow-left"></i>
                 <span>Back to My Classes</span>
             </a>
@@ -79,12 +84,15 @@
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 min-w-64">
                     <p class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Student Join Code</p>
                     <div class="flex items-center justify-between gap-4 mt-2">
-                        <code class="text-lg font-extrabold tracking-widest text-[#0e5c3a]">{{ $researchClass->revealJoinCode() }}</code>
+                        <code class="text-lg font-extrabold tracking-widest text-[#0e5c3a]">{{ $joinCode ?? 'Unavailable' }}</code>
                         <button
                             type="button"
-                            @click="navigator.clipboard.writeText(@js($researchClass->revealJoinCode())).then(() => { copied = true; setTimeout(() => copied = false, 1800) })"
-                            class="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600"
+                            @if ($joinCode)
+                                @click="navigator.clipboard?.writeText(@js($joinCode)).then(() => { copied = true; setTimeout(() => copied = false, 1800) })"
+                            @endif
+                            class="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
                             aria-label="Copy class join code"
+                            @disabled(! $joinCode)
                         >
                             <i class="ph" :class="copied ? 'ph-check text-emerald-600' : 'ph-copy'"></i>
                         </button>
@@ -117,8 +125,8 @@
 
                 <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
                     <p class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Created</p>
-                    <p class="text-sm font-bold text-gray-850 mt-3">{{ $researchClass->created_at->format('M j, Y') }}</p>
-                    <p class="text-[10px] text-gray-500 mt-1">{{ $researchClass->created_at->diffForHumans() }}</p>
+                    <p class="text-sm font-bold text-gray-850 mt-3">{{ $researchClass->created_at?->format('M j, Y') ?? 'Not available' }}</p>
+                    <p class="text-[10px] text-gray-500 mt-1">{{ $researchClass->created_at?->diffForHumans() ?? 'Timestamp unavailable' }}</p>
                 </div>
             </div>
 
@@ -154,16 +162,17 @@
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             @forelse ($enrollments as $enrollment)
+                                @php($student = $enrollment->student)
                                 <tr>
                                     <td class="px-6 py-4">
-                                        <p class="text-sm font-bold text-gray-800">{{ $enrollment->student->name }}</p>
-                                        <p class="text-[10px] text-gray-500 mt-0.5">{{ $enrollment->student->email }}</p>
+                                        <p class="text-sm font-bold text-gray-800">{{ $student?->name ?? 'Deleted student account' }}</p>
+                                        <p class="text-[10px] text-gray-500 mt-0.5">{{ $student?->email ?? 'Email unavailable' }}</p>
                                     </td>
                                     <td class="px-6 py-4 text-xs text-gray-600">
-                                        {{ $studentNumbers->get($enrollment->student_id, 'Not available') }}
+                                        {{ $student?->student_id ?: 'Not available' }}
                                     </td>
                                     <td class="px-6 py-4 text-xs text-gray-600">
-                                        {{ $enrollment->joined_at->format('M j, Y g:i A') }}
+                                        {{ $enrollment->joined_at?->format('M j, Y g:i A') ?? 'Not available' }}
                                     </td>
                                     <td class="px-6 py-4">
                                         <span class="px-3 py-1 rounded-full text-[9px] font-bold uppercase {{ $enrollment->status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600' }}">
