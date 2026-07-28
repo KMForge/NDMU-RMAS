@@ -175,6 +175,18 @@
                 </div>
             @endif
 
+            @if (session('revision_success'))
+                <div role="status" class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    {{ session('revision_success') }}
+                </div>
+            @endif
+
+            @if ($errors->has('revision'))
+                <div role="alert" class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {{ $errors->first('revision') }}
+                </div>
+            @endif
+
             @if (session('consultation_success'))
                 <div role="status" class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                     {{ session('consultation_success') }}
@@ -646,12 +658,58 @@
                 <x-student-section-heading title="Revision Tracker" description="Revision requests for your research." />
                 <div class="space-y-4">
                     @forelse ($revisions as $revision)
-                        <x-student-record-card
-                            :title="$revision->title"
-                            :status="$revision->status"
-                            :date="$revision->created_at"
-                            :description="$revision->instructions"
-                        />
+                        <div class="space-y-3">
+                            <x-student-record-card
+                                :title="$revision->title"
+                                :status="$revision->status"
+                                :date="$revision->created_at"
+                                :description="$revision->instructions"
+                            />
+
+                            <div class="bg-white rounded-2xl px-5 pb-5 border border-gray-100 shadow-sm -mt-5 pt-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                                <div class="text-xs text-gray-500">
+                                    @if ($revision->latest_document_id)
+                                        Latest submission:
+                                        <a href="{{ route('documents.view', $revision->latest_document_id) }}" class="font-bold text-[#0e5c3a]">
+                                            {{ $revision->latest_document_name }}
+                                        </a>
+                                    @elseif ($revision->due_at)
+                                        Due {{ \Illuminate\Support\Carbon::parse($revision->due_at)->format('M j, Y') }}
+                                    @else
+                                        No revised document submitted yet.
+                                    @endif
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-3">
+                                    @if ($revision->status === 'open')
+                                        <form method="POST" action="{{ route('student.revisions.start', $revision->id) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="px-4 py-2.5 border border-[#0e5c3a] text-[#0e5c3a] text-xs font-bold rounded-xl">
+                                                Start Revision
+                                            </button>
+                                        </form>
+                                    @endif
+
+                                    @if (in_array($revision->status, ['open', 'in_progress'], true))
+                                        <form method="POST" action="{{ route('student.revisions.submit', $revision->id) }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-2">
+                                            @csrf
+                                            <input type="hidden" name="submission_token" value="{{ (string) Illuminate\Support\Str::uuid() }}">
+                                            <input
+                                                type="file"
+                                                name="document"
+                                                required
+                                                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                                class="max-w-56 text-xs text-gray-600 file:mr-3 file:px-3 file:py-2 file:border-0 file:rounded-lg file:bg-gray-100 file:text-gray-700"
+                                            >
+                                            <button type="submit" class="px-4 py-2.5 bg-[#0e5c3a] text-white text-xs font-bold rounded-xl">
+                                                Submit Revision
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
                     @empty
                         <x-student-empty-state message="No revision requests have been issued." />
                     @endforelse

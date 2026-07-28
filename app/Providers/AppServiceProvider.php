@@ -84,5 +84,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('class-join-decisions', fn (Request $request) => Limit::perMinute(30)->by(
             'class-join-decision|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
         ));
+
+        RateLimiter::for('revision-actions', fn (Request $request) => Limit::perMinute(30)->by(
+            'revision-action|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
+        ));
     }
 }

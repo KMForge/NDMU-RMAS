@@ -1,7 +1,7 @@
 @extends('layouts.blank')
 
 @php
-    $allowedTabs = ['dashboard', 'classes', 'requests', 'consultation', 'docreview', 'notifications', 'settings'];
+    $allowedTabs = ['dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'notifications', 'settings'];
     $initialTab = $activeDashboardTab ?? (in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard');
     $showClassModal = $errors->hasAny(['class', 'creation_token', 'name', 'description', 'max_students']);
 @endphp
@@ -270,9 +270,9 @@
                 </a>
 
                 <!-- Revision Management -->
-                <button 
-                   type="button" 
-                   @click="activeTab = 'revisions'"
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'revisions']) }}"
+                   wire:navigate
                    :class="activeTab === 'revisions' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
@@ -280,7 +280,7 @@
                         <span>Revision Management</span>
                     </div>
                     <span x-show="activeTab === 'revisions'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </button>
+                </a>
 
                 <!-- Defense Endorsement -->
                 <button 
@@ -454,6 +454,18 @@
             @if ($errors->has('document_review'))
                 <div role="alert" class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
                     {{ $errors->first('document_review') }}
+                </div>
+            @endif
+
+            @if (session('revision_success'))
+                <div role="status" class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    {{ session('revision_success') }}
+                </div>
+            @endif
+
+            @if ($errors->has('revision'))
+                <div role="alert" class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {{ $errors->first('revision') }}
                 </div>
             @endif
 
@@ -1338,6 +1350,111 @@
                         </div>
                     @endif
                 @endif
+            </div>
+
+            <!-- TAB: Revision Management -->
+            <div x-show="activeTab === 'revisions'" x-cloak class="space-y-6">
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-800">Revision Management</h1>
+                    <p class="text-sm text-gray-500 mt-1">Track requested changes and review revised student documents</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+                    @foreach ([
+                        ['label' => 'Open', 'value' => $revisionStats['open']],
+                        ['label' => 'In Progress', 'value' => $revisionStats['in_progress']],
+                        ['label' => 'Submitted', 'value' => $revisionStats['submitted']],
+                        ['label' => 'Resolved', 'value' => $revisionStats['resolved']],
+                        ['label' => 'Total', 'value' => $revisionStats['total']],
+                    ] as $stat)
+                        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                            <p class="text-xs font-semibold text-gray-500">{{ $stat['label'] }}</p>
+                            <p class="text-2xl font-bold text-gray-900 mt-2">{{ $stat['value'] }}</p>
+                        </div>
+                    @endforeach
+                </div>
+
+                <form method="GET" action="{{ route('adviser.dashboard') }}" class="flex flex-col md:flex-row gap-4">
+                    <input type="hidden" name="tab" value="revisions">
+                    <input
+                        type="search"
+                        name="revision_q"
+                        value="{{ $revisionSearch }}"
+                        maxlength="100"
+                        placeholder="Search by student, ID, email, or revision title..."
+                        class="flex-1 h-12 px-4 rounded-2xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[#0e5c3a]"
+                    >
+                    <select
+                        name="revision_status"
+                        onchange="this.form.submit()"
+                        class="md:w-48 h-12 px-4 rounded-2xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[#0e5c3a]"
+                    >
+                        <option value="submitted" @selected($revisionStatus === 'submitted')>Submitted</option>
+                        <option value="open" @selected($revisionStatus === 'open')>Open</option>
+                        <option value="in_progress" @selected($revisionStatus === 'in_progress')>In progress</option>
+                        <option value="resolved" @selected($revisionStatus === 'resolved')>Resolved</option>
+                        <option value="all" @selected($revisionStatus === 'all')>All requests</option>
+                    </select>
+                </form>
+
+                <div class="space-y-4">
+                    @forelse ($revisionRequests as $revisionRequest)
+                        @php($latestRevisionDocument = $revisionRequest->submittedDocuments->first())
+                        <article class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                            <div class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-5">
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h2 class="font-bold text-gray-900">{{ $revisionRequest->title }}</h2>
+                                        <span class="px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 text-[9px] font-bold uppercase">
+                                            {{ \Illuminate\Support\Str::headline($revisionRequest->status->value) }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-600 mt-2">
+                                        {{ $revisionRequest->assignee->name }}
+                                        @if ($revisionRequest->assignee->student_id)
+                                            · {{ $revisionRequest->assignee->student_id }}
+                                        @endif
+                                    </p>
+                                    <p class="text-xs text-gray-500 leading-6 mt-3">{{ $revisionRequest->instructions }}</p>
+
+                                    @if ($latestRevisionDocument)
+                                        <div class="flex flex-wrap items-center gap-3 mt-4">
+                                            <span class="text-xs font-semibold text-gray-700">{{ $latestRevisionDocument->original_filename }}</span>
+                                            <a href="{{ route('documents.view', $latestRevisionDocument) }}" class="text-xs font-bold text-[#0e5c3a]">View</a>
+                                            <a href="{{ route('documents.download', $latestRevisionDocument) }}" class="text-xs font-bold text-[#0e5c3a]">Download</a>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <div class="flex flex-col gap-2 xl:w-64">
+                                    @if ($revisionRequest->status->value === 'submitted')
+                                        <form method="POST" action="{{ route('adviser.revisions.resolve', $revisionRequest) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="text" name="notes" maxlength="5000" placeholder="Resolution note (optional)" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs mb-2">
+                                            <button type="submit" class="w-full px-4 py-2.5 bg-[#0e9f6e] text-white text-xs font-bold rounded-xl">Resolve Revision</button>
+                                        </form>
+                                    @endif
+
+                                    @if (in_array($revisionRequest->status->value, ['submitted', 'resolved'], true))
+                                        <form method="POST" action="{{ route('adviser.revisions.reopen', $revisionRequest) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="text" name="notes" maxlength="5000" placeholder="Reason for reopening (optional)" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs mb-2">
+                                            <button type="submit" class="w-full px-4 py-2.5 bg-amber-500 text-white text-xs font-bold rounded-xl">Reopen Revision</button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </div>
+                        </article>
+                    @empty
+                        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center text-sm text-gray-500">
+                            No revision requests found.
+                        </div>
+                    @endforelse
+                </div>
+
+                {{ $revisionRequests->links() }}
             </div>
 
             <!-- TAB: Consultation Records -->

@@ -98,6 +98,7 @@ class DocumentReviewController extends Controller
                 $document,
                 $request->string('decision')->toString(),
                 $request->validated('review_notes'),
+                $request->ip(),
             );
         } catch (DocumentReviewException $exception) {
             return $this->errorResponse($request, $document, $exception->getMessage());

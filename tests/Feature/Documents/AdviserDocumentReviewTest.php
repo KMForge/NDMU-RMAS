@@ -9,8 +9,10 @@ use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -25,6 +27,7 @@ class AdviserDocumentReviewTest extends TestCase
 
         $this->seed(RolePermissionSeeder::class);
         Storage::fake('local');
+        $this->createResearchContextTables();
     }
 
     public function test_adviser_document_queue_is_scoped_to_active_students(): void
@@ -140,6 +143,27 @@ class AdviserDocumentReviewTest extends TestCase
             'decision' => 'revision_requested',
             'review_notes' => 'Please correct the methodology.',
         ]);
+        $this->assertDatabaseHas('revision_requests', [
+            'document_id' => $document->getKey(),
+            'requested_by' => $adviser->getKey(),
+            'assigned_to' => $student->getKey(),
+            'status' => 'open',
+            'instructions' => 'Please correct the methodology.',
+        ]);
+        $this->assertDatabaseHas('research_proposals', [
+            'document_id' => $document->getKey(),
+            'submitted_by' => $student->getKey(),
+            'reviewed_by' => $adviser->getKey(),
+            'status' => 'revision_requested',
+        ]);
+        $this->assertDatabaseHas('document_review_audits', [
+            'document_id' => $document->getKey(),
+            'reviewer_id' => $adviser->getKey(),
+            'student_id' => $student->getKey(),
+            'action' => 'document_reviewed',
+            'decision' => 'revision_requested',
+        ]);
+        $this->assertDatabaseCount('notifications', 1);
         $this->assertSame(DocumentStatus::RevisionRequested, $document->fresh()->status);
 
         $this->actingAs($adviser)
@@ -152,6 +176,51 @@ class AdviserDocumentReviewTest extends TestCase
             ]);
 
         $this->assertDatabaseCount('document_reviews', 1);
+    }
+
+    public function test_accepted_document_creates_progress_and_proposal_records(): void
+    {
+        $adviser = $this->adviser();
+        $student = $this->student('Accepted Student');
+        $this->enroll($adviser, $student);
+        $projectId = $this->attachProject($student);
+        $milestoneId = DB::table('research_milestones')->insertGetId([
+            'academic_term_id' => 1,
+            'program_id' => 1,
+            'name' => 'Proposal Review',
+            'description' => 'Submit and pass proposal review.',
+            'due_at' => now()->addWeek(),
+            'sequence' => 1,
+            'is_required' => true,
+        ]);
+        $document = $this->document($student, 'accepted-proposal.pdf');
+
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.documents.review', $document), [
+                'decision' => 'accepted',
+                'review_notes' => 'Looks good.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('review.decision', 'accepted');
+
+        $this->assertDatabaseHas('research_proposals', [
+            'research_project_id' => $projectId,
+            'document_id' => $document->getKey(),
+            'status' => 'approved',
+        ]);
+        $this->assertDatabaseHas('research_progress_updates', [
+            'research_project_id' => $projectId,
+            'milestone_id' => $milestoneId,
+            'submitted_by' => $student->getKey(),
+            'reviewed_by' => $adviser->getKey(),
+            'evidence_document_id' => $document->getKey(),
+            'status' => 'approved',
+        ]);
+        $this->assertDatabaseHas('document_review_audits', [
+            'document_id' => $document->getKey(),
+            'decision' => 'accepted',
+        ]);
+        $this->assertDatabaseCount('notifications', 1);
     }
 
     public function test_adviser_cannot_review_another_advisers_document(): void
@@ -294,5 +363,96 @@ class AdviserDocumentReviewTest extends TestCase
             'submitted_at' => now(),
             'status' => DocumentStatus::Pending,
         ]);
+    }
+
+    private function attachProject(User $student): int
+    {
+        $profileId = DB::table('student_profiles')->insertGetId([
+            'user_id' => $student->getKey(),
+            'student_number' => 'STU-'.$student->getKey(),
+        ]);
+
+        DB::table('research_groups')->insert([
+            'id' => 100 + $student->getKey(),
+            'program_id' => 1,
+            'academic_term_id' => 1,
+        ]);
+
+        DB::table('research_group_members')->insert([
+            'research_group_id' => 100 + $student->getKey(),
+            'student_profile_id' => $profileId,
+            'member_role' => 'researcher',
+            'joined_at' => now(),
+        ]);
+
+        return DB::table('research_projects')->insertGetId([
+            'research_group_id' => 100 + $student->getKey(),
+            'title' => 'Backend Integrated Research',
+            'abstract' => 'Used for document review integrations.',
+            'keywords' => json_encode(['backend'], JSON_THROW_ON_ERROR),
+            'category' => 'thesis',
+            'status' => 'in_progress',
+            'created_by' => $student->getKey(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function createResearchContextTables(): void
+    {
+        if (! Schema::hasTable('student_profiles')) {
+            Schema::create('student_profiles', function (Blueprint $table): void {
+                $table->id();
+                $table->foreignId('user_id');
+                $table->string('student_number');
+            });
+        }
+
+        if (! Schema::hasTable('research_groups')) {
+            Schema::create('research_groups', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('program_id');
+                $table->unsignedBigInteger('academic_term_id');
+            });
+        }
+
+        if (! Schema::hasTable('research_group_members')) {
+            Schema::create('research_group_members', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('research_group_id');
+                $table->foreignId('student_profile_id');
+                $table->string('member_role')->nullable();
+                $table->timestamp('joined_at')->nullable();
+                $table->timestamp('left_at')->nullable();
+            });
+        }
+
+        if (! Schema::hasTable('research_projects')) {
+            Schema::create('research_projects', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('research_group_id');
+                $table->string('title');
+                $table->text('abstract')->nullable();
+                $table->json('keywords')->nullable();
+                $table->string('category')->nullable();
+                $table->string('status');
+                $table->foreignId('created_by');
+                $table->timestamp('archived_at')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('research_milestones')) {
+            Schema::create('research_milestones', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('academic_term_id');
+                $table->unsignedBigInteger('program_id');
+                $table->string('name');
+                $table->text('description')->nullable();
+                $table->timestamp('due_at')->nullable();
+                $table->unsignedInteger('sequence');
+                $table->boolean('is_required')->default(true);
+            });
+        }
     }
 }

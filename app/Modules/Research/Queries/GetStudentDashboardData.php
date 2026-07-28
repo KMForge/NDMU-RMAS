@@ -68,11 +68,15 @@ class GetStudentDashboardData
                 );
                 $consultations = $this->consultationsFor((int) $project->id);
                 $consultationRequests = $this->consultationRequestsFor((int) $project->id, $user);
-                $revisions = $this->revisionsFor((int) $project->id);
                 $defenses = $this->defensesFor((int) $project->id);
                 $evaluations = $this->evaluationsFor((int) $project->id);
             }
         }
+
+        $revisions = $this->revisionsFor(
+            (int) $user->getKey(),
+            $project === null ? null : (int) $project->id,
+        );
 
         $documents = Document::query()
             ->whereBelongsTo($user)
@@ -334,14 +338,33 @@ class GetStudentDashboardData
     /**
      * @return Collection<int, object>
      */
-    private function revisionsFor(int $researchProjectId): Collection
+    private function revisionsFor(int $userId, ?int $researchProjectId): Collection
     {
         if (! Schema::hasTable('revision_requests')) {
             return collect();
         }
 
         return DB::table('revision_requests')
-            ->where('research_project_id', $researchProjectId)
+            ->addSelect([
+                'revision_requests.*',
+                'latest_document_id' => Document::query()
+                    ->select('id')
+                    ->whereColumn('revision_request_id', 'revision_requests.id')
+                    ->latest('submitted_at')
+                    ->limit(1),
+                'latest_document_name' => Document::query()
+                    ->select('original_filename')
+                    ->whereColumn('revision_request_id', 'revision_requests.id')
+                    ->latest('submitted_at')
+                    ->limit(1),
+            ])
+            ->where(function ($query) use ($userId, $researchProjectId): void {
+                $query->where('assigned_to', $userId);
+
+                if ($researchProjectId !== null) {
+                    $query->orWhere('research_project_id', $researchProjectId);
+                }
+            })
             ->latest('created_at')
             ->get();
     }

@@ -5,6 +5,7 @@ use App\Http\Controllers\Adviser\ConsultationController;
 use App\Http\Controllers\Adviser\DashboardController;
 use App\Http\Controllers\Adviser\DocumentReviewController;
 use App\Http\Controllers\Adviser\ResearchClassController;
+use App\Http\Controllers\Adviser\RevisionRequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('adviser')->name('adviser.')->middleware([
@@ -53,5 +54,15 @@ Route::prefix('adviser')->name('adviser.')->middleware([
                 ->name('documents.comments.resolve');
             Route::patch('/review', [DocumentReviewController::class, 'review'])
                 ->name('documents.review');
+        });
+
+    Route::prefix('/revisions/{revisionRequest}')
+        ->whereNumber('revisionRequest')
+        ->middleware(['permission:revisions.resolve', 'throttle:revision-actions'])
+        ->group(function (): void {
+            Route::patch('/resolve', [RevisionRequestController::class, 'resolve'])
+                ->name('revisions.resolve');
+            Route::patch('/reopen', [RevisionRequestController::class, 'reopen'])
+                ->name('revisions.reopen');
         });
 });

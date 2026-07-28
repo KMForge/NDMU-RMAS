@@ -230,38 +230,44 @@ class StudentDashboardDataTest extends TestCase
 
     private function createProgressTables(): void
     {
-        Schema::create('research_groups', function (Blueprint $table): void {
-            $table->id();
-            $table->unsignedBigInteger('program_id');
-            $table->unsignedBigInteger('academic_term_id');
-        });
+        if (! Schema::hasTable('research_groups')) {
+            Schema::create('research_groups', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('program_id');
+                $table->unsignedBigInteger('academic_term_id');
+            });
+        }
 
-        Schema::create('research_milestones', function (Blueprint $table): void {
-            $table->id();
-            $table->unsignedBigInteger('academic_term_id');
-            $table->unsignedBigInteger('program_id');
-            $table->string('name');
-            $table->text('description')->nullable();
-            $table->timestamp('due_at')->nullable();
-            $table->unsignedInteger('sequence');
-            $table->boolean('is_required')->default(true);
-        });
+        if (! Schema::hasTable('research_milestones')) {
+            Schema::create('research_milestones', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('academic_term_id');
+                $table->unsignedBigInteger('program_id');
+                $table->string('name');
+                $table->text('description')->nullable();
+                $table->timestamp('due_at')->nullable();
+                $table->unsignedInteger('sequence');
+                $table->boolean('is_required')->default(true);
+            });
+        }
 
-        Schema::create('research_progress_updates', function (Blueprint $table): void {
-            $table->id();
-            $table->unsignedBigInteger('research_project_id');
-            $table->unsignedBigInteger('milestone_id');
-            $table->foreignId('submitted_by');
-            $table->foreignId('reviewed_by')->nullable();
-            $table->unsignedBigInteger('evidence_document_id')->nullable();
-            $table->unsignedInteger('version');
-            $table->string('status');
-            $table->unsignedSmallInteger('progress_percentage');
-            $table->text('summary')->nullable();
-            $table->text('feedback')->nullable();
-            $table->timestamp('submitted_at')->nullable();
-            $table->timestamp('reviewed_at')->nullable();
-            $table->timestamps();
-        });
+        if (! Schema::hasTable('research_progress_updates')) {
+            Schema::create('research_progress_updates', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('research_project_id');
+                $table->unsignedBigInteger('milestone_id');
+                $table->foreignId('submitted_by');
+                $table->foreignId('reviewed_by')->nullable();
+                $table->unsignedBigInteger('evidence_document_id')->nullable();
+                $table->unsignedInteger('version');
+                $table->string('status');
+                $table->unsignedSmallInteger('progress_percentage');
+                $table->text('summary')->nullable();
+                $table->text('feedback')->nullable();
+                $table->timestamp('submitted_at')->nullable();
+                $table->timestamp('reviewed_at')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 }

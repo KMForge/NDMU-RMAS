@@ -7,6 +7,7 @@ use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Modules\Consultations\Queries\GetAdviserConsultationData;
 use App\Modules\Documents\Queries\GetAdviserDocumentReviewData;
+use App\Modules\Revisions\Queries\GetAdviserRevisionData;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -19,6 +20,7 @@ class DashboardController extends Controller
         Request $request,
         GetAdviserConsultationData $getConsultationData,
         GetAdviserDocumentReviewData $getDocumentReviewData,
+        GetAdviserRevisionData $getRevisionData,
     ): View {
         $allowedTabs = [
             'dashboard',
@@ -26,6 +28,7 @@ class DashboardController extends Controller
             'requests',
             'consultation',
             'docreview',
+            'revisions',
             'notifications',
             'settings',
         ];
@@ -71,6 +74,17 @@ class DashboardController extends Controller
                     (string) $request->query('document_q', ''),
                     (string) $request->query('document_status', 'pending'),
                     $request->integer('document_id') ?: null,
+                ),
+            ];
+        }
+
+        if ($activeTab === 'revisions') {
+            $viewData = [
+                ...$viewData,
+                ...$getRevisionData->for(
+                    $request->user(),
+                    $request->query('revision_q'),
+                    $request->query('revision_status'),
                 ),
             ];
         }
@@ -176,6 +190,16 @@ class DashboardController extends Controller
             'documentReviewStats' => ['approved' => 0, 'revisions' => 0, 'comments' => 0, 'critical' => 0],
             'documentReviewSearch' => '',
             'documentReviewStatus' => 'pending',
+            'revisionRequests' => new LengthAwarePaginator([], 0, 10),
+            'revisionStats' => [
+                'open' => 0,
+                'in_progress' => 0,
+                'submitted' => 0,
+                'resolved' => 0,
+                'total' => 0,
+            ],
+            'revisionSearch' => '',
+            'revisionStatus' => 'submitted',
         ];
     }
 }
