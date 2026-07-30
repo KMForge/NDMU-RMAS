@@ -681,7 +681,7 @@
                                 </div>
 
                                 <div class="flex flex-wrap items-center gap-3">
-                                    @if ($revision->status === 'open')
+                                    @if ($revision->workflow_enabled && $revision->status === 'open')
                                         <form method="POST" action="{{ route('student.revisions.start', $revision->id) }}">
                                             @csrf
                                             @method('PATCH')
@@ -691,7 +691,7 @@
                                         </form>
                                     @endif
 
-                                    @if (in_array($revision->status, ['open', 'in_progress'], true))
+                                    @if ($revision->workflow_enabled && in_array($revision->status, ['open', 'in_progress'], true))
                                         <form method="POST" action="{{ route('student.revisions.submit', $revision->id) }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-2">
                                             @csrf
                                             <input type="hidden" name="submission_token" value="{{ (string) Illuminate\Support\Str::uuid() }}">

@@ -31,101 +31,8 @@
     showClassModal: @js($showClassModal),
     showConsultationModal: false,
     selectedNotification: null,
-    
-    // Static state data for high-fidelity interactive elements
-    notifications: [
-        {
-            id: 1,
-            type: 'submission',
-            title: 'New Research Submission',
-            isNew: true,
-            badge: 'New Submission',
-            badgeClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700',
-            description: 'Maria Santos submitted Chapter 3 – Methodology for your review. Please provide feedback within 5 working days.',
-            time: '1 hour ago',
-            icon: 'ph ph-file-text',
-            iconBg: 'bg-emerald-50 text-emerald-600',
-            category: 'documents',
-            unread: true
-        },
-        {
-            id: 2,
-            type: 'revision',
-            title: 'Revision Submitted',
-            isNew: true,
-            badge: 'Revision',
-            badgeClass: 'bg-blue-50 border border-blue-100 text-blue-750',
-            description: 'Carlo Bautista submitted the revised Chapter 2 addressing your previous comments. Ready for re-review.',
-            time: '3 hours ago',
-            icon: 'ph ph-cloud-arrow-up',
-            iconBg: 'bg-blue-50 text-blue-600',
-            category: 'documents',
-            unread: true,
-            hasActions: true
-        },
-        {
-            id: 3,
-            type: 'consultation',
-            title: 'Consultation Requested',
-            isNew: true,
-            badge: 'Consultation',
-            badgeClass: 'bg-purple-50 border border-purple-100 text-purple-700',
-            description: 'Maria Santos requested a consultation session for May 25, 2026 at 9:00 AM. Please confirm availability.',
-            time: '6 hours ago',
-            icon: 'ph ph-chat-teardrop',
-            iconBg: 'bg-purple-50 text-purple-600',
-            category: 'approvals',
-            unread: true
-        },
-        {
-            id: 4,
-            type: 'defense',
-            title: 'Defense Session Scheduled',
-            isNew: false,
-            badge: 'Defense',
-            badgeClass: 'bg-indigo-50 border border-indigo-100 text-indigo-700',
-            description: 'The proposal defense for Team AI-Traffic is scheduled on May 29, 2026 at 10:00 AM.',
-            time: '1 day ago',
-            icon: 'ph ph-calendar',
-            iconBg: 'bg-indigo-50 text-indigo-600',
-            category: 'defense',
-            unread: false
-        },
-        {
-            id: 5,
-            type: 'approval',
-            title: 'Proposal Endorsement Signed',
-            isNew: false,
-            badge: 'Approval',
-            badgeClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700',
-            description: 'You endorsed the proposal “Smart Agriculture IoT Platform” for defense scheduling.',
-            time: '2 days ago',
-            icon: 'ph ph-check-square',
-            iconBg: 'bg-emerald-50 text-emerald-600',
-            category: 'approvals',
-            unread: false
-        },
-        {
-            id: 6,
-            type: 'system',
-            title: 'System Maintenance Notice',
-            isNew: false,
-            badge: 'System',
-            badgeClass: 'bg-gray-50 border border-gray-100 text-gray-700',
-            description: 'The NDMU Research Management Portal will undergo scheduled maintenance on Sunday from 2:00 AM to 4:00 AM.',
-            time: '3 days ago',
-            icon: 'ph ph-gear',
-            iconBg: 'bg-gray-50 text-gray-600',
-            category: 'system',
-            unread: false
-        }
-    ],
-
-    assignedResearchers: [
-        { name: 'Juan Dela Cruz', project: 'AI-Powered Traffic Management System', status: 'Data Gathering', progress: 65, avatar: 'J' },
-        { name: 'Maria Clara Santos', project: 'Blockchain-Based Voting System', status: 'Final Defense Prep', progress: 82, avatar: 'M' },
-        { name: 'Ana Rodriguez', project: 'Mobile Health Monitoring App', status: 'Data Analysis', progress: 58, avatar: 'A' }
-    ]
+    notifications: @js($adviserNotifications),
+    assignedResearchers: @js($adviserOverviewAdvisees)
 }">
     <!-- Left Sidebar: Navigation -->
     <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5 overflow-y-auto">
@@ -159,9 +66,9 @@
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
                 
                 <!-- Dashboard -->
-                <button 
-                   type="button" 
-                   @click="activeTab = 'dashboard'"
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'dashboard']) }}"
+                   wire:navigate
                    :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
@@ -169,7 +76,7 @@
                         <span>Dashboard</span>
                     </div>
                     <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </button>
+                </a>
                 
                 <!-- My Classes -->
                 <a
@@ -328,7 +235,7 @@
                 
                 <button 
                     type="button"
-                    @click="alert('Official NDMU Forms are ready for download')"
+                    @click="activeTab = 'forms'"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200 text-left cursor-pointer"
                 >
                     <div class="flex items-center gap-3">
@@ -377,7 +284,7 @@
                 </form>
             </div>
             <div class="text-[9px] text-white/30 text-center font-medium mt-6">
-                NDMU © 2026 - v1.0
+                NDMU © {{ now()->year }} - v1.0
             </div>
         </div>
     </aside>
@@ -403,16 +310,16 @@
                 <!-- Notification Bell with Active Indicator -->
                 <button @click="activeTab = 'notifications'" class="relative w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
                     <i class="ph ph-bell text-lg"></i>
-                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                    <span x-show="notifications.some(notification => notification.unread)" class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
                 </button>
                 
                 <!-- Faculty Portal Profile Badge -->
                 <div class="flex items-center gap-3 pl-2 border-l border-gray-150">
                     <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-xs">
-                        A
+                        {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($adviser->name, 0, 1)) }}
                     </div>
                     <div class="flex flex-col leading-none">
-                        <span class="font-bold text-xs text-gray-800">Dr.</span>
+                        <span class="font-bold text-xs text-gray-800">{{ $adviser->name }}</span>
                         <span class="text-[9px] font-bold text-gray-400 mt-0.5">Faculty Portal</span>
                     </div>
                 </div>
@@ -497,8 +404,8 @@
                     <div class="bg-[#0e5c3a] text-white rounded-3xl p-5 border border-[#0e5c3a]/10 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-white/80 font-medium block">Active Advisees</span>
-                            <span class="text-3xl font-bold mt-2 block">12</span>
-                            <span class="text-[10px] text-[#eebc3f] font-bold mt-1 block">3 nearing defense</span>
+                            <span class="text-3xl font-bold mt-2 block">{{ $adviserOverviewStats['active_advisees'] }}</span>
+                            <span class="text-[10px] text-[#eebc3f] font-bold mt-1 block">{{ $adviserOverviewStats['nearing_defense'] }} nearing defense</span>
                         </div>
                         <span class="w-12 h-12 rounded-2xl bg-white/10 text-[#eebc3f] flex items-center justify-center text-2xl flex-shrink-0">
                             <i class="ph ph-users-three"></i>
@@ -509,8 +416,8 @@
                     <div class="bg-white rounded-3xl p-5 border-l-4 border-l-red-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Urgent Reviews</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block">7</span>
-                            <span class="text-[10px] text-red-500 font-bold mt-1 block">3 overdue submissions</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block">{{ $adviserOverviewStats['urgent_reviews'] }}</span>
+                            <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $adviserOverviewStats['overdue_revisions'] }} overdue revisions</span>
                         </div>
                         <span class="w-12 h-12 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center text-2xl flex-shrink-0">
                             <i class="ph ph-warning-circle"></i>
@@ -521,8 +428,10 @@
                     <div class="bg-white rounded-3xl p-5 border-l-4 border-l-blue-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Today's Consultations</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block">3</span>
-                            <span class="text-[10px] text-blue-500 font-bold mt-1 block">Next: 2:00 PM</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block">{{ $adviserOverviewStats['today_consultations'] }}</span>
+                            <span class="text-[10px] text-blue-500 font-bold mt-1 block">
+                                Next: {{ $adviserOverviewStats['next_consultation_at']?->timezone(config('ndmu-rmas.timezone'))->format('g:i A') ?? 'None scheduled' }}
+                            </span>
                         </div>
                         <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl flex-shrink-0">
                             <i class="ph ph-calendar"></i>
@@ -533,7 +442,7 @@
                     <div class="bg-white rounded-3xl p-5 border-l-4 border-l-purple-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Completed Research</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block">28</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block">{{ $adviserOverviewStats['completed_research'] }}</span>
                             <span class="text-[10px] text-purple-500 font-bold mt-1 block">This academic year</span>
                         </div>
                         <span class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-500 flex items-center justify-center text-2xl flex-shrink-0">
@@ -560,19 +469,19 @@
                                 <div class="border border-gray-100 bg-gray-50/10 rounded-2xl p-5 space-y-4 hover:border-emerald-100 hover:bg-emerald-50/5 transition-all">
                                     <div class="flex justify-between items-start">
                                         <div>
-                                            <h4 class="font-bold text-gray-850 text-sm" x-text="r.name">Student Name</h4>
-                                            <span class="text-xs text-gray-400 block mt-0.5" x-text="r.project">Research project title goes here.</span>
+                                            <h4 class="font-bold text-gray-850 text-sm" x-text="r.name"></h4>
+                                            <span class="text-xs text-gray-400 block mt-0.5" x-text="r.project || 'No research project assigned'"></span>
                                         </div>
                                         <div class="text-right">
-                                            <span class="text-lg font-extrabold text-emerald-700 block" x-text="`${r.progress}%`">65%</span>
+                                            <span class="text-lg font-extrabold text-emerald-700 block" x-text="`${r.progress}%`"></span>
                                             <span class="text-[9px] text-gray-400 uppercase tracking-wider">Complete</span>
                                         </div>
                                     </div>
 
                                     <!-- Badges -->
                                     <div class="flex gap-2">
-                                        <span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-bold" x-text="r.status">Data Gathering</span>
-                                        <span class="bg-emerald-50 border border-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold">On Track</span>
+                                        <span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-bold" x-text="r.status || 'No recorded status'"></span>
+                                        <span class="bg-emerald-50 border border-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold" x-text="r.progress >= 100 ? 'Complete' : 'In progress'"></span>
                                     </div>
 
                                     <!-- Progress Bar -->
@@ -584,20 +493,23 @@
 
                                     <!-- Action Buttons -->
                                     <div class="flex gap-3 pt-1">
-                                        <button @click="alert(`Opening ${r.name}'s research proposal...`)" class="w-1/2 text-center py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl transition-colors cursor-pointer">
+                                        <button @click="activeTab = 'researchers'" class="w-1/2 text-center py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl transition-colors cursor-pointer">
                                             View Research
                                         </button>
-                                        <button @click="alert(`Reviewing documents for ${r.name}...`)" class="w-1/2 text-center py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-sm transition-colors cursor-pointer">
+                                        <a href="{{ route('adviser.dashboard', ['tab' => 'docreview']) }}" wire:navigate class="w-1/2 text-center py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-sm transition-colors cursor-pointer">
                                             Review Documents
-                                        </button>
+                                        </a>
                                     </div>
                                 </div>
                             </template>
+                            <div x-show="assignedResearchers.length === 0" class="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-xs text-gray-500">
+                                No active advisees are assigned.
+                            </div>
                         </div>
 
                         <!-- View All Footer Link -->
                         <button @click="activeTab = 'researchers'" class="w-full text-center py-3 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold text-xs rounded-2xl transition-colors cursor-pointer">
-                            View All 12 Advisees →
+                            View All {{ $adviserOverviewStats['active_advisees'] }} Advisees →
                         </button>
                     </div>
 
@@ -608,51 +520,27 @@
                         <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
                             <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
                                 <i class="ph ph-file-text text-amber-500 text-lg"></i>
-                                <span>Pending Reviews (3)</span>
+                                <span>Pending Reviews ({{ $adviserOverviewStats['urgent_reviews'] }})</span>
                             </h3>
 
                             <div class="space-y-4">
-                                <!-- Item 1 -->
-                                <div class="border-l-4 border-l-amber-500 bg-amber-50/10 rounded-2xl p-4 border-t border-r border-b border-gray-100/50 space-y-3">
-                                    <div>
-                                        <span class="font-bold text-gray-800 text-xs block">Chapter 3 - Methodology</span>
-                                        <span class="text-[10px] text-gray-400 block mt-0.5">Juan Dela Cruz</span>
-                                        <span class="text-[10px] text-amber-600 font-bold mt-1.5 block flex items-center gap-1">
-                                            <i class="ph ph-clock"></i> Submitted 2 hours ago
-                                        </span>
+                                @forelse ($adviserPendingDocuments as $pendingDocument)
+                                    <div class="border-l-4 border-l-amber-500 bg-amber-50/10 rounded-2xl p-4 border-t border-r border-b border-gray-100/50 space-y-3">
+                                        <div>
+                                            <span class="font-bold text-gray-800 text-xs block">{{ $pendingDocument->original_filename }}</span>
+                                            <span class="text-[10px] text-gray-400 block mt-0.5">{{ $pendingDocument->user->name }}</span>
+                                            <span class="text-[10px] text-amber-600 font-bold mt-1.5 block flex items-center gap-1">
+                                                <i class="ph ph-clock"></i>
+                                                Submitted {{ $pendingDocument->submitted_at?->diffForHumans() }}
+                                            </span>
+                                        </div>
+                                        <a href="{{ route('adviser.dashboard', ['tab' => 'docreview', 'document_id' => $pendingDocument->getKey(), 'document_status' => 'all']) }}" wire:navigate class="block w-full text-center py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-[10px] font-bold rounded-lg transition-colors cursor-pointer">
+                                            Review Document
+                                        </a>
                                     </div>
-                                    <button @click="alert('Opening Chapter 3 Review window')" class="w-full text-center py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-[10px] font-bold rounded-lg transition-colors cursor-pointer">
-                                        Review Document
-                                    </button>
-                                </div>
-
-                                <!-- Item 2 -->
-                                <div class="border-l-4 border-l-red-500 bg-red-50/10 rounded-2xl p-4 border-t border-r border-b border-gray-100/50 space-y-3">
-                                    <div>
-                                        <span class="font-bold text-gray-800 text-xs block">Revised Proposal</span>
-                                        <span class="text-[10px] text-gray-400 block mt-0.5">Pedro Reyes</span>
-                                        <span class="text-[10px] text-red-500 font-bold mt-1.5 block flex items-center gap-1">
-                                            <i class="ph ph-clock"></i> Submitted 1 day ago
-                                        </span>
-                                    </div>
-                                    <button @click="alert('Opening Revised Proposal Review window')" class="w-full text-center py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-[10px] font-bold rounded-lg transition-colors cursor-pointer">
-                                        Review Document
-                                    </button>
-                                </div>
-
-                                <!-- Item 3 -->
-                                <div class="border-l-4 border-l-red-500 bg-red-50/10 rounded-2xl p-4 border-t border-r border-b border-gray-100/50 space-y-3">
-                                    <div>
-                                        <span class="font-bold text-gray-800 text-xs block">Chapter 2 - Literature Review</span>
-                                        <span class="text-[10px] text-gray-400 block mt-0.5">Ana Rodriguez</span>
-                                        <span class="text-[10px] text-red-500 font-bold mt-1.5 block flex items-center gap-1">
-                                            <i class="ph ph-clock"></i> Submitted 3 days ago
-                                        </span>
-                                    </div>
-                                    <button @click="alert('Opening Chapter 2 Review window')" class="w-full text-center py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-[10px] font-bold rounded-lg transition-colors cursor-pointer">
-                                        Review Document
-                                    </button>
-                                </div>
+                                @empty
+                                    <p class="py-6 text-center text-xs text-gray-500">No documents are waiting for review.</p>
+                                @endforelse
                             </div>
                         </div>
 
@@ -664,32 +552,19 @@
                             </h3>
 
                             <div class="space-y-3">
-                                <!-- Consultation 1 -->
-                                <div class="flex items-center justify-between py-2 border-b border-white/10">
-                                    <div>
-                                        <span class="font-bold text-xs block">Juan Dela Cruz</span>
-                                        <span class="text-[10px] text-white/80 mt-0.5 block">Methodology Review</span>
+                                @forelse ($adviserTodayConsultations as $consultation)
+                                    <div class="flex items-center justify-between py-2 border-b border-white/10 last:border-b-0">
+                                        <div>
+                                            <span class="font-bold text-xs block">{{ $consultation->student_name }}</span>
+                                            <span class="text-[10px] text-white/80 mt-0.5 block">{{ $consultation->agenda }}</span>
+                                        </div>
+                                        <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded font-bold">
+                                            {{ $consultation->preferred_at?->timezone(config('ndmu-rmas.timezone'))->format('g:i A') }}
+                                        </span>
                                     </div>
-                                    <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded font-bold">2:00 PM</span>
-                                </div>
-
-                                <!-- Consultation 2 -->
-                                <div class="flex items-center justify-between py-2 border-b border-white/10">
-                                    <div>
-                                        <span class="font-bold text-xs block">Ana Rodriguez</span>
-                                        <span class="text-[10px] text-white/80 mt-0.5 block">Data Analysis</span>
-                                    </div>
-                                    <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded font-bold">3:30 PM</span>
-                                </div>
-
-                                <!-- Consultation 3 -->
-                                <div class="flex items-center justify-between py-2">
-                                    <div>
-                                        <span class="font-bold text-xs block">Maria Clara</span>
-                                        <span class="text-[10px] text-white/80 mt-0.5 block">Defense Preparation</span>
-                                    </div>
-                                    <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded font-bold">4:30 PM</span>
-                                </div>
+                                @empty
+                                    <p class="py-4 text-center text-xs text-white/80">No consultations scheduled today.</p>
+                                @endforelse
                             </div>
 
                             <a href="{{ route('adviser.dashboard', ['tab' => 'consultation']) }}" wire:navigate class="block w-full text-center py-2 bg-white hover:bg-gray-50 text-blue-600 font-bold text-xs rounded-xl transition-colors cursor-pointer">
@@ -717,24 +592,21 @@
                         <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
                             <h3 class="font-bold text-gray-800 text-sm pb-2 border-b border-gray-50">Recent Activity</h3>
                             <div class="space-y-4">
-                                <div class="flex items-start gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm flex-shrink-0">
-                                        <i class="ph ph-check"></i>
+                                @forelse ($adviserRecentActivity as $activity)
+                                    <div class="flex items-start gap-3">
+                                        <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm flex-shrink-0">
+                                            <i class="ph {{ $activity['icon'] }}"></i>
+                                        </div>
+                                        <div>
+                                            <span class="font-bold text-gray-800 text-xs block">{{ $activity['title'] }}</span>
+                                            <span class="text-[10px] text-gray-400 block mt-0.5">
+                                                {{ $activity['student_name'] ?: 'Student' }} · {{ $activity['occurred_at']?->diffForHumans() }}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <span class="font-bold text-gray-800 text-xs block">Approved Chapter 2</span>
-                                        <span class="text-[10px] text-gray-400 block mt-0.5">Juan Dela Cruz • 2h ago</span>
-                                    </div>
-                                </div>
-                                <div class="flex items-start gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-sm flex-shrink-0">
-                                        <i class="ph ph-chat-teardrop"></i>
-                                    </div>
-                                    <div>
-                                        <span class="font-bold text-gray-800 text-xs block">Left feedback</span>
-                                        <span class="text-[10px] text-gray-400 block mt-0.5">Maria Clara • 5h ago</span>
-                                    </div>
-                                </div>
+                                @empty
+                                    <p class="py-4 text-center text-xs text-gray-500">No review activity recorded yet.</p>
+                                @endforelse
                             </div>
                         </div>
 
@@ -766,7 +638,7 @@
                             </button>
                             <button class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-[#0e5c3a]/15 transition-all duration-200">
                                 <i class="ph ph-bell text-base font-bold"></i>
-                                <span x-text="`${notifications.filter(n => n.unread).length} Unread`">3 Unread</span>
+                                <span x-text="`${notifications.filter(n => n.unread).length} Unread`">{{ $adviserNotificationStats['unread'] }} Unread</span>
                             </button>
                         </div>
                     </div>
@@ -777,7 +649,7 @@
                     <!-- Total Card -->
                     <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between animate-fade-in">
                         <div>
-                            <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.length">6</span>
+                            <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.length">{{ $adviserNotificationStats['total'] }}</span>
                             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block font-heading mt-0.5">Total</span>
                         </div>
                         <span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
@@ -788,7 +660,7 @@
                     <!-- Unread Card -->
                     <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
-                            <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.filter(n => n.unread).length">3</span>
+                            <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.filter(n => n.unread).length">{{ $adviserNotificationStats['unread'] }}</span>
                             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block font-heading mt-0.5">Unread</span>
                         </div>
                         <span class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
@@ -799,7 +671,7 @@
                     <!-- Defense Card -->
                     <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
-                            <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.filter(n => n.category === 'defense').length">1</span>
+                            <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.filter(n => n.category === 'defense').length">{{ $adviserNotificationStats['defense'] }}</span>
                             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block font-heading mt-0.5">Defense</span>
                         </div>
                         <span class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl">
@@ -810,7 +682,7 @@
                     <!-- Documents Card -->
                     <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
-                            <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.filter(n => n.category === 'documents').length">2</span>
+                            <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.filter(n => n.category === 'documents').length">{{ $adviserNotificationStats['documents'] }}</span>
                             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block font-heading mt-0.5">Documents</span>
                         </div>
                         <span class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
@@ -829,7 +701,7 @@
                         <span 
                             :class="notificationsFilter === 'all' ? 'bg-white/20 text-white' : 'bg-gray-200/50 text-gray-500'"
                             class="px-1.5 py-0.5 text-[10px] rounded-full" 
-                            x-text="notifications.length">6</span>
+                            x-text="notifications.length">{{ $adviserNotificationStats['total'] }}</span>
                     </button>
                     <button 
                         @click="notificationsFilter = 'unread'"
@@ -839,7 +711,7 @@
                         <span 
                             :class="notificationsFilter === 'unread' ? 'bg-white/20 text-white' : 'bg-gray-200/50 text-gray-500'"
                             class="px-1.5 py-0.5 text-[10px] rounded-full" 
-                            x-text="notifications.filter(n => n.unread).length">3</span>
+                            x-text="notifications.filter(n => n.unread).length">{{ $adviserNotificationStats['unread'] }}</span>
                     </button>
                     <button 
                         @click="notificationsFilter = 'approvals'"
@@ -849,7 +721,7 @@
                         <span 
                             :class="notificationsFilter === 'approvals' ? 'bg-white/20 text-white' : 'bg-gray-200/50 text-gray-500'"
                             class="px-1.5 py-0.5 text-[10px] rounded-full" 
-                            x-text="notifications.filter(n => n.category === 'approvals').length">2</span>
+                            x-text="notifications.filter(n => n.category === 'approvals').length">{{ $adviserNotificationStats['approvals'] }}</span>
                     </button>
                     <button 
                         @click="notificationsFilter = 'defense'"
@@ -859,7 +731,7 @@
                         <span 
                             :class="notificationsFilter === 'defense' ? 'bg-white/20 text-white' : 'bg-gray-200/50 text-gray-500'"
                             class="px-1.5 py-0.5 text-[10px] rounded-full" 
-                            x-text="notifications.filter(n => n.category === 'defense').length">1</span>
+                            x-text="notifications.filter(n => n.category === 'defense').length">{{ $adviserNotificationStats['defense'] }}</span>
                     </button>
                     <button 
                         @click="notificationsFilter = 'documents'"
@@ -869,7 +741,7 @@
                         <span 
                             :class="notificationsFilter === 'documents' ? 'bg-white/20 text-white' : 'bg-gray-200/50 text-gray-500'"
                             class="px-1.5 py-0.5 text-[10px] rounded-full" 
-                            x-text="notifications.filter(n => n.category === 'documents').length">2</span>
+                            x-text="notifications.filter(n => n.category === 'documents').length">{{ $adviserNotificationStats['documents'] }}</span>
                     </button>
                     <button 
                         @click="notificationsFilter = 'system'"
@@ -879,7 +751,7 @@
                         <span 
                             :class="notificationsFilter === 'system' ? 'bg-white/20 text-white' : 'bg-gray-200/50 text-gray-500'"
                             class="px-1.5 py-0.5 text-[10px] rounded-full" 
-                            x-text="notifications.filter(n => n.category === 'system').length">1</span>
+                            x-text="notifications.filter(n => n.category === 'system').length">{{ $adviserNotificationStats['system'] }}</span>
                     </button>
                 </div>
 
@@ -899,22 +771,20 @@
                             <!-- Notification Content -->
                             <div class="flex-1 space-y-3 pr-12">
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <h4 class="font-bold text-gray-800 text-sm" x-text="item.title">Notification Title</h4>
+                                    <h4 class="font-bold text-gray-800 text-sm" x-text="item.title"></h4>
                                     
                                     <!-- Dynamic Badges -->
                                     <template x-if="item.isNew">
                                         <span class="px-2 py-0.5 rounded bg-emerald-700 text-white text-[9px] font-bold">New</span>
                                     </template>
-                                    <span class="px-2 py-0.5 rounded text-[9px] font-semibold" :class="item.badgeClass" x-text="item.badge">Category</span>
+                                    <span class="px-2 py-0.5 rounded text-[9px] font-semibold" :class="item.badgeClass" x-text="item.badge"></span>
                                 </div>
                                 
-                                <p class="text-xs text-gray-550 leading-relaxed" x-text="item.description">
-                                    Notification description body copy.
-                                </p>
+                                <p class="text-xs text-gray-550 leading-relaxed" x-text="item.description"></p>
                                 
                                 <div class="flex items-center gap-1.5 text-[10px] text-gray-400 font-semibold">
                                     <i class="ph ph-clock"></i>
-                                    <span x-text="item.time">1 hour ago</span>
+                                    <span x-text="item.time"></span>
                                 </div>
                                 
                                 <div class="flex justify-between items-center pt-2 text-xs">
@@ -944,6 +814,9 @@
                             </div>
                         </div>
                     </template>
+                    <div x-show="notifications.length === 0" class="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-10 text-center text-sm text-gray-500">
+                        No notifications have been delivered.
+                    </div>
                 </div>
             </div>
 
@@ -1723,20 +1596,20 @@
             <!-- TAB: Settings -->
             <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
                 @include('partials.settings', [
-                    'avatarInitials' => 'D',
-                    'userName' => 'Dr. Reyna Garcia',
-                    'emailAddress' => 'r.garcia@ndmu.edu.ph',
+                    'avatarInitials' => \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($adviser->name, 0, 1)),
+                    'userName' => $adviser->name,
+                    'emailAddress' => $adviser->email,
                     'userRole' => 'Research Adviser',
                     'userRoleBadge' => 'RESEARCH ADVISER',
-                    'department' => 'College of Information Technology',
-                    'userId' => 'ADV-2015-0002',
+                    'department' => $adviser->department ?: 'Not assigned',
+                    'userId' => $adviser->student_id ?: 'Not assigned',
                     'portalType' => 'Faculty Portal',
                     'accessLevel' => 'Faculty & Guidance Access'
                 ])
             </div>
 
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'classes', 'requests', 'consultation', 'docreview', 'settings'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'settings'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
@@ -1761,8 +1634,8 @@
                         <i :class="selectedNotification?.icon"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-gray-800 text-sm" x-text="selectedNotification?.title">Notification Details</h3>
-                        <span class="text-[10px] text-gray-400" x-text="selectedNotification?.time">1 hour ago</span>
+                        <h3 class="font-bold text-gray-800 text-sm" x-text="selectedNotification?.title"></h3>
+                        <span class="text-[10px] text-gray-400" x-text="selectedNotification?.time"></span>
                     </div>
                 </div>
                 <button @click="selectedNotification = null" class="text-gray-400 hover:text-gray-600 text-lg cursor-pointer">
@@ -1771,10 +1644,8 @@
             </div>
             <hr class="border-gray-100">
             <div class="space-y-2">
-                <span class="px-2 py-0.5 rounded text-[9px] font-semibold" :class="selectedNotification?.badgeClass" x-text="selectedNotification?.badge">Category</span>
-                <p class="text-xs text-gray-650 leading-relaxed" x-text="selectedNotification?.description">
-                    Full notification description message text goes here.
-                </p>
+                <span class="px-2 py-0.5 rounded text-[9px] font-semibold" :class="selectedNotification?.badgeClass" x-text="selectedNotification?.badge"></span>
+                <p class="text-xs text-gray-650 leading-relaxed" x-text="selectedNotification?.description"></p>
             </div>
             <div class="pt-4 flex justify-end">
                 <button @click="selectedNotification = null" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors cursor-pointer">

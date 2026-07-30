@@ -7,6 +7,7 @@ use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Modules\Consultations\Queries\GetAdviserConsultationData;
 use App\Modules\Documents\Queries\GetAdviserDocumentReviewData;
+use App\Modules\Research\Queries\GetAdviserDashboardOverview;
 use App\Modules\Revisions\Queries\GetAdviserRevisionData;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class DashboardController extends Controller
         GetAdviserConsultationData $getConsultationData,
         GetAdviserDocumentReviewData $getDocumentReviewData,
         GetAdviserRevisionData $getRevisionData,
+        GetAdviserDashboardOverview $getDashboardOverview,
     ): View {
         $allowedTabs = [
             'dashboard',
@@ -36,6 +38,13 @@ class DashboardController extends Controller
             ? (string) $request->query('tab')
             : 'dashboard';
         $viewData = $this->emptyViewData();
+        $viewData = [
+            ...$viewData,
+            ...$getDashboardOverview->for(
+                $request->user(),
+                $activeTab === 'dashboard',
+            ),
+        ];
 
         if ($activeTab === 'classes') {
             $viewData['researchClasses'] = ResearchClass::query()

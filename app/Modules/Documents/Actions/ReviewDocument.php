@@ -102,7 +102,21 @@ class ReviewDocument
             ]);
         }
 
-        if (Schema::hasTable('research_proposals')) {
+        if (
+            $this->tableHasColumns('research_proposals', [
+                'research_project_id',
+                'document_id',
+                'submitted_by',
+                'reviewed_by',
+                'version',
+                'title',
+                'status',
+                'review_notes',
+                'submitted_at',
+                'reviewed_at',
+            ])
+            && $this->foreignKeyTargets('research_proposals', 'document_id', 'documents')
+        ) {
             ResearchProposal::query()->updateOrCreate(
                 ['document_id' => $document->getKey()],
                 [
@@ -119,7 +133,20 @@ class ReviewDocument
             );
         }
 
-        if ($review->decision === DocumentStatus::RevisionRequested->value && Schema::hasTable('revision_requests')) {
+        if (
+            $review->decision === DocumentStatus::RevisionRequested->value
+            && $this->tableHasColumns('revision_requests', [
+                'research_project_id',
+                'document_id',
+                'requested_by',
+                'assigned_to',
+                'title',
+                'instructions',
+                'status',
+                'due_at',
+                'resolved_at',
+            ])
+        ) {
             RevisionRequest::query()->updateOrCreate(
                 ['document_id' => $document->getKey(), 'status' => 'open'],
                 [
@@ -134,7 +161,28 @@ class ReviewDocument
             );
         }
 
-        if ($review->decision === DocumentStatus::Accepted->value && Schema::hasTable('research_progress_updates')) {
+        if (
+            $review->decision === DocumentStatus::Accepted->value
+            && $this->tableHasColumns('research_progress_updates', [
+                'research_project_id',
+                'milestone_id',
+                'submitted_by',
+                'reviewed_by',
+                'evidence_document_id',
+                'version',
+                'status',
+                'progress_percentage',
+                'summary',
+                'feedback',
+                'submitted_at',
+                'reviewed_at',
+            ])
+            && $this->foreignKeyTargets(
+                'research_progress_updates',
+                'evidence_document_id',
+                'documents',
+            )
+        ) {
             $milestoneId = $this->milestoneIdFor($researchProjectId);
 
             ResearchProgressUpdate::query()->create([
@@ -298,5 +346,27 @@ class ReviewDocument
     private function tablesExist(array $tables): bool
     {
         return collect($tables)->every(fn (string $table): bool => Schema::hasTable($table));
+    }
+
+    /**
+     * @param  array<int, string>  $columns
+     */
+    private function tableHasColumns(string $table, array $columns): bool
+    {
+        return Schema::hasTable($table) && Schema::hasColumns($table, $columns);
+    }
+
+    private function foreignKeyTargets(
+        string $table,
+        string $column,
+        string $foreignTable,
+    ): bool {
+        return collect(Schema::getForeignKeys($table))->contains(
+            fn (array $foreignKey): bool => in_array(
+                $column,
+                $foreignKey['columns'] ?? [],
+                true,
+            ) && ($foreignKey['foreign_table'] ?? null) === $foreignTable,
+        );
     }
 }
