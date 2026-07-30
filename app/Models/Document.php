@@ -7,9 +7,11 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'user_id',
+    'revision_request_id',
     'submission_token',
     'original_filename',
     'stored_filename',
@@ -47,6 +49,41 @@ class Document extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function revisionRequest(): BelongsTo
+    {
+        return $this->belongsTo(RevisionRequest::class);
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(DocumentReviewComment::class);
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(DocumentReview::class);
+    }
+
+    public function reviewAudits(): HasMany
+    {
+        return $this->hasMany(DocumentReviewAudit::class);
+    }
+
+    public function revisionRequests(): HasMany
+    {
+        return $this->hasMany(RevisionRequest::class);
+    }
+
+    public function proposals(): HasMany
+    {
+        return $this->hasMany(ResearchProposal::class);
+    }
+
+    public function progressUpdates(): HasMany
+    {
+        return $this->hasMany(ResearchProgressUpdate::class, 'evidence_document_id');
     }
 
     protected function casts(): array

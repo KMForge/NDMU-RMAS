@@ -1,5 +1,11 @@
 @extends('layouts.blank')
 
+@php
+    $allowedTabs = ['dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'notifications', 'settings'];
+    $initialTab = $activeDashboardTab ?? (in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard');
+    $showClassModal = $errors->hasAny(['class', 'creation_token', 'name', 'description', 'max_students']);
+@endphp
+
 @section('content')
 <style>
     [x-cloak] { display: none !important; }
@@ -20,9 +26,9 @@
 </style>
 
 <div class="min-h-screen flex font-sans bg-[#f4f7f6]" x-data="{ 
-    activeTab: 'dashboard',
+    activeTab: @js($initialTab),
     notificationsFilter: 'all',
-    showClassModal: false,
+    showClassModal: @js($showClassModal),
     showConsultationModal: false,
     selectedNotification: null,
     
@@ -115,12 +121,6 @@
         }
     ],
 
-    classes: [
-        { code: 'CS-401', name: 'Software Engineering Capstone', students: 12, submissions: 3 },
-        { code: 'IT-402', name: 'Information Technology Project', students: 8, submissions: 1 },
-        { code: 'CS-402', name: 'Artificial Intelligence Research', students: 6, submissions: 2 }
-    ],
-
     assignedResearchers: [
         { name: 'Juan Dela Cruz', project: 'AI-Powered Traffic Management System', status: 'Data Gathering', progress: 65, avatar: 'J' },
         { name: 'Maria Clara Santos', project: 'Blockchain-Based Voting System', status: 'Final Defense Prep', progress: 82, avatar: 'M' },
@@ -144,10 +144,10 @@
             <!-- Profile Badge -->
             <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
                 <div class="w-10 h-10 rounded-full bg-[#eebc3f] text-[#0e5c3a] font-bold flex items-center justify-center text-lg flex-shrink-0">
-                    D
+                    {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($adviser->name, 0, 1)) }}
                 </div>
                 <div class="flex flex-col leading-tight overflow-hidden">
-                    <span class="font-semibold text-sm text-white truncate">Dr. Reyna Garcia</span>
+                    <span class="font-semibold text-sm text-white truncate">{{ $adviser->name }}</span>
                     <span class="text-[10px] text-white/60 font-medium mt-0.5">Research Adviser</span>
                 </div>
             </div>
@@ -172,9 +172,9 @@
                 </button>
                 
                 <!-- My Classes -->
-                <button 
-                   type="button" 
-                   @click="activeTab = 'classes'"
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'classes']) }}"
+                   wire:navigate
                    :class="activeTab === 'classes' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
@@ -182,20 +182,27 @@
                         <span>My Classes</span>
                     </div>
                     <span x-show="activeTab === 'classes'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </button>
+                </a>
 
                 <!-- Join Requests -->
-                <button 
-                   type="button" 
-                   @click="activeTab = 'requests'"
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'requests']) }}"
+                   wire:navigate
                    :class="activeTab === 'requests' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-user-plus text-lg"></i>
                         <span>Join Requests</span>
                     </div>
-                    <span x-show="activeTab === 'requests'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </button>
+                    <div class="flex items-center gap-2">
+                        @if ($requestStats['pending'] > 0)
+                            <span class="min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                {{ $requestStats['pending'] }}
+                            </span>
+                        @endif
+                        <span x-show="activeTab === 'requests'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    </div>
+                </a>
 
                 <!-- Assigned Researchers -->
                 <button 
@@ -237,9 +244,9 @@
                 </button>
 
                 <!-- Consultation Records -->
-                <button 
-                   type="button" 
-                   @click="activeTab = 'consultation'"
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'consultation']) }}"
+                   wire:navigate
                    :class="activeTab === 'consultation' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
@@ -247,12 +254,12 @@
                         <span>Consultation Records</span>
                     </div>
                     <span x-show="activeTab === 'consultation'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </button>
+                </a>
 
                 <!-- Document Review -->
-                <button 
-                   type="button" 
-                   @click="activeTab = 'docreview'"
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'docreview']) }}"
+                   wire:navigate
                    :class="activeTab === 'docreview' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
@@ -260,12 +267,12 @@
                         <span>Document Review</span>
                     </div>
                     <span x-show="activeTab === 'docreview'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </button>
+                </a>
 
                 <!-- Revision Management -->
-                <button 
-                   type="button" 
-                   @click="activeTab = 'revisions'"
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'revisions']) }}"
+                   wire:navigate
                    :class="activeTab === 'revisions' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
@@ -273,7 +280,7 @@
                         <span>Revision Management</span>
                     </div>
                     <span x-show="activeTab === 'revisions'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </button>
+                </a>
 
                 <!-- Defense Endorsement -->
                 <button 
@@ -414,6 +421,60 @@
 
         <!-- Main Body Content -->
         <main class="flex-grow p-8">
+            @if (session('class_success'))
+                <div role="status" class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    {{ session('class_success') }}
+                </div>
+            @endif
+
+            @if ($errors->has('class'))
+                <div role="alert" class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {{ $errors->first('class') }}
+                </div>
+            @endif
+
+            @if (session('consultation_success'))
+                <div role="status" class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    {{ session('consultation_success') }}
+                </div>
+            @endif
+
+            @if ($errors->has('consultation'))
+                <div role="alert" class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {{ $errors->first('consultation') }}
+                </div>
+            @endif
+
+            @if (session('document_review_success'))
+                <div role="status" class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    {{ session('document_review_success') }}
+                </div>
+            @endif
+
+            @if ($errors->has('document_review'))
+                <div role="alert" class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {{ $errors->first('document_review') }}
+                </div>
+            @endif
+
+            @if (session('revision_success'))
+                <div role="status" class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    {{ session('revision_success') }}
+                </div>
+            @endif
+
+            @if ($errors->has('revision'))
+                <div role="alert" class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {{ $errors->first('revision') }}
+                </div>
+            @endif
+
+            @if ($errors->hasAny(['comment', 'severity', 'page_number', 'parent_id', 'decision', 'review_notes']))
+                <div role="alert" class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {{ $errors->first() }}
+                </div>
+            @endif
+
             
             <!-- TAB: Dashboard (Active Default) -->
             <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">
@@ -631,9 +692,9 @@
                                 </div>
                             </div>
 
-                            <button @click="activeTab = 'consultation'" class="w-full text-center py-2 bg-white hover:bg-gray-50 text-blue-600 font-bold text-xs rounded-xl transition-colors cursor-pointer">
+                            <a href="{{ route('adviser.dashboard', ['tab' => 'consultation']) }}" wire:navigate class="block w-full text-center py-2 bg-white hover:bg-gray-50 text-blue-600 font-bold text-xs rounded-xl transition-colors cursor-pointer">
                                 View Full Schedule
-                            </button>
+                            </a>
                         </div>
 
                         <!-- Side Widget 3: Quick Actions -->
@@ -643,9 +704,9 @@
                                 <button @click="activeTab = 'proposal'" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs w-full py-2.5 rounded-xl transition-colors cursor-pointer text-center">
                                     Review Proposals
                                 </button>
-                                <button @click="activeTab = 'consultation'" class="bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs w-full py-2.5 rounded-xl transition-colors cursor-pointer text-center">
+                                <a href="{{ route('adviser.dashboard', ['tab' => 'consultation']) }}" wire:navigate class="block bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs w-full py-2.5 rounded-xl transition-colors cursor-pointer text-center">
                                     Schedule Consultation
-                                </button>
+                                </a>
                                 <button @click="activeTab = 'endorsement'" class="bg-purple-50 hover:bg-purple-100 text-purple-800 font-bold text-xs w-full py-2.5 rounded-xl transition-colors cursor-pointer text-center">
                                     Recommend for Defense
                                 </button>
@@ -886,7 +947,7 @@
                 </div>
             </div>
 
-            <!-- TAB: Classes Mockup -->
+            <!-- TAB: Classes -->
             <div x-show="activeTab === 'classes'" x-cloak class="space-y-8">
                 <div class="flex justify-between items-center">
                     <div>
@@ -900,22 +961,762 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <template x-for="c in classes">
-                        <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4 hover:border-gray-200 transition-all">
+                    @forelse ($researchClasses as $researchClass)
+                        <a href="{{ route('adviser.classes.show', $researchClass) }}" wire:navigate class="block bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4 hover:border-[#0e5c3a]/30 hover:shadow-md transition-all">
                             <div class="flex justify-between items-start">
-                                <span class="px-3 py-1 bg-amber-50 text-amber-700 text-[10px] font-extrabold rounded-full" x-text="c.code">CODE-101</span>
+                                <span class="px-3 py-1 bg-amber-50 text-amber-700 text-[10px] font-extrabold rounded-full">{{ $researchClass->revealJoinCode() }}</span>
                                 <i class="ph ph-dots-three-vertical text-gray-400 text-lg"></i>
                             </div>
                             <div>
-                                <h3 class="font-bold text-gray-800 text-sm" x-text="c.name">Class Name</h3>
-                                <p class="text-[11px] text-gray-400 mt-1">2026 Academic Year</p>
+                                <h3 class="font-bold text-gray-800 text-sm">{{ $researchClass->name }}</h3>
+                                @if ($researchClass->description)
+                                    <p class="text-[11px] text-gray-400 mt-1">{{ $researchClass->description }}</p>
+                                @endif
                             </div>
-                            <div class="flex justify-between items-center pt-4 border-t border-gray-50 text-xs">
-                                <span class="text-gray-500 font-semibold" x-text="`${c.students} Students`">12 Students</span>
-                                <span class="text-amber-600 font-bold" x-text="`${c.submissions} Submissions`">3 Submissions</span>
+                             <div class="flex justify-between items-center pt-4 border-t border-gray-50 text-xs">
+                                 <span class="text-gray-500 font-semibold">{{ $researchClass->active_students_count }} Students</span>
+                                 <span class="text-amber-600 font-bold">
+                                     {{ $researchClass->pending_join_requests_count }} Pending · Limit: {{ $researchClass->max_students }}
+                                 </span>
+                             </div>
+                        </a>
+                    @empty
+                        <div class="md:col-span-3 bg-white rounded-3xl p-10 border border-gray-100 shadow-sm text-center">
+                            <i class="ph ph-chalkboard-teacher text-3xl text-gray-300"></i>
+                            <p class="text-sm text-gray-500 mt-3">You have not created a research class yet.</p>
+                        </div>
+                    @endforelse
+                </div>
+             </div>
+
+            <!-- TAB: Join Requests -->
+            <div x-show="activeTab === 'requests'" x-cloak class="space-y-6">
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-800">Join Requests</h1>
+                    <p class="text-sm text-gray-500 mt-1">Review and manage student requests to join your classes</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    @foreach ([
+                        ['label' => 'Pending', 'value' => $requestStats['pending'], 'icon' => 'ph-calendar-blank', 'iconClass' => 'bg-orange-100 text-orange-600'],
+                        ['label' => 'Approved', 'value' => $requestStats['approved'], 'icon' => 'ph-check', 'iconClass' => 'bg-emerald-100 text-emerald-600'],
+                        ['label' => 'Rejected', 'value' => $requestStats['rejected'], 'icon' => 'ph-x', 'iconClass' => 'bg-red-100 text-red-500'],
+                        ['label' => 'Total', 'value' => $requestStats['total'], 'icon' => 'ph-user-focus', 'iconClass' => 'bg-blue-100 text-blue-600'],
+                    ] as $stat)
+                        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold text-gray-700">{{ $stat['label'] }}</span>
+                                <span class="w-10 h-10 rounded-xl {{ $stat['iconClass'] }} flex items-center justify-center">
+                                    <i class="ph {{ $stat['icon'] }} text-xl"></i>
+                                </span>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-900 mt-3">{{ $stat['value'] }}</p>
+                        </div>
+                    @endforeach
+                </div>
+
+                <form method="GET" action="{{ route('adviser.dashboard') }}" class="flex flex-col md:flex-row gap-4">
+                    <input type="hidden" name="tab" value="requests">
+                    <div class="relative flex-1">
+                        <i class="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-lg text-gray-400"></i>
+                        <input
+                            type="search"
+                            name="request_q"
+                            value="{{ $requestSearch }}"
+                            maxlength="100"
+                            placeholder="Search by student name, ID, email, or class..."
+                            class="w-full h-12 pl-12 pr-4 rounded-2xl border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:border-[#0e5c3a]"
+                        >
+                    </div>
+                    <div class="relative md:w-44">
+                        <i class="ph ph-funnel absolute left-4 top-1/2 -translate-y-1/2 text-lg text-gray-400 pointer-events-none"></i>
+                        <select
+                            name="request_status"
+                            onchange="this.form.submit()"
+                            class="w-full h-12 pl-12 pr-9 rounded-2xl border border-gray-200 bg-white text-sm text-gray-700 appearance-none focus:outline-none focus:border-[#0e5c3a]"
+                        >
+                            <option value="pending" @selected($requestStatus === 'pending')>Pending</option>
+                            <option value="active" @selected($requestStatus === 'active')>Approved</option>
+                            <option value="rejected" @selected($requestStatus === 'rejected')>Rejected</option>
+                            <option value="all" @selected($requestStatus === 'all')>All requests</option>
+                        </select>
+                        <i class="ph ph-caret-down absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none"></i>
+                    </div>
+                </form>
+
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    @forelse ($classJoinRequests as $joinRequest)
+                        <article class="p-6 border-b border-gray-100 last:border-b-0 flex flex-col xl:flex-row xl:items-center justify-between gap-5">
+                            <div class="flex items-start gap-4 min-w-0">
+                                <div class="w-12 h-12 rounded-full bg-emerald-50 text-[#0e5c3a] font-bold flex items-center justify-center flex-shrink-0">
+                                    {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($joinRequest->student->name, 0, 1)) }}
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h2 class="font-bold text-gray-900 text-sm">{{ $joinRequest->student->name }}</h2>
+                                        <span @class([
+                                            'px-2.5 py-1 rounded-full text-[9px] font-bold uppercase',
+                                            'bg-orange-50 text-orange-700' => $joinRequest->status === 'pending',
+                                            'bg-emerald-50 text-emerald-700' => $joinRequest->status === 'active',
+                                            'bg-red-50 text-red-700' => $joinRequest->status === 'rejected',
+                                        ])>
+                                            {{ $joinRequest->status === 'active' ? 'Approved' : $joinRequest->status }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 truncate mt-1">{{ $joinRequest->student->email }}</p>
+                                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-[11px] text-gray-500">
+                                        <span class="font-semibold text-[#0e5c3a]">{{ $joinRequest->researchClass->name }}</span>
+                                        @if ($joinRequest->student->student_id)
+                                            <span>ID: {{ $joinRequest->student->student_id }}</span>
+                                        @endif
+                                        @if ($joinRequest->student->program)
+                                            <span>{{ $joinRequest->student->program }}</span>
+                                        @endif
+                                        <span>Requested {{ $joinRequest->requested_at?->diffForHumans() ?? $joinRequest->created_at->diffForHumans() }}</span>
+                                        @if ($joinRequest->reviewed_at)
+                                            <span>Reviewed {{ $joinRequest->reviewed_at->diffForHumans() }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-3 flex-shrink-0">
+                                @if ($joinRequest->status === 'pending')
+                                    <form method="POST" action="{{ route('adviser.classes.join-requests.reject', [$joinRequest->researchClass, $joinRequest]) }}">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="px-4 py-2.5 border border-red-200 text-red-700 hover:bg-red-50 text-xs font-bold rounded-xl">
+                                            Reject
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ route('adviser.classes.join-requests.approve', [$joinRequest->researchClass, $joinRequest]) }}">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl">
+                                            Approve
+                                        </button>
+                                    </form>
+                                @else
+                                    <span class="text-xs text-gray-500">
+                                        {{ $joinRequest->status === 'active' ? 'Student enrolled' : 'Request declined' }}
+                                    </span>
+                                @endif
+                            </div>
+                        </article>
+                    @empty
+                        <div class="min-h-60 p-12 flex flex-col items-center justify-center text-center">
+                            <i class="ph ph-user-focus text-6xl text-gray-300"></i>
+                            <h2 class="font-bold text-gray-900 mt-4">No requests found</h2>
+                            <p class="text-sm text-gray-500 mt-2">
+                                @if ($requestSearch !== '')
+                                    No join requests match your search.
+                                @elseif ($requestStatus === 'pending')
+                                    Student join requests will appear here.
+                                @else
+                                    There are no {{ $requestStatus === 'active' ? 'approved' : $requestStatus }} requests.
+                                @endif
+                            </p>
+                        </div>
+                    @endforelse
+
+                    @if ($classJoinRequests->hasPages())
+                        <div class="px-6 py-4 border-t border-gray-100">
+                            {{ $classJoinRequests->links() }}
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            <!-- TAB: Document Review -->
+            <div x-show="activeTab === 'docreview'" x-cloak class="space-y-6">
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-800">Document Review System</h1>
+                    <p class="text-sm text-gray-500 mt-1">Review and annotate documents submitted by your assigned researchers</p>
+                </div>
+
+                <form method="GET" action="{{ route('adviser.dashboard') }}" class="flex flex-col md:flex-row gap-4">
+                    <input type="hidden" name="tab" value="docreview">
+                    <div class="relative flex-1">
+                        <i class="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-lg text-gray-400"></i>
+                        <input
+                            type="search"
+                            name="document_q"
+                            value="{{ $documentReviewSearch }}"
+                            maxlength="100"
+                            placeholder="Search by document, student, email, or student ID..."
+                            class="w-full h-12 pl-12 pr-4 rounded-2xl border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:border-[#0e5c3a]"
+                        >
+                    </div>
+                    <div class="relative md:w-52">
+                        <i class="ph ph-funnel absolute left-4 top-1/2 -translate-y-1/2 text-lg text-gray-400 pointer-events-none"></i>
+                        <select
+                            name="document_status"
+                            onchange="this.form.submit()"
+                            class="w-full h-12 pl-12 pr-9 rounded-2xl border border-gray-200 bg-white text-sm text-gray-700 appearance-none focus:outline-none focus:border-[#0e5c3a]"
+                        >
+                            <option value="pending" @selected($documentReviewStatus === 'pending')>Pending</option>
+                            <option value="under_review" @selected($documentReviewStatus === 'under_review')>Under review</option>
+                            <option value="revision_requested" @selected($documentReviewStatus === 'revision_requested')>Revisions requested</option>
+                            <option value="accepted" @selected($documentReviewStatus === 'accepted')>Approved</option>
+                            <option value="rejected" @selected($documentReviewStatus === 'rejected')>Rejected</option>
+                            <option value="all" @selected($documentReviewStatus === 'all')>All documents</option>
+                        </select>
+                        <i class="ph ph-caret-down absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none"></i>
+                    </div>
+                </form>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                    @forelse ($reviewDocuments as $reviewDocument)
+                        <a
+                            href="{{ route('adviser.dashboard', ['tab' => 'docreview', 'document_id' => $reviewDocument->id, 'document_status' => $documentReviewStatus, 'document_q' => $documentReviewSearch]) }}"
+                            wire:navigate
+                            @class([
+                                'bg-white rounded-2xl p-4 border shadow-sm flex items-start gap-3 transition-all',
+                                'border-[#0e5c3a] ring-2 ring-[#0e5c3a]/10' => $selectedReviewDocument?->is($reviewDocument),
+                                'border-gray-100 hover:border-[#0e5c3a]/30' => ! $selectedReviewDocument?->is($reviewDocument),
+                            ])
+                        >
+                            <span class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0">
+                                <i class="ph ph-file-text text-xl"></i>
+                            </span>
+                            <span class="min-w-0">
+                                <span class="font-bold text-sm text-gray-900 block truncate">{{ $reviewDocument->original_filename }}</span>
+                                <span class="text-[11px] text-gray-500 block truncate mt-1">{{ $reviewDocument->user->name }}</span>
+                                <span class="text-[10px] text-gray-400 block mt-1">
+                                    {{ \Illuminate\Support\Str::headline($reviewDocument->status->value) }}
+                                    · {{ $reviewDocument->submitted_at->diffForHumans() }}
+                                </span>
+                            </span>
+                        </a>
+                    @empty
+                        <div class="md:col-span-2 xl:col-span-4 bg-white rounded-2xl p-10 border border-gray-100 text-center text-sm text-gray-500">
+                            No assigned documents match this filter.
+                        </div>
+                    @endforelse
+                </div>
+
+                @if ($reviewDocuments->hasPages())
+                    <div>{{ $reviewDocuments->links() }}</div>
+                @endif
+
+                @if ($selectedReviewDocument)
+                    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+                        <div class="flex items-center gap-4 min-w-0">
+                            <span class="w-14 h-14 rounded-xl bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0">
+                                <i class="ph ph-file-text text-3xl"></i>
+                            </span>
+                            <div class="min-w-0">
+                                <h2 class="font-bold text-lg text-gray-900 truncate">{{ $selectedReviewDocument->original_filename }}</h2>
+                                <p class="text-sm text-gray-600 mt-1">{{ $selectedReviewDocument->user->name }}</p>
+                                <p class="text-xs text-gray-500 mt-2">
+                                    Uploaded {{ $selectedReviewDocument->submitted_at->timezone(config('ndmu-rmas.timezone'))->format('M j, Y g:i A') }}
+                                    · {{ $selectedReviewDocument->formattedFileSize() }}
+                                    · {{ \Illuminate\Support\Str::headline($selectedReviewDocument->status->value) }}
+                                </p>
                             </div>
                         </div>
-                    </template>
+                        <div class="flex gap-3 flex-shrink-0">
+                            <a href="{{ route('documents.download', $selectedReviewDocument) }}" class="px-4 py-2.5 bg-[#0e9f6e] text-white text-xs font-bold rounded-xl flex items-center gap-2">
+                                <i class="ph ph-download-simple"></i>
+                                Download
+                            </a>
+                            <a href="{{ route('documents.view', $selectedReviewDocument) }}" target="_blank" rel="noopener" class="px-4 py-2.5 border border-gray-200 text-gray-700 text-xs font-bold rounded-xl">
+                                View Full Document
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+                        @foreach ([
+                            ['label' => 'Approved', 'value' => $documentReviewStats['approved'], 'icon' => 'ph-check-circle', 'class' => 'border-emerald-500 text-emerald-600'],
+                            ['label' => 'Revisions', 'value' => $documentReviewStats['revisions'], 'icon' => 'ph-warning', 'class' => 'border-amber-500 text-amber-600'],
+                            ['label' => 'Comments', 'value' => $documentReviewStats['comments'], 'icon' => 'ph-chat', 'class' => 'border-blue-500 text-blue-600'],
+                            ['label' => 'Critical', 'value' => $documentReviewStats['critical'], 'icon' => 'ph-x-circle', 'class' => 'border-red-500 text-red-600'],
+                        ] as $stat)
+                            <div class="bg-white rounded-2xl p-5 border-l-4 {{ $stat['class'] }} shadow-sm flex items-center gap-4">
+                                <i class="ph {{ $stat['icon'] }} text-3xl"></i>
+                                <div>
+                                    <span class="text-xs text-gray-500 block">{{ $stat['label'] }}</span>
+                                    <span class="text-2xl font-bold text-gray-900">{{ $stat['value'] }}</span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] gap-6">
+                        <section class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                            <h2 class="font-bold text-gray-900 mb-5">Document Preview</h2>
+                            @if ($selectedReviewDocument->file_type === 'pdf')
+                                <iframe
+                                    src="{{ route('documents.view', $selectedReviewDocument) }}"
+                                    title="Secure preview of {{ $selectedReviewDocument->original_filename }}"
+                                    class="w-full min-h-[650px] rounded-xl border border-gray-200 bg-gray-50"
+                                    sandbox
+                                ></iframe>
+                            @else
+                                <div class="min-h-[500px] rounded-xl bg-gray-50 border border-gray-200 flex flex-col items-center justify-center text-center p-8">
+                                    <i class="ph ph-file-doc text-6xl text-blue-500"></i>
+                                    <h3 class="font-bold text-gray-900 mt-4">Word document preview</h3>
+                                    <p class="text-sm text-gray-500 mt-2 max-w-md">For security and formatting accuracy, download or open the DOCX file using the authorized controls above.</p>
+                                </div>
+                            @endif
+                        </section>
+
+                        <aside class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm self-start">
+                            <h2 class="font-bold text-gray-900 mb-5">Comments &amp; Feedback</h2>
+                            <div class="space-y-4 max-h-[520px] overflow-y-auto pr-1">
+                                @forelse ($documentReviewComments as $comment)
+                                    <article @class([
+                                        'rounded-xl border-l-4 p-4',
+                                        'bg-gray-50 border-gray-400' => $comment->severity === 'comment',
+                                        'bg-amber-50 border-amber-500' => $comment->severity === 'revision',
+                                        'bg-red-50 border-red-500' => $comment->severity === 'critical',
+                                        'opacity-60' => $comment->resolved_at !== null,
+                                    ])>
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div>
+                                                <h3 class="font-bold text-sm text-gray-900">{{ $comment->author->name }}</h3>
+                                                <p class="text-[10px] text-gray-500">{{ \Illuminate\Support\Str::headline($comment->severity) }}</p>
+                                            </div>
+                                            <span class="text-[10px] text-gray-400">{{ $comment->created_at->diffForHumans() }}</span>
+                                        </div>
+                                        <p class="text-xs text-gray-700 mt-3 whitespace-pre-line">{{ $comment->comment }}</p>
+                                        <div class="flex items-center justify-between mt-3">
+                                            <span class="text-[10px] text-gray-500">
+                                                {{ $comment->page_number ? 'Page '.$comment->page_number : 'General comment' }}
+                                            </span>
+                                            @if ($comment->resolved_at === null)
+                                                <form method="POST" action="{{ route('adviser.documents.comments.resolve', [$selectedReviewDocument, $comment]) }}">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <button type="submit" class="text-[11px] font-bold text-blue-700">Resolve</button>
+                                                </form>
+                                            @else
+                                                <span class="text-[10px] font-bold text-emerald-700">Resolved</span>
+                                            @endif
+                                        </div>
+                                    </article>
+                                @empty
+                                    <p class="text-sm text-gray-500 text-center py-8">No review comments yet.</p>
+                                @endforelse
+                            </div>
+
+                            <form method="POST" action="{{ route('adviser.documents.comments.store', $selectedReviewDocument) }}" class="mt-5 pt-5 border-t border-gray-100 space-y-3">
+                                @csrf
+                                <div class="grid grid-cols-2 gap-3">
+                                    <select name="severity" required class="px-3 py-2 border border-gray-200 rounded-xl text-xs">
+                                        <option value="comment">Comment</option>
+                                        <option value="revision">Revision</option>
+                                        <option value="critical">Critical</option>
+                                    </select>
+                                    <input type="number" name="page_number" min="1" max="10000" placeholder="Page (optional)" class="px-3 py-2 border border-gray-200 rounded-xl text-xs">
+                                </div>
+                                <textarea name="comment" rows="4" minlength="2" maxlength="5000" required placeholder="Add a comment..." class="w-full px-3 py-3 border border-gray-200 rounded-xl text-sm resize-none"></textarea>
+                                <button type="submit" class="w-full py-3 bg-[#0e9f6e] text-white text-xs font-bold rounded-xl">Post Comment</button>
+                            </form>
+                        </aside>
+                    </div>
+
+                    @if (in_array($selectedReviewDocument->status->value, ['pending', 'submitted', 'under_review'], true))
+                        <form method="POST" action="{{ route('adviser.documents.review', $selectedReviewDocument) }}" class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                            @csrf
+                            @method('PATCH')
+                            <h2 class="font-bold text-gray-900">Review Actions</h2>
+                            <textarea
+                                name="review_notes"
+                                rows="3"
+                                maxlength="10000"
+                                placeholder="Review notes are required when requesting revisions or rejecting a document."
+                                class="w-full mt-4 px-4 py-3 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:border-[#0e5c3a]"
+                            ></textarea>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                                <button type="submit" name="decision" value="accepted" class="py-3 bg-[#0e9f6e] text-white text-sm font-bold rounded-xl">
+                                    <i class="ph ph-check-circle mr-1"></i> Approve Document
+                                </button>
+                                <button type="submit" name="decision" value="revision_requested" class="py-3 bg-amber-500 text-white text-sm font-bold rounded-xl">
+                                    <i class="ph ph-warning mr-1"></i> Request Revisions
+                                </button>
+                                <button type="submit" name="decision" value="rejected" class="py-3 bg-red-600 text-white text-sm font-bold rounded-xl">
+                                    <i class="ph ph-x-circle mr-1"></i> Reject Document
+                                </button>
+                            </div>
+                        </form>
+                    @else
+                        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                            <p class="text-sm text-gray-600">
+                                Final decision:
+                                <span class="font-bold text-gray-900">{{ \Illuminate\Support\Str::headline($selectedReviewDocument->status->value) }}</span>
+                            </p>
+                        </div>
+                    @endif
+                @endif
+            </div>
+
+            <!-- TAB: Revision Management -->
+            <div x-show="activeTab === 'revisions'" x-cloak class="space-y-6">
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-800">Revision Management</h1>
+                    <p class="text-sm text-gray-500 mt-1">Track requested changes and review revised student documents</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+                    @foreach ([
+                        ['label' => 'Open', 'value' => $revisionStats['open']],
+                        ['label' => 'In Progress', 'value' => $revisionStats['in_progress']],
+                        ['label' => 'Submitted', 'value' => $revisionStats['submitted']],
+                        ['label' => 'Resolved', 'value' => $revisionStats['resolved']],
+                        ['label' => 'Total', 'value' => $revisionStats['total']],
+                    ] as $stat)
+                        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                            <p class="text-xs font-semibold text-gray-500">{{ $stat['label'] }}</p>
+                            <p class="text-2xl font-bold text-gray-900 mt-2">{{ $stat['value'] }}</p>
+                        </div>
+                    @endforeach
+                </div>
+
+                <form method="GET" action="{{ route('adviser.dashboard') }}" class="flex flex-col md:flex-row gap-4">
+                    <input type="hidden" name="tab" value="revisions">
+                    <input
+                        type="search"
+                        name="revision_q"
+                        value="{{ $revisionSearch }}"
+                        maxlength="100"
+                        placeholder="Search by student, ID, email, or revision title..."
+                        class="flex-1 h-12 px-4 rounded-2xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[#0e5c3a]"
+                    >
+                    <select
+                        name="revision_status"
+                        onchange="this.form.submit()"
+                        class="md:w-48 h-12 px-4 rounded-2xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[#0e5c3a]"
+                    >
+                        <option value="submitted" @selected($revisionStatus === 'submitted')>Submitted</option>
+                        <option value="open" @selected($revisionStatus === 'open')>Open</option>
+                        <option value="in_progress" @selected($revisionStatus === 'in_progress')>In progress</option>
+                        <option value="resolved" @selected($revisionStatus === 'resolved')>Resolved</option>
+                        <option value="all" @selected($revisionStatus === 'all')>All requests</option>
+                    </select>
+                </form>
+
+                <div class="space-y-4">
+                    @forelse ($revisionRequests as $revisionRequest)
+                        @php($latestRevisionDocument = $revisionRequest->submittedDocuments->first())
+                        <article class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                            <div class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-5">
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h2 class="font-bold text-gray-900">{{ $revisionRequest->title }}</h2>
+                                        <span class="px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 text-[9px] font-bold uppercase">
+                                            {{ \Illuminate\Support\Str::headline($revisionRequest->status->value) }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-600 mt-2">
+                                        {{ $revisionRequest->assignee->name }}
+                                        @if ($revisionRequest->assignee->student_id)
+                                            · {{ $revisionRequest->assignee->student_id }}
+                                        @endif
+                                    </p>
+                                    <p class="text-xs text-gray-500 leading-6 mt-3">{{ $revisionRequest->instructions }}</p>
+
+                                    @if ($latestRevisionDocument)
+                                        <div class="flex flex-wrap items-center gap-3 mt-4">
+                                            <span class="text-xs font-semibold text-gray-700">{{ $latestRevisionDocument->original_filename }}</span>
+                                            <a href="{{ route('documents.view', $latestRevisionDocument) }}" class="text-xs font-bold text-[#0e5c3a]">View</a>
+                                            <a href="{{ route('documents.download', $latestRevisionDocument) }}" class="text-xs font-bold text-[#0e5c3a]">Download</a>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <div class="flex flex-col gap-2 xl:w-64">
+                                    @if ($revisionRequest->status->value === 'submitted')
+                                        <form method="POST" action="{{ route('adviser.revisions.resolve', $revisionRequest) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="text" name="notes" maxlength="5000" placeholder="Resolution note (optional)" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs mb-2">
+                                            <button type="submit" class="w-full px-4 py-2.5 bg-[#0e9f6e] text-white text-xs font-bold rounded-xl">Resolve Revision</button>
+                                        </form>
+                                    @endif
+
+                                    @if (in_array($revisionRequest->status->value, ['submitted', 'resolved'], true))
+                                        <form method="POST" action="{{ route('adviser.revisions.reopen', $revisionRequest) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="text" name="notes" maxlength="5000" placeholder="Reason for reopening (optional)" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs mb-2">
+                                            <button type="submit" class="w-full px-4 py-2.5 bg-amber-500 text-white text-xs font-bold rounded-xl">Reopen Revision</button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </div>
+                        </article>
+                    @empty
+                        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center text-sm text-gray-500">
+                            No revision requests found.
+                        </div>
+                    @endforelse
+                </div>
+
+                {{ $revisionRequests->links() }}
+            </div>
+
+            <!-- TAB: Consultation Records -->
+            <div x-show="activeTab === 'consultation'" x-cloak class="space-y-6">
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-800">Consultation Records</h1>
+                    <p class="text-sm text-gray-500 mt-1">Review requests and monitor consultations for your assigned researchers</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+                    @foreach ([
+                        ['label' => 'Pending', 'value' => $consultationStats['pending'], 'icon' => 'ph-clock', 'iconClass' => 'bg-orange-100 text-orange-600'],
+                        ['label' => 'Approved', 'value' => $consultationStats['approved'], 'icon' => 'ph-check', 'iconClass' => 'bg-emerald-100 text-emerald-600'],
+                        ['label' => 'Completed', 'value' => $consultationStats['completed'], 'icon' => 'ph-check-circle', 'iconClass' => 'bg-blue-100 text-blue-600'],
+                        ['label' => 'Rejected', 'value' => $consultationStats['rejected'], 'icon' => 'ph-x', 'iconClass' => 'bg-red-100 text-red-500'],
+                        ['label' => 'Total', 'value' => $consultationStats['total'], 'icon' => 'ph-chat-circle-dots', 'iconClass' => 'bg-purple-100 text-purple-600'],
+                    ] as $stat)
+                        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold text-gray-700">{{ $stat['label'] }}</span>
+                                <span class="w-10 h-10 rounded-xl {{ $stat['iconClass'] }} flex items-center justify-center">
+                                    <i class="ph {{ $stat['icon'] }} text-xl"></i>
+                                </span>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-900 mt-3">{{ $stat['value'] }}</p>
+                        </div>
+                    @endforeach
+                </div>
+
+                <form method="GET" action="{{ route('adviser.dashboard') }}" class="flex flex-col md:flex-row gap-4">
+                    <input type="hidden" name="tab" value="consultation">
+                    <div class="relative flex-1">
+                        <i class="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-lg text-gray-400"></i>
+                        <input
+                            type="search"
+                            name="consultation_q"
+                            value="{{ $consultationSearch }}"
+                            maxlength="100"
+                            placeholder="Search by student, research title, or agenda..."
+                            class="w-full h-12 pl-12 pr-4 rounded-2xl border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:border-[#0e5c3a]"
+                        >
+                    </div>
+                    <div class="relative md:w-44">
+                        <i class="ph ph-funnel absolute left-4 top-1/2 -translate-y-1/2 text-lg text-gray-400 pointer-events-none"></i>
+                        <select
+                            name="consultation_status"
+                            onchange="this.form.submit()"
+                            class="w-full h-12 pl-12 pr-9 rounded-2xl border border-gray-200 bg-white text-sm text-gray-700 appearance-none focus:outline-none focus:border-[#0e5c3a]"
+                        >
+                            <option value="pending" @selected($consultationStatus === 'pending')>Pending</option>
+                            <option value="approved" @selected($consultationStatus === 'approved')>Approved</option>
+                            <option value="completed" @selected($consultationStatus === 'completed')>Completed</option>
+                            <option value="rejected" @selected($consultationStatus === 'rejected')>Rejected</option>
+                            <option value="all" @selected($consultationStatus === 'all')>All requests</option>
+                        </select>
+                        <i class="ph ph-caret-down absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none"></i>
+                    </div>
+                </form>
+
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div class="px-6 py-5 border-b border-gray-100">
+                        <h2 class="font-bold text-gray-900">Consultation Requests</h2>
+                    </div>
+
+                    @forelse ($consultationRequests as $consultationRequest)
+                        <article class="p-6 border-b border-gray-100 last:border-b-0 space-y-4">
+                            <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h3 class="font-bold text-gray-900">{{ $consultationRequest->student_name ?: 'Student researcher' }}</h3>
+                                        <span @class([
+                                            'px-2.5 py-1 rounded-full text-[9px] font-bold uppercase',
+                                            'bg-orange-50 text-orange-700' => $consultationRequest->status === 'pending',
+                                            'bg-emerald-50 text-emerald-700' => $consultationRequest->status === 'approved',
+                                            'bg-blue-50 text-blue-700' => $consultationRequest->status === 'completed',
+                                            'bg-red-50 text-red-700' => $consultationRequest->status === 'rejected',
+                                        ])>
+                                            {{ $consultationRequest->status }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">{{ $consultationRequest->research_title ?: 'Research project' }}</p>
+                                    <div class="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-500 mt-3">
+                                        <span>
+                                            <i class="ph ph-calendar-blank mr-1"></i>
+                                            {{ $consultationRequest->preferred_at->timezone(config('ndmu-rmas.timezone'))->format('M j, Y g:i A') }}
+                                        </span>
+                                        <span>
+                                            <i class="ph ph-video-camera mr-1"></i>
+                                            {{ \Illuminate\Support\Str::headline($consultationRequest->consultation_mode) }}
+                                        </span>
+                                        @if ($consultationRequest->student_email)
+                                            <span>{{ $consultationRequest->student_email }}</span>
+                                        @endif
+                                    </div>
+                                    <p class="text-sm text-gray-700 mt-3 whitespace-pre-line">{{ $consultationRequest->agenda }}</p>
+
+                                    @if ($consultationRequest->review_notes)
+                                        <p class="text-xs text-gray-500 mt-3">
+                                            <span class="font-bold text-gray-700">Adviser note:</span>
+                                            {{ $consultationRequest->review_notes }}
+                                        </p>
+                                    @endif
+                                </div>
+
+                                @if ($consultationRequest->status === 'pending')
+                                    <div class="flex flex-col sm:flex-row gap-3 lg:w-auto">
+                                        <form method="POST" action="{{ route('adviser.consultations.reject', $consultationRequest->id) }}" class="flex gap-2">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input
+                                                type="text"
+                                                name="review_notes"
+                                                maxlength="2000"
+                                                placeholder="Optional reason"
+                                                class="w-40 px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-red-300"
+                                            >
+                                            <button type="submit" class="px-4 py-2 border border-red-200 text-red-700 hover:bg-red-50 text-xs font-bold rounded-xl">
+                                                Reject
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="{{ route('adviser.consultations.approve', $consultationRequest->id) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="w-full px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl">
+                                                Approve
+                                            </button>
+                                        </form>
+                                    </div>
+                                @elseif ($consultationRequest->status !== 'approved')
+                                    <p class="text-xs text-gray-500 flex-shrink-0">
+                                        Reviewed {{ $consultationRequest->reviewed_at?->diffForHumans() }}
+                                    </p>
+                                @endif
+                            </div>
+
+                            @if ($consultationRequest->status === 'approved')
+                                <details class="rounded-xl border border-emerald-100 bg-emerald-50/40">
+                                    <summary class="cursor-pointer px-4 py-3 text-xs font-bold text-[#0e5c3a]">
+                                        Record completed consultation
+                                    </summary>
+                                    <form method="POST" action="{{ route('adviser.consultations.complete', $consultationRequest->id) }}" class="p-4 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        @csrf
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-700 mb-1.5">Consulted at</label>
+                                            <input
+                                                type="datetime-local"
+                                                name="consulted_at"
+                                                value="{{ now(config('ndmu-rmas.timezone'))->format('Y-m-d\TH:i') }}"
+                                                required
+                                                class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#0e5c3a]"
+                                            >
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-700 mb-1.5">Location</label>
+                                            <input
+                                                type="text"
+                                                name="location"
+                                                maxlength="255"
+                                                placeholder="Room or online"
+                                                class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#0e5c3a]"
+                                            >
+                                        </div>
+                                        @if ($consultationRequest->consultation_mode === 'online')
+                                            <div class="md:col-span-2">
+                                                <label class="block text-xs font-bold text-gray-700 mb-1.5">Meeting URL</label>
+                                                <input
+                                                    type="url"
+                                                    name="meeting_url"
+                                                    maxlength="2048"
+                                                    placeholder="https://..."
+                                                    class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#0e5c3a]"
+                                                >
+                                            </div>
+                                        @endif
+                                        <div class="md:col-span-2">
+                                            <label class="block text-xs font-bold text-gray-700 mb-1.5">Discussion summary</label>
+                                            <textarea
+                                                name="discussion"
+                                                rows="4"
+                                                minlength="10"
+                                                maxlength="10000"
+                                                required
+                                                class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#0e5c3a]"
+                                            ></textarea>
+                                        </div>
+                                        <div class="md:col-span-2">
+                                            <label class="block text-xs font-bold text-gray-700 mb-1.5">Recommendations</label>
+                                            <textarea
+                                                name="recommendations"
+                                                rows="3"
+                                                maxlength="10000"
+                                                class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#0e5c3a]"
+                                            ></textarea>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-700 mb-1.5">Next consultation (optional)</label>
+                                            <input
+                                                type="datetime-local"
+                                                name="next_consultation_at"
+                                                class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#0e5c3a]"
+                                            >
+                                        </div>
+                                        <div class="flex items-end justify-end">
+                                            <button type="submit" class="w-full md:w-auto px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl">
+                                                Save Consultation Record
+                                            </button>
+                                        </div>
+                                    </form>
+                                </details>
+                            @endif
+                        </article>
+                    @empty
+                        <div class="min-h-56 p-12 flex flex-col items-center justify-center text-center">
+                            <i class="ph ph-chat-circle-dots text-6xl text-gray-300"></i>
+                            <h2 class="font-bold text-gray-900 mt-4">No consultation requests found</h2>
+                            <p class="text-sm text-gray-500 mt-2">Requests from your assigned researchers will appear here.</p>
+                        </div>
+                    @endforelse
+
+                    @if ($consultationRequests->hasPages())
+                        <div class="px-6 py-4 border-t border-gray-100">
+                            {{ $consultationRequests->links() }}
+                        </div>
+                    @endif
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div class="px-6 py-5 border-b border-gray-100">
+                        <h2 class="font-bold text-gray-900">Completed Consultation History</h2>
+                    </div>
+
+                    @forelse ($consultationRecords as $record)
+                        <article class="p-6 border-b border-gray-100 last:border-b-0">
+                            <div class="flex flex-col md:flex-row md:items-start justify-between gap-3">
+                                <div>
+                                    <h3 class="font-bold text-gray-900">{{ $record->research_title ?: 'Research consultation' }}</h3>
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        {{ \Illuminate\Support\Carbon::parse($record->consulted_at)->timezone(config('ndmu-rmas.timezone'))->format('M j, Y g:i A') }}
+                                        · {{ \Illuminate\Support\Str::headline($record->consultation_mode) }}
+                                        @if ($record->location)
+                                            · {{ $record->location }}
+                                        @endif
+                                    </p>
+                                </div>
+                                @if ($record->next_consultation_at)
+                                    <span class="text-xs text-blue-700 bg-blue-50 px-3 py-1.5 rounded-full">
+                                        Next: {{ \Illuminate\Support\Carbon::parse($record->next_consultation_at)->timezone(config('ndmu-rmas.timezone'))->format('M j, Y g:i A') }}
+                                    </span>
+                                @endif
+                            </div>
+                            @if ($record->agenda)
+                                <p class="text-sm text-gray-700 mt-3"><span class="font-bold">Agenda:</span> {{ $record->agenda }}</p>
+                            @endif
+                            @if ($record->recommendations)
+                                <p class="text-sm text-gray-700 mt-2"><span class="font-bold">Recommendations:</span> {{ $record->recommendations }}</p>
+                            @endif
+                        </article>
+                    @empty
+                        <div class="p-10 text-center text-sm text-gray-500">
+                            No completed consultation records are available yet.
+                        </div>
+                    @endforelse
                 </div>
             </div>
 
@@ -935,7 +1736,7 @@
             </div>
 
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'classes', 'settings'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'classes', 'requests', 'consultation', 'docreview', 'settings'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
@@ -983,7 +1784,7 @@
         </div>
     </div>
 
-    <!-- Create Class Modal Mockup -->
+    <!-- Create Class Modal -->
     <div x-show="showClassModal" x-transition x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
         <div @click.away="showClassModal = false" class="bg-white rounded-3xl w-full max-w-md p-6 shadow-xl space-y-4">
             <div class="flex justify-between items-start">
@@ -993,24 +1794,40 @@
                 </button>
             </div>
             <hr class="border-gray-100">
-            <div class="space-y-4">
+            <form method="POST" action="{{ route('adviser.classes.store') }}" class="space-y-4">
+                @csrf
+                <input type="hidden" name="creation_token" value="{{ old('creation_token', (string) Illuminate\Support\Str::uuid()) }}">
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1.5">Class Name</label>
-                    <input type="text" placeholder="e.g. Software Engineering Capstone" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
+                    <label for="class_name" class="block text-xs font-bold text-gray-600 mb-1.5">Class Name</label>
+                    <input id="class_name" name="name" type="text" value="{{ old('name') }}" minlength="3" maxlength="120" required placeholder="e.g. Software Engineering Capstone" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
+                    @error('name')
+                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1.5">Class Code</label>
-                    <input type="text" placeholder="e.g. CS-401" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
+                    <label for="class_description" class="block text-xs font-bold text-gray-600 mb-1.5">Description</label>
+                    <textarea id="class_description" name="description" rows="3" maxlength="1000" placeholder="Optional class description" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all resize-none">{{ old('description') }}</textarea>
+                    @error('description')
+                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
-            </div>
-            <div class="pt-4 flex justify-end gap-3">
-                <button @click="showClassModal = false" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors cursor-pointer">
-                    Cancel
-                </button>
-                <button @click="alert('Class created successfully! (Mock)'); showClassModal = false" class="px-4 py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md transition-colors cursor-pointer">
-                    Create
-                </button>
-            </div>
+                <div>
+                    <label for="max_students" class="block text-xs font-bold text-gray-600 mb-1.5">Student Limit</label>
+                    <input id="max_students" name="max_students" type="number" value="{{ old('max_students', 50) }}" min="1" max="100" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
+                    @error('max_students')
+                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+                <p class="text-[10px] text-gray-400">A unique secure 8-character class code will be generated automatically.</p>
+                <div class="pt-4 flex justify-end gap-3">
+                    <button type="button" @click="showClassModal = false" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors cursor-pointer">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md transition-colors cursor-pointer">
+                        Create
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 

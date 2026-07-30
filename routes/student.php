@@ -3,6 +3,8 @@
 use App\Http\Controllers\Student\ConsultationController;
 use App\Http\Controllers\Student\DashboardController;
 use App\Http\Controllers\Student\DocumentController;
+use App\Http\Controllers\Student\ResearchClassController;
+use App\Http\Controllers\Student\RevisionRequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('student')->name('student.')->middleware([
@@ -17,4 +19,19 @@ Route::prefix('student')->name('student.')->middleware([
     Route::post('/consultations', [ConsultationController::class, 'store'])
         ->middleware('throttle:consultation-bookings')
         ->name('consultations.store');
+
+    Route::post('/classes/join', [ResearchClassController::class, 'store'])
+        ->middleware('throttle:class-joining')
+        ->name('classes.join');
+
+    Route::prefix('/revisions/{revisionRequest}')
+        ->whereNumber('revisionRequest')
+        ->middleware('throttle:revision-actions')
+        ->group(function (): void {
+            Route::patch('/start', [RevisionRequestController::class, 'start'])
+                ->name('revisions.start');
+            Route::post('/documents', [RevisionRequestController::class, 'submit'])
+                ->middleware('throttle:document-uploads')
+                ->name('revisions.submit');
+        });
 });
