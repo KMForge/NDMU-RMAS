@@ -677,6 +677,85 @@
             this.exportingReport = false;
             alert(`Report for Academic Year ${this.statisticsYear} has been successfully exported as PDF/Excel!`);
         }, 1500);
+    },
+
+    reportsApprovedCount: 8,
+    reportsRevisionsCount: 5,
+    reportsCommentsCount: 12,
+    reportsCriticalCount: 2,
+    reportsNewCommentText: '',
+    reportsCommentsList: [
+        {
+            id: 1,
+            author: 'Dr. Maria Santos',
+            role: 'Adviser',
+            time: '2 hours ago',
+            content: 'Please expand this section with more recent studies from 2024-2026.',
+            page: 'Page 12'
+        },
+        {
+            id: 2,
+            author: 'Dr. John Reyes',
+            role: 'Panelist',
+            time: '5 hours ago',
+            content: 'Excellent data presentation. Well organized.',
+            page: 'Page 18'
+        },
+        {
+            id: 3,
+            author: 'Prof. Anna Garcia',
+            role: 'Technical Editor',
+            time: '1 day ago',
+            content: 'Check citation format on this page - should follow APA 7th edition.',
+            page: 'Page 5'
+        }
+    ],
+
+    postReportsComment() {
+        if (!this.reportsNewCommentText.trim()) {
+            alert('Please enter a comment.');
+            return;
+        }
+        
+        let newId = this.reportsCommentsList.length ? Math.max(...this.reportsCommentsList.map(c => c.id)) + 1 : 1;
+        
+        this.reportsCommentsList.push({
+            id: newId,
+            author: 'Dr. Rosario Dela Paz',
+            role: 'Research Facilitator',
+            time: 'Just now',
+            content: this.reportsNewCommentText,
+            page: 'Page 3'
+        });
+
+        this.reportsCommentsCount++;
+        this.reportsNewCommentText = '';
+        alert('Comment posted successfully!');
+    },
+
+    resolveReportsComment(id) {
+        this.reportsCommentsList = this.reportsCommentsList.filter(c => c.id !== id);
+        if (this.reportsCommentsCount > 0) {
+            this.reportsCommentsCount--;
+        }
+        alert('Feedback comment resolved.');
+    },
+
+    approveReportsDocument() {
+        this.reportsApprovedCount++;
+        if (this.reportsCriticalCount > 0) {
+            this.reportsCriticalCount--;
+        }
+        alert('Chapter 3 methodology document approved successfully!');
+    },
+
+    requestReportsRevisions() {
+        this.reportsRevisionsCount++;
+        alert('Requested revisions for Chapter 3 methodology document.');
+    },
+
+    rejectReportsDocument() {
+        alert('Rejected Chapter 3 methodology document.');
     }
 }">
     <!-- Left Sidebar: Navigation -->
@@ -2405,6 +2484,247 @@
                 </div>
             </div>
 
+            <!-- TAB: Research Reports (Document Screening / Review) -->
+            <div x-show="activeTab === 'reports'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Breadcrumbs & Header -->
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                        <span>Dashboard</span>
+                        <span>/</span>
+                        <span class="text-[#0e5c3a]">Research Reports</span>
+                    </div>
+                </div>
+
+                <!-- Document Header Card -->
+                <div class="bg-white rounded-[2.5rem] border border-gray-150/80 shadow-md p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div class="flex items-start md:items-center gap-5">
+                        <div class="w-16 h-16 rounded-[1.5rem] bg-red-50 text-red-500 border border-red-100 flex items-center justify-center text-3xl flex-shrink-0">
+                            <i class="ph ph-file-text"></i>
+                        </div>
+                        <div class="space-y-1">
+                            <h2 class="text-lg md:text-xl font-bold text-gray-800 leading-snug">Chapter 3 - Research Methodology (Revised)</h2>
+                            <p class="text-xs text-gray-455 font-bold block">Machine Learning Applications in Agricultural Pest Detection</p>
+                            <div class="flex flex-wrap items-center gap-3 text-[10px] text-gray-400 font-bold uppercase tracking-wider pt-0.5">
+                                <span>Uploaded: <span class="text-gray-655">May 15, 2026</span></span>
+                                <span>•</span>
+                                <span>Version <span class="text-gray-655">2.3</span></span>
+                                <span>•</span>
+                                <span><span class="text-gray-655">42</span> pages</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Right Action Buttons -->
+                    <div class="flex items-center gap-3 flex-wrap flex-shrink-0">
+                        <button 
+                            type="button"
+                            @click="alert('Downloading methodology document Chapter_3_Methodology_v2.3.pdf...')"
+                            class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md shadow-[#0e5c3a]/10 hover:shadow-lg flex items-center gap-2 cursor-pointer transition-all duration-200"
+                        >
+                            <i class="ph ph-download-simple text-base font-bold"></i>
+                            <span>Download</span>
+                        </button>
+                        <button 
+                            type="button"
+                            @click="alert('Loading full document preview...')"
+                            class="px-5 py-3 bg-white border border-gray-255 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl shadow-2xs hover:shadow-xs cursor-pointer transition-all duration-200"
+                        >
+                            <span>View Full Document</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Widgets Row -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <!-- Approved -->
+                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-emerald-600 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
+                        <div>
+                            <span class="text-[10px] text-gray-455 font-bold uppercase tracking-wider block">Approved</span>
+                            <span class="text-2xl font-bold text-gray-850 mt-1 block leading-none" x-text="reportsApprovedCount">8</span>
+                        </div>
+                        <span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl flex-shrink-0">
+                            <i class="ph ph-check-circle"></i>
+                        </span>
+                    </div>
+
+                    <!-- Revisions -->
+                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-amber-500 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
+                        <div>
+                            <span class="text-[10px] text-gray-455 font-bold uppercase tracking-wider block">Revisions</span>
+                            <span class="text-2xl font-bold text-gray-850 mt-1 block leading-none" x-text="reportsRevisionsCount">5</span>
+                        </div>
+                        <span class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl flex-shrink-0">
+                            <i class="ph ph-warning-circle"></i>
+                        </span>
+                    </div>
+
+                    <!-- Comments -->
+                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-blue-600 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
+                        <div>
+                            <span class="text-[10px] text-gray-455 font-bold uppercase tracking-wider block">Comments</span>
+                            <span class="text-2xl font-bold text-gray-850 mt-1 block leading-none" x-text="reportsCommentsCount">12</span>
+                        </div>
+                        <span class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl flex-shrink-0">
+                            <i class="ph ph-chat-circle-dots"></i>
+                        </span>
+                    </div>
+
+                    <!-- Critical -->
+                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-red-650 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
+                        <div>
+                            <span class="text-[10px] text-gray-455 font-bold uppercase tracking-wider block">Critical</span>
+                            <span class="text-2xl font-bold text-gray-850 mt-1 block leading-none" x-text="reportsCriticalCount">2</span>
+                        </div>
+                        <span class="w-10 h-10 rounded-xl bg-red-50 text-red-650 flex items-center justify-center text-xl flex-shrink-0">
+                            <i class="ph ph-x-circle"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Two Column Main Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    <!-- Left: Document Preview (Spans 2 columns) -->
+                    <div class="lg:col-span-2 bg-white rounded-[2.5rem] border border-gray-100 shadow-xl shadow-slate-200/20 p-6 md:p-8 space-y-6">
+                        <h3 class="font-bold text-gray-850 text-base">Document Preview</h3>
+                        
+                        <!-- Replica PDF Paper page sheet -->
+                        <div class="bg-gray-50/50 border border-gray-150 rounded-[2rem] p-6 md:p-10 space-y-8 font-serif leading-relaxed text-xs text-gray-700 min-h-[500px]">
+                            <div class="text-center space-y-2">
+                                <h1 class="text-lg md:text-xl font-bold text-gray-900">Chapter 3: Research Methodology</h1>
+                            </div>
+                            
+                            <p class="text-justify indent-8 text-gray-700">
+                                This chapter presents the research design, methods, and procedures employed in this study. The methodology encompasses the research approach, data collection instruments, sampling techniques, and data analysis methods.
+                            </p>
+
+                            <div class="space-y-3">
+                                <h4 class="text-sm font-bold text-gray-850">3.1 Research Design</h4>
+                                <p class="text-justify indent-8 text-gray-700">
+                                    This study utilizes a quantitative research approach with an experimental design to evaluate the effectiveness of machine learning algorithms in detecting agricultural pests...
+                                </p>
+                            </div>
+
+                            <div class="space-y-3">
+                                <h4 class="text-sm font-bold text-gray-850">3.2 Data Collection</h4>
+                                <p class="text-justify indent-8 text-gray-700">
+                                    The data collection process involves capturing high-resolution images of crops from various agricultural sites across South Cotabato province...
+                                </p>
+                            </div>
+
+                            <!-- Warning / Reviewer Note Box -->
+                            <div class="p-5 bg-amber-50 border-l-4 border-l-amber-500 border border-amber-100/50 rounded-2xl flex items-start gap-4">
+                                <span class="text-lg text-amber-600 flex-shrink-0 pt-0.5">
+                                    <i class="ph ph-info font-bold"></i>
+                                </span>
+                                <div>
+                                    <span class="text-[9px] font-extrabold text-amber-700 uppercase tracking-wider block">Reviewer Note</span>
+                                    <p class="text-[11px] font-bold text-amber-800 mt-1 leading-snug">
+                                        Consider adding more details about the image preprocessing steps used in your methodology.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Comments & Feedback (Spans 1 column) -->
+                    <div class="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl shadow-slate-200/20 p-6 md:p-8 flex flex-col justify-between gap-6 min-h-[500px]">
+                        <div class="space-y-6">
+                            <h3 class="font-bold text-gray-850 text-base">Comments & Feedback</h3>
+                            
+                            <!-- Comments Feed -->
+                            <div class="space-y-4 max-h-[350px] overflow-y-auto pr-1">
+                                <template x-for="cmt in reportsCommentsList" :key="cmt.id">
+                                    <div class="p-4 rounded-2xl border transition-all duration-200 flex flex-col gap-3 animate-fade-in"
+                                         :class="{
+                                             'bg-orange-50/20 border-orange-100': cmt.role === 'Adviser',
+                                             'bg-emerald-50/20 border-emerald-100': cmt.role === 'Panelist',
+                                             'bg-purple-50/20 border-purple-100': cmt.role === 'Technical Editor',
+                                             'bg-gray-50/40 border-gray-150': cmt.role === 'Research Facilitator'
+                                         }"
+                                    >
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h4 class="font-extrabold text-[11px] text-gray-800" x-text="cmt.author">Reviewer Name</h4>
+                                                <span class="text-[8px] font-extrabold text-gray-400 uppercase tracking-wider block mt-0.5" x-text="cmt.role">Role</span>
+                                            </div>
+                                            <span class="text-[9px] text-gray-400 font-semibold" x-text="cmt.time">2 hours ago</span>
+                                        </div>
+
+                                        <p class="text-xs text-gray-650 leading-relaxed font-semibold" x-text="cmt.content">Comment Content</p>
+
+                                        <div class="flex justify-between items-center pt-1.5 border-t border-gray-100/50">
+                                            <span class="text-[9px] font-extrabold text-[#0e5c3a]" x-text="cmt.page">Page 12</span>
+                                            <div class="flex items-center gap-3 text-[10px] font-bold">
+                                                <button type="button" @click="alert('Replying to comment...')" class="text-emerald-755 hover:text-emerald-955 cursor-pointer">Reply</button>
+                                                <button type="button" @click="resolveReportsComment(cmt.id)" class="text-blue-600 hover:text-blue-800 cursor-pointer">Resolve</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <template x-if="reportsCommentsList.length === 0">
+                                    <div class="py-8 text-center text-gray-400 font-bold text-xs">
+                                        No active comments. All feedback resolved!
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Add Comment Form (Positioned at bottom of column) -->
+                        <form @submit.prevent="postReportsComment()" class="space-y-4 pt-4 border-t border-gray-100/80">
+                            <textarea 
+                                x-model="reportsNewCommentText"
+                                placeholder="Add a comment..."
+                                rows="3"
+                                class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-850 placeholder-gray-400 focus:bg-white focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 outline-none resize-none transition-all"
+                                required
+                            ></textarea>
+                            <div class="flex justify-end">
+                                <button 
+                                    type="submit" 
+                                    class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md cursor-pointer transition-colors"
+                                >
+                                    Post Comment
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Bottom Review Actions Panel -->
+                <div class="bg-white rounded-[2rem] border border-gray-100 shadow-lg p-6 space-y-4">
+                    <h3 class="font-bold text-gray-850 text-sm">Review Actions</h3>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <button 
+                            type="button" 
+                            @click="approveReportsDocument()"
+                            class="py-3.5 bg-emerald-650 hover:bg-emerald-755 text-white text-xs font-bold rounded-2xl flex items-center justify-center gap-2 shadow-md shadow-emerald-650/10 cursor-pointer transition-all duration-200"
+                        >
+                            <i class="ph ph-check-circle text-base"></i>
+                            <span>Approve Document</span>
+                        </button>
+                        <button 
+                            type="button" 
+                            @click="requestReportsRevisions()"
+                            class="py-3.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-2xl flex items-center justify-center gap-2 shadow-md shadow-amber-500/10 cursor-pointer transition-all duration-200"
+                        >
+                            <i class="ph ph-warning-circle text-base"></i>
+                            <span>Request Revisions</span>
+                        </button>
+                        <button 
+                            type="button" 
+                            @click="rejectReportsDocument()"
+                            class="py-3.5 bg-red-650 hover:bg-red-755 text-white text-xs font-bold rounded-2xl flex items-center justify-center gap-2 shadow-md shadow-red-650/10 cursor-pointer transition-all duration-200"
+                        >
+                            <i class="ph ph-x-circle text-base"></i>
+                            <span>Reject Document</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- TAB: Settings -->
             <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
                 @include('partials.settings', [
@@ -2421,7 +2741,7 @@
             </div>
 
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'settings', 'monitoring', 'advisers', 'screening', 'defenses', 'statistics'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'settings', 'monitoring', 'advisers', 'screening', 'defenses', 'statistics', 'reports'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
