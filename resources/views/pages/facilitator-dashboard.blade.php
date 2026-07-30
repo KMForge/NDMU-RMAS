@@ -881,6 +881,67 @@
         }
 
         return list;
+    },
+
+    // Design-only state: keep every facilitator view and interaction shell while
+    // preventing seeded/demo records from appearing in any sidebar destination.
+    approvals: [],
+    advisers: [],
+    kanban: [],
+    categories: [],
+    defenses: [],
+    notifications: [],
+    monitoringProjects: [],
+    userList: [],
+    proposalList: [],
+    defenseList: [],
+    reportsApprovedCount: 0,
+    reportsRevisionsCount: 0,
+    reportsCommentsCount: 0,
+    reportsCriticalCount: 0,
+    reportsCommentsList: [],
+    repositoryFilesList: [],
+    get activeMonitoringProject() {
+        return {
+            id: null,
+            code: '',
+            title: '',
+            students: '',
+            adviser: '',
+            milestones: []
+        };
+    },
+    get activeMonitoringStats() {
+        return { completed: 0, inProgress: 0, pending: 0, total: 0, percent: 0 };
+    },
+    get activeProposal() {
+        return {
+            id: null,
+            code: '',
+            title: '',
+            student: '',
+            adviser: '',
+            date: '',
+            status: '',
+            reviewer: '',
+            approval_date: '',
+            abstract: '',
+            objectives: ''
+        };
+    },
+    get activeStats() {
+        return {
+            totalResearch: 0,
+            totalResearchSub: '',
+            completed: 0,
+            completedSub: '',
+            inProgress: 0,
+            inProgressSub: '',
+            avgDuration: 0,
+            avgDurationSub: '',
+            programs: [],
+            monthly: []
+        };
     }
 }">
     <!-- Left Sidebar: Navigation -->
@@ -900,10 +961,10 @@
             <!-- Profile Badge -->
             <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
                 <div class="w-10 h-10 rounded-full bg-[#eebc3f] text-[#0e5c3a] font-bold flex items-center justify-center text-lg flex-shrink-0">
-                    D
+                    <i class="ph ph-user"></i>
                 </div>
                 <div class="flex flex-col leading-tight overflow-hidden">
-                    <span class="font-semibold text-sm text-white truncate">Dr. Rosario Dela Paz</span>
+                    <span class="font-semibold text-sm text-white truncate">Facilitator</span>
                     <span class="text-[10px] text-white/60 font-medium mt-0.5">Research Facilitator</span>
                 </div>
             </div>
@@ -1106,10 +1167,10 @@
                 <!-- Facilitator Portal Profile Badge -->
                 <div class="flex items-center gap-3 pl-2 border-l border-gray-150">
                     <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-xs">
-                        F
+                        <i class="ph ph-user"></i>
                     </div>
                     <div class="flex flex-col leading-none">
-                        <span class="font-bold text-xs text-gray-800">Dr.</span>
+                        <span class="font-bold text-xs text-gray-800">Facilitator</span>
                         <span class="text-[9px] font-bold text-gray-400 mt-0.5">Facilitator Portal</span>
                     </div>
                 </div>
@@ -1131,7 +1192,7 @@
                     <div class="flex items-center gap-3">
                         <a href="#pending-approvals" class="px-4 py-2.5 bg-[#eebc3f] hover:bg-[#e0b030] text-[#0e5c3a] text-xs font-bold rounded-xl flex items-center gap-2 shadow-sm transition-colors cursor-pointer">
                             <i class="ph ph-warning-circle text-base"></i>
-                            <span>7 Pending Approvals</span>
+                            <span>Pending Approvals</span>
                         </a>
                         <button @click="alert('Generating Research Q2 report summary PDF...')" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-md transition-colors cursor-pointer">
                             <i class="ph ph-chart-line-up text-base"></i>
@@ -1149,10 +1210,8 @@
                                 <i class="ph ph-book-open"></i>
                             </span>
                             <span class="text-xs text-gray-400 font-semibold block">Active Research</span>
-                            <span class="text-2xl font-bold text-gray-800 mt-1 block">45</span>
-                            <span class="text-[10px] text-emerald-600 font-bold mt-1 block flex items-center gap-1">
-                                <i class="ph ph-trend-up"></i> +8 this month
-                            </span>
+                            <span class="text-2xl font-bold text-gray-800 mt-1 block">0</span>
+                            <span class="text-[10px] text-emerald-600 font-bold mt-1 block">&nbsp;</span>
                         </div>
                         <span class="text-emerald-500 text-xl font-bold">
                             <i class="ph ph-trend-up"></i>
@@ -1166,8 +1225,8 @@
                                 <i class="ph ph-clipboard-text"></i>
                             </span>
                             <span class="text-xs text-gray-400 font-semibold block">Pending Approvals</span>
-                            <span class="text-2xl font-bold text-gray-800 mt-1 block">7</span>
-                            <span class="text-[10px] text-amber-600 font-bold mt-1 block">Requires action</span>
+                            <span class="text-2xl font-bold text-gray-800 mt-1 block">0</span>
+                            <span class="text-[10px] text-amber-600 font-bold mt-1 block">&nbsp;</span>
                         </div>
                         <span class="text-amber-500 text-xl font-bold">
                             <i class="ph ph-warning-circle"></i>
@@ -1181,8 +1240,8 @@
                                 <i class="ph ph-calendar"></i>
                             </span>
                             <span class="text-xs text-gray-400 font-semibold block">Upcoming Defenses</span>
-                            <span class="text-2xl font-bold text-gray-800 mt-1 block">12</span>
-                            <span class="text-[10px] text-blue-600 font-bold mt-1 block">Next 30 days</span>
+                            <span class="text-2xl font-bold text-gray-800 mt-1 block">0</span>
+                            <span class="text-[10px] text-blue-600 font-bold mt-1 block">&nbsp;</span>
                         </div>
                         <span class="text-blue-500 text-xl font-bold">
                             <i class="ph ph-clock"></i>
@@ -1195,9 +1254,9 @@
                             <span class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl mb-3">
                                 <i class="ph ph-certificate"></i>
                             </span>
-                            <span class="text-xs text-gray-400 font-semibold block">Completed (2026)</span>
-                            <span class="text-2xl font-bold text-gray-800 mt-1 block">28</span>
-                            <span class="text-[10px] text-purple-600 font-bold mt-1 block">+5 from last quarter</span>
+                            <span class="text-xs text-gray-400 font-semibold block">Completed</span>
+                            <span class="text-2xl font-bold text-gray-800 mt-1 block">0</span>
+                            <span class="text-[10px] text-purple-600 font-bold mt-1 block">&nbsp;</span>
                         </div>
                         <span class="text-purple-500 text-xl font-bold">
                             <i class="ph ph-trend-up"></i>
@@ -3435,4 +3494,3 @@
 
 </div>
 @endsection
-
