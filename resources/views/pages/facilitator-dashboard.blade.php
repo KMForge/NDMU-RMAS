@@ -375,6 +375,83 @@
         
         // Switch back to "All Users" tab
         this.userManagementSubTab = 'all';
+    },
+
+    selectedProposalId: 1,
+    showProposalDetailModal: false,
+    proposalList: [
+        { 
+            id: 1, 
+            proposal_id: 'PROP-2026-001', 
+            title: 'Machine Learning Applications in Agricultural Pest Detection', 
+            submitted: 'March 5, 2026', 
+            status: 'Approved', 
+            reviewer: 'Dr. Maria Santos', 
+            approval_date: 'March 10, 2026',
+            department: 'College of Information Technology',
+            abstract: 'This research proposes an AI-based system that utilizes deep learning methods, specifically convolutional neural networks (CNNs), to identify and classify crop pests in local agricultural sectors. By detecting pests at an early stage, farmers can perform targeted interventions, reducing chemical pesticide use.',
+            objectives: '1. To design and implement a mobile crop scanner using lightweight neural networks.\n2. To classify the top 5 agricultural pests found in South Cotabato crops.\n3. To offer pest density maps and action recommendations.'
+        },
+        { 
+            id: 2, 
+            proposal_id: 'PROP-2026-002', 
+            title: 'IoT-Based Smart Classroom Management', 
+            submitted: 'May 12, 2026', 
+            status: 'Pending', 
+            reviewer: 'Pending Assignment', 
+            approval_date: 'N/A',
+            department: 'College of Engineering',
+            abstract: 'This project focuses on the automation of academic spaces utilizing smart sensors. By tracking temperature, humidity, lighting, and occupancy, the classroom management system dynamically adjusts climate controls and scheduling, minimizing energy consumption and maximizing student comfort.',
+            objectives: '1. To design real-time occupancy trackers.\n2. To interface HVAC controls with custom scheduling microcontrollers.\n3. To reduce electrical energy consumption by 20% in testing halls.'
+        },
+        { 
+            id: 3, 
+            proposal_id: 'PROP-2026-003', 
+            title: 'Community Health Information System', 
+            submitted: 'May 15, 2026', 
+            status: 'Revisions', 
+            reviewer: 'Dr. Michael Tan', 
+            approval_date: 'N/A',
+            department: 'College of Information Technology',
+            abstract: 'A decentralized information portal built for rural health centers. The system secures patient records offline and synchronizes securely with central municipal databases whenever connectivity becomes available, improving resource allocation during epidemics.',
+            objectives: '1. To construct an offline-first storage engine.\n2. To ensure strict role-based access controls for health data privacy.\n3. To deliver dashboard tools for local health facilitators.'
+        }
+    ],
+
+    get activeProposal() {
+        return this.proposalList.find(p => p.id === this.selectedProposalId) || this.proposalList[0];
+    },
+    get approvedProposalsCount() {
+        return this.proposalList.filter(p => p.status === 'Approved').length;
+    },
+    get pendingProposalsCount() {
+        return this.proposalList.filter(p => p.status === 'Pending').length;
+    },
+    get revisionsProposalsCount() {
+        return this.proposalList.filter(p => p.status === 'Revisions').length;
+    },
+    get totalProposalsCount() {
+        return this.proposalList.length;
+    },
+
+    approveProposal(id) {
+        let prop = this.proposalList.find(p => p.id === id);
+        if (prop) {
+            prop.status = 'Approved';
+            prop.reviewer = 'Dr. Rosario Dela Paz';
+            prop.approval_date = new Date().toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'});
+            alert(`Proposal approved successfully: ${prop.title}`);
+        }
+    },
+
+    requestRevisionsProposal(id) {
+        let prop = this.proposalList.find(p => p.id === id);
+        if (prop) {
+            prop.status = 'Revisions';
+            prop.reviewer = 'Dr. Rosario Dela Paz';
+            prop.approval_date = 'N/A';
+            alert(`Requested revisions for proposal: ${prop.title}`);
+        }
     }
 }">
     <!-- Left Sidebar: Navigation -->
@@ -1556,6 +1633,185 @@
                 </div>
             </div>
 
+            <!-- TAB: Research Screening (Proposal Management) -->
+            <div x-show="activeTab === 'screening'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Breadcrumbs & Header -->
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                        <span>Dashboard</span>
+                        <span>/</span>
+                        <span class="text-[#0e5c3a]">Research Screening</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center flex-wrap gap-4">
+                        <div>
+                            <h1 class="text-2xl font-bold font-heading text-gray-800">Proposal Management</h1>
+                            <p class="text-xs text-gray-455 mt-1">Manage research proposals and approvals</p>
+                        </div>
+                        
+                        <!-- Proposal Selection Dropdown -->
+                        <div class="flex items-center gap-3">
+                            <label for="proposal-select" class="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Proposal:</label>
+                            <select 
+                                id="proposal-select"
+                                x-model.number="selectedProposalId" 
+                                class="bg-white border border-gray-250 text-gray-700 text-xs px-3.5 py-2 rounded-xl outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all cursor-pointer"
+                            >
+                                <template x-for="p in proposalList" :key="p.id">
+                                    <option :value="p.id" x-text="`[${p.proposal_id}] ${p.title}`"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Widgets Cards Row (4 Columns matching screenshots) -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- Approved -->
+                    <div class="bg-white rounded-3xl p-5 border border-emerald-100/50 shadow-sm flex items-center justify-between animate-fade-in">
+                        <div>
+                            <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Approved</span>
+                            <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="approvedProposalsCount">1</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-check-circle"></i>
+                        </span>
+                    </div>
+
+                    <!-- Pending -->
+                    <div class="bg-white rounded-3xl p-5 border border-amber-100/50 shadow-sm flex items-center justify-between animate-fade-in">
+                        <div>
+                            <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Pending</span>
+                            <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="pendingProposalsCount">0</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl flex-shrink-0" :class="pendingProposalsCount > 0 ? 'animate-pulse' : ''">
+                            <i class="ph ph-clock"></i>
+                        </span>
+                    </div>
+
+                    <!-- Revisions -->
+                    <div class="bg-white rounded-3xl p-5 border border-red-100/50 shadow-sm flex items-center justify-between animate-fade-in">
+                        <div>
+                            <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Revisions</span>
+                            <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="revisionsProposalsCount">0</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-x-circle"></i>
+                        </span>
+                    </div>
+
+                    <!-- Total Proposals -->
+                    <div class="bg-white rounded-3xl p-5 border border-blue-100/50 shadow-sm flex items-center justify-between animate-fade-in">
+                        <div>
+                            <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Total Proposals</span>
+                            <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="totalProposalsCount">1</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-file-text"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Research Proposal Container Card -->
+                <div class="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl shadow-slate-200/30 p-6 md:p-8 space-y-6">
+                    <h3 class="font-bold text-gray-850 text-base">Research Proposal</h3>
+                    
+                    <!-- Proposal Display Card -->
+                    <div class="border border-gray-150 rounded-3xl p-6 md:p-8 space-y-6 transition-all duration-300 animate-fade-in"
+                         :class="{
+                             'bg-[#f2fcf7]/30 border-emerald-100': activeProposal.status === 'Approved',
+                             'bg-[#fffbf0]/40 border-amber-100 ring-4 ring-amber-500/5': activeProposal.status === 'Pending',
+                             'bg-red-50/5 border-red-100': activeProposal.status === 'Revisions'
+                         }"
+                    >
+                        <div class="flex justify-between items-start gap-4 flex-wrap">
+                            <div class="space-y-2">
+                                <h2 class="text-lg md:text-xl font-bold text-gray-800 leading-snug" x-text="activeProposal.title">Machine Learning Applications in Agricultural Pest Detection</h2>
+                                <div class="flex flex-wrap items-center gap-4 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                                    <span>Proposal ID: <span class="text-gray-650" x-text="activeProposal.proposal_id">PROP-2026-001</span></span>
+                                    <span class="hidden md:inline">•</span>
+                                    <span>Submitted: <span class="text-gray-650" x-text="activeProposal.submitted">March 5, 2026</span></span>
+                                </div>
+                            </div>
+
+                            <!-- Status Badge -->
+                            <span class="px-4 py-1.5 rounded-xl text-[10px] font-extrabold tracking-wide uppercase border shadow-2xs transition-all duration-300"
+                                  :class="{
+                                      'bg-emerald-600 border-emerald-700 text-white': activeProposal.status === 'Approved',
+                                      'bg-amber-500 border-amber-600 text-white': activeProposal.status === 'Pending',
+                                      'bg-red-650 border-red-750 text-white': activeProposal.status === 'Revisions'
+                                  }"
+                                  x-text="activeProposal.status"
+                            >
+                                Approved
+                            </span>
+                        </div>
+
+                        <hr class="border-gray-100/80">
+
+                        <!-- Details Grid -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
+                            <div>
+                                <span class="text-gray-400 font-extrabold uppercase tracking-wider block text-[9px]">Reviewed by</span>
+                                <span class="text-gray-800 font-bold block mt-1.5" x-text="activeProposal.reviewer">Dr. Maria Santos</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400 font-extrabold uppercase tracking-wider block text-[9px]">Approval Date</span>
+                                <span class="text-gray-800 font-bold block mt-1.5" x-text="activeProposal.approval_date">March 10, 2026</span>
+                            </div>
+                        </div>
+
+                        <!-- Pending Actions Bar -->
+                        <template x-if="activeProposal.status === 'Pending'">
+                            <div class="mt-6 pt-6 border-t border-amber-100/50 flex flex-wrap gap-3 items-center">
+                                <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider mr-2 block">Action Required:</span>
+                                <button 
+                                    type="button" 
+                                    @click="approveProposal(activeProposal.id)"
+                                    class="px-4 py-2.5 bg-emerald-650 hover:bg-emerald-755 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-650/10 cursor-pointer transition-colors"
+                                >
+                                    Approve Proposal
+                                </button>
+                                <button 
+                                    type="button" 
+                                    @click="requestRevisionsProposal(activeProposal.id)"
+                                    class="px-4 py-2.5 bg-white border border-gray-250 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl cursor-pointer transition-colors"
+                                >
+                                    Request Revisions
+                                </button>
+                            </div>
+                        </template>
+
+                        <!-- Revisions Notice -->
+                        <template x-if="activeProposal.status === 'Revisions'">
+                            <div class="mt-6 pt-6 border-t border-red-100/50 flex items-center gap-2">
+                                <span class="text-[10px] font-bold text-red-700 block">
+                                    ⚠ This proposal is currently in revision. Awaiting student resubmission.
+                                </span>
+                            </div>
+                        </template>
+
+                        <!-- Bottom Card Buttons -->
+                        <div class="pt-6 border-t border-gray-100/80 flex gap-4 flex-wrap">
+                            <button 
+                                type="button"
+                                @click="showProposalDetailModal = true"
+                                class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md shadow-[#0e5c3a]/10 hover:shadow-lg cursor-pointer transition-all duration-200"
+                            >
+                                View Proposal
+                            </button>
+                            <button 
+                                type="button"
+                                @click="alert(`Downloading PDF for proposal ID: ${activeProposal.proposal_id}...`)"
+                                class="px-5 py-3 bg-white border border-gray-250 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl shadow-2xs hover:shadow-xs cursor-pointer transition-all duration-200"
+                            >
+                                Download PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- TAB: Settings -->
             <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
                 @include('partials.settings', [
@@ -1572,7 +1828,7 @@
             </div>
 
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'settings', 'monitoring', 'advisers'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'settings', 'monitoring', 'advisers', 'screening'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
@@ -1715,6 +1971,59 @@
             <div class="pt-2 flex justify-end gap-3">
                 <button @click="showMonitoringEditModal = false" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md transition-colors cursor-pointer">
                     Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Proposal Details Modal Mockup -->
+    <div x-show="showProposalDetailModal" x-transition x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+        <div @click.away="showProposalDetailModal = false" class="bg-white rounded-3xl w-full max-w-2xl p-6 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto">
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="text-emerald-700 font-extrabold text-[10px] uppercase tracking-wider block" x-text="activeProposal.proposal_id">PROP-2026-001</span>
+                    <h3 class="font-bold text-gray-800 text-sm mt-1" x-text="activeProposal.title">Proposal Title</h3>
+                </div>
+                <button @click="showProposalDetailModal = false" class="text-gray-400 hover:text-gray-600 text-lg cursor-pointer">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+            <hr class="border-gray-100">
+            
+            <div class="space-y-4 text-xs leading-relaxed text-gray-650">
+                <!-- Metadata details -->
+                <div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 border border-gray-150 rounded-2xl">
+                    <div>
+                        <span class="text-gray-400 font-bold block text-[9px] uppercase">College/Department</span>
+                        <span class="text-gray-700 font-bold mt-1 block" x-text="activeProposal.department">Department Name</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-400 font-bold block text-[9px] uppercase">Submitted Date</span>
+                        <span class="text-gray-700 font-bold mt-1 block" x-text="activeProposal.submitted">Submitted Date</span>
+                    </div>
+                </div>
+
+                <!-- Abstract section -->
+                <div class="space-y-1.5">
+                    <span class="text-gray-800 font-extrabold block text-[10px] uppercase tracking-wider">Abstract / Project Summary</span>
+                    <p class="text-justify bg-gray-50/50 p-4 border border-gray-100 rounded-2xl font-medium text-gray-600" x-text="activeProposal.abstract">
+                        Proposal abstract description content.
+                    </p>
+                </div>
+
+                <!-- Objectives section -->
+                <div class="space-y-1.5">
+                    <span class="text-gray-800 font-extrabold block text-[10px] uppercase tracking-wider">Project Objectives</span>
+                    <div class="bg-gray-50/50 p-4 border border-gray-100 rounded-2xl font-semibold text-gray-650 whitespace-pre-line" x-text="activeProposal.objectives">
+                        Proposal objectives description content.
+                    </div>
+                </div>
+            </div>
+            
+            <hr class="border-gray-100">
+            <div class="pt-2 flex justify-end gap-3">
+                <button @click="showProposalDetailModal = false" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md transition-colors cursor-pointer">
+                    Close
                 </button>
             </div>
         </div>
