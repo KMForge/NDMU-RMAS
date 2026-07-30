@@ -373,7 +373,7 @@
         this.newUserForm.name = '';
         this.newUserForm.email = '';
         
-        // Switch back to "All Users" tab
+        // Switch back to 'All Users' tab
         this.userManagementSubTab = 'all';
     },
 
