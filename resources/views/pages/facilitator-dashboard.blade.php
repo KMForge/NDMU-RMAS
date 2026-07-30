@@ -452,6 +452,154 @@
             prop.approval_date = 'N/A';
             alert(`Requested revisions for proposal: ${prop.title}`);
         }
+    },
+
+    defenseTypeFilter: 'All',
+    defenseStatusFilter: 'All',
+    showScheduleModal: false,
+    editingDefenseId: null,
+    scheduleForm: {
+        title: '',
+        student: '',
+        type: 'Proposal Defense',
+        date: '',
+        time: '',
+        venue: '',
+        panel: ''
+    },
+    defenseList: [
+        { 
+            id: 1, 
+            type: 'Proposal Defense', 
+            status: 'Scheduled', 
+            title: 'AI-Powered Traffic Management System', 
+            student: 'Juan Dela Cruz', 
+            date: 'May 25, 2026', 
+            time: '9:00 AM - 11:00 AM', 
+            venue: 'Room 405, Research Building', 
+            panel: ['Dr. Maria Santos', 'Dr. John Reyes', 'Prof. Anna Garcia'] 
+        },
+        { 
+            id: 2, 
+            type: 'Final Defense', 
+            status: 'Scheduled', 
+            title: 'Blockchain-Based Voting System', 
+            student: 'Maria Clara', 
+            date: 'May 28, 2026', 
+            time: '2:00 PM - 4:00 PM', 
+            venue: 'Conference Room A', 
+            panel: ['Dr. Pedro Cruz', 'Dr. Sofia Martinez', 'Prof. Carlos Lopez'] 
+        },
+        { 
+            id: 3, 
+            type: 'Proposal Defense', 
+            status: 'Pending', 
+            title: 'Machine Learning in Agricultural Pest Detection', 
+            student: 'Carlo Mendoza', 
+            date: 'July 15, 2026', 
+            time: 'TBA', 
+            venue: 'TBA', 
+            panel: [] 
+        }
+    ],
+
+    get totalScheduledCount() {
+        return this.defenseList.filter(d => d.status !== 'Completed').length;
+    },
+    get thisWeekCount() {
+        // May 25, 2026 and May 28, 2026 are this week
+        return this.defenseList.filter(d => d.date.includes('May') && d.status === 'Scheduled').length;
+    },
+    get pendingDefenseCount() {
+        return this.defenseList.filter(d => d.status === 'Pending').length;
+    },
+    get completedDefenseCount() {
+        return this.defenseList.filter(d => d.status === 'Completed').length;
+    },
+
+    get filteredDefenseList() {
+        let list = this.defenseList;
+        if (this.defenseTypeFilter !== 'All') {
+            list = list.filter(d => d.type === this.defenseTypeFilter);
+        }
+        if (this.defenseStatusFilter !== 'All') {
+            list = list.filter(d => d.status === this.defenseStatusFilter);
+        }
+        return list;
+    },
+
+    openScheduleModal(id = null) {
+        if (id) {
+            let def = this.defenseList.find(d => d.id === id);
+            if (def) {
+                this.editingDefenseId = id;
+                this.scheduleForm.title = def.title;
+                this.scheduleForm.student = def.student;
+                this.scheduleForm.type = def.type;
+                this.scheduleForm.date = def.date;
+                this.scheduleForm.time = def.time;
+                this.scheduleForm.venue = def.venue;
+                this.scheduleForm.panel = def.panel.join(', ');
+            }
+        } else {
+            this.editingDefenseId = null;
+            this.scheduleForm.title = '';
+            this.scheduleForm.student = '';
+            this.scheduleForm.type = 'Proposal Defense';
+            this.scheduleForm.date = '';
+            this.scheduleForm.time = '';
+            this.scheduleForm.venue = '';
+            this.scheduleForm.panel = '';
+        }
+        this.showScheduleModal = true;
+    },
+
+    deleteDefense(id) {
+        if (confirm('Are you sure you want to delete this defense schedule?')) {
+            this.defenseList = this.defenseList.filter(d => d.id !== id);
+        }
+    },
+
+    submitSchedule() {
+        if (!this.scheduleForm.title || !this.scheduleForm.student) {
+            alert('Please fill in Proposal Title and Student Name fields.');
+            return;
+        }
+
+        let panelArray = this.scheduleForm.panel ? this.scheduleForm.panel.split(',').map(s => s.trim()).filter(s => s) : [];
+
+        if (this.editingDefenseId) {
+            let def = this.defenseList.find(d => d.id === this.editingDefenseId);
+            if (def) {
+                def.title = this.scheduleForm.title;
+                def.student = this.scheduleForm.student;
+                def.type = this.scheduleForm.type;
+                def.date = this.scheduleForm.date || 'TBA';
+                def.time = this.scheduleForm.time || 'TBA';
+                def.venue = this.scheduleForm.venue || 'TBA';
+                def.panel = panelArray;
+                def.status = (def.date !== 'TBA' && def.time !== 'TBA') ? 'Scheduled' : 'Pending';
+                alert('Defense schedule updated successfully!');
+            }
+        } else {
+            let newId = this.defenseList.length ? Math.max(...this.defenseList.map(d => d.id)) + 1 : 1;
+            let statusVal = (this.scheduleForm.date && this.scheduleForm.time) ? 'Scheduled' : 'Pending';
+            
+            this.defenseList.push({
+                id: newId,
+                type: this.scheduleForm.type,
+                status: statusVal,
+                title: this.scheduleForm.title,
+                student: this.scheduleForm.student,
+                date: this.scheduleForm.date || 'TBA',
+                time: this.scheduleForm.time || 'TBA',
+                venue: this.scheduleForm.venue || 'TBA',
+                panel: panelArray
+            });
+            alert('Defense scheduled successfully!');
+        }
+
+        this.showScheduleModal = false;
     }
 }">
     <!-- Left Sidebar: Navigation -->
@@ -1812,6 +1960,224 @@
                 </div>
             </div>
 
+            <!-- TAB: Defense Management (Defense Scheduling) -->
+            <div x-show="activeTab === 'defenses'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Breadcrumbs & Header -->
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                        <span>Dashboard</span>
+                        <span>/</span>
+                        <span class="text-[#0e5c3a]">Defense Scheduling</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center flex-wrap gap-4">
+                        <div>
+                            <h1 class="text-2xl font-bold font-heading text-gray-800">Defense Scheduling</h1>
+                            <p class="text-xs text-gray-455 mt-1">Manage and schedule research defense presentations</p>
+                        </div>
+                        
+                        <!-- Schedule Defense Button -->
+                        <button 
+                            type="button"
+                            @click="openScheduleModal(null)"
+                            class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md shadow-[#0e5c3a]/10 hover:shadow-lg flex items-center gap-2 cursor-pointer transition-all duration-200"
+                        >
+                            <i class="ph ph-plus text-base font-bold"></i>
+                            <span>Schedule Defense</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Widgets Cards Row (4 Columns matching screenshots) -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- Total Scheduled -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Total Scheduled</span>
+                            <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="totalScheduledCount">3</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-calendar"></i>
+                        </span>
+                    </div>
+
+                    <!-- This Week -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">This Week</span>
+                            <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="thisWeekCount">2</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-clock"></i>
+                        </span>
+                    </div>
+
+                    <!-- Pending -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Pending</span>
+                            <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="pendingDefenseCount">1</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl flex-shrink-0" :class="pendingDefenseCount > 0 ? 'animate-pulse' : ''">
+                            <i class="ph ph-calendar-plus"></i>
+                        </span>
+                    </div>
+
+                    <!-- Completed -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Completed</span>
+                            <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="completedDefenseCount">0</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-calendar-check"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Filters Bar -->
+                <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 flex gap-4 items-center">
+                    <span class="text-gray-400 pl-2">
+                        <i class="ph ph-funnel text-base"></i>
+                    </span>
+                    <select 
+                        x-model="defenseTypeFilter"
+                        class="bg-gray-50 border border-gray-150 text-gray-700 text-xs px-3.5 py-2 rounded-xl outline-none focus:border-[#0e5c3a] cursor-pointer"
+                    >
+                        <option value="All">All Defense Types</option>
+                        <option value="Proposal Defense">Proposal Defense</option>
+                        <option value="Final Defense">Final Defense</option>
+                    </select>
+
+                    <select 
+                        x-model="defenseStatusFilter"
+                        class="bg-gray-50 border border-gray-150 text-gray-700 text-xs px-3.5 py-2 rounded-xl outline-none focus:border-[#0e5c3a] cursor-pointer"
+                    >
+                        <option value="All">All Status</option>
+                        <option value="Scheduled">Scheduled</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+
+                <!-- Defenses List -->
+                <div class="space-y-6">
+                    <template x-for="def in filteredDefenseList" :key="def.id">
+                        <div class="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-slate-200/20 p-6 md:p-8 space-y-6 transition-all duration-300 hover:shadow-2xl hover:shadow-slate-200/40 border-l-4 animate-fade-in"
+                             :class="{
+                                 'border-l-emerald-600': def.status === 'Scheduled',
+                                 'border-l-amber-500': def.status === 'Pending',
+                                 'border-l-gray-400': def.status === 'Completed'
+                             }"
+                        >
+                            <!-- Top Card Header -->
+                            <div class="flex justify-between items-start gap-4">
+                                <div class="space-y-2">
+                                    <div class="flex items-center gap-3">
+                                        <h3 class="text-sm font-bold text-gray-800" x-text="def.type">Proposal Defense</h3>
+                                        <span class="px-2.5 py-0.5 rounded-lg text-[9px] font-bold tracking-wide uppercase"
+                                              :class="{
+                                                  'bg-emerald-50 text-emerald-700': def.status === 'Scheduled',
+                                                  'bg-amber-50 text-amber-700': def.status === 'Pending',
+                                                  'bg-gray-50 text-gray-500': def.status === 'Completed'
+                                              }"
+                                              x-text="def.status"
+                                        >
+                                            Scheduled
+                                        </span>
+                                    </div>
+                                    <h2 class="text-base font-bold text-gray-700" x-text="def.title">AI-Powered Traffic Management System</h2>
+                                    <p class="text-xs text-gray-450 font-bold">Student: <span class="text-gray-700 font-extrabold" x-text="def.student">Juan Dela Cruz</span></p>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="flex items-center gap-2 flex-shrink-0">
+                                    <button 
+                                        type="button" 
+                                        @click="alert(`Viewing defense details for:\n${def.title}`)"
+                                        class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl cursor-pointer transition-colors text-sm"
+                                        title="View Details"
+                                    >
+                                        <i class="ph ph-eye"></i>
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        @click="openScheduleModal(def.id)"
+                                        class="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl cursor-pointer transition-colors text-sm"
+                                        title="Edit Schedule"
+                                    >
+                                        <i class="ph ph-pencil-simple"></i>
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        @click="deleteDefense(def.id)"
+                                        class="p-2 bg-red-50 hover:bg-red-100 text-red-650 rounded-xl cursor-pointer transition-colors text-sm"
+                                        title="Delete Schedule"
+                                    >
+                                        <i class="ph ph-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <hr class="border-gray-50/80">
+
+                            <!-- Date/Time/Venue Info -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
+                                <div class="flex items-center gap-3.5">
+                                    <span class="w-9 h-9 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center text-lg flex-shrink-0">
+                                        <i class="ph ph-calendar-blank"></i>
+                                    </span>
+                                    <div>
+                                        <span class="text-gray-405 font-bold uppercase tracking-wider block text-[8px]">Date</span>
+                                        <span class="text-gray-800 font-extrabold block mt-0.5" x-text="def.date">May 25, 2026</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-3.5">
+                                    <span class="w-9 h-9 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center text-lg flex-shrink-0">
+                                        <i class="ph ph-clock"></i>
+                                    </span>
+                                    <div>
+                                        <span class="text-gray-405 font-bold uppercase tracking-wider block text-[8px]">Time</span>
+                                        <span class="text-gray-800 font-extrabold block mt-0.5" x-text="def.time">9:00 AM - 11:00 AM</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-3.5">
+                                    <span class="w-9 h-9 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center text-lg flex-shrink-0">
+                                        <i class="ph ph-map-pin"></i>
+                                    </span>
+                                    <div>
+                                        <span class="text-gray-405 font-bold uppercase tracking-wider block text-[8px]">Venue</span>
+                                        <span class="text-gray-800 font-extrabold block mt-0.5" x-text="def.venue">Room 405, Research Building</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Panel Members tags -->
+                            <div class="space-y-2 pt-2">
+                                <span class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider block">Panel Members</span>
+                                <div class="flex flex-wrap gap-2">
+                                    <template x-for="p in def.panel" :key="p">
+                                        <span class="px-3 py-1.5 bg-gray-50 border border-gray-150 text-gray-600 rounded-full text-[10px] font-bold" x-text="p">Panelist Name</span>
+                                    </template>
+                                    <template x-if="def.panel.length === 0">
+                                        <span class="text-gray-400 text-[10px] font-bold italic">No panel members assigned yet.</span>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- No scheduled defenses -->
+                    <template x-if="filteredDefenseList.length === 0">
+                        <div class="bg-white rounded-[2rem] p-12 text-center text-gray-400 font-bold text-xs border border-gray-100 shadow-sm w-full">
+                            No defense schedules found matching your filters.
+                        </div>
+                    </template>
+                </div>
+            </div>
+
             <!-- TAB: Settings -->
             <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
                 @include('partials.settings', [
@@ -1828,7 +2194,7 @@
             </div>
 
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'settings', 'monitoring', 'advisers', 'screening'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'settings', 'monitoring', 'advisers', 'screening', 'defenses'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
@@ -2026,6 +2392,135 @@
                     Close
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Schedule/Edit Defense Modal Mockup -->
+    <div x-show="showScheduleModal" x-transition x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+        <div @click.away="showScheduleModal = false" class="bg-white rounded-3xl w-full max-w-xl p-6 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto animate-scale-up">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="font-bold text-gray-800 text-sm" x-text="editingDefenseId ? 'Edit Defense Schedule' : 'Schedule Defense Presentation'">Schedule Defense</h3>
+                    <p class="text-[10px] text-gray-400 mt-0.5">Configure details, date, time, and panel assignments</p>
+                </div>
+                <button @click="showScheduleModal = false" class="text-gray-400 hover:text-gray-600 text-lg cursor-pointer">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+            <hr class="border-gray-100">
+            
+            <form @submit.prevent="submitSchedule()" class="space-y-4 text-xs">
+                <!-- Proposal Title -->
+                <div class="space-y-1.5">
+                    <label for="def-title" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Proposal Title</label>
+                    <input 
+                        id="def-title"
+                        type="text" 
+                        x-model="scheduleForm.title"
+                        placeholder="Enter the title of the research paper"
+                        class="w-full px-4 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 outline-none transition-all"
+                        required
+                    >
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Student Name -->
+                    <div class="space-y-1.5">
+                        <label for="def-student" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Student Name</label>
+                        <input 
+                            id="def-student"
+                            type="text" 
+                            x-model="scheduleForm.student"
+                            placeholder="Lead Student researcher"
+                            class="w-full px-4 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 outline-none transition-all"
+                            required
+                        >
+                    </div>
+
+                    <!-- Type -->
+                    <div class="space-y-1.5">
+                        <label for="def-type" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Defense Type</label>
+                        <select 
+                            id="def-type"
+                            x-model="scheduleForm.type"
+                            class="w-full px-4 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none cursor-pointer"
+                        >
+                            <option value="Proposal Defense">Proposal Defense</option>
+                            <option value="Final Defense">Final Defense</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <!-- Date -->
+                    <div class="space-y-1.5">
+                        <label for="def-date" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Date</label>
+                        <input 
+                            id="def-date"
+                            type="text" 
+                            x-model="scheduleForm.date"
+                            placeholder="e.g. May 25, 2026"
+                            class="w-full px-4 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none"
+                        >
+                    </div>
+
+                    <!-- Time -->
+                    <div class="space-y-1.5">
+                        <label for="def-time" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Time Range</label>
+                        <input 
+                            id="def-time"
+                            type="text" 
+                            x-model="scheduleForm.time"
+                            placeholder="e.g. 9:00 AM - 11:00 AM"
+                            class="w-full px-4 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none"
+                        >
+                    </div>
+
+                    <!-- Venue -->
+                    <div class="space-y-1.5">
+                        <label for="def-venue" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Venue</label>
+                        <input 
+                            id="def-venue"
+                            type="text" 
+                            x-model="scheduleForm.venue"
+                            placeholder="Room or Hall name"
+                            class="w-full px-4 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none"
+                        >
+                    </div>
+                </div>
+
+                <!-- Panel Assignment -->
+                <div class="space-y-1.5">
+                    <label for="def-panel" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Assign Panel Members</label>
+                    <input 
+                        id="def-panel"
+                        type="text" 
+                        x-model="scheduleForm.panel"
+                        placeholder="Comma separated names: e.g. Dr. Maria Santos, Dr. John Reyes"
+                        class="w-full px-4 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none"
+                    >
+                    <p class="text-[9px] text-gray-400">Separate multiple panel members with a comma.</p>
+                </div>
+
+                <hr class="border-gray-100 mt-6">
+                <!-- Submit -->
+                <div class="flex justify-end gap-3 pt-2">
+                    <button 
+                        type="button" 
+                        @click="showScheduleModal = false" 
+                        class="px-5 py-2.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl cursor-pointer"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        type="submit" 
+                        class="px-6 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md cursor-pointer transition-colors"
+                        x-text="editingDefenseId ? 'Save Changes' : 'Schedule Defense'"
+                    >
+                        Schedule Defense
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
