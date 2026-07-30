@@ -163,7 +163,87 @@
             iconBg: 'bg-emerald-50 text-emerald-600',
             unread: false
         }
-    ]
+    ],
+
+    selectedMonitoringId: 1,
+    showMonitoringEditModal: false,
+    monitoringProjects: [
+        {
+            id: 1,
+            code: 'RES-2026-001',
+            title: 'Machine Learning Applications in Agricultural Pest Detection',
+            students: 'Maria Santos, Juan Dela Cruz',
+            adviser: 'Dr. Roberto Garcia',
+            milestones: [
+                { title: 'Research Title Presentation', status: 'Completed', date: 'Feb 15, 2026', details: 'All requirements met and approved' },
+                { title: 'Proposal Approval', status: 'Completed', date: 'Mar 10, 2026', details: 'All requirements met and approved' },
+                { title: 'Adviser Endorsement', status: 'Completed', date: 'Mar 20, 2026', details: 'All requirements met and approved' },
+                { title: 'Instrument Validation', status: 'Completed', date: 'Apr 5, 2026', details: 'All requirements met and approved' },
+                { title: 'Data Gathering', status: 'In Progress', date: 'In Progress', details: 'Currently working on this milestone' },
+                { title: 'Proposal Defense', status: 'Completed', date: 'May 10, 2026', details: 'All requirements met and approved' },
+                { title: 'Revisions', status: 'In Progress', date: 'May 18, 2026', details: 'Currently working on this milestone' },
+                { title: 'Final Defense', status: 'Pending', date: 'Jul 15, 2026', details: 'Not Started' },
+                { title: 'Technical Editing', status: 'Pending', date: 'Not Started', details: '' },
+                { title: 'Language Editing', status: 'Pending', date: 'Not Started', details: '' },
+                { title: 'Final Manuscript Approval', status: 'Pending', date: 'Not Started', details: '' },
+                { title: 'Certificate of Authentic Authorship', status: 'Pending', date: 'Not Started', details: '' }
+            ]
+        },
+        {
+            id: 2,
+            code: 'RES-2026-002',
+            title: 'IoT-Based Smart Classroom Management',
+            students: 'Anna Reyes, Carlos Mendoza',
+            adviser: 'Dr. Patricia Cruz',
+            milestones: [
+                { title: 'Research Title Presentation', status: 'Completed', date: 'Jan 10, 2026', details: 'All requirements met and approved' },
+                { title: 'Proposal Approval', status: 'Completed', date: 'Jan 28, 2026', details: 'All requirements met and approved' },
+                { title: 'Adviser Endorsement', status: 'Completed', date: 'Feb 05, 2026', details: 'All requirements met and approved' },
+                { title: 'Instrument Validation', status: 'In Progress', date: 'In Progress', details: 'Currently working on this milestone' },
+                { title: 'Data Gathering', status: 'Pending', date: 'Not Started', details: '' },
+                { title: 'Proposal Defense', status: 'Pending', date: 'Not Started', details: '' },
+                { title: 'Revisions', status: 'Pending', date: 'Not Started', details: '' },
+                { title: 'Final Defense', status: 'Pending', date: 'Not Started', details: '' },
+                { title: 'Technical Editing', status: 'Pending', date: 'Not Started', details: '' },
+                { title: 'Language Editing', status: 'Pending', date: 'Not Started', details: '' },
+                { title: 'Final Manuscript Approval', status: 'Pending', date: 'Not Started', details: '' },
+                { title: 'Certificate of Authentic Authorship', status: 'Pending', date: 'Not Started', details: '' }
+            ]
+        },
+        {
+            id: 3,
+            code: 'RES-2026-003',
+            title: 'Community Health Information System',
+            students: 'Luis Fernandez, Sarah Gonzales',
+            adviser: 'Dr. Michael Tan',
+            milestones: [
+                { title: 'Research Title Presentation', status: 'Completed', date: 'Dec 12, 2025', details: 'All requirements met and approved' },
+                { title: 'Proposal Approval', status: 'Completed', date: 'Dec 22, 2025', details: 'All requirements met and approved' },
+                { title: 'Adviser Endorsement', status: 'Completed', date: 'Jan 08, 2026', details: 'All requirements met and approved' },
+                { title: 'Instrument Validation', status: 'Completed', date: 'Jan 20, 2026', details: 'All requirements met and approved' },
+                { title: 'Data Gathering', status: 'Completed', date: 'Feb 15, 2026', details: 'All requirements met and approved' },
+                { title: 'Proposal Defense', status: 'Completed', date: 'Feb 28, 2026', details: 'All requirements met and approved' },
+                { title: 'Revisions', status: 'Completed', date: 'Mar 15, 2026', details: 'All requirements met and approved' },
+                { title: 'Final Defense', status: 'In Progress', date: 'In Progress', details: 'Currently working on this milestone' },
+                { title: 'Technical Editing', status: 'Pending', date: 'Not Started', details: '' },
+                { title: 'Language Editing', status: 'Pending', date: 'Not Started', details: '' },
+                { title: 'Final Manuscript Approval', status: 'Pending', date: 'Not Started', details: '' },
+                { title: 'Certificate of Authentic Authorship', status: 'Pending', date: 'Not Started', details: '' }
+            ]
+        }
+    ],
+    get activeMonitoringProject() {
+        return this.monitoringProjects.find(p => p.id === this.selectedMonitoringId) || this.monitoringProjects[0];
+    },
+    get activeMonitoringStats() {
+        let project = this.activeMonitoringProject;
+        let completed = project.milestones.filter(m => m.status === 'Completed').length;
+        let inProgress = project.milestones.filter(m => m.status === 'In Progress').length;
+        let pending = project.milestones.filter(m => m.status === 'Pending').length;
+        let total = project.milestones.length;
+        let percent = Math.round((completed / total) * 100);
+        return { completed, inProgress, pending, total, percent };
+    }
 }">
     <!-- Left Sidebar: Navigation -->
     <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5 overflow-y-auto">
@@ -788,6 +868,183 @@
                 </div>
             </div>
 
+            <!-- TAB: Research Monitoring -->
+            <div x-show="activeTab === 'monitoring'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Breadcrumbs & Header -->
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                        <span>Dashboard</span>
+                        <span>/</span>
+                        <span class="text-[#0e5c3a]">Research Monitoring</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center flex-wrap gap-4">
+                        <div>
+                            <h1 class="text-2xl font-bold font-heading text-gray-800">Research Lifecycle Tracker</h1>
+                            <p class="text-xs text-gray-450 mt-1">Track your research progress through each milestone</p>
+                        </div>
+                        
+                        <!-- Project Selector Dropdown -->
+                        <div class="flex items-center gap-3">
+                            <label for="monitoring-project-select" class="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Project:</label>
+                            <select 
+                                id="monitoring-project-select"
+                                x-model.number="selectedMonitoringId" 
+                                class="bg-white border border-gray-250 text-gray-700 text-xs px-3.5 py-2 rounded-xl outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all cursor-pointer"
+                            >
+                                <template x-for="p in monitoringProjects" :key="p.id">
+                                    <option :value="p.id" x-text="`[${p.code}] ${p.title}`"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Overall Progress Card -->
+                <div class="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-xl shadow-slate-200/30 flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div class="flex-1 space-y-4 w-full">
+                        <div>
+                            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider block">Overall Progress</h3>
+                            <span class="text-sm font-bold text-gray-700 mt-1 block" x-text="activeMonitoringProject.title">Machine Learning Applications in Agricultural Pest Detection</span>
+                        </div>
+                        
+                        <!-- Progress Bar -->
+                        <div class="w-full">
+                            <div class="h-3 bg-gray-100 rounded-full w-full overflow-hidden">
+                                <div class="h-full bg-emerald-600 rounded-full transition-all duration-500" :style="`width: ${activeMonitoringStats.percent}%`"></div>
+                            </div>
+                        </div>
+
+                        <!-- 3 Stats Counter Row -->
+                        <div class="grid grid-cols-3 gap-4 pt-2">
+                            <div class="text-center md:text-left">
+                                <span class="text-2xl font-bold text-emerald-600 block" x-text="`${activeMonitoringStats.completed}`">6</span>
+                                <span class="text-[10px] text-gray-400 font-bold block uppercase tracking-wider mt-0.5">Completed</span>
+                            </div>
+                            <div class="text-center md:text-left border-x border-gray-100 px-4">
+                                <span class="text-2xl font-bold text-amber-500 block" x-text="`${activeMonitoringStats.inProgress}`">2</span>
+                                <span class="text-[10px] text-gray-400 font-bold block uppercase tracking-wider mt-0.5">In Progress</span>
+                            </div>
+                            <div class="text-center md:text-left">
+                                <span class="text-2xl font-bold text-gray-400 block" x-text="`${activeMonitoringStats.pending}`">4</span>
+                                <span class="text-[10px] text-gray-400 font-bold block uppercase tracking-wider mt-0.5">Pending</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Large Percent Indicator -->
+                    <div class="flex-shrink-0 flex flex-col items-center justify-center p-4">
+                        <div class="text-4xl font-extrabold text-emerald-600 tracking-tight font-heading flex items-baseline">
+                            <span x-text="activeMonitoringStats.percent">42</span>
+                            <span class="text-xl font-bold ml-0.5">%</span>
+                        </div>
+                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">Complete</span>
+                    </div>
+                </div>
+
+                <!-- Research Milestones Timeline Card -->
+                <div class="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-xl shadow-slate-200/30 space-y-6">
+                    <h3 class="font-bold text-gray-850 text-base">Research Milestones</h3>
+                    
+                    <div class="relative pl-8 md:pl-12 space-y-6">
+                        <!-- Vertical line connector -->
+                        <div class="absolute left-[11px] md:left-[15px] top-4 bottom-4 w-0.5 bg-gray-100"></div>
+
+                        <template x-for="(milestone, index) in activeMonitoringProject.milestones" :key="index">
+                            <div class="relative flex flex-col md:flex-row gap-4 items-start">
+                                <!-- Timeline icon badge -->
+                                <div class="absolute -left-[27px] md:-left-[31px] top-1 w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center border z-10"
+                                     :class="{
+                                         'bg-emerald-600 border-emerald-600 text-white shadow-sm': milestone.status === 'Completed',
+                                         'bg-amber-500 border-amber-500 text-white shadow-sm': milestone.status === 'In Progress',
+                                         'bg-white border-gray-250 text-gray-300': milestone.status === 'Pending'
+                                     }"
+                                >
+                                    <template x-if="milestone.status === 'Completed'">
+                                        <i class="ph ph-check text-[10px] md:text-xs font-extrabold"></i>
+                                    </template>
+                                    <template x-if="milestone.status === 'In Progress'">
+                                        <i class="ph ph-clock text-[10px] md:text-xs font-extrabold"></i>
+                                    </template>
+                                    <template x-if="milestone.status === 'Pending'">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-gray-200"></span>
+                                    </template>
+                                </div>
+
+                                <!-- Card item container -->
+                                <div class="flex-1 w-full border rounded-2xl p-5 transition-all duration-300"
+                                     :class="{
+                                         'bg-[#f2fcf7]/50 border-emerald-100 hover:border-emerald-200 hover:bg-[#f2fcf7]/80': milestone.status === 'Completed',
+                                         'bg-[#fffbf0] border-amber-100 hover:border-amber-200 hover:bg-[#fffbf0]/80 ring-4 ring-amber-500/5': milestone.status === 'In Progress',
+                                         'bg-white border-gray-150 hover:border-gray-250': milestone.status === 'Pending'
+                                     }"
+                                >
+                                    <div class="flex justify-between items-start gap-4 flex-wrap">
+                                        <div class="space-y-1.5">
+                                            <h4 class="font-bold text-gray-800 text-sm md:text-sm" x-text="milestone.title">Milestone Title</h4>
+                                            
+                                            <!-- Date -->
+                                            <div class="flex items-center gap-2 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                                                <i class="ph ph-calendar text-xs"></i>
+                                                <span x-text="milestone.date">Feb 15, 2026</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Right side status badge -->
+                                        <span class="px-2.5 py-1 rounded-lg text-[9px] font-extrabold tracking-wide uppercase border shadow-2xs transition-all duration-200"
+                                              :class="{
+                                                  'bg-emerald-600 border-emerald-700 text-white': milestone.status === 'Completed',
+                                                  'bg-amber-500 border-amber-600 text-white': milestone.status === 'In Progress',
+                                                  'bg-gray-100 border-gray-200 text-gray-500': milestone.status === 'Pending'
+                                              }"
+                                              x-text="milestone.status"
+                                        >
+                                            Completed
+                                        </span>
+                                    </div>
+
+                                    <!-- Bottom subtext if present -->
+                                    <template x-if="milestone.details">
+                                        <div class="mt-3 pt-3 border-t border-gray-100/50 flex items-center gap-2">
+                                            <span class="text-[10px] font-bold flex items-center gap-1.5"
+                                                  :class="{
+                                                      'text-emerald-700': milestone.status === 'Completed',
+                                                      'text-amber-700': milestone.status === 'In Progress',
+                                                      'text-gray-400': milestone.status === 'Pending'
+                                                  }"
+                                            >
+                                                <span x-show="milestone.status === 'Completed'">✓</span>
+                                                <span x-show="milestone.status === 'In Progress'">✦</span>
+                                                <span x-text="milestone.details">All requirements met and approved</span>
+                                            </span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Bottom Buttons -->
+                    <div class="pt-6 border-t border-gray-100 flex items-center gap-4 flex-wrap">
+                        <button 
+                            @click="showMonitoringEditModal = true"
+                            class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-md shadow-[#0e5c3a]/10 hover:shadow-lg transition-all duration-200 cursor-pointer"
+                        >
+                            <i class="ph ph-note-pencil text-base font-bold"></i>
+                            <span>Update Progress</span>
+                        </button>
+                        
+                        <button 
+                            @click="alert('Generating timeline report PDF...')"
+                            class="px-5 py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl flex items-center gap-2 shadow-2xs hover:shadow-xs transition-all duration-200 cursor-pointer"
+                        >
+                            <i class="ph ph-download-simple text-base"></i>
+                            <span>Download Timeline</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- TAB: Settings -->
             <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
                 @include('partials.settings', [
@@ -804,7 +1061,7 @@
             </div>
 
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'settings'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'settings', 'monitoring'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
@@ -866,6 +1123,87 @@
                 </button>
                 <button @click="alert(`Approved: ${selectedApproval?.title}`); selectedApproval.status = 'Approved'; selectedApproval = null" class="px-4 py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md transition-colors cursor-pointer">
                     Approve Submission
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Progress Modal Mockup -->
+    <div x-show="showMonitoringEditModal" x-transition x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+        <div @click.away="showMonitoringEditModal = false" class="bg-white rounded-3xl w-full max-w-2xl p-6 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="font-bold text-gray-800 text-sm">Update Research Progress</h3>
+                    <p class="text-[10px] text-gray-400 mt-0.5" x-text="activeMonitoringProject.title"></p>
+                </div>
+                <button @click="showMonitoringEditModal = false" class="text-gray-400 hover:text-gray-600 text-lg cursor-pointer">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+            <hr class="border-gray-100">
+            
+            <div class="space-y-4">
+                <template x-for="(milestone, index) in activeMonitoringProject.milestones" :key="index">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3 bg-gray-50/50 hover:bg-gray-50 border border-gray-100 rounded-2xl transition-colors">
+                        <div class="flex-grow min-w-0 pr-4">
+                            <span class="font-bold text-gray-700 text-xs block" x-text="milestone.title">Milestone Title</span>
+                            <!-- Date input field -->
+                            <div class="flex items-center gap-2 mt-2">
+                                <span class="text-[9px] font-bold text-gray-400 uppercase">Date:</span>
+                                <input 
+                                    type="text" 
+                                    x-model="milestone.date"
+                                    class="bg-white border border-gray-250 text-gray-700 text-[10px] px-2 py-1 rounded-md outline-none w-32 focus:border-[#0e5c3a]"
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Status picker and details -->
+                        <div class="flex flex-wrap items-center gap-3">
+                            <!-- Toggle status selector -->
+                            <div class="flex bg-white border border-gray-200 rounded-lg p-0.5">
+                                <button 
+                                    type="button"
+                                    @click="milestone.status = 'Pending'; if(milestone.date === 'In Progress' || milestone.date === 'Completed') milestone.date = 'Not Started'; milestone.details = ''"
+                                    :class="milestone.status === 'Pending' ? 'bg-gray-150 text-gray-700 font-bold' : 'text-gray-400 hover:text-gray-600'"
+                                    class="px-2 py-1 text-[9px] rounded-md transition-colors cursor-pointer"
+                                >
+                                    Pending
+                                </button>
+                                <button 
+                                    type="button"
+                                    @click="milestone.status = 'In Progress'; milestone.date = 'In Progress'; milestone.details = 'Currently working on this milestone'"
+                                    :class="milestone.status === 'In Progress' ? 'bg-amber-500 text-white font-bold' : 'text-gray-400 hover:text-gray-600'"
+                                    class="px-2 py-1 text-[9px] rounded-md transition-colors cursor-pointer"
+                                >
+                                    In Progress
+                                </button>
+                                <button 
+                                    type="button"
+                                    @click="milestone.status = 'Completed'; if(milestone.date === 'In Progress' || milestone.date === 'Not Started') milestone.date = new Date().toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}); milestone.details = 'All requirements met and approved'"
+                                    :class="milestone.status === 'Completed' ? 'bg-[#0e5c3a] text-white font-bold' : 'text-gray-400 hover:text-gray-600'"
+                                    class="px-2 py-1 text-[9px] rounded-md transition-colors cursor-pointer"
+                                >
+                                    Completed
+                                </button>
+                            </div>
+
+                            <!-- Details custom input -->
+                            <input 
+                                type="text" 
+                                x-model="milestone.details" 
+                                placeholder="Optional details"
+                                class="bg-white border border-gray-250 text-gray-700 text-[10px] px-2.5 py-1.5 rounded-lg outline-none w-48 focus:border-[#0e5c3a]"
+                            >
+                        </div>
+                    </div>
+                </template>
+            </div>
+            
+            <hr class="border-gray-100">
+            <div class="pt-2 flex justify-end gap-3">
+                <button @click="showMonitoringEditModal = false" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md transition-colors cursor-pointer">
+                    Done
                 </button>
             </div>
         </div>
