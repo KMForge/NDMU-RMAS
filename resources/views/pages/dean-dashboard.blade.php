@@ -696,8 +696,230 @@
                 </div>
             </div>
 
+            </div>
+
+            <!-- TAB: Manuscript Approvals -->
+            <div x-show="activeTab === 'manuscript'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Title Block -->
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-800">Document Review System</h1>
+                    <p class="text-xs text-gray-455 mt-1">Review and annotate research documents</p>
+                </div>
+
+                <!-- Main Card (Chapter 3 - Research Methodology (Revised)) -->
+                <div class="bg-white rounded-[2rem] border border-gray-100/50 shadow-sm p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <div class="flex items-center gap-5">
+                        <div class="w-14 h-14 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center text-3xl border border-red-100 flex-shrink-0">
+                            <i class="ph ph-file-pdf"></i>
+                        </div>
+                        <div class="space-y-1">
+                            <h2 class="text-base font-bold text-gray-900 leading-snug">Chapter 3 - Research Methodology (Revised)</h2>
+                            <p class="text-xs font-semibold text-gray-450">Machine Learning Applications in Agricultural Pest Detection</p>
+                            <p class="text-[10px] text-gray-400 font-medium pt-0.5">Uploaded: May 15, 2026  •  Version 2.3  •  42 pages</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-3 w-full md:w-auto flex-shrink-0">
+                        <button @click="alert('Downloading: Chapter 3 - Research Methodology (Revised)')" class="flex-1 md:flex-none px-5 py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-md shadow-[#0e5c3a]/15 transition-all cursor-pointer">
+                            <i class="ph ph-download text-base font-bold"></i> Download
+                        </button>
+                        <button @click="alert('Viewing Full Document: Chapter 3 - Research Methodology (Revised)')" class="flex-1 md:flex-none px-5 py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl flex items-center justify-center transition-all shadow-sm cursor-pointer">
+                            View Full Document
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Cards Row (4 Columns) -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- Approved -->
+                    <div class="bg-white rounded-3xl p-6 border-l-4 border-l-emerald-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-medium block">Approved</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block">8</span>
+                        </div>
+                        <span class="text-emerald-500 text-4xl">
+                            <i class="ph ph-check-circle"></i>
+                        </span>
+                    </div>
+
+                    <!-- Revisions -->
+                    <div class="bg-white rounded-3xl p-6 border-l-4 border-l-amber-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-medium block">Revisions</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block">5</span>
+                        </div>
+                        <span class="text-amber-500 text-4xl">
+                            <i class="ph ph-warning"></i>
+                        </span>
+                    </div>
+
+                    <!-- Comments -->
+                    <div class="bg-white rounded-3xl p-6 border-l-4 border-l-blue-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-medium block">Comments</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block">12</span>
+                        </div>
+                        <span class="text-blue-500 text-4xl">
+                            <i class="ph ph-chat-text"></i>
+                        </span>
+                    </div>
+
+                    <!-- Critical -->
+                    <div class="bg-white rounded-3xl p-6 border-l-4 border-l-red-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-medium block">Critical</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block">2</span>
+                        </div>
+                        <span class="text-red-500 text-4xl">
+                            <i class="ph ph-x-circle"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Document Preview & Feedback Split Layout -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Left: Document Preview (Takes 2 spans) -->
+                    <div class="lg:col-span-2 bg-white rounded-3xl border border-gray-100/50 shadow-sm p-6 space-y-6 flex flex-col justify-between">
+                        <h3 class="font-bold text-sm text-gray-800 flex items-center gap-2">
+                            <i class="ph ph-eye text-[#0e5c3a] text-lg"></i>
+                            <span>Document Preview</span>
+                        </h3>
+                        
+                        <div class="border border-gray-100 rounded-2xl p-6 space-y-6 max-h-[600px] overflow-y-auto bg-gray-50/30">
+                            <div class="bg-white border border-gray-100 rounded-xl p-8 space-y-6 shadow-sm">
+                                <h4 class="text-base font-bold text-gray-900 font-heading text-center">Chapter 3: Research Methodology</h4>
+                                <p class="text-xs text-gray-650 leading-relaxed pt-2">
+                                    This chapter presents the research design, methods, and procedures employed in this study. The methodology encompasses the research approach, data collection instruments, sampling techniques, and data analysis methods.
+                                </p>
+                                
+                                <h5 class="text-sm font-bold text-gray-850 font-heading pt-2">3.1 Research Design</h5>
+                                <p class="text-xs text-gray-650 leading-relaxed">
+                                    This study utilizes a quantitative research approach with an experimental design to evaluate the effectiveness of machine learning algorithms in detecting agricultural pests...
+                                </p>
+                                
+                                <h5 class="text-sm font-bold text-gray-850 font-heading pt-2">3.2 Data Collection</h5>
+                                <p class="text-xs text-gray-650 leading-relaxed">
+                                    The data collection process involves capturing high-resolution images of crops from various agricultural sites across South Cotabato province...
+                                </p>
+                                
+                                <!-- Highlighted Reviewer Note Block -->
+                                <div class="border-l-4 border-l-amber-500 bg-amber-50/40 p-4 rounded-r-2xl border border-t-transparent border-r-transparent border-b-transparent">
+                                    <p class="text-xs text-amber-800 leading-relaxed">
+                                        <span class="font-bold text-amber-900">Reviewer Note:</span> Consider adding more details about the image preprocessing steps used in your methodology.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Comments & Feedback (Takes 1 span) -->
+                    <div class="lg:col-span-1 bg-white rounded-3xl border border-gray-100/50 shadow-sm p-6 flex flex-col justify-between space-y-6">
+                        <h3 class="font-bold text-sm text-gray-800 flex items-center gap-2">
+                            <i class="ph ph-chat-text text-[#0e5c3a] text-lg"></i>
+                            <span>Comments & Feedback</span>
+                        </h3>
+                        
+                        <!-- List of comments -->
+                        <div class="space-y-4 overflow-y-auto max-h-[460px] pr-1">
+                            <!-- Comment 1 -->
+                            <div class="border border-gray-100 border-l-4 border-l-amber-500 rounded-2xl p-4 space-y-3 bg-white hover:border-gray-200 transition-all">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="leading-tight">
+                                        <span class="font-bold text-gray-800 text-xs block">Dr. Maria Santos</span>
+                                        <span class="text-[9px] text-gray-400 font-semibold uppercase tracking-wider block mt-0.5">Adviser</span>
+                                    </div>
+                                    <span class="text-[9px] text-gray-400 font-medium">2 hours ago</span>
+                                </div>
+                                <p class="text-xs text-gray-650 leading-relaxed">
+                                    Please expand this section with more recent studies from 2024-2026.
+                                </p>
+                                <div class="flex items-center justify-between text-[10px] font-bold border-t border-gray-50 pt-2 text-gray-400">
+                                    <span>Page 12</span>
+                                    <div class="flex items-center gap-3">
+                                        <button @click="alert('Reply function')" class="hover:text-gray-700 cursor-pointer">Reply</button>
+                                        <button @click="alert('Resolve function')" class="text-emerald-600 hover:text-emerald-700 cursor-pointer">Resolve</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Comment 2 -->
+                            <div class="border border-gray-100 border-l-4 border-l-emerald-500 rounded-2xl p-4 space-y-3 bg-white hover:border-gray-200 transition-all">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="leading-tight">
+                                        <span class="font-bold text-gray-800 text-xs block">Dr. John Reyes</span>
+                                        <span class="text-[9px] text-gray-400 font-semibold uppercase tracking-wider block mt-0.5">Panelist</span>
+                                    </div>
+                                    <span class="text-[9px] text-gray-400 font-medium">5 hours ago</span>
+                                </div>
+                                <p class="text-xs text-gray-650 leading-relaxed">
+                                    Excellent data presentation. Well organized.
+                                </p>
+                                <div class="flex items-center justify-between text-[10px] font-bold border-t border-gray-50 pt-2 text-gray-400">
+                                    <span>Page 18</span>
+                                    <div class="flex items-center gap-3">
+                                        <button @click="alert('Reply function')" class="hover:text-gray-700 cursor-pointer">Reply</button>
+                                        <button @click="alert('Resolve function')" class="text-emerald-600 hover:text-emerald-700 cursor-pointer">Resolve</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Comment 3 -->
+                            <div class="border border-gray-100 border-l-4 border-l-amber-500 rounded-2xl p-4 space-y-3 bg-white hover:border-gray-200 transition-all">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="leading-tight">
+                                        <span class="font-bold text-gray-800 text-xs block">Prof. Anna Garcia</span>
+                                        <span class="text-[9px] text-gray-400 font-semibold uppercase tracking-wider block mt-0.5">Technical Editor</span>
+                                    </div>
+                                    <span class="text-[9px] text-gray-400 font-medium">1 day ago</span>
+                                </div>
+                                <p class="text-xs text-gray-650 leading-relaxed">
+                                    Check citation format on this page - should follow APA 7th edition.
+                                </p>
+                                <div class="flex items-center justify-between text-[10px] font-bold border-t border-gray-50 pt-2 text-gray-400">
+                                    <span>Page 5</span>
+                                    <div class="flex items-center gap-3">
+                                        <button @click="alert('Reply function')" class="hover:text-gray-700 cursor-pointer">Reply</button>
+                                        <button @click="alert('Resolve function')" class="text-emerald-600 hover:text-emerald-700 cursor-pointer">Resolve</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Add Comment form -->
+                        <div class="space-y-3 pt-2">
+                            <textarea placeholder="Add a comment..." rows="2" class="w-full p-3 bg-white border border-gray-200 rounded-2xl text-xs text-gray-800 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all resize-none"></textarea>
+                            <button @click="alert('Posting comment...')" class="w-full py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md shadow-[#0e5c3a]/15 transition-all cursor-pointer">
+                                Post Comment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Review Actions Section (Full width bottom card) -->
+                <div class="bg-white rounded-3xl border border-gray-100/50 shadow-sm p-6 space-y-6">
+                    <h3 class="font-bold text-sm text-gray-800 flex items-center gap-2">
+                        <i class="ph ph-shield-check text-[#0e5c3a] text-lg"></i>
+                        <span>Review Actions</span>
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button @click="alert('Approved Document')" class="py-4 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-[#0e5c3a]/10 transition-all cursor-pointer">
+                            <i class="ph ph-check-circle text-base"></i> Approve Document
+                        </button>
+                        
+                        <button @click="alert('Requested Revisions')" class="py-4 bg-[#d97706] hover:bg-[#b45309] text-white text-xs font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-amber-600/10 transition-all cursor-pointer">
+                            <i class="ph ph-warning text-base"></i> Request Revisions
+                        </button>
+                        
+                        <button @click="alert('Rejected Document')" class="py-4 bg-[#dc2626] hover:bg-[#b91c1c] text-white text-xs font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-red-600/10 transition-all cursor-pointer">
+                            <i class="ph ph-x-circle text-base"></i> Reject Document
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'settings', 'pending'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'settings', 'pending', 'manuscript'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
