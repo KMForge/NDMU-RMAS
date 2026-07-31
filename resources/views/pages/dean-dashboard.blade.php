@@ -24,6 +24,49 @@
     notificationsFilter: 'all',
     showDetailsModal: false,
     selectedRequest: null,
+    userSearchQuery: '',
+    userRoleFilter: 'all',
+    managementSubTab: 'all',
+    managementUsers: [
+        { name: 'System Administrator', initials: 'S', initialsBg: 'bg-emerald-700 text-white', email: 'admin@ndmu.edu.ph', role: 'Administrator', roleClass: 'bg-blue-50 border border-blue-100 text-blue-700', status: 'Active', dept: 'Information Technology', date: '2024-01-01', isSystem: true },
+        { name: 'Dr. Lourdes Castillo', initials: 'D', initialsBg: 'bg-emerald-700 text-white', email: 'l.castillo@ndmu.edu.ph', role: 'College Dean', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'Office of the College Dean', date: '2024-01-01', isSystem: true },
+        { name: 'Dr. Rosario Dela Paz', initials: 'D', initialsBg: 'bg-emerald-700 text-white', email: 'r.dela-paz@ndmu.edu.ph', role: 'Research Facilitator', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Information Technology', date: '2024-01-01', isSystem: true },
+        { name: 'Engr. Jose Montero', initials: 'E', initialsBg: 'bg-emerald-700 text-white', email: 'j.montero@ndmu.edu.ph', role: 'Research Facilitator', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Engineering', date: '2024-01-01', isSystem: true },
+        { name: 'Dr. Reyna Garcia', initials: 'D', initialsBg: 'bg-emerald-700 text-white', email: 'r.garcia@ndmu.edu.ph', role: 'Research Adviser', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Information Technology', date: '2024-01-01', isSystem: true },
+        { name: 'Dr. Michael Tan', initials: 'D', initialsBg: 'bg-emerald-700 text-white', email: 'm.tan@ndmu.edu.ph', role: 'Research Adviser', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Information Technology', date: '2024-01-01', isSystem: true },
+        { name: 'Prof. Lucia Fernandez', initials: 'P', initialsBg: 'bg-emerald-700 text-white', email: 'l.fernandez@ndmu.edu.ph', role: 'Research Adviser', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Engineering', date: '2024-01-01', isSystem: true },
+        { name: 'Dr. Maria Santos', initials: 'M', initialsBg: 'bg-emerald-700 text-white', email: 'maria.santos@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Active', dept: 'College of Information Technology', date: '2024-08-12', isSystem: true },
+        { name: 'Carlo Mendoza', initials: 'C', initialsBg: 'bg-[#0f766e] text-white', email: 'carlo.mendoza@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Active', dept: 'College of Information Technology', date: '2024-08-12', isSystem: true },
+        { name: 'Anna Lim', initials: 'A', initialsBg: 'bg-emerald-700 text-white', email: 'anna.lim@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Active', dept: 'College of Information Technology', date: '2024-08-15', isSystem: true },
+        { name: 'Felix Torres', initials: 'F', initialsBg: 'bg-[#0f766e] text-white', email: 'felix.torres@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Active', dept: 'College of Engineering', date: '2024-08-20', isSystem: true },
+        { name: 'Sofia Herrera', initials: 'S', initialsBg: 'bg-emerald-700 text-white', email: 'sofia.herrera@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Active', dept: 'College of Engineering', date: '2025-08-10', isSystem: true },
+        { name: 'Rafael Ocampo', initials: 'R', initialsBg: 'bg-[#0f766e] text-white', email: 'rafael.ocampo@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Active', dept: 'College of Engineering', date: '2025-08-10', isSystem: true },
+        { name: 'Isabelle Garcia', initials: 'I', initialsBg: 'bg-emerald-700 text-white', email: 'isabelle.garcia@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Active', dept: 'College of Engineering', date: '2025-08-11', isSystem: true },
+        { name: 'Marco Villanueva', initials: 'M', initialsBg: 'bg-[#0f766e] text-white', email: 'marco.villanueva@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Active', dept: 'College of Engineering', date: '2025-08-12', isSystem: true },
+        { name: 'Juan Dela Cruz', initials: 'J', initialsBg: 'bg-[#0f766e] text-white', email: 'juan.delacruz@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Pending', dept: 'College of Engineering', date: '2026-05-28', isSystem: false },
+        { name: 'Ana Reyes', initials: 'A', initialsBg: 'bg-emerald-700 text-white', email: 'ana.reyes@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Pending', dept: 'College of Information Technology', date: '2026-05-30', isSystem: false },
+        { name: 'Kevin Aguila', initials: 'K', initialsBg: 'bg-[#0f766e] text-white', email: 'kevin.aguila@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Pending', dept: 'College of Engineering', date: '2026-06-01', isSystem: false },
+        { name: 'Clara Nieto', initials: 'C', initialsBg: 'bg-[#0f766e] text-white', email: 'clara.nieto@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Pending', dept: 'College of Engineering', date: '2026-06-01', isSystem: false },
+        { name: 'Dante Flores', initials: 'D', initialsBg: 'bg-emerald-700 text-white', email: 'dante.flores@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Pending', dept: 'College of Engineering', date: '2026-06-02', isSystem: false },
+        { name: 'Dr. Miguel Torres', initials: 'D', initialsBg: 'bg-emerald-700 text-white', email: 'newadviser@ndmu.edu.ph', role: 'Research Adviser', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Engineering', date: '2026-06-01', isSystem: false, hasTempPw: true },
+        { name: 'Prof. Roberto Garcia', initials: 'R', initialsBg: 'bg-emerald-700 text-white', email: 'r.garcia@ndmu.edu.ph', role: 'Research Adviser', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Information Technology', date: '2024-01-01', isSystem: true },
+        { name: 'Dr. Patricia Cruz', initials: 'D', initialsBg: 'bg-[#0f766e] text-white', email: 'p.cruz@ndmu.edu.ph', role: 'Research Adviser', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Engineering', date: '2024-01-01', isSystem: true },
+        { name: 'Prof. Michael Tan', initials: 'P', initialsBg: 'bg-emerald-700 text-white', email: 'm.tan-panelist@ndmu.edu.ph', role: 'Panelist', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Information Technology', date: '2024-01-01', isSystem: true },
+        { name: 'Dr. Antonio Santos', initials: 'D', initialsBg: 'bg-emerald-700 text-white', email: 'a.santos@ndmu.edu.ph', role: 'Panelist', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Information Technology', date: '2024-01-01', isSystem: true },
+        { name: 'Prof. Patricia Cruz', initials: 'P', initialsBg: 'bg-[#0f766e] text-white', email: 'p.cruz-panelist@ndmu.edu.ph', role: 'Panelist', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Engineering', date: '2024-01-01', isSystem: true }
+    ],
+
+    filteredUsers() {
+        return this.managementUsers.filter(u => {
+            if (this.managementSubTab === 'pending' && u.status !== 'Pending') return false;
+            if (this.userRoleFilter !== 'all' && u.role.toLowerCase() !== this.userRoleFilter.toLowerCase()) return false;
+            if (this.userSearchQuery.trim() !== '') {
+                const q = this.userSearchQuery.toLowerCase();
+                return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+            }
+            return true;
+        });
+    },
     
     // Dean static details
     requests: [
@@ -918,8 +961,311 @@
                 </div>
             </div>
 
+            </div>
+
+            <!-- TAB: Faculty Appointments (User Management) -->
+            <div x-show="activeTab === 'appointments'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Title Block -->
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-800">User Management</h1>
+                    <p class="text-xs text-gray-455 mt-1">Manage accounts, approve registrations, and create staff users</p>
+                </div>
+
+                <!-- Stats Cards Row (4 Columns) -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- Total Users -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100/50 shadow-sm flex items-center gap-4">
+                        <span class="w-12 h-12 rounded-full bg-slate-100/80 text-slate-655 flex items-center justify-center text-xl flex-shrink-0">
+                            <i class="ph ph-users"></i>
+                        </span>
+                        <div>
+                            <span class="text-2xl font-bold text-gray-800 block" x-text="managementUsers.length">26</span>
+                            <span class="text-[11px] text-gray-400 font-semibold block">Total Users</span>
+                        </div>
+                    </div>
+
+                    <!-- Pending Approval -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100/50 shadow-sm flex items-center gap-4">
+                        <span class="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center text-xl flex-shrink-0">
+                            <i class="ph ph-clock"></i>
+                        </span>
+                        <div>
+                            <span class="text-2xl font-bold text-gray-800 block" x-text="managementUsers.filter(u => u.status === 'Pending').length">5</span>
+                            <span class="text-[11px] text-gray-400 font-semibold block">Pending Approval</span>
+                        </div>
+                    </div>
+
+                    <!-- Active Accounts -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100/50 shadow-sm flex items-center gap-4">
+                        <span class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl flex-shrink-0">
+                            <i class="ph ph-check-circle"></i>
+                        </span>
+                        <div>
+                            <span class="text-2xl font-bold text-gray-800 block" x-text="managementUsers.filter(u => u.status === 'Active').length">21</span>
+                            <span class="text-[11px] text-gray-400 font-semibold block">Active Accounts</span>
+                        </div>
+                    </div>
+
+                    <!-- Rejected -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100/50 shadow-sm flex items-center gap-4">
+                        <span class="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center text-xl flex-shrink-0">
+                            <i class="ph ph-x-circle"></i>
+                        </span>
+                        <div>
+                            <span class="text-2xl font-bold text-gray-800 block">0</span>
+                            <span class="text-[11px] text-gray-400 font-semibold block">Rejected</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subtabs navigation -->
+                <div class="flex items-center gap-6 border-b border-gray-200 pb-1">
+                    <button 
+                        @click="managementSubTab = 'all'" 
+                        :class="managementSubTab === 'all' ? 'border-[#0e5c3a] text-[#0e5c3a] font-bold border-b-2 pb-3' : 'text-gray-500 hover:text-gray-800 pb-3'" 
+                        class="text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer"
+                    >
+                        <span>All Users</span>
+                        <span :class="managementSubTab === 'all' ? 'bg-[#0e5c3a] text-white' : 'bg-gray-100 text-gray-500'" class="rounded-full px-2 py-0.5 text-[9px] font-bold" x-text="managementUsers.length">26</span>
+                    </button>
+                    
+                    <button 
+                        @click="managementSubTab = 'pending'" 
+                        :class="managementSubTab === 'pending' ? 'border-[#0e5c3a] text-[#0e5c3a] font-bold border-b-2 pb-3' : 'text-gray-500 hover:text-gray-800 pb-3'" 
+                        class="text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer"
+                    >
+                        <span>Pending Students</span>
+                        <span :class="managementSubTab === 'pending' ? 'bg-[#0e5c3a] text-white' : 'bg-gray-100 text-gray-500'" class="rounded-full px-2 py-0.5 text-[9px] font-bold" x-text="managementUsers.filter(u => u.status === 'Pending').length">5</span>
+                    </button>
+                    
+                    <button 
+                        @click="managementSubTab = 'create'" 
+                        :class="managementSubTab === 'create' ? 'border-[#0e5c3a] text-[#0e5c3a] font-bold border-b-2 pb-3' : 'text-gray-500 hover:text-gray-800 pb-3'" 
+                        class="text-xs font-semibold transition-all cursor-pointer"
+                    >
+                        Create User
+                    </button>
+                </div>
+
+                <!-- Tab views -->
+                <div class="space-y-6">
+                    <!-- Tab: All Users & Pending Students Table -->
+                    <div x-show="managementSubTab !== 'create'" class="space-y-6">
+                        <!-- Filters row -->
+                        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                            <!-- Search -->
+                            <div class="relative w-full md:w-80">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 pointer-events-none">
+                                    <i class="ph ph-magnifying-glass text-sm"></i>
+                                </span>
+                                <input
+                                    type="text"
+                                    x-model="userSearchQuery"
+                                    placeholder="Search by name or email..."
+                                    class="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all"
+                                >
+                            </div>
+
+                            <!-- Right filters -->
+                            <div class="flex items-center gap-3 w-full md:w-auto">
+                                <select 
+                                    x-model="userRoleFilter" 
+                                    class="w-full md:w-44 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-850 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all appearance-none cursor-pointer"
+                                    style="background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27 fill=%27%236b7280%27%3E%3Cpath fill-rule=%27evenodd%27 d=%27M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z%27 clip-rule=%27evenodd%27/%3E%3C/svg%3E'); background-position: right 0.75rem center; background-repeat: no-repeat; background-size: 1.25em auto; padding-right: 2.25rem;"
+                                >
+                                    <option value="all">All Roles</option>
+                                    <option value="administrator">Administrator</option>
+                                    <option value="college dean">College Dean</option>
+                                    <option value="research facilitator">Research Facilitator</option>
+                                    <option value="research adviser">Research Adviser</option>
+                                    <option value="student researcher">Student Researcher</option>
+                                </select>
+
+                                <button @click="userSearchQuery = ''; userRoleFilter = 'all';" class="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl flex items-center gap-2 shadow-sm transition-all cursor-pointer">
+                                    <i class="ph ph-arrows-clockwise text-base"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Users table card -->
+                        <div class="bg-white rounded-3xl border border-gray-100/50 shadow-sm overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-50 text-gray-400 font-bold uppercase text-[10px] tracking-wider border-b border-gray-100">
+                                            <th class="px-6 py-4">Name</th>
+                                            <th class="px-6 py-4">Email</th>
+                                            <th class="px-6 py-4">Role</th>
+                                            <th class="px-6 py-4">Status</th>
+                                            <th class="px-6 py-4">Department</th>
+                                            <th class="px-6 py-4">Created</th>
+                                            <th class="px-6 py-4">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-50 text-gray-700">
+                                        <template x-for="user in filteredUsers()" :key="user.email">
+                                            <tr class="hover:bg-gray-50/30 transition-colors">
+                                                <!-- Name with initial badge -->
+                                                <td class="px-6 py-4 flex items-center gap-3">
+                                                    <div :class="user.initialsBg" class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0" x-text="user.initials">S</div>
+                                                    <div class="leading-tight">
+                                                        <span class="font-bold text-gray-850 block" x-text="user.name">User Name</span>
+                                                        <template x-if="user.hasTempPw">
+                                                            <span class="bg-amber-100 text-amber-800 text-[9px] px-1.5 py-0.5 rounded font-bold mt-1 inline-block">Temp password</span>
+                                                        </template>
+                                                    </div>
+                                                </td>
+                                                <!-- Email -->
+                                                <td class="px-6 py-4 text-gray-600 font-medium" x-text="user.email">email@ndmu.edu.ph</td>
+                                                <!-- Role badge -->
+                                                <td class="px-6 py-4">
+                                                    <span :class="user.roleClass" class="px-2.5 py-0.5 rounded text-[10px] font-bold" x-text="user.role">Role</span>
+                                                </td>
+                                                <!-- Status -->
+                                                <td class="px-6 py-4">
+                                                    <span :class="user.status === 'Active' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'" class="px-2.5 py-0.5 rounded text-[10px] font-bold" x-text="user.status">Active</span>
+                                                </td>
+                                                <!-- Department -->
+                                                <td class="px-6 py-4 text-gray-500 font-semibold truncate max-w-[180px]" x-text="user.dept">Department</td>
+                                                <!-- Created -->
+                                                <td class="px-6 py-4 text-gray-400 font-medium" x-text="user.date">2024-01-01</td>
+                                                <!-- Actions -->
+                                                <td class="px-6 py-4">
+                                                    <template x-if="user.isSystem">
+                                                        <span class="text-gray-400 font-medium text-[11px]">System</span>
+                                                    </template>
+                                                    <template x-if="!user.isSystem">
+                                                        <button @click="if (confirm(`Are you sure you want to delete ${user.name}?`)) { managementUsers = managementUsers.filter(item => item.email !== user.email); }" class="text-red-500 hover:text-red-750 transition-colors cursor-pointer">
+                                                            <i class="ph ph-trash text-lg"></i>
+                                                        </button>
+                                                    </template>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                        <template x-if="filteredUsers().length === 0">
+                                            <tr>
+                                                <td colspan="7" class="px-6 py-12 text-center text-gray-450 font-medium">
+                                                    No users found matching current filters.
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Create User Form -->
+                    <div x-show="managementSubTab === 'create'" class="bg-white rounded-3xl border border-gray-100/50 shadow-sm p-6 md:p-8 space-y-6">
+                        <div class="border-b border-gray-100 pb-4">
+                            <h3 class="text-base font-bold text-gray-800 font-heading">Register New User</h3>
+                            <p class="text-xs text-gray-455 mt-1">Add a new academic evaluator, facilitator, advisor, or student researcher.</p>
+                        </div>
+                        
+                        <form x-ref="createForm" @submit.prevent="
+                            const name = $refs.newName.value.trim();
+                            const email = $refs.newEmail.value.trim();
+                            const role = $refs.newRole.value;
+                            const dept = $refs.newDept.value;
+                            
+                            if (!name || !email || !role || !dept) {
+                                alert('Please fill in all fields.');
+                                return;
+                            }
+                            
+                            let roleClass = 'bg-emerald-50 border border-emerald-100 text-emerald-700';
+                            if (role === 'Administrator') roleClass = 'bg-blue-50 border border-blue-100 text-blue-700';
+                            else if (role === 'Student Researcher') roleClass = 'bg-gray-50 border border-gray-100 text-gray-700';
+
+                            managementUsers.unshift({
+                                name: name,
+                                initials: name.charAt(0).toUpperCase(),
+                                initialsBg: 'bg-[#0f766e] text-white',
+                                email: email,
+                                role: role,
+                                roleClass: roleClass,
+                                status: 'Active',
+                                dept: dept,
+                                date: new Date().toISOString().split('T')[0],
+                                isSystem: false,
+                                hasTempPw: true
+                            });
+                            
+                            $refs.createForm.reset();
+                            managementSubTab = 'all';
+                            alert('Account successfully registered with temporary password!');
+                        " class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl">
+                            <!-- Full Name -->
+                            <div class="space-y-2">
+                                <label class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Full Name</label>
+                                <input
+                                    x-ref="newName"
+                                    type="text"
+                                    placeholder="e.g. Dr. Miguel Torres"
+                                    required
+                                    class="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm text-gray-850 placeholder-gray-400 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all"
+                                >
+                            </div>
+
+                            <!-- Email Address -->
+                            <div class="space-y-2">
+                                <label class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Email Address</label>
+                                <input
+                                    x-ref="newEmail"
+                                    type="email"
+                                    placeholder="e.g. m.torres@ndmu.edu.ph"
+                                    required
+                                    class="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm text-gray-855 placeholder-gray-400 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all"
+                                >
+                            </div>
+
+                            <!-- Role Select -->
+                            <div class="space-y-2">
+                                <label class="text-xs font-bold text-gray-600 uppercase tracking-wider block">System Role</label>
+                                <select 
+                                    x-ref="newRole" 
+                                    required
+                                    class="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm text-gray-850 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all appearance-none cursor-pointer"
+                                    style="background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27 fill=%27%236b7280%27%3E%3Cpath fill-rule=%27evenodd%27 d=%27M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z%27 clip-rule=%27evenodd%27/%3E%3C/svg%3E'); background-position: right 1rem center; background-repeat: no-repeat; background-size: 1.25em auto;"
+                                >
+                                    <option value="" disabled selected>Select system role</option>
+                                    <option value="Research Adviser">Research Adviser</option>
+                                    <option value="Research Facilitator">Research Facilitator</option>
+                                    <option value="Panelist">Panelist</option>
+                                    <option value="Student Researcher">Student Researcher</option>
+                                </select>
+                            </div>
+
+                            <!-- Department/College -->
+                            <div class="space-y-2">
+                                <label class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Department / college</label>
+                                <select 
+                                    x-ref="newDept" 
+                                    required
+                                    class="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm text-gray-850 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all appearance-none cursor-pointer"
+                                    style="background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27 fill=%27%236b7280%27%3E%3Cpath fill-rule=%27evenodd%27 d=%27M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z%27 clip-rule=%27evenodd%27/%3E%3C/svg%3E'); background-position: right 1rem center; background-repeat: no-repeat; background-size: 1.25em auto;"
+                                >
+                                    <option value="" disabled selected>Select department</option>
+                                    <option value="College of Information Technology">College of Information Technology</option>
+                                    <option value="College of Engineering">College of Engineering</option>
+                                    <option value="Information Technology">Information Technology</option>
+                                    <option value="Office of the College Dean">Office of the College Dean</option>
+                                </select>
+                            </div>
+
+                            <!-- Submit button -->
+                            <div class="md:col-span-2 pt-2">
+                                <button type="submit" class="w-full py-4 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-sm font-bold rounded-2xl shadow-lg shadow-[#0e5c3a]/15 transition-all cursor-pointer">
+                                    Create User Account
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'settings', 'pending', 'manuscript'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'settings', 'pending', 'manuscript', 'appointments'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
