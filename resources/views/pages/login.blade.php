@@ -3,7 +3,7 @@
 @section('auth-content')
 <div class="min-h-screen flex flex-col md:flex-row relative bg-[#f4f7f6]">
     <!-- Left Side: Image Banner & Brand Description -->
-    <div class="w-full md:w-[45%] lg:w-[40%] bg-[#0e5c3a] text-white p-6 md:p-10 lg:p-12 flex flex-col justify-between relative min-h-[400px] md:min-h-screen overflow-hidden" style="background-image: linear-gradient(180deg, rgba(16, 92, 58, 0.75) 0%, rgba(10, 70, 44, 0.85) 100%), url('{{ asset('images/ndmu.jpg') }}'); background-size: cover; background-position: center;">
+    <div class="w-full md:w-[45%] lg:w-[40%] bg-[#0e5c3a] text-white p-8 md:p-16 flex flex-col justify-between relative min-h-[400px] md:min-h-screen overflow-hidden" style="background-image: linear-gradient(180deg, rgba(14, 92, 58, 0.94) 0%, rgba(10, 70, 44, 0.97) 100%), url('{{ asset('images/ndmu.jpg') }}'); background-size: cover; background-position: center;">
         <!-- Logo -->
         <div class="flex items-center gap-3">
             <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" class="h-12 w-auto">
@@ -14,7 +14,7 @@
         </div>
 
         <!-- Banner Text Content -->
-        <div class="my-auto py-6 space-y-4">
+        <div class="my-auto py-12 space-y-6">
             <span class="text-xs font-bold tracking-widest text-[#eebc3f] uppercase block">Welcome Back</span>
             <h1 class="text-4xl md:text-5xl font-heading font-bold text-white leading-tight">
                 Access Your<br>Research Portal
@@ -26,26 +26,26 @@
             <!-- Features list -->
             <ul class="space-y-4 pt-4 text-sm font-medium">
                 <li class="flex items-center gap-3 text-white/95">
-                    <span class="w-6 h-6 rounded-full border border-[#eebc3f] flex items-center justify-center text-[#eebc3f] flex-shrink-0">
-                        <i class="ph ph-check text-xs font-bold"></i>
+                    <span class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center border border-white/20 text-[#eebc3f] flex-shrink-0">
+                        <i class="ph ph-check text-xs"></i>
                     </span>
                     <span>Access your assigned research dashboard</span>
                 </li>
                 <li class="flex items-center gap-3 text-white/95">
-                    <span class="w-6 h-6 rounded-full border border-[#eebc3f] flex items-center justify-center text-[#eebc3f] flex-shrink-0">
-                        <i class="ph ph-check text-xs font-bold"></i>
+                    <span class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center border border-white/20 text-[#eebc3f] flex-shrink-0">
+                        <i class="ph ph-check text-xs"></i>
                     </span>
                     <span>Submit and track research proposals</span>
                 </li>
                 <li class="flex items-center gap-3 text-white/95">
-                    <span class="w-6 h-6 rounded-full border border-[#eebc3f] flex items-center justify-center text-[#eebc3f] flex-shrink-0">
-                        <i class="ph ph-check text-xs font-bold"></i>
+                    <span class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center border border-white/20 text-[#eebc3f] flex-shrink-0">
+                        <i class="ph ph-check text-xs"></i>
                     </span>
                     <span>Collaborate with advisers and panelists</span>
                 </li>
                 <li class="flex items-center gap-3 text-white/95">
-                    <span class="w-6 h-6 rounded-full border border-[#eebc3f] flex items-center justify-center text-[#eebc3f] flex-shrink-0">
-                        <i class="ph ph-check text-xs font-bold"></i>
+                    <span class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center border border-white/20 text-[#eebc3f] flex-shrink-0">
+                        <i class="ph ph-check text-xs"></i>
                     </span>
                     <span>Schedule and manage defense sessions</span>
                 </li>
@@ -61,7 +61,7 @@
     <!-- Right Side: Login Form Card -->
     <div class="w-full md:w-[55%] lg:w-[60%] flex items-center justify-center p-6 md:p-12 relative min-h-screen bg-gradient-to-tr from-[#f0f4f2] to-[#f4f7f6]">
         <!-- Close Button -->
-        <a href="{{ url('/') }}" class="fixed top-6 right-6 w-10 h-10 rounded-full bg-white border border-gray-150 flex items-center justify-center text-gray-500 hover:text-gray-800 shadow-sm transition-all duration-300 z-50 hover:scale-105">
+        <a href="{{ url('/') }}" class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white border border-gray-150 flex items-center justify-center text-gray-500 hover:text-gray-800 shadow-sm transition-all duration-300 z-10 hover:scale-105">
             <i class="ph ph-x text-lg"></i>
         </a>
 
@@ -159,7 +159,7 @@
     </div>
 
     <!-- Floating Help Button -->
-    <a href="#" class="fixed bottom-6 right-6 w-10 h-10 rounded-full bg-white border border-gray-150 flex items-center justify-center text-gray-500 hover:text-gray-800 shadow-sm transition-all duration-300 hover:scale-105 z-50">
+    <a href="#" class="absolute bottom-6 right-6 w-10 h-10 rounded-full bg-white border border-gray-150 flex items-center justify-center text-gray-500 hover:text-gray-800 shadow-sm transition-all duration-300 hover:scale-105">
         <i class="ph ph-question text-lg"></i>
     </a>
 </div>

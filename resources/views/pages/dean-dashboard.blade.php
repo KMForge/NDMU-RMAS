@@ -594,8 +594,110 @@
                 ])
             </div>
 
+            <!-- TAB: Pending Approvals -->
+            <div x-show="activeTab === 'pending'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Title Block -->
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-800">Proposal Management</h1>
+                    <p class="text-xs text-gray-450 mt-1">Manage research proposals and approvals</p>
+                </div>
+
+                <!-- Stats Cards Row -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- Approved -->
+                    <div class="bg-white rounded-3xl p-6 border-l-4 border-l-emerald-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-medium block">Approved</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block">1</span>
+                        </div>
+                        <span class="text-emerald-500 text-4xl">
+                            <i class="ph ph-check-circle"></i>
+                        </span>
+                    </div>
+
+                    <!-- Pending -->
+                    <div class="bg-white rounded-3xl p-6 border-l-4 border-l-amber-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-medium block">Pending</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block">0</span>
+                        </div>
+                        <span class="text-amber-500 text-4xl">
+                            <i class="ph ph-clock"></i>
+                        </span>
+                    </div>
+
+                    <!-- Revisions -->
+                    <div class="bg-white rounded-3xl p-6 border-l-4 border-l-red-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-medium block">Revisions</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block">0</span>
+                        </div>
+                        <span class="text-red-500 text-4xl">
+                            <i class="ph ph-x-circle"></i>
+                        </span>
+                    </div>
+
+                    <!-- Total Proposals -->
+                    <div class="bg-white rounded-3xl p-6 border-l-4 border-l-blue-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-medium block">Total Proposals</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block">1</span>
+                        </div>
+                        <span class="text-blue-500 text-4xl">
+                            <i class="ph ph-file-text"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Research Proposal List Section -->
+                <div class="bg-white rounded-3xl p-6 border border-gray-100/50 shadow-sm space-y-6">
+                    <h2 class="text-base font-bold text-gray-800 font-heading">Research Proposal</h2>
+                    
+                    <!-- Proposal Item Card -->
+                    <div class="bg-[#f0faf5] rounded-2xl border border-emerald-100/60 p-6 space-y-6">
+                        <div class="flex items-start justify-between">
+                            <div class="space-y-1">
+                                <h3 class="text-sm font-bold text-gray-900 leading-snug">Machine Learning Applications in Agricultural Pest Detection</h3>
+                                <div class="text-[11px] text-gray-450 space-y-0.5 mt-2">
+                                    <p>Proposal ID: <span class="font-semibold text-gray-700">PROP-2026-0001</span></p>
+                                    <p>Submitted: <span class="font-semibold text-gray-700">March 5, 2026</span></p>
+                                </div>
+                            </div>
+                            <span class="bg-[#10b981] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                                Approved
+                            </span>
+                        </div>
+
+                        <!-- Divider -->
+                        <div class="border-t border-emerald-100/50"></div>
+
+                        <!-- Details Grid -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                            <div>
+                                <span class="text-gray-400 block text-[10px] uppercase font-semibold">Reviewed by</span>
+                                <span class="text-gray-850 font-bold text-xs mt-1 block">Dr. Maria Santos</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400 block text-[10px] uppercase font-semibold">Approval Date</span>
+                                <span class="text-gray-850 font-bold text-xs mt-1 block">March 10, 2026</span>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex items-center gap-3 pt-2">
+                            <button @click="alert('Viewing Proposal: Machine Learning Applications in Agricultural Pest Detection')" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-[11px] font-bold rounded-xl transition-all shadow-md shadow-[#0e5c3a]/15 cursor-pointer">
+                                View Proposal
+                            </button>
+                            <button @click="alert('Downloading PDF for PROP-2026-0001')" class="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-[11px] font-bold rounded-xl transition-all shadow-sm cursor-pointer">
+                                Download PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'settings'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'settings', 'pending'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
