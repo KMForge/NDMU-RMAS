@@ -23,6 +23,90 @@
     activeTab: 'dashboard',
     notificationsFilter: 'all',
     selectedDefense: null,
+    assignedPapersSearchQuery: '',
+    assignedPapersStatusFilter: 'all',
+    assignedPapers: [
+        {
+            title: 'The Impact of Social Media Usage on the Academic Performance of Senior High Schoo...',
+            college: 'College of Education',
+            researchers: [
+                { name: 'Maria Santos', bg: 'bg-[#0e5c3a] text-white', init: 'M' },
+                { name: 'Juan dela Cruz', bg: 'bg-emerald-700 text-white', init: 'J' }
+            ],
+            adviser: 'Dr. Reyna Garcia',
+            status: 'For Review',
+            statusClass: 'bg-orange-55 border border-orange-200 text-orange-700 font-bold px-2 py-0.5 rounded-full text-[10px]',
+            defenseType: 'Proposal Defense',
+            defenseTypeClass: 'bg-yellow-50 border border-yellow-200 text-yellow-750 font-bold px-2 py-0.5 rounded-full text-[10px]',
+            submitted: 'May 28, 2026'
+        },
+        {
+            title: 'Effectiveness of Blended Learning Modalities on Student Engagement in NDMU College of...',
+            college: 'College of Engineering',
+            researchers: [
+                { name: 'Ana Reyes', bg: 'bg-[#0e5c3a] text-white', init: 'A' },
+                { name: 'Carlo Bautista', bg: 'bg-emerald-700 text-white', init: 'C' },
+                { name: 'Lea Mercado', bg: 'bg-[#0f766e] text-white', init: 'L' }
+            ],
+            adviser: 'Prof. Miguel Torres',
+            status: 'Under Review',
+            statusClass: 'bg-blue-50 border border-blue-200 text-blue-705 font-bold px-2 py-0.5 rounded-full text-[10px]',
+            defenseType: 'Pre-Oral Defense',
+            defenseTypeClass: 'bg-blue-50 border border-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-full text-[10px]',
+            submitted: 'May 20, 2026'
+        },
+        {
+            title: 'Financial Literacy and Savings Behavior Among Undergraduate Students: A Mixed-...',
+            college: 'College of Business',
+            researchers: [
+                { name: 'Paolo Lim', bg: 'bg-[#0e5c3a] text-white', init: 'P' },
+                { name: 'Grace Tan', bg: 'bg-emerald-700 text-white', init: 'G' }
+            ],
+            adviser: 'Dr. Sandra Villanueva',
+            status: 'Evaluated',
+            statusClass: 'bg-emerald-50 border border-emerald-250 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px]',
+            defenseType: 'Final Oral Defense',
+            defenseTypeClass: 'bg-purple-50 border border-purple-200 text-purple-700 font-bold px-2 py-0.5 rounded-full text-[10px]',
+            submitted: 'Apr 15, 2026'
+        },
+        {
+            title: 'Community-Based Interventions for Maternal Health Outcomes in Selected Barangays of...',
+            college: 'College of Nursing',
+            researchers: [
+                { name: 'Rose Aquino', bg: 'bg-[#0e5c3a] text-white', init: 'R' }
+            ],
+            adviser: 'Dr. Felix Navarro',
+            status: 'Pending Defense',
+            statusClass: 'bg-purple-50 border border-purple-200 text-purple-700 font-bold px-2 py-0.5 rounded-full text-[10px]',
+            defenseType: 'Final Oral Defense',
+            defenseTypeClass: 'bg-purple-50 border border-purple-200 text-purple-700 font-bold px-2 py-0.5 rounded-full text-[10px]',
+            submitted: 'Mar 10, 2026'
+        },
+        {
+            title: 'Digital Transformation in Local Government Units: Barriers and Enablers in the...',
+            college: 'College of Public Administration',
+            researchers: [
+                { name: 'Marco Jimenez', bg: 'bg-[#0e5c3a] text-white', init: 'M' },
+                { name: 'Pia Ramos', bg: 'bg-[#0f766e] text-white', init: 'P' }
+            ],
+            adviser: 'Dr. Lourdes Castillo',
+            status: 'Approved',
+            statusClass: 'bg-emerald-50 border border-emerald-250 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px]',
+            defenseType: 'Final Oral Defense',
+            defenseTypeClass: 'bg-purple-50 border border-purple-200 text-purple-700 font-bold px-2 py-0.5 rounded-full text-[10px]',
+            submitted: 'Feb 22, 2026'
+        }
+    ],
+    filteredAssignedPapers() {
+        return this.assignedPapers.filter(p => {
+            if (this.assignedPapersStatusFilter !== 'all' && p.status.toLowerCase() !== this.assignedPapersStatusFilter.toLowerCase()) return false;
+            if (this.assignedPapersSearchQuery.trim() !== '') {
+                const q = this.assignedPapersSearchQuery.toLowerCase();
+                return p.title.toLowerCase().includes(q) || p.adviser.toLowerCase().includes(q) || p.college.toLowerCase().includes(q) || p.researchers.some(r => r.name.toLowerCase().includes(q));
+            }
+            return true;
+        });
+    },
     
     // Panelist-specific static data
     defenses: [
@@ -470,8 +554,203 @@
                 ])
             </div>
 
+            <!-- TAB: Assigned Research Papers -->
+            <div x-show="activeTab === 'assigned-papers'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Breadcrumbs & Title Block -->
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                        <span>Dashboard</span>
+                        <span>/</span>
+                        <span class="text-[#0e5c3a]">Assigned Research Papers</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="text-2xl font-bold font-heading text-gray-800">Assigned Research Papers</h1>
+                            <p class="text-xs text-gray-455 mt-1">View and manage research papers assigned to you for evaluation.</p>
+                        </div>
+                        
+                        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-[#0e5c3a] text-xs font-bold rounded-xl">
+                            <i class="ph ph-file-text"></i>
+                            <span>5 Papers Assigned</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Cards Row (4 Columns) -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- Total Assigned -->
+                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-emerald-500 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Total Assigned</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block" x-text="assignedPapers.length">5</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-file-text"></i>
+                        </span>
+                    </div>
+
+                    <!-- For Review -->
+                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-orange-500 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">For Review</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block" x-text="assignedPapers.filter(p => p.status === 'For Review').length">1</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-clock"></i>
+                        </span>
+                    </div>
+
+                    <!-- Under Review -->
+                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-blue-500 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Under Review</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block" x-text="assignedPapers.filter(p => p.status === 'Under Review').length">1</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-notebook"></i>
+                        </span>
+                    </div>
+
+                    <!-- Evaluated -->
+                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-emerald-600 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Evaluated</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block" x-text="assignedPapers.filter(p => ['Evaluated', 'Approved'].includes(p.status)).length">2</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-file-check"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Filters Card -->
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center justify-between gap-4">
+                    <div class="relative flex-1">
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 pointer-events-none">
+                            <i class="ph ph-magnifying-glass text-base"></i>
+                        </span>
+                        <input
+                            type="text"
+                            x-model="assignedPapersSearchQuery"
+                            placeholder="Search by title, researcher, adviser, or department..."
+                            class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all duration-200"
+                        >
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-400 pl-1"><i class="ph ph-funnel text-base"></i></span>
+                        <select 
+                            x-model="assignedPapersStatusFilter" 
+                            class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-855 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all appearance-none cursor-pointer pr-8"
+                            style="background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27 fill=%27%236b7280%27%3E%3Cpath fill-rule=%27evenodd%27 d=%27M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z%27 clip-rule=%27evenodd%27/%3E%3C/svg%3E'); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.2em auto;"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="for review">For Review</option>
+                            <option value="under review">Under Review</option>
+                            <option value="evaluated">Evaluated</option>
+                            <option value="pending defense">Pending Defense</option>
+                            <option value="approved">Approved</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Assigned Papers Table Card -->
+                <div class="bg-white rounded-3xl border border-gray-100/50 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 border-b border-gray-100">
+                                    <th class="px-6 py-4 text-left text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Research Title</th>
+                                    <th class="px-6 py-4 text-left text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Researchers</th>
+                                    <th class="px-6 py-4 text-left text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Adviser</th>
+                                    <th class="px-6 py-4 text-left text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-4 text-left text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Defense Type</th>
+                                    <th class="px-6 py-4 text-left text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Submitted</th>
+                                    <th class="px-6 py-4 text-center text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50">
+                                <template x-for="(paper, idx) in filteredAssignedPapers()" :key="idx">
+                                    <tr class="hover:bg-gray-50/50 transition-colors">
+                                        <!-- Research Title -->
+                                        <td class="px-6 py-4 max-w-sm">
+                                            <div class="space-y-1">
+                                                <span class="text-xs text-gray-800 font-extrabold block leading-normal" x-text="paper.title">Research Project Title</span>
+                                                <span class="text-[10px] text-gray-400 font-semibold block" x-text="paper.college">College of Education</span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Researchers -->
+                                        <td class="px-6 py-4">
+                                            <div class="flex flex-col gap-1.5">
+                                                <template x-for="r in paper.researchers" :key="r.name">
+                                                    <div class="flex items-center gap-2">
+                                                        <span :class="r.bg" class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0" x-text="r.init">M</span>
+                                                        <span class="text-xs text-gray-700 font-bold" x-text="r.name">Researcher Name</span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </td>
+
+                                        <!-- Adviser -->
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center gap-1.5 text-xs text-gray-600 font-bold">
+                                                <i class="ph ph-user-shared text-gray-400"></i>
+                                                <span x-text="paper.adviser">Dr. Reyna Garcia</span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Status Badge -->
+                                        <td class="px-6 py-4">
+                                            <span :class="paper.statusClass" x-text="paper.status">For Review</span>
+                                        </td>
+
+                                        <!-- Defense Type -->
+                                        <td class="px-6 py-4">
+                                            <span :class="paper.defenseTypeClass" x-text="paper.defenseType">Proposal Defense</span>
+                                        </td>
+
+                                        <!-- Submitted Date -->
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center gap-1.5 text-[11px] text-gray-500 font-semibold">
+                                                <i class="ph ph-calendar text-gray-400"></i>
+                                                <span x-text="paper.submitted">May 28, 2026</span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Actions -->
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center justify-center gap-2.5">
+                                                <button @click="alert(`Viewing details for: ${paper.title}`)" class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors cursor-pointer" title="View details">
+                                                    <i class="ph ph-eye text-sm"></i>
+                                                </button>
+                                                <button @click="alert(`Evaluating research: ${paper.title}`)" class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center hover:bg-emerald-100 transition-colors cursor-pointer" title="Evaluate paper">
+                                                    <i class="ph ph-file-text text-sm"></i>
+                                                </button>
+                                                <button @click="alert(`Downloading document for: ${paper.title}`)" class="w-7 h-7 rounded-lg border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-gray-50 transition-colors cursor-pointer" title="Download paper">
+                                                    <i class="ph ph-download text-sm"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+
+                                <template x-if="filteredAssignedPapers().length === 0">
+                                    <tr>
+                                        <td colspan="7" class="px-6 py-12 text-center text-xs text-gray-455 font-bold">
+                                            No assigned research papers found matching search query or status filter.
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'settings'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'settings', 'assigned-papers'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
