@@ -1,7 +1,7 @@
 @extends('layouts.blank')
 
 @php
-    $allowedTabs = ['dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'repository', 'notifications', 'settings', 'researchers', 'proposal', 'monitoring'];
+    $allowedTabs = ['dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'repository', 'notifications', 'settings', 'researchers', 'proposal', 'monitoring', 'endorsement'];
     $initialTab = $activeDashboardTab ?? (in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard');
     $showClassModal = $errors->hasAny(['class', 'creation_token', 'name', 'description', 'max_students']);
 @endphp
@@ -34,6 +34,54 @@
     selectedNotification: null,
     notifications: @js($adviserNotifications),
     assignedResearchers: @js($adviserOverviewAdvisees),
+    defenseSearchQuery: '',
+    defenseTypeFilter: 'all',
+    defenseStatusFilter: 'all',
+    defenseSchedules: [
+        {
+            type: 'Proposal Defense',
+            status: 'Scheduled',
+            title: 'AI-Powered Traffic Management ' + 'System',
+            student: 'Juan Del' + 'a Cruz',
+            date: 'May 25, 2026',
+            time: '9:00 AM - 11:00 AM',
+            venue: 'Room 405, Research Building',
+            panels: ['Dr. Maria Santos', 'Dr. John Reyes', 'Prof. Anna Garcia'],
+            leftBorder: 'border-l-4 border-l-[#10b981]',
+            statusClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold px-2.5 py-0.5 rounded-full text-[10px]'
+        },
+        {
+            type: 'Final Defense',
+            status: 'Scheduled',
+            title: 'Blockchain-Based Voting System',
+            student: 'Maria Clara',
+            date: 'May 28, 2026',
+            time: '2:00 PM - 4:00 PM',
+            venue: 'Conference Room A',
+            panels: ['Dr. Pedro Cruz', 'Dr. Sofia Martinez', 'Prof. Carlos Lopez'],
+            leftBorder: 'border-l-4 border-l-[#10b981]',
+            statusClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold px-2.5 py-0.5 rounded-full text-[10px]'
+        },
+        {
+            type: 'Proposal Defense',
+            status: 'Pending',
+            title: 'Machine Learning in Agricultural Pest Detection',
+            student: 'Your Research',
+            date: 'July 15, 2026',
+            time: 'TBA',
+            venue: 'TBA',
+            panels: [],
+            leftBorder: 'border-l-4 border-l-amber-500',
+            statusClass: 'bg-amber-50 border border-amber-100 text-amber-700 font-bold px-2.5 py-0.5 rounded-full text-[10px]'
+        }
+    ],
+    filteredSchedules() {
+        return this.defenseSchedules.filter(s => {
+            if (this.defenseTypeFilter !== 'all' && s.type.toLowerCase() !== this.defenseTypeFilter.toLowerCase()) return false;
+            if (this.defenseStatusFilter !== 'all' && s.status.toLowerCase() !== this.defenseStatusFilter.toLowerCase()) return false;
+            return true;
+        });
+    },
     monitoringMilestones: [
         { title: 'Research Title Presentation', date: 'Feb 15, 2026', status: 'Completed', statusClass: 'bg-[#10b981] text-white', desc: 'All requirements met and approved', icon: 'ph-check-circle text-emerald-500 bg-emerald-50 border border-emerald-100', borderClass: 'border-emerald-100 bg-emerald-50/10' },
         { title: 'Proposal Approval', date: 'Mar 10, 2026', status: 'Completed', statusClass: 'bg-[#10b981] text-white', desc: 'All requirements met and approved', icon: 'ph-check-circle text-emerald-500 bg-emerald-50 border border-emerald-100', borderClass: 'border-emerald-100 bg-emerald-50/10' },
@@ -2370,8 +2418,158 @@
                 </div>
             </div>
 
+            <!-- TAB: Defense Endorsement -->
+            <div x-show="activeTab === 'endorsement'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Title Block -->
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-800">My Defense Schedule</h1>
+                    <p class="text-xs text-gray-455 mt-1">View your assigned defense schedule and details</p>
+                </div>
+
+                <!-- Stats Cards Row (4 Columns) -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- Total Scheduled -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Total Scheduled</span>
+                            <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="defenseSchedules.length">3</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-[#10b981] flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-calendar"></i>
+                        </span>
+                    </div>
+
+                    <!-- This Week -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">This Week</span>
+                            <span class="text-3xl font-bold text-gray-850 mt-2 block">2</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-clock"></i>
+                        </span>
+                    </div>
+
+                    <!-- Pending -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Pending</span>
+                            <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="defenseSchedules.filter(s => s.status === 'Pending').length">1</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-550 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-calendar-blank"></i>
+                        </span>
+                    </div>
+
+                    <!-- Completed -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Completed</span>
+                            <span class="text-3xl font-bold text-gray-855 mt-2 block">0</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-calendar-check"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Filters Row -->
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+                    <span class="text-gray-400 pl-1"><i class="ph ph-funnel text-base"></i></span>
+                    <select 
+                        x-model="defenseTypeFilter" 
+                        class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all appearance-none cursor-pointer pr-8"
+                        style="background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27 fill=%27%236b7280%27%3E%3Cpath fill-rule=%27evenodd%27 d=%27M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z%27 clip-rule=%27evenodd%27/%3E%3C/svg%3E'); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.2em auto;"
+                    >
+                        <option value="all">All Defense Types</option>
+                        <option value="proposal defense">Proposal Defense</option>
+                        <option value="final defense">Final Defense</option>
+                    </select>
+
+                    <select 
+                        x-model="defenseStatusFilter" 
+                        class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all appearance-none cursor-pointer pr-8"
+                        style="background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27 fill=%27%236b7280%27%3E%3Cpath fill-rule=%27evenodd%27 d=%27M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z%27 clip-rule=%27evenodd%27/%3E%3C/svg%3E'); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.2em auto;"
+                    >
+                        <option value="all">All Status</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="pending">Pending</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+
+                <!-- Defense Schedule Cards List -->
+                <div class="space-y-6">
+                    <template x-for="(sched, idx) in filteredSchedules()" :key="idx">
+                        <div :class="sched.leftBorder" class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4 hover:border-gray-200 transition-all duration-200">
+                            <!-- Card Header -->
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <h3 class="font-extrabold text-sm text-gray-800" x-text="sched.type">Proposal Defense</h3>
+                                    <span :class="sched.statusClass" class="ml-3" x-text="sched.status">Scheduled</span>
+                                </div>
+                                <button @click="alert(`Viewing schedule details for: ${sched.title}`)" class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors cursor-pointer">
+                                    <i class="ph ph-eye text-base"></i>
+                                </button>
+                            </div>
+
+                            <!-- Title & Student -->
+                            <div>
+                                <span class="font-bold text-[#0e5c3a] text-sm block" x-text="sched.title">AI-Powered Traffic Management</span>
+                                <span class="text-xs text-gray-500 font-semibold block mt-1" x-text="`Student: ${sched.student}`">Student: Juan Del</span>
+                            </div>
+
+                            <!-- Date / Time / Venue Details Row -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-gray-50">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-8 h-8 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-base"><i class="ph ph-calendar-blank"></i></span>
+                                    <div>
+                                        <span class="text-[10px] text-gray-400 font-bold block uppercase tracking-wider">Date</span>
+                                        <span class="text-xs text-gray-700 font-bold block mt-0.5" x-text="sched.date">May 25, 2026</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-8 h-8 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-base"><i class="ph ph-clock"></i></span>
+                                    <div>
+                                        <span class="text-[10px] text-gray-400 font-bold block uppercase tracking-wider">Time</span>
+                                        <span class="text-xs text-gray-700 font-bold block mt-0.5" x-text="sched.time">9:00 AM - 11:00 AM</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-8 h-8 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-base"><i class="ph ph-map-pin"></i></span>
+                                    <div>
+                                        <span class="text-[10px] text-gray-400 font-bold block uppercase tracking-wider">Venue</span>
+                                        <span class="text-xs text-gray-700 font-bold block mt-0.5" x-text="sched.venue">Room 405, Research Building</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Panelists Badge row -->
+                            <template x-if="sched.panels.length > 0">
+                                <div class="pt-2">
+                                    <span class="text-[10px] text-gray-400 font-bold block uppercase tracking-wider">Panel Members</span>
+                                    <div class="flex flex-wrap gap-2.5 mt-2">
+                                        <template x-for="p in sched.panels" :key="p">
+                                            <span class="bg-gray-50 border border-gray-150 text-gray-600 font-bold px-3 py-1 rounded-full text-[11px]" x-text="p">Panelist</span>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <template x-if="filteredSchedules().length === 0">
+                        <div class="bg-white rounded-3xl p-12 border border-gray-100 text-center text-gray-455 font-semibold shadow-sm">
+                            No defense schedules found matching current filters.
+                        </div>
+                    </template>
+                </div>
+            </div>
+
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'repository', 'settings', 'researchers', 'proposal', 'monitoring'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'repository', 'settings', 'researchers', 'proposal', 'monitoring', 'endorsement'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
