@@ -1,7 +1,7 @@
 @extends('layouts.blank')
 
 @php
-    $allowedTabs = ['dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'repository', 'notifications', 'settings', 'researchers', 'proposal', 'monitoring', 'endorsement'];
+    $allowedTabs = ['dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'repository', 'notifications', 'settings', 'researchers', 'proposal', 'monitoring', 'endorsement', 'evaluations'];
     $initialTab = $activeDashboardTab ?? (in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard');
     $showClassModal = $errors->hasAny(['class', 'creation_token', 'name', 'description', 'max_students']);
 @endphp
@@ -34,6 +34,18 @@
     selectedNotification: null,
     notifications: @js($adviserNotifications),
     assignedResearchers: @js($adviserOverviewAdvisees),
+    evaluationBreakdown: [
+        { label: 'Research Originality', score: '23', max: '25', percent: '92%' },
+        { label: 'Methodology', score: '18', max: '20', percent: '90%' },
+        { label: 'Literature Review', score: '14', max: '15', percent: '93.3%' },
+        { label: 'Data Analysis', score: '17', max: '20', percent: '85%' },
+        { label: 'Presentation & Defense', score: '18', max: '20', percent: '90%' }
+    ],
+    evaluationComments: [
+        { name: 'Dr. Maria Santos', title: 'Panel Chair', rating: 5, comment: 'Excellent research methodology and data analysis. The presentation was clear and well-structured.', borderClass: 'border-emerald-100 bg-emerald-50/10' },
+        { name: 'Dr. John Reyes', title: 'Panelist', rating: 4, comment: 'Strong theoretical foundation. Consider expanding the literature review section.', borderClass: 'border-blue-100 bg-blue-50/10' },
+        { name: 'Prof. Anna Garcia', title: 'Panelist', rating: 5, comment: 'Innovative approach and practical applications. Well-defended arguments.', borderClass: 'border-purple-100 bg-purple-50/10' }
+    ],
     defenseSearchQuery: '',
     defenseTypeFilter: 'all',
     defenseStatusFilter: 'all',
@@ -2568,8 +2580,142 @@
                 </div>
             </div>
 
+            <!-- TAB: Evaluation Records -->
+            <div x-show="activeTab === 'evaluations'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Title Block -->
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-800">Evaluation & Grading</h1>
+                    <p class="text-xs text-gray-455 mt-1">Research defense evaluation and scoring system</p>
+                </div>
+
+                <!-- Big Solid Green Card -->
+                <div class="bg-emerald-500 rounded-3xl p-6 md:p-8 text-white shadow-md flex flex-col md:flex-row md:items-center md:justify-between gap-6 relative overflow-hidden">
+                    <div class="space-y-1 z-10">
+                        <span class="text-xs text-white/80 font-bold tracking-wider uppercase block">Overall Research Score</span>
+                        <span class="text-5xl font-black block tracking-tight">90.0%</span>
+                        <div class="flex items-center gap-1.5 text-amber-300 font-bold text-xs pt-2">
+                            <span>★</span>
+                            <span>Excellent Performance</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 z-10 md:text-right">
+                        <span class="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center text-4xl text-white">
+                            <i class="ph ph-award"></i>
+                        </span>
+                        <div>
+                            <span class="text-sm font-extrabold block">Proposal Defense</span>
+                            <span class="text-[10px] text-white/80 font-medium block mt-0.5">May 10, 2026</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scoring Breakdown & Panel Comments (2 Columns grid) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Left: Scoring Breakdown -->
+                    <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
+                        <h2 class="text-sm font-bold text-gray-855 font-heading">Scoring Breakdown</h2>
+
+                        <div class="space-y-5">
+                            <template x-for="item in evaluationBreakdown" :key="item.label">
+                                <div class="space-y-2">
+                                    <div class="flex justify-between items-center text-xs">
+                                        <span class="font-bold text-gray-750" x-text="item.label">Research Originality</span>
+                                        <span class="font-extrabold text-[#0e5c3a]" x-text="`${item.score}/${item.max}`">23/25</span>
+                                    </div>
+                                    <div class="w-full h-2 bg-gray-50 rounded-full overflow-hidden border border-gray-100/50">
+                                        <div class="h-full bg-emerald-500 rounded-full" :style="`width: ${item.percent};`"></div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <div class="flex justify-between items-center pt-4 border-t border-gray-50">
+                            <span class="text-sm font-extrabold text-gray-800">Total Score</span>
+                            <span class="text-xl font-black text-[#0e5c3a]">90/100</span>
+                        </div>
+                    </div>
+
+                    <!-- Right: Panel Comments -->
+                    <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
+                        <h2 class="text-sm font-bold text-gray-855 font-heading">Panel Comments</h2>
+
+                        <div class="space-y-4">
+                            <template x-for="c in evaluationComments" :key="c.name">
+                                <div :class="c.borderClass" class="rounded-2xl p-4 border space-y-3">
+                                    <div class="flex justify-between items-start gap-2">
+                                        <div>
+                                            <h3 class="font-extrabold text-xs text-gray-800" x-text="c.name">Dr. Maria Santos</h3>
+                                            <span class="text-[10px] text-gray-400 font-semibold block mt-0.5" x-text="c.title">Panel Chair</span>
+                                        </div>
+                                        <div class="flex items-center gap-0.5 text-amber-400 text-xs">
+                                            <template x-for="i in Array.from({length: c.rating})">
+                                                <span>★</span>
+                                            </template>
+                                            <template x-for="i in Array.from({length: 5 - c.rating})">
+                                                <span class="text-gray-200">★</span>
+                                            </template>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-gray-600 leading-relaxed font-medium" x-text="c.comment">Comment text</p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel Recommendations (Full Width below) -->
+                <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
+                    <h2 class="text-sm font-bold text-gray-850 font-heading">Panel Recommendations</h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Strengths -->
+                        <div class="bg-emerald-50/10 border-l-4 border-l-emerald-500 border border-emerald-100/50 rounded-2xl p-5 space-y-3">
+                            <h3 class="text-xs font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="ph ph-trend-up"></i> Strengths
+                            </h3>
+                            <ul class="space-y-2 text-xs text-gray-650 font-medium">
+                                <li class="flex items-start gap-2"><span class="text-emerald-600">✓</span> Clear research objectives and methodology</li>
+                                <li class="flex items-start gap-2"><span class="text-emerald-600">✓</span> Comprehensive data collection and analysis</li>
+                                <li class="flex items-start gap-2"><span class="text-emerald-600">✓</span> Well-structured presentation</li>
+                                <li class="flex items-start gap-2"><span class="text-emerald-600">✓</span> Strong defense of research findings</li>
+                            </ul>
+                        </div>
+
+                        <!-- Areas for Improvement -->
+                        <div class="bg-amber-50/10 border-l-4 border-l-amber-500 border border-amber-100/50 rounded-2xl p-5 space-y-3">
+                            <h3 class="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="ph ph-warning-circle"></i> Areas for Improvement
+                            </h3>
+                            <ul class="space-y-2 text-xs text-gray-650 font-medium">
+                                <li class="flex items-start gap-2"><span class="text-amber-600">•</span> Expand literature review with recent studies</li>
+                                <li class="flex items-start gap-2"><span class="text-amber-600">•</span> Include more diverse data samples</li>
+                                <li class="flex items-start gap-2"><span class="text-amber-600">•</span> Strengthen theoretical framework</li>
+                                <li class="flex items-start gap-2"><span class="text-amber-600">•</span> Add more visual data representations</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Final Recommendation Card -->
+                    <div class="pt-6 border-t border-gray-50">
+                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Final Recommendation</span>
+                        <span class="text-sm font-extrabold text-emerald-600 block mt-1">PASSED - Proceed to Final Defense</span>
+                        <p class="text-xs text-gray-500 font-medium mt-1">The panel recommends addressing the minor revisions before the final defense.</p>
+                    </div>
+                </div>
+
+                <!-- Footer Action Buttons -->
+                <div class="flex items-center gap-3">
+                    <button @click="alert('Downloading Evaluation Report...')" class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md transition-colors cursor-pointer">
+                        Download Evaluation Report
+                    </button>
+                    <button @click="alert('Printing Certificate...')" class="px-5 py-3 bg-white border border-gray-250 hover:bg-gray-50 text-gray-707 text-xs font-bold rounded-xl transition-colors cursor-pointer">
+                        Print Certificate
+                    </button>
+                </div>
+            </div>
+
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'repository', 'settings', 'researchers', 'proposal', 'monitoring', 'endorsement'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'repository', 'settings', 'researchers', 'proposal', 'monitoring', 'endorsement', 'evaluations'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
