@@ -58,8 +58,15 @@ class StoreDocumentRequest extends FormRequest
             throw new HttpResponseException(response()->json(['message' => $reason], 403));
         }
 
+        $route = $this->routeIs('adviser.*')
+            ? 'adviser.dashboard'
+            : 'student.dashboard';
+        $parameters = $route === 'adviser.dashboard'
+            ? ['tab' => 'repository']
+            : [];
+
         throw new HttpResponseException(
-            to_route('student.dashboard')
+            to_route($route, $parameters)
                 ->withErrors(['document' => $reason])
                 ->with('document_error', $reason),
         );

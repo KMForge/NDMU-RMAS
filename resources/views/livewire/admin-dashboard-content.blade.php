@@ -51,13 +51,13 @@
         { id: 'PROP-2026-001', title: 'Machine Learning Applications in Agricultural Pest Detection', status: 'Approved', submitted: 'March 5, 2026', reviewer: 'Dr. Maria Santos', approvalDate: 'March 10, 2026' }
     ],
     staffList: [
-        { id: 1, name: 'Dr. Rosario Dela Paz', email: 'r.dela.paz@ndmu.edu.ph', role: 'Research Facilitator', department: 'College of Information Technology', activeCount: 0, totalCount: 5, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false } },
-        { id: 2, name: 'Engr. Jose Montero', email: 'j.montero@ndmu.edu.ph', role: 'Research Facilitator', department: 'College of Engineering', activeCount: 0, totalCount: 5, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false } },
-        { id: 3, name: 'Dr. Reyna Garcia', email: 'r.garcia@ndmu.edu.ph', role: 'Research Adviser', department: 'College of Information Technology', activeCount: 0, totalCount: 8, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false, users: false, stats: false, screening: false } },
-        { id: 4, name: 'Dr. Michael Tan', email: 'm.tan@ndmu.edu.ph', role: 'Research Adviser', department: 'College of Information Technology', activeCount: 0, totalCount: 8, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false, users: false, stats: false, screening: false } },
-        { id: 5, name: 'Prof. Lucia Fernandez', email: 'l.fernandez@ndmu.edu.ph', role: 'Research Adviser', department: 'College of Engineering', activeCount: 0, totalCount: 8, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false, users: false, stats: false, screening: false } },
-        { id: 6, name: 'Dr. Benjamin Ramos', email: 'b.ramos@ndmu.edu.ph', role: 'Research Adviser', department: 'College of Engineering', activeCount: 0, totalCount: 8, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false, users: false, stats: false, screening: false } },
-        { id: 7, name: 'Dr. Miguel Torres', email: 'newadviser@ndmu.edu.ph', role: 'Research Adviser', department: 'College of Engineering', activeCount: 0, totalCount: 8, tempPassword: true, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false, users: false, stats: false, screening: false } }
+        { id: 1, name: 'Dr. Rosario Dela Paz', email: 'r.dela.paz@ndmu.edu.ph', role: 'Research Facilitator', department: 'College of Engineering, Architecture, and Computing', activeCount: 0, totalCount: 5, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false } },
+        { id: 2, name: 'Engr. Jose Montero', email: 'j.montero@ndmu.edu.ph', role: 'Research Facilitator', department: 'College of Engineering, Architecture, and Computing', activeCount: 0, totalCount: 5, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false } },
+        { id: 3, name: 'Dr. Reyna Garcia', email: 'r.garcia@ndmu.edu.ph', role: 'Research Adviser', department: 'College of Engineering, Architecture, and Computing', activeCount: 0, totalCount: 8, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false, users: false, stats: false, screening: false } },
+        { id: 4, name: 'Dr. Michael Tan', email: 'm.tan@ndmu.edu.ph', role: 'Research Adviser', department: 'College of Engineering, Architecture, and Computing', activeCount: 0, totalCount: 8, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false, users: false, stats: false, screening: false } },
+        { id: 5, name: 'Prof. Lucia Fernandez', email: 'l.fernandez@ndmu.edu.ph', role: 'Research Adviser', department: 'College of Engineering, Architecture, and Computing', activeCount: 0, totalCount: 8, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false, users: false, stats: false, screening: false } },
+        { id: 6, name: 'Dr. Benjamin Ramos', email: 'b.ramos@ndmu.edu.ph', role: 'Research Adviser', department: 'College of Engineering, Architecture, and Computing', activeCount: 0, totalCount: 8, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false, users: false, stats: false, screening: false } },
+        { id: 7, name: 'Dr. Miguel Torres', email: 'newadviser@ndmu.edu.ph', role: 'Research Adviser', department: 'College of Engineering, Architecture, and Computing', activeCount: 0, totalCount: 8, tempPassword: true, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false, users: false, stats: false, screening: false } }
     ]
 }"
     @staff-account-created.window="activeTab = 'users'; userManagementTab = 'all-users'"
@@ -787,30 +787,21 @@
                                             @error('role') <span class="text-xs font-bold text-red-500">{{ $message }}</span> @enderror
                                         </div>
 
-                                        <!-- Department / College dropdown -->
+                                        <!-- College (NDMU-RMAS is scoped to CEAC) -->
                                         <div class="space-y-1.5">
-                                            <label for="new_department" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Department / College</label>
+                                            <label for="new_department" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">College</label>
                                             <div class="relative">
                                                 <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 pointer-events-none">
                                                     <i class="ph ph-briefcase text-lg"></i>
                                                 </span>
-                                                <select 
+                                                <input
+                                                    type="text"
                                                     id="new_department"
                                                     wire:model="department"
-                                                    class="w-full pl-11 pr-10 py-3.5 bg-white border @error('department') border-red-300 focus:border-red-500 focus:ring-red-500/5 @else border-gray-200 focus:border-[#0e5c3a] focus:ring-[#0e5c3a]/5 @enderror rounded-2xl text-sm focus:outline-none focus:ring-4 transition-all duration-300 appearance-none"
+                                                    readonly
+                                                    class="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-600 focus:outline-none"
                                                 >
-                                                    <option value="">Select department</option>
-                                                    <option value="College of Information Technology">College of Information Technology</option>
-                                                    <option value="College of Engineering">College of Engineering</option>
-                                                    <option value="College of Business Administration">College of Business Administration</option>
-                                                    <option value="Office of the College Dean">Office of the College Dean</option>
-                                                    <option value="Research & Development Center">Research & Development Center</option>
-                                                </select>
-                                                <span class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 pointer-events-none">
-                                                    <i class="ph ph-caret-down text-base"></i>
-                                                </span>
                                             </div>
-                                            @error('department') <span class="text-xs font-bold text-red-500">{{ $message }}</span> @enderror
                                         </div>
 
                                         <!-- Temporary Password -->

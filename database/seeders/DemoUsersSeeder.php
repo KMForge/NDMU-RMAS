@@ -11,67 +11,69 @@ class DemoUsersSeeder extends Seeder
 {
     public function run(): void
     {
+        $college = config('academic.college.name');
+
         // 1. Staff and Admin Users (Active)
         $staff = [
             [
                 'name' => 'System Administrator',
                 'email' => 'admin@ndmu.edu.ph',
                 'role' => 'system-administrator',
-                'department' => 'Information Technology',
+                'department' => $college,
             ],
             [
                 'name' => 'Dr. Lourdes Castillo',
                 'email' => 'l.castillo@ndmu.edu.ph',
                 'role' => 'college-dean',
-                'department' => 'Office of the College Dean',
+                'department' => $college,
             ],
             [
                 'name' => 'Dr. Rosario Dela Paz',
                 'email' => 'r.dela-paz@ndmu.edu.ph',
                 'role' => 'research-facilitator',
-                'department' => 'College of Information Technology',
+                'department' => $college,
             ],
             [
                 'name' => 'Engr. Jose Montero',
                 'email' => 'j.montero@ndmu.edu.ph',
                 'role' => 'research-facilitator',
-                'department' => 'College of Engineering',
+                'department' => $college,
             ],
             [
                 'name' => 'Dr. Reyna Garcia',
                 'email' => 'r.garcia@ndmu.edu.ph',
                 'role' => 'research-adviser',
-                'department' => 'College of Information Technology',
+                'department' => $college,
             ],
             [
                 'name' => 'Dr. Michael Tan',
                 'email' => 'm.tan@ndmu.edu.ph',
                 'role' => 'research-adviser',
-                'department' => 'College of Information Technology',
+                'department' => $college,
             ],
             [
                 'name' => 'Prof. Lucia Fernandez',
                 'email' => 'l.fernandez@ndmu.edu.ph',
                 'role' => 'research-adviser',
-                'department' => 'College of Engineering',
+                'department' => $college,
             ],
             [
                 'name' => 'Dr. Benjamin Ramos',
                 'email' => 'b.ramos@ndmu.edu.ph',
                 'role' => 'research-adviser',
-                'department' => 'College of Information Technology',
+                'department' => $college,
             ],
             [
                 'name' => 'Prof. Patricia Cruz',
                 'email' => 'p.cruz@ndmu.edu.ph',
                 'role' => 'panelist',
-                'department' => 'College of Engineering',
+                'department' => $college,
             ],
             [
                 'name' => 'Dr. Antonio Santos',
                 'email' => 'a.santos@ndmu.edu.ph',
                 'role' => 'panelist',
-                'department' => 'College of Information Technology',
+                'department' => $college,
             ],
         ];
 
@@ -96,7 +98,7 @@ class DemoUsersSeeder extends Seeder
                 'name' => 'Juan Dela Cruz',
                 'email' => 'juan.delacruz@ndmu.edu.ph',
                 'student_id' => 'STU-2026-0051',
-                'program' => 'Bachelor of Science in Civil Engineering (BS CE)',
+                'program' => $this->programLabel('BSCE'),
                 'year_level' => '3rd',
                 'created_at' => now()->subDays(5),
             ],
@@ -104,7 +106,7 @@ class DemoUsersSeeder extends Seeder
                 'name' => 'Ana Reyes',
                 'email' => 'ana.reyes@ndmu.edu.ph',
                 'student_id' => 'STU-2026-0052',
-                'program' => 'Bachelor of Science in Information Technology (BSIT)',
+                'program' => $this->programLabel('BSIT'),
                 'year_level' => '4th',
                 'created_at' => now()->subDays(3),
             ],
@@ -112,7 +114,7 @@ class DemoUsersSeeder extends Seeder
                 'name' => 'Kevin Aguila',
                 'email' => 'kevin.aguila@ndmu.edu.ph',
                 'student_id' => 'STU-2026-0053',
-                'program' => 'Bachelor of Science in Architecture (BS Arch)',
+                'program' => $this->programLabel('BSARCH'),
                 'year_level' => '2nd',
                 'created_at' => now()->subDays(2),
             ],
@@ -120,7 +122,7 @@ class DemoUsersSeeder extends Seeder
                 'name' => 'Clara Nieto',
                 'email' => 'clara.nieto@ndmu.edu.ph',
                 'student_id' => 'STU-2026-0054',
-                'program' => 'Bachelor of Science in Computer Science (BSCS)',
+                'program' => $this->programLabel('BSCS'),
                 'year_level' => '3rd',
                 'created_at' => now()->subDays(2),
             ],
@@ -128,7 +130,7 @@ class DemoUsersSeeder extends Seeder
                 'name' => 'Dante Flores',
                 'email' => 'dante.flores@ndmu.edu.ph',
                 'student_id' => 'STU-2026-0055',
-                'program' => 'Bachelor of Science in Electronics Engineering (BS EcE)',
+                'program' => $this->programLabel('BSECE'),
                 'year_level' => '4th',
                 'created_at' => now()->subDay(),
             ],
@@ -161,7 +163,7 @@ class DemoUsersSeeder extends Seeder
                 [
                     'name' => "Student Active {$i}",
                     'student_id' => 'STU-2026-000'.$i,
-                    'program' => 'Bachelor of Science in Computer Science (BSCS)',
+                    'program' => $this->programLabel('BSCS'),
                     'year_level' => '3rd',
                     'password' => Hash::make('Password!12345'),
                     'status' => AccountStatus::Active,
@@ -171,5 +173,16 @@ class DemoUsersSeeder extends Seeder
             );
             $user->syncRoles('student-researcher');
         }
+    }
+
+    private function programLabel(string $code): string
+    {
+        $program = collect(config('academic.programs'))->firstWhere('code', $code);
+
+        if (! is_array($program)) {
+            throw new \LogicException("Academic program {$code} is not configured.");
+        }
+
+        return $program['label'];
     }
 }

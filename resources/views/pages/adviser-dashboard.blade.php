@@ -1,7 +1,7 @@
 @extends('layouts.blank')
 
 @php
-    $allowedTabs = ['dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'notifications', 'settings'];
+    $allowedTabs = ['dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'repository', 'notifications', 'settings'];
     $initialTab = $activeDashboardTab ?? (in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard');
     $showClassModal = $errors->hasAny(['class', 'creation_token', 'name', 'description', 'max_students']);
 @endphp
@@ -30,6 +30,7 @@
     notificationsFilter: 'all',
     showClassModal: @js($showClassModal),
     showConsultationModal: false,
+    showRepositoryUploadModal: @js($errors->has('document') && $initialTab === 'repository'),
     selectedNotification: null,
     notifications: @js($adviserNotifications),
     assignedResearchers: @js($adviserOverviewAdvisees)
@@ -216,9 +217,9 @@
                 </button>
 
                 <!-- Research Repository -->
-                <button 
-                   type="button" 
-                   @click="activeTab = 'repository'"
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'repository']) }}"
+                   wire:navigate
                    :class="activeTab === 'repository' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
@@ -226,7 +227,7 @@
                         <span>Research Repository</span>
                     </div>
                     <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </button>
+                </a>
             </div>
 
             <!-- Research Forms Section -->
@@ -1271,7 +1272,9 @@
 
                 <div class="space-y-4">
                     @forelse ($revisionRequests as $revisionRequest)
-                        @php($latestRevisionDocument = $revisionRequest->submittedDocuments->first())
+                        @php
+                            $latestRevisionDocument = $revisionRequest->submittedDocuments->first();
+                        @endphp
                         <article class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                             <div class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-5">
                                 <div class="min-w-0">
@@ -1592,6 +1595,181 @@
                 </div>
             </div>
 
+            <!-- TAB: Research Repository -->
+            <div x-show="activeTab === 'repository'" x-cloak class="space-y-6 animate-fade-in">
+                @if (session('document_success'))
+                    <div role="status" class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                        {{ session('document_success') }}
+                    </div>
+                @endif
+
+                @if ($errors->has('document'))
+                    <div role="alert" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                        {{ $errors->first('document') }}
+                    </div>
+                @endif
+
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-5">
+                    <div>
+                        <div class="flex items-center gap-2 text-xs mb-3">
+                            <i class="ph ph-book-open text-[#0e5c3a] text-lg"></i>
+                            <a href="{{ route('adviser.dashboard', ['tab' => 'dashboard']) }}" class="text-gray-500 hover:text-[#0e5c3a]">Dashboard</a>
+                            <span class="text-gray-300">/</span>
+                            <span class="font-bold text-[#0e5c3a]">Research Repository</span>
+                        </div>
+                        <h1 class="text-3xl font-extrabold font-heading text-gray-900 tracking-tight">Research Repository</h1>
+                        <p class="text-sm text-gray-500 mt-1">Manage, upload, and track authorized research files.</p>
+                    </div>
+                    <button
+                        type="button"
+                        @click="showRepositoryUploadModal = true"
+                        class="px-5 py-3 bg-[#0e7050] hover:bg-[#0a5a40] text-white text-sm font-bold rounded-xl shadow-md flex items-center justify-center gap-2 transition-colors"
+                    >
+                        <i class="ph ph-upload-simple text-lg"></i>
+                        Upload Document
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    @foreach ([
+                        ['label' => 'Total Files', 'value' => $repositoryStats['total'], 'icon' => 'ph-file-text', 'iconClass' => 'bg-emerald-50 text-[#0e7050]'],
+                        ['label' => 'Approved', 'value' => $repositoryStats['approved'], 'icon' => 'ph-check-circle', 'iconClass' => 'bg-green-50 text-green-600'],
+                        ['label' => 'Pending Review', 'value' => $repositoryStats['pending'], 'icon' => 'ph-clock', 'iconClass' => 'bg-orange-50 text-orange-600'],
+                        ['label' => 'For Evaluation', 'value' => $repositoryStats['evaluation'], 'icon' => 'ph-clipboard-text', 'iconClass' => 'bg-purple-50 text-purple-600'],
+                    ] as $repositoryStat)
+                        <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center gap-4">
+                            <span class="w-11 h-11 rounded-xl {{ $repositoryStat['iconClass'] }} flex items-center justify-center">
+                                <i class="ph {{ $repositoryStat['icon'] }} text-2xl"></i>
+                            </span>
+                            <div>
+                                <span class="text-2xl font-extrabold text-gray-900">{{ $repositoryStat['value'] }}</span>
+                                <span class="block text-xs text-gray-500">{{ $repositoryStat['label'] }}</span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <form method="GET" action="{{ route('adviser.dashboard') }}" class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-col md:flex-row gap-3">
+                    <input type="hidden" name="tab" value="repository">
+                    <div class="relative flex-1">
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 pointer-events-none">
+                            <i class="ph ph-magnifying-glass text-lg"></i>
+                        </span>
+                        <input
+                            type="search"
+                            name="repository_q"
+                            value="{{ $repositorySearch }}"
+                            maxlength="100"
+                            placeholder="Search documents or researcher name..."
+                            class="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#0e7050]"
+                        >
+                    </div>
+                    <div class="flex gap-3">
+                        <select
+                            name="repository_status"
+                            onchange="this.form.submit()"
+                            class="min-w-44 px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:border-[#0e7050]"
+                        >
+                            <option value="all" @selected($repositoryStatus === 'all')>All Status</option>
+                            <option value="approved" @selected($repositoryStatus === 'approved')>Approved</option>
+                            <option value="pending" @selected($repositoryStatus === 'pending')>Pending Review</option>
+                            <option value="evaluation" @selected($repositoryStatus === 'evaluation')>For Evaluation</option>
+                            <option value="revisions" @selected($repositoryStatus === 'revisions')>Revisions Requested</option>
+                            <option value="rejected" @selected($repositoryStatus === 'rejected')>Rejected</option>
+                        </select>
+                        <button type="submit" class="px-5 py-3 bg-[#0e5c3a] text-white text-sm font-bold rounded-xl">
+                            Search
+                        </button>
+                    </div>
+                </form>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-5">
+                    @forelse ($repositoryDocuments as $repositoryDocument)
+                        @php
+                            $repositoryStatusPresentation = match ($repositoryDocument->status) {
+                                \App\Enums\DocumentStatus::Accepted => ['label' => 'Approved', 'class' => 'bg-green-50 text-green-700 border-green-200', 'icon' => 'ph-check-circle'],
+                                \App\Enums\DocumentStatus::UnderReview => ['label' => 'For Evaluation', 'class' => 'bg-purple-50 text-purple-700 border-purple-200', 'icon' => 'ph-clock'],
+                                \App\Enums\DocumentStatus::RevisionRequested => ['label' => 'Revisions Requested', 'class' => 'bg-amber-50 text-amber-700 border-amber-200', 'icon' => 'ph-warning'],
+                                \App\Enums\DocumentStatus::Rejected => ['label' => 'Rejected', 'class' => 'bg-red-50 text-red-700 border-red-200', 'icon' => 'ph-x-circle'],
+                                \App\Enums\DocumentStatus::Draft => ['label' => 'Draft', 'class' => 'bg-gray-50 text-gray-700 border-gray-200', 'icon' => 'ph-pencil'],
+                                default => ['label' => 'Pending Review', 'class' => 'bg-orange-50 text-orange-700 border-orange-200', 'icon' => 'ph-clock'],
+                            };
+                            $isPdf = $repositoryDocument->file_type === 'pdf';
+                            $documentTitle = pathinfo($repositoryDocument->original_filename, PATHINFO_FILENAME);
+                        @endphp
+
+                        <article class="bg-white rounded-2xl border border-gray-100 border-t-4 {{ $isPdf ? 'border-t-red-500' : 'border-t-blue-500' }} shadow-sm p-5 flex flex-col min-h-64">
+                            <div class="flex items-start justify-between gap-4">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-10 h-10 rounded-xl {{ $isPdf ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500' }} flex items-center justify-center">
+                                        <i class="ph ph-file-text text-2xl"></i>
+                                    </span>
+                                    <span class="px-2.5 py-1 rounded-md border {{ $isPdf ? 'border-red-200 bg-red-50 text-red-600' : 'border-blue-200 bg-blue-50 text-blue-600' }} text-[10px] font-bold uppercase">
+                                        {{ $repositoryDocument->file_type }}
+                                    </span>
+                                </div>
+                                <span class="px-2.5 py-1 rounded-full border {{ $repositoryStatusPresentation['class'] }} text-[10px] font-semibold flex items-center gap-1">
+                                    <i class="ph {{ $repositoryStatusPresentation['icon'] }}"></i>
+                                    {{ $repositoryStatusPresentation['label'] }}
+                                </span>
+                            </div>
+
+                            <div class="mt-5 flex-1 min-w-0">
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-[#b38728]">
+                                    {{ $isPdf ? 'PDF Document' : 'Word Document' }}
+                                </p>
+                                <h2 class="text-lg font-extrabold text-gray-900 mt-1 truncate" title="{{ $repositoryDocument->original_filename }}">
+                                    {{ $documentTitle }}
+                                </h2>
+                                <p class="text-xs text-gray-500 mt-2 line-clamp-2">
+                                    {{ $repositoryDocument->user->program ?: $repositoryDocument->user->email }}
+                                </p>
+                                <div class="flex flex-wrap items-center gap-2 text-[11px] text-gray-400 mt-5">
+                                    <span>{{ $repositoryDocument->formattedFileSize() }}</span>
+                                    <span>•</span>
+                                    <span>{{ $repositoryDocument->submitted_at->timezone(config('ndmu-rmas.timezone'))->format('M j, Y') }}</span>
+                                    <span>•</span>
+                                    <span class="truncate max-w-40">
+                                        {{ $repositoryDocument->user_id === $adviser->getKey() ? 'You' : $repositoryDocument->user->name }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 pt-4 mt-4 border-t border-gray-100">
+                                <a
+                                    href="{{ route('documents.view', $repositoryDocument) }}"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="py-2.5 rounded-xl bg-emerald-50 text-[#0e7050] text-xs font-bold text-center flex items-center justify-center gap-2"
+                                >
+                                    <i class="ph ph-eye"></i>
+                                    View
+                                </a>
+                                <a
+                                    href="{{ route('documents.download', $repositoryDocument) }}"
+                                    class="py-2.5 rounded-xl bg-blue-50 text-blue-600 text-xs font-bold text-center flex items-center justify-center gap-2"
+                                >
+                                    <i class="ph ph-download-simple"></i>
+                                    Download
+                                </a>
+                            </div>
+                        </article>
+                    @empty
+                        <div class="lg:col-span-2 2xl:col-span-3 min-h-72 bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center p-8">
+                            <i class="ph ph-folder-open text-6xl text-gray-300"></i>
+                            <h2 class="font-bold text-gray-900 mt-4">No repository documents found</h2>
+                            <p class="text-sm text-gray-500 mt-2">Authorized uploads from you and your assigned researchers will appear here.</p>
+                        </div>
+                    @endforelse
+                </div>
+
+                @if ($repositoryDocuments->hasPages())
+                    <div>
+                        {{ $repositoryDocuments->links() }}
+                    </div>
+                @endif
+            </div>
+
             <!-- TAB: Settings -->
             <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
                 @include('partials.settings', [
@@ -1608,7 +1786,7 @@
             </div>
 
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'settings'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'repository', 'settings'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
@@ -1651,6 +1829,58 @@
                     Close
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Repository Upload Modal -->
+    <div x-show="showRepositoryUploadModal" x-transition x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+        <div @click.away="showRepositoryUploadModal = false" class="bg-white rounded-3xl w-full max-w-lg p-6 shadow-xl space-y-5">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="font-bold text-gray-900">Upload Repository Document</h3>
+                    <p class="text-xs text-gray-500 mt-1">PDF or DOCX only, up to 10 MB.</p>
+                </div>
+                <button type="button" @click="showRepositoryUploadModal = false" class="text-gray-400 hover:text-gray-600 text-lg">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+            <hr class="border-gray-100">
+            <form
+                method="POST"
+                action="{{ route('adviser.repository.documents.store') }}"
+                enctype="multipart/form-data"
+                class="space-y-4"
+                x-data="{ uploading: false }"
+                @submit="if (uploading) { $event.preventDefault() } else { uploading = true }"
+            >
+                @csrf
+                <input type="hidden" name="submission_token" value="{{ (string) Illuminate\Support\Str::uuid() }}">
+                <div>
+                    <label for="repository_document" class="block text-xs font-bold text-gray-700 mb-2">Research document</label>
+                    <input
+                        id="repository_document"
+                        name="document"
+                        type="file"
+                        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        required
+                        class="block w-full text-sm text-gray-600 border border-gray-200 rounded-xl file:mr-4 file:border-0 file:bg-emerald-50 file:px-4 file:py-3 file:text-xs file:font-bold file:text-[#0e5c3a]"
+                    >
+                    <p class="text-[11px] text-gray-400 mt-2">Files are signature-checked, renamed securely, and stored outside the public web directory.</p>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" @click="showRepositoryUploadModal = false" class="px-4 py-2.5 bg-gray-100 text-gray-700 text-xs font-bold rounded-xl">
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        :disabled="uploading"
+                        class="px-5 py-2.5 bg-[#0e5c3a] disabled:opacity-60 text-white text-xs font-bold rounded-xl flex items-center gap-2"
+                    >
+                        <i class="ph ph-upload-simple"></i>
+                        <span x-text="uploading ? 'Uploading...' : 'Upload Document'">Upload Document</span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 

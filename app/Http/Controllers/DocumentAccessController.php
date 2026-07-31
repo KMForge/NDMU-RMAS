@@ -22,7 +22,7 @@ class DocumentAccessController extends Controller
             $disk = $this->documentDisk($document);
 
             if (! $disk->exists($document->storage_path)) {
-                return $this->errorResponse($request, 'Document not found.', 404);
+                return $this->errorResponse($request, 'Document not found.', 404); 
             }
 
             return $disk->response(

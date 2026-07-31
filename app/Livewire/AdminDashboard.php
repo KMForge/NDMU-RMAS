@@ -37,6 +37,11 @@ class AdminDashboard extends Component
         'selectedRole' => ['except' => ''],
     ];
 
+    public function mount(): void
+    {
+        $this->department = (string) config('academic.college.name');
+    }
+
     public function approveStudent(int $userId): void
     {
         $user = User::findOrFail($userId);
@@ -72,9 +77,10 @@ class AdminDashboard extends Component
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
             'role' => 'required|string|in:research-adviser,panelist,research-facilitator,college-dean',
-            'department' => 'required|string|max:255',
             'password' => 'required|string|min:8',
         ]);
+
+        $college = (string) config('academic.college.name');
 
         $user = User::create([
             'name' => $this->name,
@@ -83,7 +89,7 @@ class AdminDashboard extends Component
             'status' => AccountStatus::Active,
             'approved_at' => now(),
             'email_verified_at' => now(),
-            'department' => $this->department,
+            'department' => $college,
         ]);
 
         $user->assignRole($this->role);
@@ -91,7 +97,8 @@ class AdminDashboard extends Component
         Cache::forget('admin-dashboard.overview');
         $this->successMessage = "Staff account for {$this->name} created successfully.";
 
-        $this->reset(['name', 'email', 'role', 'department', 'password']);
+        $this->reset(['name', 'email', 'role', 'password']);
+        $this->department = $college;
         $this->dispatch('staff-account-created');
     }
 

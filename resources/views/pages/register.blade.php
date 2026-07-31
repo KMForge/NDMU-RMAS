@@ -157,13 +157,13 @@
                             </span>
                             <select
                                 id="program"
+                                name="program"
                                 class="w-full pl-11 pr-10 py-3 bg-white border border-gray-200 rounded-2xl text-sm text-gray-800 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300 appearance-none"
                             >
                                 <option value="" disabled selected>Select program</option>
-                                <option value="BSCS">BS in Computer Science</option>
-                                <option value="BSIT">BS in Information Technology</option>
-                                <option value="BSIS">BS in Information Systems</option>
-                                <option value="BSCPE">BS in Computer Engineering</option>
+                                @foreach (config('academic.programs') as $program)
+                                    <option value="{{ $program['label'] }}">{{ $program['label'] }}</option>
+                                @endforeach
                             </select>
                             <span class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 pointer-events-none">
                                 <i class="ph ph-caret-down text-base"></i>

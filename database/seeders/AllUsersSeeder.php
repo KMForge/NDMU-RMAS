@@ -93,17 +93,19 @@ class AllUsersSeeder extends Seeder
 
     private function seedStaffAccounts(): void
     {
+        $college = config('academic.college.name');
+
         $accounts = [
-            ['System Administrator', 'admin@ndmu.edu.ph', 'system-administrator', 'Information Technology'],
-            ['Dr. Lourdes Castillo', 'l.castillo@ndmu.edu.ph', 'college-dean', 'Office of the College Dean'],
-            ['Dr. Rosario Dela Paz', 'r.dela-paz@ndmu.edu.ph', 'research-facilitator', 'College of Information Technology'],
-            ['Engr. Jose Montero', 'j.montero@ndmu.edu.ph', 'research-facilitator', 'College of Engineering'],
-            ['Dr. Reyna Garcia', 'r.garcia@ndmu.edu.ph', 'research-adviser', 'College of Information Technology'],
-            ['Dr. Michael Tan', 'm.tan@ndmu.edu.ph', 'research-adviser', 'College of Information Technology'],
-            ['Prof. Lucia Fernandez', 'l.fernandez@ndmu.edu.ph', 'research-adviser', 'College of Engineering'],
-            ['Dr. Benjamin Ramos', 'b.ramos@ndmu.edu.ph', 'research-adviser', 'College of Information Technology'],
-            ['Prof. Patricia Cruz', 'p.cruz@ndmu.edu.ph', 'panelist', 'College of Engineering'],
-            ['Dr. Antonio Santos', 'a.santos@ndmu.edu.ph', 'panelist', 'College of Information Technology'],
+            ['System Administrator', 'admin@ndmu.edu.ph', 'system-administrator', $college],
+            ['Dr. Lourdes Castillo', 'l.castillo@ndmu.edu.ph', 'college-dean', $college],
+            ['Dr. Rosario Dela Paz', 'r.dela-paz@ndmu.edu.ph', 'research-facilitator', $college],
+            ['Engr. Jose Montero', 'j.montero@ndmu.edu.ph', 'research-facilitator', $college],
+            ['Dr. Reyna Garcia', 'r.garcia@ndmu.edu.ph', 'research-adviser', $college],
+            ['Dr. Michael Tan', 'm.tan@ndmu.edu.ph', 'research-adviser', $college],
+            ['Prof. Lucia Fernandez', 'l.fernandez@ndmu.edu.ph', 'research-adviser', $college],
+            ['Dr. Benjamin Ramos', 'b.ramos@ndmu.edu.ph', 'research-adviser', $college],
+            ['Prof. Patricia Cruz', 'p.cruz@ndmu.edu.ph', 'panelist', $college],
+            ['Dr. Antonio Santos', 'a.santos@ndmu.edu.ph', 'panelist', $college],
         ];
 
         foreach ($accounts as [$name, $email, $role, $department]) {
@@ -126,11 +128,11 @@ class AllUsersSeeder extends Seeder
     private function seedPendingStudentAccounts(): void
     {
         $accounts = [
-            ['Juan Dela Cruz', 'juan.delacruz@ndmu.edu.ph', 'STU-2026-0051', 'Bachelor of Science in Civil Engineering (BS CE)', '3rd'],
-            ['Ana Reyes', 'ana.reyes@ndmu.edu.ph', 'STU-2026-0052', 'Bachelor of Science in Information Technology (BSIT)', '4th'],
-            ['Kevin Aguila', 'kevin.aguila@ndmu.edu.ph', 'STU-2026-0053', 'Bachelor of Science in Architecture (BS Arch)', '2nd'],
-            ['Clara Nieto', 'clara.nieto@ndmu.edu.ph', 'STU-2026-0054', 'Bachelor of Science in Computer Science (BSCS)', '3rd'],
-            ['Dante Flores', 'dante.flores@ndmu.edu.ph', 'STU-2026-0055', 'Bachelor of Science in Electronics Engineering (BS EcE)', '4th'],
+            ['Juan Dela Cruz', 'juan.delacruz@ndmu.edu.ph', 'STU-2026-0051', $this->programLabel('BSCE'), '3rd'],
+            ['Ana Reyes', 'ana.reyes@ndmu.edu.ph', 'STU-2026-0052', $this->programLabel('BSIT'), '4th'],
+            ['Kevin Aguila', 'kevin.aguila@ndmu.edu.ph', 'STU-2026-0053', $this->programLabel('BSARCH'), '2nd'],
+            ['Clara Nieto', 'clara.nieto@ndmu.edu.ph', 'STU-2026-0054', $this->programLabel('BSCS'), '3rd'],
+            ['Dante Flores', 'dante.flores@ndmu.edu.ph', 'STU-2026-0055', $this->programLabel('BSECE'), '4th'],
         ];
 
         foreach ($accounts as [$name, $email, $studentId, $program, $yearLevel]) {
@@ -162,7 +164,7 @@ class AllUsersSeeder extends Seeder
                 [
                     'name' => "Student Active {$number}",
                     'student_id' => sprintf('STU-2026-%04d', $number),
-                    'program' => 'Bachelor of Science in Computer Science (BSCS)',
+                    'program' => $this->programLabel('BSCS'),
                     'year_level' => '3rd',
                     'password' => Hash::make($this->passwordFor($email)),
                     'status' => AccountStatus::Active,
@@ -181,6 +183,7 @@ class AllUsersSeeder extends Seeder
             ['email' => 'student.test@ndmu.edu.ph'],
             [
                 'name' => 'Test Student Researcher',
+                'program' => $this->programLabel('BSCS'),
                 'password' => Hash::make($this->passwordFor('student.test@ndmu.edu.ph')),
                 'status' => AccountStatus::Active,
                 'approved_at' => now(),
@@ -200,5 +203,16 @@ class AllUsersSeeder extends Seeder
         }
 
         throw new \LogicException("No local login credentials are configured for {$email}.");
+    }
+
+    private function programLabel(string $code): string
+    {
+        $program = collect(config('academic.programs'))->firstWhere('code', $code);
+
+        if (! is_array($program)) {
+            throw new \LogicException("Academic program {$code} is not configured.");
+        }
+
+        return $program['label'];
     }
 }

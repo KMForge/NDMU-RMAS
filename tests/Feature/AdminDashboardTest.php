@@ -119,7 +119,7 @@ class AdminDashboardTest extends TestCase
             ->set('name', 'Dr. Lourdes Castillo')
             ->set('email', 'l.castillo@ndmu.edu.ph')
             ->set('role', 'college-dean')
-            ->set('department', 'Office of the College Dean')
+            ->set('department', 'Untrusted College Value')
             ->set('password', 'SecurePassword123!')
             ->call('createStaffAccount')
             ->assertHasNoErrors()
@@ -128,7 +128,7 @@ class AdminDashboardTest extends TestCase
         $newUser = User::where('email', 'l.castillo@ndmu.edu.ph')->first();
         $this->assertNotNull($newUser);
         $this->assertEquals('Dr. Lourdes Castillo', $newUser->name);
-        $this->assertEquals('Office of the College Dean', $newUser->department);
+        $this->assertEquals(config('academic.college.name'), $newUser->department);
         $this->assertEquals(AccountStatus::Active, $newUser->status);
         $this->assertTrue($newUser->hasRole('college-dean'));
     }
