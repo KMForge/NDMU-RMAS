@@ -57,6 +57,104 @@
         });
         this.newRecommendationCommentText = '';
     },
+    repositorySearchQuery: '',
+    repositoryStatusFilter: 'all',
+    repositoryDocuments: [
+        {
+            title: 'Chapter 1 – Introduction',
+            chapter: 'CHAPTER 1',
+            desc: 'Background of the study, research objectives, and significance.',
+            fileSize: '2.4 MB',
+            date: 'May 10, 2026',
+            author: 'Maria Santos',
+            fileType: 'PDF',
+            fileTypeClass: 'bg-red-50 border border-red-200 text-red-700 font-bold px-2.5 py-0.5 rounded-lg text-[9px]',
+            status: 'Reviewed',
+            statusClass: 'bg-blue-50 border border-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full text-[9px]',
+            topBorder: 'border-t-4 border-t-red-500',
+            icon: 'ph-file-pdf text-red-500 bg-red-50'
+        },
+        {
+            title: 'Chapter 2 – Literature Review',
+            chapter: 'CHAPTER 2',
+            desc: 'Synthesis of related studies and theoretical framework.',
+            fileSize: '3.8 MB',
+            date: 'May 12, 2026',
+            author: 'Maria Santos',
+            fileType: 'PDF',
+            fileTypeClass: 'bg-red-50 border border-red-200 text-red-700 font-bold px-2.5 py-0.5 rounded-lg text-[9px]',
+            status: 'Pending Review',
+            statusClass: 'bg-amber-50 border border-amber-200 text-amber-705 font-bold px-2 py-0.5 rounded-full text-[9px]',
+            topBorder: 'border-t-4 border-t-red-500',
+            icon: 'ph-file-pdf text-red-500 bg-red-50'
+        },
+        {
+            title: 'Chapter 3 – Methodology',
+            chapter: 'CHAPTER 3',
+            desc: 'Research design, sampling, data gathering procedures.',
+            fileSize: '2.1 MB',
+            date: 'May 15, 2026',
+            author: 'Maria Santos',
+            fileType: 'PDF',
+            fileTypeClass: 'bg-red-50 border border-red-200 text-red-700 font-bold px-2.5 py-0.5 rounded-lg text-[9px]',
+            status: 'For Evaluation',
+            statusClass: 'bg-purple-50 border border-purple-200 text-purple-700 font-bold px-2 py-0.5 rounded-full text-[9px]',
+            topBorder: 'border-t-4 border-t-red-500',
+            icon: 'ph-file-pdf text-red-500 bg-red-50'
+        },
+        {
+            title: 'Survey Questionnaire',
+            chapter: 'APPENDIX A',
+            desc: 'Validated questionnaire used for primary data collection.',
+            fileSize: '856 KB',
+            date: 'Apr 20, 2026',
+            author: 'Maria Santos',
+            fileType: 'DOCX',
+            fileTypeClass: 'bg-blue-50 border border-blue-200 text-blue-700 font-bold px-2.5 py-0.5 rounded-lg text-[9px]',
+            status: 'Approved',
+            statusClass: 'bg-emerald-50 border border-emerald-250 text-emerald-705 font-bold px-2 py-0.5 rounded-full text-[9px]',
+            topBorder: 'border-t-4 border-t-blue-500',
+            icon: 'ph-file-doc text-blue-500 bg-blue-50'
+        },
+        {
+            title: 'Research Proposal – Final Draft',
+            chapter: 'PROPOSAL',
+            desc: 'Full research proposal approved for continuation.',
+            fileSize: '1.5 MB',
+            date: 'Mar 5, 2026',
+            author: 'Maria Santos',
+            fileType: 'PDF',
+            fileTypeClass: 'bg-red-50 border border-red-200 text-red-700 font-bold px-2.5 py-0.5 rounded-lg text-[9px]',
+            status: 'Approved',
+            statusClass: 'bg-emerald-50 border border-emerald-250 text-emerald-705 font-bold px-2 py-0.5 rounded-full text-[9px]',
+            topBorder: 'border-t-4 border-t-red-500',
+            icon: 'ph-file-pdf text-red-500 bg-red-50'
+        },
+        {
+            title: 'Instrument Validation Form',
+            chapter: 'APPENDIX B',
+            desc: 'Expert validation results for research instruments.',
+            fileSize: '620 KB',
+            date: 'Apr 28, 2026',
+            author: 'Maria Santos',
+            fileType: 'DOCX',
+            fileTypeClass: 'bg-blue-50 border border-blue-200 text-blue-700 font-bold px-2.5 py-0.5 rounded-lg text-[9px]',
+            status: 'Pending Review',
+            statusClass: 'bg-amber-50 border border-amber-200 text-amber-705 font-bold px-2 py-0.5 rounded-full text-[9px]',
+            topBorder: 'border-t-4 border-t-blue-500',
+            icon: 'ph-file-doc text-blue-500 bg-blue-50'
+        }
+    ],
+    filteredRepositoryDocuments() {
+        return this.repositoryDocuments.filter(doc => {
+            if (this.repositoryStatusFilter !== 'all' && doc.status.toLowerCase() !== this.repositoryStatusFilter.toLowerCase()) return false;
+            if (this.repositorySearchQuery.trim() !== '') {
+                const q = this.repositorySearchQuery.toLowerCase();
+                return doc.title.toLowerCase().includes(q) || doc.author.toLowerCase().includes(q);
+            }
+            return true;
+        });
+    },
     proposalProposals: [
         {
             id: 'PROP-2026-001',
@@ -1387,8 +1485,155 @@
                 </div>
             </div>
 
+            <!-- TAB: Research Repository -->
+            <div x-show="activeTab === 'repository'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Breadcrumbs -->
+                <div class="flex items-center gap-2 text-xs font-semibold text-gray-500">
+                    <span class="hover:text-[#0e5c3a] cursor-pointer flex items-center gap-1.5" @click="activeTab = 'dashboard'"><i class="ph ph-layout"></i> Dashboard</span>
+                    <span>/</span>
+                    <span class="text-gray-800">Research Repository</span>
+                </div>
+
+                <!-- Title Block -->
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-800">Research Repository</h1>
+                    <p class="text-xs text-gray-455 mt-1">Review and evaluate assigned research documents.</p>
+                </div>
+
+                <!-- Stats Cards Row (4 Columns) -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- Total Files -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Total Files</span>
+                            <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="repositoryDocuments.length">6</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-[#10b981] flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-file-search"></i>
+                        </span>
+                    </div>
+
+                    <!-- Approved -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Approved</span>
+                            <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="repositoryDocuments.filter(d => d.status === 'Approved').length">2</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-550 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-check-circle"></i>
+                        </span>
+                    </div>
+
+                    <!-- Pending Review -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Pending Review</span>
+                            <span class="text-3xl font-bold text-gray-855 mt-2 block" x-text="repositoryDocuments.filter(d => d.status === 'Pending Review').length">2</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-550 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-clock"></i>
+                        </span>
+                    </div>
+
+                    <!-- For Evaluation -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">For Evaluation</span>
+                            <span class="text-3xl font-bold text-gray-855 mt-2 block" x-text="repositoryDocuments.filter(d => d.status === 'For Evaluation').length">1</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-500 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-clipboard-text"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Search & Filters Row -->
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="relative flex-1 max-w-md">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
+                            <i class="ph ph-magnifying-glass text-base"></i>
+                        </span>
+                        <input 
+                            type="text" 
+                            x-model="repositorySearchQuery"
+                            placeholder="Search documents or researcher name..." 
+                            class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-855 focus:outline-none focus:bg-white focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all"
+                        >
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <select 
+                            x-model="repositoryStatusFilter" 
+                            class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-855 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all appearance-none cursor-pointer pr-8"
+                            style="background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27 fill=%27%236b7280%27%3E%3Cpath fill-rule=%27evenodd%27 d=%27M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z%27 clip-rule=%27evenodd%27/%3E%3C/svg%3E'); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.2em auto;"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="reviewed">Reviewed</option>
+                            <option value="pending review">Pending Review</option>
+                            <option value="for evaluation">For Evaluation</option>
+                            <option value="approved">Approved</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Grid of Repository Document Cards (3-column layout) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <template x-for="(doc, index) in filteredRepositoryDocuments()" :key="index">
+                        <div :class="doc.topBorder" class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-4 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+                            <!-- Card Header Badges -->
+                            <div class="flex items-center justify-between">
+                                <span class="px-2.5 py-0.5 border text-[9px] font-bold rounded-lg" :class="doc.fileType === 'PDF' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-50 border-blue-200 text-blue-700'" x-text="doc.fileType">PDF</span>
+                                <span :class="doc.statusClass" x-text="doc.status">Reviewed</span>
+                            </div>
+
+                            <!-- Document Chapter, Icon, Title and Details -->
+                            <div class="space-y-3 flex-1">
+                                <div class="flex items-start gap-3">
+                                    <span class="w-10 h-10 rounded-2xl flex items-center justify-center text-xl flex-shrink-0" :class="doc.fileType === 'PDF' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'">
+                                        <i class="ph" :class="doc.fileType === 'PDF' ? 'ph-file-pdf' : 'ph-file-doc'"></i>
+                                    </span>
+                                    <div>
+                                        <span class="text-[9px] text-amber-600 font-bold block uppercase tracking-wider" x-text="doc.chapter">CHAPTER 1</span>
+                                        <h3 class="font-extrabold text-sm text-gray-800 leading-snug mt-0.5" x-text="doc.title">Chapter 1 – Introduction</h3>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-455 leading-relaxed font-medium" x-text="doc.desc">Background description of the study.</p>
+                            </div>
+
+                            <!-- Footer Details Row -->
+                            <div class="flex items-center gap-1.5 text-[10px] text-gray-400 font-semibold pt-3 border-t border-gray-50/50">
+                                <span x-text="doc.fileSize">2.4 MB</span>
+                                <span>•</span>
+                                <span x-text="doc.date">May 10, 2026</span>
+                                <span>•</span>
+                                <span x-text="doc.author">Maria Santos</span>
+                            </div>
+
+                            <!-- Action Buttons Grid -->
+                            <div class="grid grid-cols-3 gap-2.5 pt-3">
+                                <button @click="alert(`Opening preview for: ${doc.title}`)" class="py-2 rounded-xl bg-white border border-[#0e5c3a] hover:bg-emerald-50 text-[#0e5c3a] text-xs font-bold transition-all cursor-pointer text-center flex items-center justify-center gap-1">
+                                    <i class="ph ph-eye"></i> View
+                                </button>
+                                <button @click="alert(`Downloading file: ${doc.title}`)" class="py-2 rounded-xl bg-white border border-blue-500 hover:bg-blue-50 text-blue-600 text-xs font-bold transition-all cursor-pointer text-center flex items-center justify-center gap-1">
+                                    <i class="ph ph-download"></i> Download
+                                </button>
+                                <button @click="alert(`Evaluating document: ${doc.title}`)" class="py-2 rounded-xl bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold transition-all cursor-pointer text-center flex items-center justify-center gap-1 shadow-sm">
+                                    <i class="ph ph-check-square"></i> Evaluate
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template x-if="filteredRepositoryDocuments().length === 0">
+                        <div class="col-span-1 md:col-span-2 lg:col-span-3 bg-white rounded-3xl p-12 border border-gray-100 text-center text-gray-455 font-semibold shadow-sm">
+                            No files found in research repository matching current search or filters.
+                        </div>
+                    </template>
+                </div>
+            </div>
+
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'settings', 'assigned-papers', 'proposal-eval', 'final-eval', 'recommendations', 'schedule'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'settings', 'assigned-papers', 'proposal-eval', 'final-eval', 'recommendations', 'schedule', 'repository'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
