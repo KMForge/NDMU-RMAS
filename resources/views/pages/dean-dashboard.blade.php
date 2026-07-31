@@ -1476,8 +1476,157 @@
                 </div>
             </div>
 
+            <!-- TAB: Research Reports -->
+            <div x-show="activeTab === 'reports'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Title & Action Block -->
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold font-heading text-gray-800">Analytics & Reports</h1>
+                        <p class="text-xs text-gray-455 mt-1">Research statistics and performance metrics</p>
+                    </div>
+                    <button @click="alert('Exporting Report...')" class="py-3 px-5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-md shadow-[#0e5c3a]/15 transition-all cursor-pointer">
+                        <i class="ph ph-download text-sm"></i> Export Report
+                    </button>
+                </div>
+
+                <!-- Stats Cards Row (4 Columns) -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- Total Research -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Total Research</span>
+                            <span class="text-2xl font-bold text-gray-800 mt-2 block">174</span>
+                            <span class="text-[10px] text-emerald-650 font-bold mt-1.5 block">+12% from last year</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl flex-shrink-0">
+                            <i class="ph ph-chart-bar"></i>
+                        </span>
+                    </div>
+
+                    <!-- Completed -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Completed</span>
+                            <span class="text-2xl font-bold text-gray-800 mt-2 block">126</span>
+                            <span class="text-[10px] text-[#2563eb] font-bold mt-1.5 block">72% completion rate</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl flex-shrink-0">
+                            <i class="ph ph-trend-up"></i>
+                        </span>
+                    </div>
+
+                    <!-- In Progress -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">In Progress</span>
+                            <span class="text-2xl font-bold text-gray-800 mt-2 block">48</span>
+                            <span class="text-[10px] text-amber-600 font-bold mt-1.5 block font-sans">28% ongoing</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center text-xl flex-shrink-0">
+                            <i class="ph ph-chart-pie"></i>
+                        </span>
+                    </div>
+
+                    <!-- Avg Duration -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Avg Duration</span>
+                            <span class="text-2xl font-bold text-gray-800 mt-2 block">8.5</span>
+                            <span class="text-[10px] text-gray-400 font-medium mt-1.5 block">months</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center text-xl flex-shrink-0">
+                            <i class="ph ph-chart-line"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Two Column Charts Layout -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Left: Research by Program -->
+                    <div class="bg-white rounded-[2rem] border border-gray-100/50 shadow-sm p-6 space-y-6">
+                        <h3 class="font-bold text-sm text-gray-800 font-heading">Research by Program</h3>
+                        
+                        <div class="space-y-4">
+                            <!-- Progress Bar: Computer Science -->
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-between text-xs font-bold text-gray-700">
+                                    <span>Computer Science</span>
+                                    <span>45</span>
+                                </div>
+                                <div class="bg-gray-100 rounded-full h-2 w-full">
+                                    <div class="bg-emerald-600 h-2 rounded-full" style="width: 45%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Progress Bar: Engineering -->
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-between text-xs font-bold text-gray-700">
+                                    <span>Engineering</span>
+                                    <span>38</span>
+                                </div>
+                                <div class="bg-gray-100 rounded-full h-2 w-full">
+                                    <div class="bg-blue-600 h-2 rounded-full" style="width: 38%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Progress Bar: Education -->
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-between text-xs font-bold text-gray-700">
+                                    <span>Education</span>
+                                    <span>32</span>
+                                </div>
+                                <div class="bg-gray-100 rounded-full h-2 w-full">
+                                    <div class="bg-purple-600 h-2 rounded-full" style="width: 32%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Progress Bar: Business -->
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-between text-xs font-bold text-gray-700">
+                                    <span>Business</span>
+                                    <span>28</span>
+                                </div>
+                                <div class="bg-gray-100 rounded-full h-2 w-full">
+                                    <div class="bg-amber-500 h-2 rounded-full" style="width: 28%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Monthly Submissions Bar Chart -->
+                    <div class="bg-white rounded-[2rem] border border-gray-100/50 shadow-sm p-6 space-y-6 flex flex-col justify-between">
+                        <h3 class="font-bold text-sm text-gray-800 font-heading">Monthly Submissions</h3>
+                        
+                        <!-- Dynamic CSS Bar Chart -->
+                        <div class="flex flex-col justify-end flex-grow pt-4">
+                            <!-- Bars Container -->
+                            <div class="flex items-end gap-2 md:gap-3 h-36 px-2">
+                                <div class="flex-grow bg-[#10b981] hover:bg-[#0e5c3a] transition-all rounded-t h-[25%]" title="Jan"></div>
+                                <div class="flex-grow bg-[#10b981] hover:bg-[#0e5c3a] transition-all rounded-t h-[45%]" title="Feb"></div>
+                                <div class="flex-grow bg-[#10b981] hover:bg-[#0e5c3a] transition-all rounded-t h-[35%]" title="Mar"></div>
+                                <div class="flex-grow bg-[#10b981] hover:bg-[#0e5c3a] transition-all rounded-t h-[60%]" title="Apr"></div>
+                                <div class="flex-grow bg-[#10b981] hover:bg-[#0e5c3a] transition-all rounded-t h-[75%]" title="May"></div>
+                                <div class="flex-grow bg-[#10b981] hover:bg-[#0e5c3a] transition-all rounded-t h-[55%]" title="Jun"></div>
+                                <div class="flex-grow bg-[#10b981] hover:bg-[#0e5c3a] transition-all rounded-t h-[90%]" title="Jul"></div>
+                                <div class="flex-grow bg-[#10b981] hover:bg-[#0e5c3a] transition-all rounded-t h-[70%]" title="Aug"></div>
+                                <div class="flex-grow bg-[#10b981] hover:bg-[#0e5c3a] transition-all rounded-t h-[75%]" title="Sep"></div>
+                                <div class="flex-grow bg-[#10b981] hover:bg-[#0e5c3a] transition-all rounded-t h-[65%]" title="Oct"></div>
+                                <div class="flex-grow bg-[#10b981] hover:bg-[#0e5c3a] transition-all rounded-t h-[60%]" title="Nov"></div>
+                                <div class="flex-grow bg-[#10b981] hover:bg-[#0e5c3a] transition-all rounded-t h-[50%]" title="Dec"></div>
+                            </div>
+                            
+                            <!-- X Axis Labels -->
+                            <div class="flex justify-between items-center text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-3 px-2 pt-2 border-t border-gray-100">
+                                <span>Jan</span>
+                                <span>Dec</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'settings', 'pending', 'manuscript', 'appointments', 'schedule'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'settings', 'pending', 'manuscript', 'appointments', 'schedule', 'reports'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
