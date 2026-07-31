@@ -739,7 +739,6 @@
                 </div>
             </div>
 
-            </div>
 
             <!-- TAB: Manuscript Approvals -->
             <div x-show="activeTab === 'manuscript'" x-cloak class="space-y-8 animate-fade-in">
@@ -961,7 +960,6 @@
                 </div>
             </div>
 
-            </div>
 
             <!-- TAB: Faculty Appointments (User Management) -->
             <div x-show="activeTab === 'appointments'" x-cloak class="space-y-8 animate-fade-in">
