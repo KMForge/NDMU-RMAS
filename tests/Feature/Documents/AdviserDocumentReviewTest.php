@@ -67,7 +67,10 @@ class AdviserDocumentReviewTest extends TestCase
         $this->actingAs($adviser)
             ->get(route('documents.view', $document))
             ->assertOk()
-            ->assertHeader('X-Content-Type-Options', 'nosniff');
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertHeader('X-Content-Type-Options', 'nosniff')
+            ->assertHeader('Content-Security-Policy', "frame-ancestors 'self'")
+            ->assertHeader('Cross-Origin-Resource-Policy', 'same-origin');
 
         $this->actingAs($otherAdviser)
             ->get(route('documents.view', $document))

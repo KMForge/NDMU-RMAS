@@ -1124,7 +1124,6 @@
                                     src="{{ route('documents.view', $selectedReviewDocument) }}"
                                     title="Secure preview of {{ $selectedReviewDocument->original_filename }}"
                                     class="w-full min-h-[650px] rounded-xl border border-gray-200 bg-gray-50"
-                                    sandbox
                                 ></iframe>
                             @else
                                 <div class="min-h-[500px] rounded-xl bg-gray-50 border border-gray-200 flex flex-col items-center justify-center text-center p-8">

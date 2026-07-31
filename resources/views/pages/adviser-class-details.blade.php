@@ -119,7 +119,11 @@
                     <p class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Enrollment</p>
                     <p class="text-2xl font-bold text-gray-850 mt-3">{{ $activeStudents }} / {{ $researchClass->max_students }}</p>
                     <div class="h-2 rounded-full bg-gray-100 mt-4 overflow-hidden">
-                        <div class="h-full bg-[#0e5c3a] rounded-full" style="width: {{ $capacityPercentage }}%"></div>
+                        <div
+                            class="h-full bg-[#0e5c3a] rounded-full"
+                            x-data="{ capacityPercentage: @js($capacityPercentage) }"
+                            x-bind:style="{ width: capacityPercentage + '%' }"
+                        ></div>
                     </div>
                 </div>
 
