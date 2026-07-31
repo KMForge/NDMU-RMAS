@@ -25,6 +25,29 @@
     selectedDefense: null,
     assignedPapersSearchQuery: '',
     assignedPapersStatusFilter: 'all',
+    proposalSearchQuery: '',
+    proposalStatusFilter: 'all',
+    proposalProposals: [
+        {
+            id: 'PROP-2026-001',
+            title: 'Machine Learning Applications in Agricultural Pest Detection',
+            status: 'Approved',
+            submitted: 'March 5, 2026',
+            reviewedBy: 'Dr. Maria Santos',
+            approvalDate: 'March 10, 2026',
+            statusClass: 'bg-[#10b981] text-white font-bold px-3 py-1 rounded-full text-[10px]'
+        }
+    ],
+    filteredProposals() {
+        return this.proposalProposals.filter(p => {
+            if (this.proposalStatusFilter !== 'all' && p.status.toLowerCase() !== this.proposalStatusFilter.toLowerCase()) return false;
+            if (this.proposalSearchQuery.trim() !== '') {
+                const q = this.proposalSearchQuery.toLowerCase();
+                return p.title.toLowerCase().includes(q) || p.id.toLowerCase().includes(q);
+            }
+            return true;
+        });
+    },
     assignedPapers: [
         {
             title: 'The Impact of Social Media Usage on the Academic Performance of Senior High Schoo...',
@@ -749,8 +772,110 @@
                 </div>
             </div>
 
+            <!-- TAB: Proposal Evaluation -->
+            <div x-show="activeTab === 'proposal-eval'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Title Block -->
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-800">Proposal Management</h1>
+                    <p class="text-xs text-gray-455 mt-1">Manage research proposals and approvals</p>
+                </div>
+
+                <!-- Stats Cards Row (4 Columns) -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- Approved -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 border-l-4 border-l-[#10b981] shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Approved</span>
+                            <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="proposalProposals.filter(p => p.status === 'Approved').length">1</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-[#10b981] flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-check-circle"></i>
+                        </span>
+                    </div>
+
+                    <!-- Pending -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 border-l-4 border-l-amber-500 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Pending</span>
+                            <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="proposalProposals.filter(p => p.status === 'Pending').length">0</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-550 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-clock"></i>
+                        </span>
+                    </div>
+
+                    <!-- Revisions -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 border-l-4 border-l-red-500 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Revisions</span>
+                            <span class="text-3xl font-bold text-gray-855 mt-2 block" x-text="proposalProposals.filter(p => p.status === 'Revisions').length">0</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-x-circle"></i>
+                        </span>
+                    </div>
+
+                    <!-- Total Proposals -->
+                    <div class="bg-white rounded-3xl p-5 border border-gray-100 border-l-4 border-l-blue-500 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold block">Total Proposals</span>
+                            <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="proposalProposals.length">1</span>
+                        </div>
+                        <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl flex-shrink-0">
+                            <i class="ph ph-file-text"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Main Proposal Card -->
+                <div class="bg-white rounded-3xl border border-gray-100/50 shadow-sm p-6 space-y-6">
+                    <h2 class="text-sm font-bold text-gray-850 font-heading tracking-wide">Research Proposal</h2>
+                    
+                    <div class="space-y-4">
+                        <template x-for="p in filteredProposals()" :key="p.id">
+                            <div class="bg-[#f0fdf4] border border-emerald-100 rounded-3xl p-6 space-y-4">
+                                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                    <div>
+                                        <h3 class="font-extrabold text-sm text-[#0e5c3a] leading-snug" x-text="p.title">Machine Learning Applications in Agricultural Pest Detection</h3>
+                                        <p class="text-[10px] text-gray-500 font-semibold mt-1.5" x-text="`Proposal ID: ${p.id}`">Proposal ID: PROP-2026-001</p>
+                                        <p class="text-[10px] text-gray-500 font-semibold mt-0.5" x-text="`Submitted: ${p.submitted}`">Submitted: March 5, 2026</p>
+                                    </div>
+                                    <span :class="p.statusClass" class="flex-shrink-0 self-start text-[10px] font-black" x-text="p.status">Approved</span>
+                                </div>
+
+                                <div class="border-t border-emerald-100/50 pt-4 grid grid-cols-2 gap-4">
+                                    <div>
+                                        <span class="text-[10px] text-gray-400 font-bold block uppercase tracking-wider">Reviewed by</span>
+                                        <span class="text-xs text-gray-800 font-bold block mt-1" x-text="p.reviewedBy">Dr. Maria Santos</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] text-gray-400 font-bold block uppercase tracking-wider">Approval Date</span>
+                                        <span class="text-xs text-gray-800 font-bold block mt-1" x-text="p.approvalDate">March 10, 2026</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-3 pt-2">
+                                    <button @click="alert(`Viewing Proposal: ${p.title}`)" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer">
+                                        View Proposal
+                                    </button>
+                                    <button @click="alert(`Downloading PDF for: ${p.title}`)" class="px-5 py-2.5 bg-white border border-gray-250 hover:bg-gray-50 text-gray-707 text-xs font-bold rounded-xl transition-all cursor-pointer">
+                                        Download PDF
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+
+                        <template x-if="filteredProposals().length === 0">
+                            <div class="bg-gray-50 rounded-2xl p-8 text-center text-xs text-gray-455 font-semibold border border-gray-100">
+                                No proposals found matching search query.
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'settings', 'assigned-papers'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'settings', 'assigned-papers', 'proposal-eval'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
