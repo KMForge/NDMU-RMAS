@@ -1,7 +1,7 @@
 @extends('layouts.blank')
 
 @php
-    $allowedTabs = ['dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'repository', 'notifications', 'settings', 'researchers', 'proposal'];
+    $allowedTabs = ['dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'repository', 'notifications', 'settings', 'researchers', 'proposal', 'monitoring'];
     $initialTab = $activeDashboardTab ?? (in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard');
     $showClassModal = $errors->hasAny(['class', 'creation_token', 'name', 'description', 'max_students']);
 @endphp
@@ -34,6 +34,20 @@
     selectedNotification: null,
     notifications: @js($adviserNotifications),
     assignedResearchers: @js($adviserOverviewAdvisees),
+    monitoringMilestones: [
+        { title: 'Research Title Presentation', date: 'Feb 15, 2026', status: 'Completed', statusClass: 'bg-[#10b981] text-white', desc: 'All requirements met and approved', icon: 'ph-check-circle text-emerald-500 bg-emerald-50 border border-emerald-100', borderClass: 'border-emerald-100 bg-emerald-50/10' },
+        { title: 'Proposal Approval', date: 'Mar 10, 2026', status: 'Completed', statusClass: 'bg-[#10b981] text-white', desc: 'All requirements met and approved', icon: 'ph-check-circle text-emerald-500 bg-emerald-50 border border-emerald-100', borderClass: 'border-emerald-100 bg-emerald-50/10' },
+        { title: 'Adviser Endorsement', date: 'Mar 20, 2026', status: 'Completed', statusClass: 'bg-[#10b981] text-white', desc: 'All requirements met and approved', icon: 'ph-check-circle text-emerald-500 bg-emerald-50 border border-emerald-100', borderClass: 'border-emerald-100 bg-emerald-50/10' },
+        { title: 'Instrument Validation', date: 'Apr 5, 2026', status: 'Completed', statusClass: 'bg-[#10b981] text-white', desc: 'All requirements met and approved', icon: 'ph-check-circle text-emerald-500 bg-emerald-50 border border-emerald-100', borderClass: 'border-emerald-100 bg-emerald-50/10' },
+        { title: 'Data Gathering', date: 'In Progress', status: 'In Progress', statusClass: 'bg-[#f59e0b] text-white', desc: 'Currently working on this milestone', icon: 'ph-clock text-amber-500 bg-amber-50 border border-amber-100', borderClass: 'border-amber-200 bg-amber-50/5' },
+        { title: 'Proposal Defense', date: 'May 10, 2026', status: 'Completed', statusClass: 'bg-[#10b981] text-white', desc: 'All requirements met and approved', icon: 'ph-check-circle text-emerald-500 bg-emerald-50 border border-emerald-100', borderClass: 'border-emerald-100 bg-emerald-50/10' },
+        { title: 'Revisions', date: 'May 18, 2026', status: 'In Progress', statusClass: 'bg-[#f59e0b] text-white', desc: 'Currently working on this milestone', icon: 'ph-clock text-amber-500 bg-amber-50 border border-amber-100', borderClass: 'border-amber-200 bg-amber-50/5' },
+        { title: 'Final Defense', date: 'Jul 15, 2026', status: 'Pending', statusClass: 'bg-[#9ca3af] text-white', desc: '', icon: 'ph-circle text-gray-300 bg-gray-50 border border-gray-100', borderClass: 'border-gray-100' },
+        { title: 'Technical Editing', date: 'Not Started', status: 'Pending', statusClass: 'bg-[#9ca3af] text-white', desc: '', icon: 'ph-circle text-gray-300 bg-gray-50 border border-gray-100', borderClass: 'border-gray-100' },
+        { title: 'Language Editing', date: 'Not Started', status: 'Pending', statusClass: 'bg-[#9ca3af] text-white', desc: '', icon: 'ph-circle text-gray-300 bg-gray-50 border border-gray-100', borderClass: 'border-gray-100' },
+        { title: 'Final Manuscript Approval', date: 'Not Started', status: 'Pending', statusClass: 'bg-[#9ca3af] text-white', desc: '', icon: 'ph-circle text-gray-300 bg-gray-50 border border-gray-100', borderClass: 'border-gray-100' },
+        { title: 'Certificate of Authentic Authorship', date: 'Not Started', status: 'Pending', statusClass: 'bg-[#9ca3af] text-white', desc: '', icon: 'ph-circle text-gray-300 bg-gray-50 border border-gray-100', borderClass: 'border-gray-100' }
+    ],
     proposalSearchQuery: '',
     proposalStatusFilter: 'all',
     proposalProposals: [
@@ -2253,8 +2267,111 @@
                 </div>
             </div>
 
+            <!-- TAB: Research Monitoring -->
+            <div x-show="activeTab === 'monitoring'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Title Block -->
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-800">Research Lifecycle Tracker</h1>
+                    <p class="text-xs text-gray-455 mt-1">Track your research progress through each milestone</p>
+                </div>
+
+                <!-- Overall Progress Card -->
+                <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span class="text-sm font-bold text-gray-800 block">Overall Progress</span>
+                            <span class="text-xs text-gray-455 mt-1 block">Machine Learning Applications in Agricultural Pest Detection</span>
+                        </div>
+                        <span class="text-xl font-black text-emerald-600 tracking-tight">42% Complete</span>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                        <div class="h-full bg-emerald-500 rounded-full" style="width: 42%;"></div>
+                    </div>
+
+                    <!-- Milestone Counts Grid -->
+                    <div class="grid grid-cols-3 gap-4 text-center pt-2">
+                        <div>
+                            <span class="text-xl font-bold text-emerald-600 block" x-text="monitoringMilestones.filter(m => m.status === 'Completed').length">6</span>
+                            <span class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider block mt-0.5">Completed</span>
+                        </div>
+                        <div>
+                            <span class="text-xl font-bold text-amber-500 block" x-text="monitoringMilestones.filter(m => m.status === 'In Progress').length">2</span>
+                            <span class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider block mt-0.5">In Progress</span>
+                        </div>
+                        <div>
+                            <span class="text-xl font-bold text-gray-400 block" x-text="monitoringMilestones.filter(m => m.status === 'Pending').length">4</span>
+                            <span class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider block mt-0.5">Pending</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Milestones Timeline Wrapper -->
+                <div class="bg-white rounded-3xl border border-gray-100/50 shadow-sm p-6 md:p-8 space-y-6">
+                    <h2 class="text-sm font-bold text-gray-855 font-heading tracking-wide">Research Milestones</h2>
+
+                    <!-- Timeline Vertical line track -->
+                    <div class="relative pl-12 md:pl-16 space-y-8">
+                        <div class="absolute left-6 md:left-8 top-3 bottom-3 w-0.5 bg-gray-150 -translate-x-1/2"></div>
+
+                        <template x-for="(m, idx) in monitoringMilestones" :key="idx">
+                            <div class="relative flex flex-col md:flex-row items-start gap-4">
+                                <!-- Bullet Circle -->
+                                <div class="absolute left-[-24px] md:left-[-32px] top-1.5 w-8 h-8 rounded-full border-4 border-white shadow-sm flex items-center justify-center text-white -translate-x-1/2 flex-shrink-0"
+                                     :class="m.status === 'Completed' ? 'bg-emerald-500' : (m.status === 'In Progress' ? 'bg-amber-500 animate-pulse' : 'bg-gray-100 border-gray-200')">
+                                    <template x-if="m.status === 'Completed'">
+                                        <i class="ph ph-check text-xs font-bold"></i>
+                                    </template>
+                                    <template x-if="m.status === 'In Progress'">
+                                        <i class="ph ph-clock text-xs font-bold"></i>
+                                    </template>
+                                    <template x-if="m.status === 'Pending'">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+                                    </template>
+                                </div>
+
+                                <!-- Milestone card content -->
+                                <div class="w-full rounded-2xl p-5 border transition-all duration-200"
+                                     :class="m.status === 'Completed' ? 'bg-[#f0fdf4] border-emerald-100' : (m.status === 'In Progress' ? 'bg-[#fffbeb] border-amber-200' : 'bg-white border-gray-100')">
+                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                        <h3 class="font-extrabold text-sm text-gray-800" x-text="m.title">Milestone Title</h3>
+                                        <span class="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider block w-fit"
+                                              :class="m.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : (m.status === 'In Progress' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-500')"
+                                              x-text="m.status">Status</span>
+                                    </div>
+
+                                    <div class="flex items-center gap-1.5 text-[10px] text-gray-400 font-semibold mt-1">
+                                        <i class="ph ph-calendar-blank"></i>
+                                        <span x-text="m.date">Feb 15, 2026</span>
+                                    </div>
+
+                                    <template x-if="m.desc">
+                                        <div class="mt-3 text-xs font-medium"
+                                             :class="m.status === 'Completed' ? 'text-emerald-700' : 'text-amber-705'">
+                                            <span x-text="m.status === 'Completed' ? '✓ ' : ''"></span>
+                                            <span x-text="m.desc">Description text</span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Footer Action Buttons -->
+                <div class="flex items-center gap-3">
+                    <button @click="alert('Updating monitoring milestones...')" class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md transition-colors cursor-pointer">
+                        Update Progress
+                    </button>
+                    <button @click="alert('Downloading Timeline...')" class="px-5 py-3 bg-white border border-gray-250 hover:bg-gray-50 text-gray-707 text-xs font-bold rounded-xl transition-colors cursor-pointer">
+                        Download Timeline
+                    </button>
+                </div>
+            </div>
+
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'repository', 'settings', 'researchers', 'proposal'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'repository', 'settings', 'researchers', 'proposal', 'monitoring'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
