@@ -7,6 +7,8 @@ use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Modules\Consultations\Queries\GetAdviserConsultationData;
 use App\Modules\Documents\Queries\GetAdviserDocumentReviewData;
+use App\Modules\Documents\Queries\GetAdviserRepositoryData;
+use App\Modules\Research\Queries\GetAdviserDashboardOverview;
 use App\Modules\Revisions\Queries\GetAdviserRevisionData;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -20,7 +22,9 @@ class DashboardController extends Controller
         Request $request,
         GetAdviserConsultationData $getConsultationData,
         GetAdviserDocumentReviewData $getDocumentReviewData,
+        GetAdviserRepositoryData $getRepositoryData,
         GetAdviserRevisionData $getRevisionData,
+        GetAdviserDashboardOverview $getDashboardOverview,
     ): View {
         $allowedTabs = [
             'dashboard',
@@ -29,6 +33,7 @@ class DashboardController extends Controller
             'consultation',
             'docreview',
             'revisions',
+            'repository',
             'notifications',
             'settings',
         ];
@@ -36,6 +41,13 @@ class DashboardController extends Controller
             ? (string) $request->query('tab')
             : 'dashboard';
         $viewData = $this->emptyViewData();
+        $viewData = [
+            ...$viewData,
+            ...$getDashboardOverview->for(
+                $request->user(),
+                $activeTab === 'dashboard',
+            ),
+        ];
 
         if ($activeTab === 'classes') {
             $viewData['researchClasses'] = ResearchClass::query()
@@ -85,6 +97,17 @@ class DashboardController extends Controller
                     $request->user(),
                     $request->query('revision_q'),
                     $request->query('revision_status'),
+                ),
+            ];
+        }
+
+        if ($activeTab === 'repository') {
+            $viewData = [
+                ...$viewData,
+                ...$getRepositoryData->for(
+                    $request->user(),
+                    (string) $request->query('repository_q', ''),
+                    (string) $request->query('repository_status', 'all'),
                 ),
             ];
         }
@@ -200,6 +223,10 @@ class DashboardController extends Controller
             ],
             'revisionSearch' => '',
             'revisionStatus' => 'submitted',
+            'repositoryDocuments' => new LengthAwarePaginator([], 0, 9),
+            'repositoryStats' => ['total' => 0, 'approved' => 0, 'pending' => 0, 'evaluation' => 0],
+            'repositorySearch' => '',
+            'repositoryStatus' => 'all',
         ];
     }
 }

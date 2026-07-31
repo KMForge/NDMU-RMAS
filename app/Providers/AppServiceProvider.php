@@ -55,7 +55,14 @@ class AppServiceProvider extends ServiceProvider
                         return response()->json(['message' => $message], 429, $headers);
                     }
 
-                    return to_route('student.dashboard')
+                    $route = $request->routeIs('adviser.*')
+                        ? 'adviser.dashboard'
+                        : 'student.dashboard';
+                    $parameters = $route === 'adviser.dashboard'
+                        ? ['tab' => 'repository']
+                        : [];
+
+                    return to_route($route, $parameters)
                         ->withErrors(['document' => $message])
                         ->with('document_error', $message);
                 });

@@ -5,6 +5,8 @@ namespace App\Modules\Revisions\Queries;
 use App\Models\RevisionRequest;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class GetAdviserRevisionData
@@ -14,6 +16,21 @@ class GetAdviserRevisionData
      */
     public function for(User $adviser, mixed $searchInput = null, mixed $statusInput = null): array
     {
+        if (! Schema::hasColumns('revision_requests', ['assigned_to', 'document_id'])) {
+            return [
+                'revisionRequests' => new LengthAwarePaginator([], 0, 10),
+                'revisionStats' => [
+                    'open' => 0,
+                    'in_progress' => 0,
+                    'submitted' => 0,
+                    'resolved' => 0,
+                    'total' => 0,
+                ],
+                'revisionSearch' => '',
+                'revisionStatus' => 'submitted',
+            ];
+        }
+
         $scope = RevisionRequest::query()
             ->where('requested_by', $adviser->getKey());
         $counts = (clone $scope)

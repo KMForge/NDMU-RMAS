@@ -1,7 +1,7 @@
 @extends('layouts.blank')
 
 @php
-    $allowedTabs = ['dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'notifications', 'settings'];
+    $allowedTabs = ['dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'repository', 'notifications', 'settings'];
     $initialTab = $activeDashboardTab ?? (in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard');
     $showClassModal = $errors->hasAny(['class', 'creation_token', 'name', 'description', 'max_students']);
 @endphp
@@ -30,102 +30,10 @@
     notificationsFilter: 'all',
     showClassModal: @js($showClassModal),
     showConsultationModal: false,
+    showRepositoryUploadModal: @js($errors->has('document') && $initialTab === 'repository'),
     selectedNotification: null,
-    
-    // Static state data for high-fidelity interactive elements
-    notifications: [
-        {
-            id: 1,
-            type: 'submission',
-            title: 'New Research Submission',
-            isNew: true,
-            badge: 'New Submission',
-            badgeClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700',
-            description: 'Maria Santos submitted Chapter 3 – Methodology for your review. Please provide feedback within 5 working days.',
-            time: '1 hour ago',
-            icon: 'ph ph-file-text',
-            iconBg: 'bg-emerald-50 text-emerald-600',
-            category: 'documents',
-            unread: true
-        },
-        {
-            id: 2,
-            type: 'revision',
-            title: 'Revision Submitted',
-            isNew: true,
-            badge: 'Revision',
-            badgeClass: 'bg-blue-50 border border-blue-100 text-blue-750',
-            description: 'Carlo Bautista submitted the revised Chapter 2 addressing your previous comments. Ready for re-review.',
-            time: '3 hours ago',
-            icon: 'ph ph-cloud-arrow-up',
-            iconBg: 'bg-blue-50 text-blue-600',
-            category: 'documents',
-            unread: true,
-            hasActions: true
-        },
-        {
-            id: 3,
-            type: 'consultation',
-            title: 'Consultation Requested',
-            isNew: true,
-            badge: 'Consultation',
-            badgeClass: 'bg-purple-50 border border-purple-100 text-purple-700',
-            description: 'Maria Santos requested a consultation session for May 25, 2026 at 9:00 AM. Please confirm availability.',
-            time: '6 hours ago',
-            icon: 'ph ph-chat-teardrop',
-            iconBg: 'bg-purple-50 text-purple-600',
-            category: 'approvals',
-            unread: true
-        },
-        {
-            id: 4,
-            type: 'defense',
-            title: 'Defense Session Scheduled',
-            isNew: false,
-            badge: 'Defense',
-            badgeClass: 'bg-indigo-50 border border-indigo-100 text-indigo-700',
-            description: 'The proposal defense for Team AI-Traffic is scheduled on May 29, 2026 at 10:00 AM.',
-            time: '1 day ago',
-            icon: 'ph ph-calendar',
-            iconBg: 'bg-indigo-50 text-indigo-600',
-            category: 'defense',
-            unread: false
-        },
-        {
-            id: 5,
-            type: 'approval',
-            title: 'Proposal Endorsement Signed',
-            isNew: false,
-            badge: 'Approval',
-            badgeClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700',
-            description: 'You endorsed the proposal “Smart Agriculture IoT Platform” for defense scheduling.',
-            time: '2 days ago',
-            icon: 'ph ph-check-square',
-            iconBg: 'bg-emerald-50 text-emerald-600',
-            category: 'approvals',
-            unread: false
-        },
-        {
-            id: 6,
-            type: 'system',
-            title: 'System Maintenance Notice',
-            isNew: false,
-            badge: 'System',
-            badgeClass: 'bg-gray-50 border border-gray-100 text-gray-700',
-            description: 'The NDMU Research Management Portal will undergo scheduled maintenance on Sunday from 2:00 AM to 4:00 AM.',
-            time: '3 days ago',
-            icon: 'ph ph-gear',
-            iconBg: 'bg-gray-50 text-gray-600',
-            category: 'system',
-            unread: false
-        }
-    ],
-
-    assignedResearchers: [
-        { name: 'Juan Dela Cruz', project: 'AI-Powered Traffic Management System', status: 'Data Gathering', progress: 65, avatar: 'J' },
-        { name: 'Maria Clara Santos', project: 'Blockchain-Based Voting System', status: 'Final Defense Prep', progress: 82, avatar: 'M' },
-        { name: 'Ana Rodriguez', project: 'Mobile Health Monitoring App', status: 'Data Analysis', progress: 58, avatar: 'A' }
-    ]
+    notifications: @js($adviserNotifications),
+    assignedResearchers: @js($adviserOverviewAdvisees)
 }">
     <!-- Left Sidebar: Navigation -->
     <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5 overflow-y-auto">
@@ -159,9 +67,9 @@
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
                 
                 <!-- Dashboard -->
-                <button 
-                   type="button" 
-                   @click="activeTab = 'dashboard'"
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'dashboard']) }}"
+                   wire:navigate
                    :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
@@ -169,7 +77,7 @@
                         <span>Dashboard</span>
                     </div>
                     <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </button>
+                </a>
                 
                 <!-- My Classes -->
                 <a
@@ -309,9 +217,9 @@
                 </button>
 
                 <!-- Research Repository -->
-                <button 
-                   type="button" 
-                   @click="activeTab = 'repository'"
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'repository']) }}"
+                   wire:navigate
                    :class="activeTab === 'repository' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
@@ -319,7 +227,7 @@
                         <span>Research Repository</span>
                     </div>
                     <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </button>
+                </a>
             </div>
 
             <!-- Research Forms Section -->
@@ -328,7 +236,7 @@
                 
                 <button 
                     type="button"
-                    @click="alert('Official NDMU Forms are ready for download')"
+                    @click="activeTab = 'forms'"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200 text-left cursor-pointer"
                 >
                     <div class="flex items-center gap-3">
@@ -377,7 +285,7 @@
                 </form>
             </div>
             <div class="text-[9px] text-white/30 text-center font-medium mt-6">
-                NDMU © 2026 - v1.0
+                NDMU © {{ now()->year }} - v1.0
             </div>
         </div>
     </aside>
@@ -403,16 +311,16 @@
                 <!-- Notification Bell with Active Indicator -->
                 <button @click="activeTab = 'notifications'" class="relative w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
                     <i class="ph ph-bell text-lg"></i>
-                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                    <span x-show="notifications.some(notification => notification.unread)" class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
                 </button>
                 
                 <!-- Faculty Portal Profile Badge -->
                 <div class="flex items-center gap-3 pl-2 border-l border-gray-150">
                     <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-xs">
-                        A
+                        {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($adviser->name, 0, 1)) }}
                     </div>
                     <div class="flex flex-col leading-none">
-                        <span class="font-bold text-xs text-gray-800">Dr.</span>
+                        <span class="font-bold text-xs text-gray-800">{{ $adviser->name }}</span>
                         <span class="text-[9px] font-bold text-gray-400 mt-0.5">Faculty Portal</span>
                     </div>
                 </div>
@@ -497,8 +405,8 @@
                     <div class="bg-[#0e5c3a] text-white rounded-3xl p-5 border border-[#0e5c3a]/10 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-white/80 font-medium block">Active Advisees</span>
-                            <span class="text-3xl font-bold mt-2 block">12</span>
-                            <span class="text-[10px] text-[#eebc3f] font-bold mt-1 block">3 nearing defense</span>
+                            <span class="text-3xl font-bold mt-2 block">{{ $adviserOverviewStats['active_advisees'] }}</span>
+                            <span class="text-[10px] text-[#eebc3f] font-bold mt-1 block">{{ $adviserOverviewStats['nearing_defense'] }} nearing defense</span>
                         </div>
                         <span class="w-12 h-12 rounded-2xl bg-white/10 text-[#eebc3f] flex items-center justify-center text-2xl flex-shrink-0">
                             <i class="ph ph-users-three"></i>
@@ -509,8 +417,8 @@
                     <div class="bg-white rounded-3xl p-5 border-l-4 border-l-red-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Urgent Reviews</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block">7</span>
-                            <span class="text-[10px] text-red-500 font-bold mt-1 block">3 overdue submissions</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block">{{ $adviserOverviewStats['urgent_reviews'] }}</span>
+                            <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $adviserOverviewStats['overdue_revisions'] }} overdue revisions</span>
                         </div>
                         <span class="w-12 h-12 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center text-2xl flex-shrink-0">
                             <i class="ph ph-warning-circle"></i>
@@ -521,8 +429,10 @@
                     <div class="bg-white rounded-3xl p-5 border-l-4 border-l-blue-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Today's Consultations</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block">3</span>
-                            <span class="text-[10px] text-blue-500 font-bold mt-1 block">Next: 2:00 PM</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block">{{ $adviserOverviewStats['today_consultations'] }}</span>
+                            <span class="text-[10px] text-blue-500 font-bold mt-1 block">
+                                Next: {{ $adviserOverviewStats['next_consultation_at']?->timezone(config('ndmu-rmas.timezone'))->format('g:i A') ?? 'None scheduled' }}
+                            </span>
                         </div>
                         <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl flex-shrink-0">
                             <i class="ph ph-calendar"></i>
@@ -533,7 +443,7 @@
                     <div class="bg-white rounded-3xl p-5 border-l-4 border-l-purple-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Completed Research</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block">28</span>
+                            <span class="text-3xl font-bold text-gray-800 mt-2 block">{{ $adviserOverviewStats['completed_research'] }}</span>
                             <span class="text-[10px] text-purple-500 font-bold mt-1 block">This academic year</span>
                         </div>
                         <span class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-500 flex items-center justify-center text-2xl flex-shrink-0">
@@ -560,19 +470,19 @@
                                 <div class="border border-gray-100 bg-gray-50/10 rounded-2xl p-5 space-y-4 hover:border-emerald-100 hover:bg-emerald-50/5 transition-all">
                                     <div class="flex justify-between items-start">
                                         <div>
-                                            <h4 class="font-bold text-gray-850 text-sm" x-text="r.name">Student Name</h4>
-                                            <span class="text-xs text-gray-400 block mt-0.5" x-text="r.project">Research project title goes here.</span>
+                                            <h4 class="font-bold text-gray-850 text-sm" x-text="r.name"></h4>
+                                            <span class="text-xs text-gray-400 block mt-0.5" x-text="r.project || 'No research project assigned'"></span>
                                         </div>
                                         <div class="text-right">
-                                            <span class="text-lg font-extrabold text-emerald-700 block" x-text="`${r.progress}%`">65%</span>
+                                            <span class="text-lg font-extrabold text-emerald-700 block" x-text="`${r.progress}%`"></span>
                                             <span class="text-[9px] text-gray-400 uppercase tracking-wider">Complete</span>
                                         </div>
                                     </div>
 
                                     <!-- Badges -->
                                     <div class="flex gap-2">
-                                        <span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-bold" x-text="r.status">Data Gathering</span>
-                                        <span class="bg-emerald-50 border border-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold">On Track</span>
+                                        <span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-bold" x-text="r.status || 'No recorded status'"></span>
+                                        <span class="bg-emerald-50 border border-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold" x-text="r.progress >= 100 ? 'Complete' : 'In progress'"></span>
                                     </div>
 
                                     <!-- Progress Bar -->
@@ -584,20 +494,23 @@
 
                                     <!-- Action Buttons -->
                                     <div class="flex gap-3 pt-1">
-                                        <button @click="alert(`Opening ${r.name}'s research proposal...`)" class="w-1/2 text-center py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl transition-colors cursor-pointer">
+                                        <button @click="activeTab = 'researchers'" class="w-1/2 text-center py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl transition-colors cursor-pointer">
                                             View Research
                                         </button>
-                                        <button @click="alert(`Reviewing documents for ${r.name}...`)" class="w-1/2 text-center py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-sm transition-colors cursor-pointer">
+                                        <a href="{{ route('adviser.dashboard', ['tab' => 'docreview']) }}" wire:navigate class="w-1/2 text-center py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-sm transition-colors cursor-pointer">
                                             Review Documents
-                                        </button>
+                                        </a>
                                     </div>
                                 </div>
                             </template>
+                            <div x-show="assignedResearchers.length === 0" class="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-xs text-gray-500">
+                                No active advisees are assigned.
+                            </div>
                         </div>
 
                         <!-- View All Footer Link -->
                         <button @click="activeTab = 'researchers'" class="w-full text-center py-3 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold text-xs rounded-2xl transition-colors cursor-pointer">
-                            View All 12 Advisees →
+                            View All {{ $adviserOverviewStats['active_advisees'] }} Advisees →
                         </button>
                     </div>
 
@@ -608,51 +521,27 @@
                         <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
                             <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
                                 <i class="ph ph-file-text text-amber-500 text-lg"></i>
-                                <span>Pending Reviews (3)</span>
+                                <span>Pending Reviews ({{ $adviserOverviewStats['urgent_reviews'] }})</span>
                             </h3>
 
                             <div class="space-y-4">
-                                <!-- Item 1 -->
-                                <div class="border-l-4 border-l-amber-500 bg-amber-50/10 rounded-2xl p-4 border-t border-r border-b border-gray-100/50 space-y-3">
-                                    <div>
-                                        <span class="font-bold text-gray-800 text-xs block">Chapter 3 - Methodology</span>
-                                        <span class="text-[10px] text-gray-400 block mt-0.5">Juan Dela Cruz</span>
-                                        <span class="text-[10px] text-amber-600 font-bold mt-1.5 block flex items-center gap-1">
-                                            <i class="ph ph-clock"></i> Submitted 2 hours ago
-                                        </span>
+                                @forelse ($adviserPendingDocuments as $pendingDocument)
+                                    <div class="border-l-4 border-l-amber-500 bg-amber-50/10 rounded-2xl p-4 border-t border-r border-b border-gray-100/50 space-y-3">
+                                        <div>
+                                            <span class="font-bold text-gray-800 text-xs block">{{ $pendingDocument->original_filename }}</span>
+                                            <span class="text-[10px] text-gray-400 block mt-0.5">{{ $pendingDocument->user->name }}</span>
+                                            <span class="text-[10px] text-amber-600 font-bold mt-1.5 block flex items-center gap-1">
+                                                <i class="ph ph-clock"></i>
+                                                Submitted {{ $pendingDocument->submitted_at?->diffForHumans() }}
+                                            </span>
+                                        </div>
+                                        <a href="{{ route('adviser.dashboard', ['tab' => 'docreview', 'document_id' => $pendingDocument->getKey(), 'document_status' => 'all']) }}" wire:navigate class="block w-full text-center py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-[10px] font-bold rounded-lg transition-colors cursor-pointer">
+                                            Review Document
+                                        </a>
                                     </div>
-                                    <button @click="alert('Opening Chapter 3 Review window')" class="w-full text-center py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-[10px] font-bold rounded-lg transition-colors cursor-pointer">
-                                        Review Document
-                                    </button>
-                                </div>
-
-                                <!-- Item 2 -->
-                                <div class="border-l-4 border-l-red-500 bg-red-50/10 rounded-2xl p-4 border-t border-r border-b border-gray-100/50 space-y-3">
-                                    <div>
-                                        <span class="font-bold text-gray-800 text-xs block">Revised Proposal</span>
-                                        <span class="text-[10px] text-gray-400 block mt-0.5">Pedro Reyes</span>
-                                        <span class="text-[10px] text-red-500 font-bold mt-1.5 block flex items-center gap-1">
-                                            <i class="ph ph-clock"></i> Submitted 1 day ago
-                                        </span>
-                                    </div>
-                                    <button @click="alert('Opening Revised Proposal Review window')" class="w-full text-center py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-[10px] font-bold rounded-lg transition-colors cursor-pointer">
-                                        Review Document
-                                    </button>
-                                </div>
-
-                                <!-- Item 3 -->
-                                <div class="border-l-4 border-l-red-500 bg-red-50/10 rounded-2xl p-4 border-t border-r border-b border-gray-100/50 space-y-3">
-                                    <div>
-                                        <span class="font-bold text-gray-800 text-xs block">Chapter 2 - Literature Review</span>
-                                        <span class="text-[10px] text-gray-400 block mt-0.5">Ana Rodriguez</span>
-                                        <span class="text-[10px] text-red-500 font-bold mt-1.5 block flex items-center gap-1">
-                                            <i class="ph ph-clock"></i> Submitted 3 days ago
-                                        </span>
-                                    </div>
-                                    <button @click="alert('Opening Chapter 2 Review window')" class="w-full text-center py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-[10px] font-bold rounded-lg transition-colors cursor-pointer">
-                                        Review Document
-                                    </button>
-                                </div>
+                                @empty
+                                    <p class="py-6 text-center text-xs text-gray-500">No documents are waiting for review.</p>
+                                @endforelse
                             </div>
                         </div>
 
@@ -664,32 +553,19 @@
                             </h3>
 
                             <div class="space-y-3">
-                                <!-- Consultation 1 -->
-                                <div class="flex items-center justify-between py-2 border-b border-white/10">
-                                    <div>
-                                        <span class="font-bold text-xs block">Juan Dela Cruz</span>
-                                        <span class="text-[10px] text-white/80 mt-0.5 block">Methodology Review</span>
+                                @forelse ($adviserTodayConsultations as $consultation)
+                                    <div class="flex items-center justify-between py-2 border-b border-white/10 last:border-b-0">
+                                        <div>
+                                            <span class="font-bold text-xs block">{{ $consultation->student_name }}</span>
+                                            <span class="text-[10px] text-white/80 mt-0.5 block">{{ $consultation->agenda }}</span>
+                                        </div>
+                                        <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded font-bold">
+                                            {{ $consultation->preferred_at?->timezone(config('ndmu-rmas.timezone'))->format('g:i A') }}
+                                        </span>
                                     </div>
-                                    <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded font-bold">2:00 PM</span>
-                                </div>
-
-                                <!-- Consultation 2 -->
-                                <div class="flex items-center justify-between py-2 border-b border-white/10">
-                                    <div>
-                                        <span class="font-bold text-xs block">Ana Rodriguez</span>
-                                        <span class="text-[10px] text-white/80 mt-0.5 block">Data Analysis</span>
-                                    </div>
-                                    <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded font-bold">3:30 PM</span>
-                                </div>
-
-                                <!-- Consultation 3 -->
-                                <div class="flex items-center justify-between py-2">
-                                    <div>
-                                        <span class="font-bold text-xs block">Maria Clara</span>
-                                        <span class="text-[10px] text-white/80 mt-0.5 block">Defense Preparation</span>
-                                    </div>
-                                    <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded font-bold">4:30 PM</span>
-                                </div>
+                                @empty
+                                    <p class="py-4 text-center text-xs text-white/80">No consultations scheduled today.</p>
+                                @endforelse
                             </div>
 
                             <a href="{{ route('adviser.dashboard', ['tab' => 'consultation']) }}" wire:navigate class="block w-full text-center py-2 bg-white hover:bg-gray-50 text-blue-600 font-bold text-xs rounded-xl transition-colors cursor-pointer">
@@ -717,24 +593,21 @@
                         <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
                             <h3 class="font-bold text-gray-800 text-sm pb-2 border-b border-gray-50">Recent Activity</h3>
                             <div class="space-y-4">
-                                <div class="flex items-start gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm flex-shrink-0">
-                                        <i class="ph ph-check"></i>
+                                @forelse ($adviserRecentActivity as $activity)
+                                    <div class="flex items-start gap-3">
+                                        <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm flex-shrink-0">
+                                            <i class="ph {{ $activity['icon'] }}"></i>
+                                        </div>
+                                        <div>
+                                            <span class="font-bold text-gray-800 text-xs block">{{ $activity['title'] }}</span>
+                                            <span class="text-[10px] text-gray-400 block mt-0.5">
+                                                {{ $activity['student_name'] ?: 'Student' }} · {{ $activity['occurred_at']?->diffForHumans() }}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <span class="font-bold text-gray-800 text-xs block">Approved Chapter 2</span>
-                                        <span class="text-[10px] text-gray-400 block mt-0.5">Juan Dela Cruz • 2h ago</span>
-                                    </div>
-                                </div>
-                                <div class="flex items-start gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-sm flex-shrink-0">
-                                        <i class="ph ph-chat-teardrop"></i>
-                                    </div>
-                                    <div>
-                                        <span class="font-bold text-gray-800 text-xs block">Left feedback</span>
-                                        <span class="text-[10px] text-gray-400 block mt-0.5">Maria Clara • 5h ago</span>
-                                    </div>
-                                </div>
+                                @empty
+                                    <p class="py-4 text-center text-xs text-gray-500">No review activity recorded yet.</p>
+                                @endforelse
                             </div>
                         </div>
 
@@ -766,7 +639,7 @@
                             </button>
                             <button class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-[#0e5c3a]/15 transition-all duration-200">
                                 <i class="ph ph-bell text-base font-bold"></i>
-                                <span x-text="`${notifications.filter(n => n.unread).length} Unread`">3 Unread</span>
+                                <span x-text="`${notifications.filter(n => n.unread).length} Unread`">{{ $adviserNotificationStats['unread'] }} Unread</span>
                             </button>
                         </div>
                     </div>
@@ -777,7 +650,7 @@
                     <!-- Total Card -->
                     <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between animate-fade-in">
                         <div>
-                            <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.length">6</span>
+                            <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.length">{{ $adviserNotificationStats['total'] }}</span>
                             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block font-heading mt-0.5">Total</span>
                         </div>
                         <span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
@@ -788,7 +661,7 @@
                     <!-- Unread Card -->
                     <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
-                            <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.filter(n => n.unread).length">3</span>
+                            <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.filter(n => n.unread).length">{{ $adviserNotificationStats['unread'] }}</span>
                             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block font-heading mt-0.5">Unread</span>
                         </div>
                         <span class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
@@ -799,7 +672,7 @@
                     <!-- Defense Card -->
                     <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
-                            <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.filter(n => n.category === 'defense').length">1</span>
+                            <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.filter(n => n.category === 'defense').length">{{ $adviserNotificationStats['defense'] }}</span>
                             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block font-heading mt-0.5">Defense</span>
                         </div>
                         <span class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl">
@@ -810,7 +683,7 @@
                     <!-- Documents Card -->
                     <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
-                            <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.filter(n => n.category === 'documents').length">2</span>
+                            <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.filter(n => n.category === 'documents').length">{{ $adviserNotificationStats['documents'] }}</span>
                             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block font-heading mt-0.5">Documents</span>
                         </div>
                         <span class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
@@ -829,7 +702,7 @@
                         <span 
                             :class="notificationsFilter === 'all' ? 'bg-white/20 text-white' : 'bg-gray-200/50 text-gray-500'"
                             class="px-1.5 py-0.5 text-[10px] rounded-full" 
-                            x-text="notifications.length">6</span>
+                            x-text="notifications.length">{{ $adviserNotificationStats['total'] }}</span>
                     </button>
                     <button 
                         @click="notificationsFilter = 'unread'"
@@ -839,7 +712,7 @@
                         <span 
                             :class="notificationsFilter === 'unread' ? 'bg-white/20 text-white' : 'bg-gray-200/50 text-gray-500'"
                             class="px-1.5 py-0.5 text-[10px] rounded-full" 
-                            x-text="notifications.filter(n => n.unread).length">3</span>
+                            x-text="notifications.filter(n => n.unread).length">{{ $adviserNotificationStats['unread'] }}</span>
                     </button>
                     <button 
                         @click="notificationsFilter = 'approvals'"
@@ -849,7 +722,7 @@
                         <span 
                             :class="notificationsFilter === 'approvals' ? 'bg-white/20 text-white' : 'bg-gray-200/50 text-gray-500'"
                             class="px-1.5 py-0.5 text-[10px] rounded-full" 
-                            x-text="notifications.filter(n => n.category === 'approvals').length">2</span>
+                            x-text="notifications.filter(n => n.category === 'approvals').length">{{ $adviserNotificationStats['approvals'] }}</span>
                     </button>
                     <button 
                         @click="notificationsFilter = 'defense'"
@@ -859,7 +732,7 @@
                         <span 
                             :class="notificationsFilter === 'defense' ? 'bg-white/20 text-white' : 'bg-gray-200/50 text-gray-500'"
                             class="px-1.5 py-0.5 text-[10px] rounded-full" 
-                            x-text="notifications.filter(n => n.category === 'defense').length">1</span>
+                            x-text="notifications.filter(n => n.category === 'defense').length">{{ $adviserNotificationStats['defense'] }}</span>
                     </button>
                     <button 
                         @click="notificationsFilter = 'documents'"
@@ -869,7 +742,7 @@
                         <span 
                             :class="notificationsFilter === 'documents' ? 'bg-white/20 text-white' : 'bg-gray-200/50 text-gray-500'"
                             class="px-1.5 py-0.5 text-[10px] rounded-full" 
-                            x-text="notifications.filter(n => n.category === 'documents').length">2</span>
+                            x-text="notifications.filter(n => n.category === 'documents').length">{{ $adviserNotificationStats['documents'] }}</span>
                     </button>
                     <button 
                         @click="notificationsFilter = 'system'"
@@ -879,7 +752,7 @@
                         <span 
                             :class="notificationsFilter === 'system' ? 'bg-white/20 text-white' : 'bg-gray-200/50 text-gray-500'"
                             class="px-1.5 py-0.5 text-[10px] rounded-full" 
-                            x-text="notifications.filter(n => n.category === 'system').length">1</span>
+                            x-text="notifications.filter(n => n.category === 'system').length">{{ $adviserNotificationStats['system'] }}</span>
                     </button>
                 </div>
 
@@ -899,22 +772,20 @@
                             <!-- Notification Content -->
                             <div class="flex-1 space-y-3 pr-12">
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <h4 class="font-bold text-gray-800 text-sm" x-text="item.title">Notification Title</h4>
+                                    <h4 class="font-bold text-gray-800 text-sm" x-text="item.title"></h4>
                                     
                                     <!-- Dynamic Badges -->
                                     <template x-if="item.isNew">
                                         <span class="px-2 py-0.5 rounded bg-emerald-700 text-white text-[9px] font-bold">New</span>
                                     </template>
-                                    <span class="px-2 py-0.5 rounded text-[9px] font-semibold" :class="item.badgeClass" x-text="item.badge">Category</span>
+                                    <span class="px-2 py-0.5 rounded text-[9px] font-semibold" :class="item.badgeClass" x-text="item.badge"></span>
                                 </div>
                                 
-                                <p class="text-xs text-gray-550 leading-relaxed" x-text="item.description">
-                                    Notification description body copy.
-                                </p>
+                                <p class="text-xs text-gray-550 leading-relaxed" x-text="item.description"></p>
                                 
                                 <div class="flex items-center gap-1.5 text-[10px] text-gray-400 font-semibold">
                                     <i class="ph ph-clock"></i>
-                                    <span x-text="item.time">1 hour ago</span>
+                                    <span x-text="item.time"></span>
                                 </div>
                                 
                                 <div class="flex justify-between items-center pt-2 text-xs">
@@ -944,6 +815,9 @@
                             </div>
                         </div>
                     </template>
+                    <div x-show="notifications.length === 0" class="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-10 text-center text-sm text-gray-500">
+                        No notifications have been delivered.
+                    </div>
                 </div>
             </div>
 
@@ -1251,7 +1125,6 @@
                                     src="{{ route('documents.view', $selectedReviewDocument) }}"
                                     title="Secure preview of {{ $selectedReviewDocument->original_filename }}"
                                     class="w-full min-h-[650px] rounded-xl border border-gray-200 bg-gray-50"
-                                    sandbox
                                 ></iframe>
                             @else
                                 <div class="min-h-[500px] rounded-xl bg-gray-50 border border-gray-200 flex flex-col items-center justify-center text-center p-8">
@@ -1399,7 +1272,9 @@
 
                 <div class="space-y-4">
                     @forelse ($revisionRequests as $revisionRequest)
-                        @php($latestRevisionDocument = $revisionRequest->submittedDocuments->first())
+                        @php
+                            $latestRevisionDocument = $revisionRequest->submittedDocuments->first();
+                        @endphp
                         <article class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                             <div class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-5">
                                 <div class="min-w-0">
@@ -1720,23 +1595,198 @@
                 </div>
             </div>
 
+            <!-- TAB: Research Repository -->
+            <div x-show="activeTab === 'repository'" x-cloak class="space-y-6 animate-fade-in">
+                @if (session('document_success'))
+                    <div role="status" class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                        {{ session('document_success') }}
+                    </div>
+                @endif
+
+                @if ($errors->has('document'))
+                    <div role="alert" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                        {{ $errors->first('document') }}
+                    </div>
+                @endif
+
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-5">
+                    <div>
+                        <div class="flex items-center gap-2 text-xs mb-3">
+                            <i class="ph ph-book-open text-[#0e5c3a] text-lg"></i>
+                            <a href="{{ route('adviser.dashboard', ['tab' => 'dashboard']) }}" class="text-gray-500 hover:text-[#0e5c3a]">Dashboard</a>
+                            <span class="text-gray-300">/</span>
+                            <span class="font-bold text-[#0e5c3a]">Research Repository</span>
+                        </div>
+                        <h1 class="text-3xl font-extrabold font-heading text-gray-900 tracking-tight">Research Repository</h1>
+                        <p class="text-sm text-gray-500 mt-1">Manage, upload, and track authorized research files.</p>
+                    </div>
+                    <button
+                        type="button"
+                        @click="showRepositoryUploadModal = true"
+                        class="px-5 py-3 bg-[#0e7050] hover:bg-[#0a5a40] text-white text-sm font-bold rounded-xl shadow-md flex items-center justify-center gap-2 transition-colors"
+                    >
+                        <i class="ph ph-upload-simple text-lg"></i>
+                        Upload Document
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    @foreach ([
+                        ['label' => 'Total Files', 'value' => $repositoryStats['total'], 'icon' => 'ph-file-text', 'iconClass' => 'bg-emerald-50 text-[#0e7050]'],
+                        ['label' => 'Approved', 'value' => $repositoryStats['approved'], 'icon' => 'ph-check-circle', 'iconClass' => 'bg-green-50 text-green-600'],
+                        ['label' => 'Pending Review', 'value' => $repositoryStats['pending'], 'icon' => 'ph-clock', 'iconClass' => 'bg-orange-50 text-orange-600'],
+                        ['label' => 'For Evaluation', 'value' => $repositoryStats['evaluation'], 'icon' => 'ph-clipboard-text', 'iconClass' => 'bg-purple-50 text-purple-600'],
+                    ] as $repositoryStat)
+                        <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center gap-4">
+                            <span class="w-11 h-11 rounded-xl {{ $repositoryStat['iconClass'] }} flex items-center justify-center">
+                                <i class="ph {{ $repositoryStat['icon'] }} text-2xl"></i>
+                            </span>
+                            <div>
+                                <span class="text-2xl font-extrabold text-gray-900">{{ $repositoryStat['value'] }}</span>
+                                <span class="block text-xs text-gray-500">{{ $repositoryStat['label'] }}</span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <form method="GET" action="{{ route('adviser.dashboard') }}" class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-col md:flex-row gap-3">
+                    <input type="hidden" name="tab" value="repository">
+                    <div class="relative flex-1">
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 pointer-events-none">
+                            <i class="ph ph-magnifying-glass text-lg"></i>
+                        </span>
+                        <input
+                            type="search"
+                            name="repository_q"
+                            value="{{ $repositorySearch }}"
+                            maxlength="100"
+                            placeholder="Search documents or researcher name..."
+                            class="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#0e7050]"
+                        >
+                    </div>
+                    <div class="flex gap-3">
+                        <select
+                            name="repository_status"
+                            onchange="this.form.submit()"
+                            class="min-w-44 px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:border-[#0e7050]"
+                        >
+                            <option value="all" @selected($repositoryStatus === 'all')>All Status</option>
+                            <option value="approved" @selected($repositoryStatus === 'approved')>Approved</option>
+                            <option value="pending" @selected($repositoryStatus === 'pending')>Pending Review</option>
+                            <option value="evaluation" @selected($repositoryStatus === 'evaluation')>For Evaluation</option>
+                            <option value="revisions" @selected($repositoryStatus === 'revisions')>Revisions Requested</option>
+                            <option value="rejected" @selected($repositoryStatus === 'rejected')>Rejected</option>
+                        </select>
+                        <button type="submit" class="px-5 py-3 bg-[#0e5c3a] text-white text-sm font-bold rounded-xl">
+                            Search
+                        </button>
+                    </div>
+                </form>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-5">
+                    @forelse ($repositoryDocuments as $repositoryDocument)
+                        @php
+                            $repositoryStatusPresentation = match ($repositoryDocument->status) {
+                                \App\Enums\DocumentStatus::Accepted => ['label' => 'Approved', 'class' => 'bg-green-50 text-green-700 border-green-200', 'icon' => 'ph-check-circle'],
+                                \App\Enums\DocumentStatus::UnderReview => ['label' => 'For Evaluation', 'class' => 'bg-purple-50 text-purple-700 border-purple-200', 'icon' => 'ph-clock'],
+                                \App\Enums\DocumentStatus::RevisionRequested => ['label' => 'Revisions Requested', 'class' => 'bg-amber-50 text-amber-700 border-amber-200', 'icon' => 'ph-warning'],
+                                \App\Enums\DocumentStatus::Rejected => ['label' => 'Rejected', 'class' => 'bg-red-50 text-red-700 border-red-200', 'icon' => 'ph-x-circle'],
+                                \App\Enums\DocumentStatus::Draft => ['label' => 'Draft', 'class' => 'bg-gray-50 text-gray-700 border-gray-200', 'icon' => 'ph-pencil'],
+                                default => ['label' => 'Pending Review', 'class' => 'bg-orange-50 text-orange-700 border-orange-200', 'icon' => 'ph-clock'],
+                            };
+                            $isPdf = $repositoryDocument->file_type === 'pdf';
+                            $documentTitle = pathinfo($repositoryDocument->original_filename, PATHINFO_FILENAME);
+                        @endphp
+
+                        <article class="bg-white rounded-2xl border border-gray-100 border-t-4 {{ $isPdf ? 'border-t-red-500' : 'border-t-blue-500' }} shadow-sm p-5 flex flex-col min-h-64">
+                            <div class="flex items-start justify-between gap-4">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-10 h-10 rounded-xl {{ $isPdf ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500' }} flex items-center justify-center">
+                                        <i class="ph ph-file-text text-2xl"></i>
+                                    </span>
+                                    <span class="px-2.5 py-1 rounded-md border {{ $isPdf ? 'border-red-200 bg-red-50 text-red-600' : 'border-blue-200 bg-blue-50 text-blue-600' }} text-[10px] font-bold uppercase">
+                                        {{ $repositoryDocument->file_type }}
+                                    </span>
+                                </div>
+                                <span class="px-2.5 py-1 rounded-full border {{ $repositoryStatusPresentation['class'] }} text-[10px] font-semibold flex items-center gap-1">
+                                    <i class="ph {{ $repositoryStatusPresentation['icon'] }}"></i>
+                                    {{ $repositoryStatusPresentation['label'] }}
+                                </span>
+                            </div>
+
+                            <div class="mt-5 flex-1 min-w-0">
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-[#b38728]">
+                                    {{ $isPdf ? 'PDF Document' : 'Word Document' }}
+                                </p>
+                                <h2 class="text-lg font-extrabold text-gray-900 mt-1 truncate" title="{{ $repositoryDocument->original_filename }}">
+                                    {{ $documentTitle }}
+                                </h2>
+                                <p class="text-xs text-gray-500 mt-2 line-clamp-2">
+                                    {{ $repositoryDocument->user->program ?: $repositoryDocument->user->email }}
+                                </p>
+                                <div class="flex flex-wrap items-center gap-2 text-[11px] text-gray-400 mt-5">
+                                    <span>{{ $repositoryDocument->formattedFileSize() }}</span>
+                                    <span>•</span>
+                                    <span>{{ $repositoryDocument->submitted_at->timezone(config('ndmu-rmas.timezone'))->format('M j, Y') }}</span>
+                                    <span>•</span>
+                                    <span class="truncate max-w-40">
+                                        {{ $repositoryDocument->user_id === $adviser->getKey() ? 'You' : $repositoryDocument->user->name }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 pt-4 mt-4 border-t border-gray-100">
+                                <a
+                                    href="{{ route('documents.view', $repositoryDocument) }}"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="py-2.5 rounded-xl bg-emerald-50 text-[#0e7050] text-xs font-bold text-center flex items-center justify-center gap-2"
+                                >
+                                    <i class="ph ph-eye"></i>
+                                    View
+                                </a>
+                                <a
+                                    href="{{ route('documents.download', $repositoryDocument) }}"
+                                    class="py-2.5 rounded-xl bg-blue-50 text-blue-600 text-xs font-bold text-center flex items-center justify-center gap-2"
+                                >
+                                    <i class="ph ph-download-simple"></i>
+                                    Download
+                                </a>
+                            </div>
+                        </article>
+                    @empty
+                        <div class="lg:col-span-2 2xl:col-span-3 min-h-72 bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center p-8">
+                            <i class="ph ph-folder-open text-6xl text-gray-300"></i>
+                            <h2 class="font-bold text-gray-900 mt-4">No repository documents found</h2>
+                            <p class="text-sm text-gray-500 mt-2">Authorized uploads from you and your assigned researchers will appear here.</p>
+                        </div>
+                    @endforelse
+                </div>
+
+                @if ($repositoryDocuments->hasPages())
+                    <div>
+                        {{ $repositoryDocuments->links() }}
+                    </div>
+                @endif
+            </div>
+
             <!-- TAB: Settings -->
             <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
                 @include('partials.settings', [
-                    'avatarInitials' => 'D',
-                    'userName' => 'Dr. Reyna Garcia',
-                    'emailAddress' => 'r.garcia@ndmu.edu.ph',
+                    'avatarInitials' => \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($adviser->name, 0, 1)),
+                    'userName' => $adviser->name,
+                    'emailAddress' => $adviser->email,
                     'userRole' => 'Research Adviser',
                     'userRoleBadge' => 'RESEARCH ADVISER',
-                    'department' => 'College of Information Technology',
-                    'userId' => 'ADV-2015-0002',
+                    'department' => $adviser->department ?: 'Not assigned',
+                    'userId' => $adviser->student_id ?: 'Not assigned',
                     'portalType' => 'Faculty Portal',
                     'accessLevel' => 'Faculty & Guidance Access'
                 ])
             </div>
 
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'classes', 'requests', 'consultation', 'docreview', 'settings'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'classes', 'requests', 'consultation', 'docreview', 'revisions', 'repository', 'settings'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
@@ -1761,8 +1811,8 @@
                         <i :class="selectedNotification?.icon"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-gray-800 text-sm" x-text="selectedNotification?.title">Notification Details</h3>
-                        <span class="text-[10px] text-gray-400" x-text="selectedNotification?.time">1 hour ago</span>
+                        <h3 class="font-bold text-gray-800 text-sm" x-text="selectedNotification?.title"></h3>
+                        <span class="text-[10px] text-gray-400" x-text="selectedNotification?.time"></span>
                     </div>
                 </div>
                 <button @click="selectedNotification = null" class="text-gray-400 hover:text-gray-600 text-lg cursor-pointer">
@@ -1771,16 +1821,66 @@
             </div>
             <hr class="border-gray-100">
             <div class="space-y-2">
-                <span class="px-2 py-0.5 rounded text-[9px] font-semibold" :class="selectedNotification?.badgeClass" x-text="selectedNotification?.badge">Category</span>
-                <p class="text-xs text-gray-650 leading-relaxed" x-text="selectedNotification?.description">
-                    Full notification description message text goes here.
-                </p>
+                <span class="px-2 py-0.5 rounded text-[9px] font-semibold" :class="selectedNotification?.badgeClass" x-text="selectedNotification?.badge"></span>
+                <p class="text-xs text-gray-650 leading-relaxed" x-text="selectedNotification?.description"></p>
             </div>
             <div class="pt-4 flex justify-end">
                 <button @click="selectedNotification = null" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors cursor-pointer">
                     Close
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Repository Upload Modal -->
+    <div x-show="showRepositoryUploadModal" x-transition x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+        <div @click.away="showRepositoryUploadModal = false" class="bg-white rounded-3xl w-full max-w-lg p-6 shadow-xl space-y-5">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="font-bold text-gray-900">Upload Repository Document</h3>
+                    <p class="text-xs text-gray-500 mt-1">PDF or DOCX only, up to 10 MB.</p>
+                </div>
+                <button type="button" @click="showRepositoryUploadModal = false" class="text-gray-400 hover:text-gray-600 text-lg">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+            <hr class="border-gray-100">
+            <form
+                method="POST"
+                action="{{ route('adviser.repository.documents.store') }}"
+                enctype="multipart/form-data"
+                class="space-y-4"
+                x-data="{ uploading: false }"
+                @submit="if (uploading) { $event.preventDefault() } else { uploading = true }"
+            >
+                @csrf
+                <input type="hidden" name="submission_token" value="{{ (string) Illuminate\Support\Str::uuid() }}">
+                <div>
+                    <label for="repository_document" class="block text-xs font-bold text-gray-700 mb-2">Research document</label>
+                    <input
+                        id="repository_document"
+                        name="document"
+                        type="file"
+                        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        required
+                        class="block w-full text-sm text-gray-600 border border-gray-200 rounded-xl file:mr-4 file:border-0 file:bg-emerald-50 file:px-4 file:py-3 file:text-xs file:font-bold file:text-[#0e5c3a]"
+                    >
+                    <p class="text-[11px] text-gray-400 mt-2">Files are signature-checked, renamed securely, and stored outside the public web directory.</p>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" @click="showRepositoryUploadModal = false" class="px-4 py-2.5 bg-gray-100 text-gray-700 text-xs font-bold rounded-xl">
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        :disabled="uploading"
+                        class="px-5 py-2.5 bg-[#0e5c3a] disabled:opacity-60 text-white text-xs font-bold rounded-xl flex items-center gap-2"
+                    >
+                        <i class="ph ph-upload-simple"></i>
+                        <span x-text="uploading ? 'Uploading...' : 'Upload Document'">Upload Document</span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 

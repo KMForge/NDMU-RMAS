@@ -344,9 +344,24 @@ class GetStudentDashboardData
             return collect();
         }
 
-        return DB::table('revision_requests')
-            ->addSelect([
-                'revision_requests.*',
+        $supportsAssignedWorkflow = Schema::hasColumns('revision_requests', [
+            'assigned_to',
+            'document_id',
+        ]);
+
+        if (! $supportsAssignedWorkflow && $researchProjectId === null) {
+            return collect();
+        }
+
+        $query = DB::table('revision_requests')
+            ->select('revision_requests.*')
+            ->selectRaw('? as workflow_enabled', [$supportsAssignedWorkflow]);
+
+        if (
+            $supportsAssignedWorkflow
+            && Schema::hasColumn('documents', 'revision_request_id')
+        ) {
+            $query->addSelect([
                 'latest_document_id' => Document::query()
                     ->select('id')
                     ->whereColumn('revision_request_id', 'revision_requests.id')
@@ -357,12 +372,25 @@ class GetStudentDashboardData
                     ->whereColumn('revision_request_id', 'revision_requests.id')
                     ->latest('submitted_at')
                     ->limit(1),
-            ])
-            ->where(function ($query) use ($userId, $researchProjectId): void {
-                $query->where('assigned_to', $userId);
+            ]);
+        } else {
+            $query->selectRaw('NULL as latest_document_id, NULL as latest_document_name');
+        }
+
+        return $query
+            ->where(function ($revisionQuery) use (
+                $supportsAssignedWorkflow,
+                $userId,
+                $researchProjectId,
+            ): void {
+                if ($supportsAssignedWorkflow) {
+                    $revisionQuery->where('assigned_to', $userId);
+                }
 
                 if ($researchProjectId !== null) {
-                    $query->orWhere('research_project_id', $researchProjectId);
+                    $supportsAssignedWorkflow
+                        ? $revisionQuery->orWhere('research_project_id', $researchProjectId)
+                        : $revisionQuery->where('research_project_id', $researchProjectId);
                 }
             })
             ->latest('created_at')
