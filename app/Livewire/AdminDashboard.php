@@ -4,15 +4,35 @@ namespace App\Livewire;
 
 use App\Enums\AccountStatus;
 use App\Models\User;
+use App\Modules\Dashboard\Queries\GetAdminDashboardData;
+use App\Modules\UserManagement\Actions\ManageUserAccount;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class AdminDashboard extends Component
 {
     use WithPagination;
+
+    private const MANAGED_ROLES = [
+        'system-administrator',
+        'college-dean',
+        'research-facilitator',
+        'research-adviser',
+        'panelist',
+        'student-researcher',
+    ];
+
+    private const CREATABLE_STAFF_ROLES = [
+        'research-adviser',
+        'panelist',
+        'research-facilitator',
+        'college-dean',
+    ];
 
     // Search and filter inputs
     public string $searchQuery = '';
@@ -39,70 +59,106 @@ class AdminDashboard extends Component
 
     public function mount(): void
     {
+        Gate::authorize('viewAny', User::class);
         $this->department = (string) config('academic.college.name');
     }
 
-    public function approveStudent(int $userId): void
+    public function updatedSearchQuery(string $value): void
     {
-        $user = User::findOrFail($userId);
-        $user->update([
-            'status' => AccountStatus::Active,
-            'approved_at' => now(),
-        ]);
+        $this->searchQuery = mb_substr(strip_tags($value), 0, 100);
+        $this->resetPage();
+    }
 
-        // Ensure student has role
-        if (! $user->hasRole('student-researcher')) {
-            $user->assignRole('student-researcher');
+    public function updatedSelectedRole(string $value): void
+    {
+        if ($value !== '' && ! in_array($value, self::MANAGED_ROLES, true)) {
+            $this->selectedRole = '';
         }
 
-        Cache::forget('admin-dashboard.overview');
+        $this->resetPage();
+    }
+
+    public function refreshUserManagement(): void
+    {
+        Gate::authorize('viewAny', User::class);
+        $this->resetValidation();
+        $this->successMessage = null;
+        $this->clearDashboardCache();
+    }
+
+    public function approveStudent(int $userId, ManageUserAccount $manageUserAccount): void
+    {
+        $user = User::query()->findOrFail($userId);
+        Gate::authorize('changeStatus', $user);
+        $manageUserAccount->approveStudent($user, $this->administrator());
+
+        $this->clearDashboardCache();
         $this->successMessage = "Student {$user->name} has been approved.";
     }
 
-    public function rejectStudent(int $userId): void
+    public function rejectStudent(int $userId, ManageUserAccount $manageUserAccount): void
     {
-        $user = User::findOrFail($userId);
-        $user->update([
-            'status' => AccountStatus::Rejected,
-            'approved_at' => null,
-        ]);
+        $user = User::query()->findOrFail($userId);
+        Gate::authorize('changeStatus', $user);
+        $manageUserAccount->rejectStudent($user, $this->administrator());
 
-        Cache::forget('admin-dashboard.overview');
+        $this->clearDashboardCache();
         $this->successMessage = "Student {$user->name} registration has been rejected.";
     }
 
-    public function createStaffAccount(): void
+    public function activateUser(int $userId, ManageUserAccount $manageUserAccount): void
     {
+        $user = User::query()->findOrFail($userId);
+        Gate::authorize('changeStatus', $user);
+        $manageUserAccount->activate($user, $this->administrator());
+
+        $this->clearDashboardCache();
+        $this->successMessage = "Account for {$user->name} has been activated.";
+    }
+
+    public function suspendUser(int $userId, ManageUserAccount $manageUserAccount): void
+    {
+        $user = User::query()->findOrFail($userId);
+        Gate::authorize('changeStatus', $user);
+        $manageUserAccount->suspend($user, $this->administrator());
+
+        $this->clearDashboardCache();
+        $this->successMessage = "Account for {$user->name} has been suspended.";
+    }
+
+    public function createStaffAccount(ManageUserAccount $manageUserAccount): void
+    {
+        Gate::authorize('create', User::class);
+
+        $this->name = trim(strip_tags($this->name));
+        $this->email = mb_strtolower(trim($this->email));
+
         $this->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
-            'role' => 'required|string|in:research-adviser,panelist,research-facilitator,college-dean',
-            'password' => 'required|string|min:8',
+            'role' => 'required|string|in:'.implode(',', self::CREATABLE_STAFF_ROLES),
+            'password' => ['required', 'string', Password::min(12)->mixedCase()->letters()->numbers()->symbols()],
         ]);
 
         $college = (string) config('academic.college.name');
 
-        $user = User::create([
+        $user = $manageUserAccount->createStaff([
             'name' => $this->name,
             'email' => $this->email,
-            'password' => Hash::make($this->password),
-            'status' => AccountStatus::Active,
-            'approved_at' => now(),
-            'email_verified_at' => now(),
+            'password' => $this->password,
             'department' => $college,
-        ]);
+            'role' => $this->role,
+        ], $this->administrator());
 
-        $user->assignRole($this->role);
-
-        Cache::forget('admin-dashboard.overview');
-        $this->successMessage = "Staff account for {$this->name} created successfully.";
+        $this->clearDashboardCache();
+        $this->successMessage = "Staff account for {$user->name} created successfully.";
 
         $this->reset(['name', 'email', 'role', 'password']);
         $this->department = $college;
         $this->dispatch('staff-account-created');
     }
 
-    public function render()
+    public function render(GetAdminDashboardData $getAdminDashboardData)
     {
         $data = [
             'totalUsersCount' => 0,
@@ -115,12 +171,14 @@ class AdminDashboard extends Component
             'recentActivities' => [],
             'usersList' => null,
             'pendingStudents' => collect(),
+            'administrator' => $this->administrator(),
         ];
 
         $data = array_merge(
             $data,
             $this->dashboardData(),
             $this->userManagementData(),
+            $getAdminDashboardData->get(),
         );
 
         return view('livewire.admin-dashboard-content', $data);
@@ -163,24 +221,6 @@ class AdminDashboard extends Component
                 'text' => "New {$roleLabel} registered: {$user->email}",
                 'time' => $user->created_at->diffForHumans(),
             ];
-        }
-
-        if (count($recentActivities) < 4) {
-            // Fill up with mockup data if less than 4 users
-            $mockups = [
-                'Research submitted: IoT Smart Agriculture',
-                'Defense scheduled for May 25, 2026',
-                'Document approved by Dr. Maria Santos',
-                'System updates applied successfully',
-            ];
-            $i = 0;
-            while (count($recentActivities) < 4 && $i < count($mockups)) {
-                $recentActivities[] = [
-                    'text' => $mockups[$i],
-                    'time' => 'Recently',
-                ];
-                $i++;
-            }
         }
 
         return [
@@ -234,5 +274,20 @@ class AdminDashboard extends Component
             'usersList' => $usersList,
             'pendingStudents' => $pendingStudents,
         ];
+    }
+
+    private function administrator(): User
+    {
+        $administrator = Auth::user();
+
+        abort_unless($administrator instanceof User, 401);
+
+        return $administrator;
+    }
+
+    private function clearDashboardCache(): void
+    {
+        Cache::forget('admin-dashboard.overview');
+        $this->resetPage();
     }
 }

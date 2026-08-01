@@ -56,8 +56,32 @@ class AdminDashboardTest extends TestCase
             ->assertDontSee('Updating dashboard')
             ->assertSee('Admin Dashboard')
             ->assertSee('User Management')
+            ->assertSee('Pending Actions')
+            ->assertSee('Security Overview')
+            ->assertSee('System Health')
+            ->assertSee('Student Registrations')
+            ->assertSee('Private Storage')
             ->assertSee('Administrator')
             ->assertSee('Temporary Password');
+    }
+
+    public function test_admin_dashboard_does_not_render_sample_records(): void
+    {
+        $admin = User::factory()->create(['name' => 'Current Administrator']);
+        $admin->assignRole('system-administrator');
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->assertOk()
+            ->assertSee('Current Administrator')
+            ->assertSee('No research documents found.')
+            ->assertSee('No research proposals found.')
+            ->assertSee('No revision records found.')
+            ->assertDontSee('AI-Powered Traffic Management System')
+            ->assertDontSee('Blockchain-Based Voting System')
+            ->assertDontSee('IoT Smart Agriculture')
+            ->assertDontSee('Dr. Maria Santos');
     }
 
     public function test_admin_can_approve_pending_student(): void
@@ -85,6 +109,27 @@ class AdminDashboardTest extends TestCase
         $this->assertNotNull($student->approved_at);
     }
 
+    public function test_processed_student_registration_cannot_be_processed_again(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+
+        $student = User::factory()->create([
+            'status' => AccountStatus::Pending,
+            'approved_at' => null,
+        ]);
+        $student->assignRole('student-researcher');
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->call('approveStudent', $student->id)
+            ->call('rejectStudent', $student->id)
+            ->assertHasErrors(['account']);
+
+        $this->assertEquals(AccountStatus::Active, $student->refresh()->status);
+    }
+
     public function test_admin_can_reject_pending_student(): void
     {
         $admin = User::factory()->create();
@@ -108,6 +153,45 @@ class AdminDashboardTest extends TestCase
         $this->assertNull($student->approved_at);
     }
 
+    public function test_admin_can_suspend_and_reactivate_another_account(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+
+        $adviser = User::factory()->create([
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+        ]);
+        $adviser->assignRole('research-adviser');
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->call('suspendUser', $adviser->id)
+            ->assertHasNoErrors()
+            ->assertSet('successMessage', "Account for {$adviser->name} has been suspended.")
+            ->call('activateUser', $adviser->id)
+            ->assertHasNoErrors()
+            ->assertSet('successMessage', "Account for {$adviser->name} has been activated.");
+
+        $this->assertEquals(AccountStatus::Active, $adviser->refresh()->status);
+        $this->assertNotNull($adviser->approved_at);
+    }
+
+    public function test_admin_cannot_change_their_own_account_status(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->call('suspendUser', $admin->id)
+            ->assertForbidden();
+
+        $this->assertEquals(AccountStatus::Active, $admin->refresh()->status);
+    }
+
     public function test_admin_can_create_staff_account(): void
     {
         $admin = User::factory()->create();
@@ -116,6 +200,7 @@ class AdminDashboardTest extends TestCase
         $this->actingAs($admin);
 
         Livewire::test(AdminDashboard::class)
+            ->assertSee('College of Engineering, Architecture, and Computing (CEAC)')
             ->set('name', 'Dr. Lourdes Castillo')
             ->set('email', 'l.castillo@ndmu.edu.ph')
             ->set('role', 'college-dean')
@@ -150,7 +235,20 @@ class AdminDashboardTest extends TestCase
                 'name' => 'required',
                 'email' => 'email',
                 'role' => 'in',
-                'password' => 'min',
+                'password',
             ]);
+    }
+
+    public function test_invalid_role_filter_is_discarded(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->set('selectedRole', 'role-that-does-not-exist')
+            ->assertSet('selectedRole', '')
+            ->assertOk();
     }
 }
