@@ -3,6 +3,7 @@
 use App\Http\Controllers\Student\ConsultationController;
 use App\Http\Controllers\Student\DashboardController;
 use App\Http\Controllers\Student\DocumentController;
+use App\Http\Controllers\Student\OfficialFormController;
 use App\Http\Controllers\Student\ResearchClassController;
 use App\Http\Controllers\Student\RevisionRequestController;
 use Illuminate\Support\Facades\Route;
@@ -11,6 +12,11 @@ Route::prefix('student')->name('student.')->middleware([
     'auth', 'verified', 'active', 'role:student-researcher', 'permission:research.view-own',
 ])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    Route::get('/official-forms/{form}/source', [OfficialFormController::class, 'source'])
+        ->where('form', 'RES-[0-9]{3}')
+        ->middleware('throttle:60,1')
+        ->name('official-forms.source');
 
     Route::post('/documents', [DocumentController::class, 'store'])
         ->middleware('throttle:document-uploads')

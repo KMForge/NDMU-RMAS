@@ -1,0 +1,7 @@
+<template x-if="activeOfficialForm === 'RES-048'"><div><x-student-official-form code="RES-Form-048" title="Self and Peer Evaluation" guidebook-page="141">
+    <div class="grid gap-4 md:grid-cols-2"><label>Name of Evaluator:<input name="evaluator" class="w-full"></label><label>Date:<input type="date" name="date" class="w-full"></label></div><label class="block">Research Title:<input name="research_title" class="w-full"></label>
+    <p class="text-xs">Rate yourself and each group member using the prescribed scale. Enter the name of each student in the column heading.</p>
+    <table class="official-form-table text-xs"><thead><tr><th>Area</th><th class="w-20">Self</th><th>Peer 1</th><th>Peer 2</th><th>Peer 3</th></tr></thead><tbody>@foreach (['Participation in planning','Attendance and punctuality','Quality of assigned work','Cooperation and teamwork','Initiative and responsibility','Contribution to writing','Respect for group decisions'] as $criterionIndex => $criterion)<tr><td>{{ $criterion }}</td>@for ($i=0;$i<4;$i++)<td><input type="number" min="1" max="5" name="ratings[{{ $criterionIndex }}][{{ $i }}]" class="w-full text-center"></td>@endfor</tr>@endforeach<tr><td class="font-bold">Total</td>@for ($i=0;$i<4;$i++)<td></td>@endfor</tr></tbody></table>
+    <label class="block">Comments:<textarea name="comments" class="mt-2 min-h-28 w-full"></textarea></label>
+    <div class="mx-auto mt-10 max-w-xs border-t border-[#173c30] pt-1 text-center">Signature of Evaluator</div>
+</x-student-official-form></div></template>

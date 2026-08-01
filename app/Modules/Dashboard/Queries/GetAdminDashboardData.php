@@ -133,8 +133,9 @@ class GetAdminDashboardData
     {
         try {
             $disk = (string) config('ndmu-rmas.document.storage_disk', 'local');
+            Storage::disk($disk)->files('', false);
 
-            return Storage::disk($disk)->directoryExists('');
+            return true;
         } catch (Throwable) {
             return false;
         }
@@ -430,7 +431,9 @@ class GetAdminDashboardData
             ->get();
         $advisers = $this->advisersByProject($rows->pluck('research_project_id'));
 
-        return $rows->map(function (object $row) use ($advisers): array {
+        $adviserNames = $advisers->all();
+
+        return $rows->map(function (object $row) use ($adviserNames): array {
             $start = $row->starts_at === null ? null : Carbon::parse($row->starts_at);
             $end = $row->ends_at === null ? null : Carbon::parse($row->ends_at);
             $duration = $start !== null && $end !== null
@@ -450,7 +453,7 @@ class GetAdminDashboardData
                 'time' => $start?->format('H:i') ?? '',
                 'duration' => $duration,
                 'venue' => $venue,
-                'adviser' => $advisers->get($row->research_project_id, ''),
+                'adviser' => (string) ($adviserNames[(int) $row->research_project_id] ?? ''),
                 'panelists' => [],
                 'status' => Str::headline((string) ($row->schedule_status ?? $row->request_status)),
                 'notes' => $row->notes ?? $row->remarks ?? '',
