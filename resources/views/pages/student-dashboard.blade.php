@@ -40,6 +40,7 @@
         activeFormPhase: @js($initialFormPhase),
         activeOfficialForm: @js($initialOfficialForm),
         officialForms: @js($officialForms),
+        researchProgress: @js($progressPercentage),
         formsExpanded: @js($initialTab === 'forms'),
         showConsultationModal: @js($showConsultationModal),
         showJoinClassModal: @js($showJoinClassModal)
@@ -409,7 +410,7 @@
                                         <span class="font-bold text-emerald-700">{{ $progressPercentage }}%</span>
                                     </div>
                                     <div class="h-3 rounded-full bg-white mt-3 overflow-hidden">
-                                        <div class="h-full rounded-full bg-[#00a36c]" style="width: {{ $progressPercentage }}%"></div>
+                                        <div class="h-full rounded-full bg-[#00a36c]" :style="{ width: researchProgress + '%' }"></div>
                                     </div>
 
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
