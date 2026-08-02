@@ -1,0 +1,8 @@
+<div x-show="activeOfficialForm === 'RES-047'" x-cloak>
+    <x-student-official-form code="RES-Form-047" title="Endorsement for Reproduction of the Research Paper" guidebook-page="133">
+        <label class="ml-auto flex w-fit items-center gap-2">Date: <input type="date" name="res_047_date"></label><p><input name="res_047_college_dean" class="w-72" placeholder="College Dean"><br>College of <input name="res_047_college" value="Engineering, Architecture, and Computing" class="w-80"></p><p>Dear <input name="res_047_salutation" class="w-56">,</p>
+        <p>After a thorough examination of the revised research paper entitled:</p><input name="res_047_research_title" class="w-full text-center" aria-label="Research title"><p>of the following students:</p><div class="grid gap-3 md:grid-cols-2">@for ($i=1; $i<=4; $i++)<label class="flex gap-2"><span>{{ $i }}.</span><input name="res_047_students[]" class="flex-1"></label>@endfor</div>
+        <p class="leading-7">I further attest that the research paper has incorporated the corrections and suggestions of the panel of examiners and was duly edited by proficient language and technical editors. Hence, I highly endorse the attached hard copy for reproduction and hard binding.</p><p>For your approval.</p>
+        <div class="grid gap-8 pt-10 text-center md:grid-cols-2"><label><input name="res_047_adviser_signature" class="w-full text-center"><span class="block font-bold">Endorsed: Research Adviser (Name & Electronic Signature)</span><input type="date" name="res_047_endorsed_at" class="mt-2"></label><div class="border-t border-[#173c30] pt-1">Approved: College Dean<br><small>(Name & Signature / Date Approved)</small></div></div>
+    </x-student-official-form>
+</div>

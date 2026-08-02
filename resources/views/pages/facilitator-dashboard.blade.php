@@ -1,5 +1,20 @@
 @extends('layouts.blank')
 
+@php
+    $allowedTabs = ['dashboard', 'monitoring', 'advisers', 'screening', 'defenses', 'statistics', 'reports', 'repository', 'forms', 'notifications', 'settings'];
+    $initialTab = in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard';
+    $officialFormPhases = $officialFormPhases ?? [];
+    $officialForms = $officialForms ?? [];
+    $officialFormsByPhase = collect($officialForms)->groupBy('phase', preserveKeys: true);
+    $requestedOfficialForm = request()->query('form');
+    $initialOfficialForm = is_string($requestedOfficialForm) && array_key_exists($requestedOfficialForm, $officialForms)
+        ? $requestedOfficialForm
+        : array_key_first($officialForms);
+    $initialFormPhase = $initialOfficialForm === null
+        ? array_key_first($officialFormPhases)
+        : $officialForms[$initialOfficialForm]['phase'];
+@endphp
+
 @section('content')
 <style>
     [x-cloak] { display: none !important; }
@@ -20,7 +35,11 @@
 </style>
 
 <div class="min-h-screen flex font-sans bg-[#f4f7f6]" x-data="{ 
-    activeTab: 'dashboard',
+    activeTab: @js($initialTab),
+    activeFormPhase: @js($initialFormPhase),
+    activeOfficialForm: @js($initialOfficialForm),
+    officialForms: @js($officialForms),
+    formsExpanded: @js($initialTab === 'forms'),
     notificationsFilter: 'all',
     showApprovalModal: false,
     selectedApproval: null,
@@ -1021,20 +1040,44 @@
             </div>
 
             <!-- Research Forms Section -->
-            <div class="space-y-1.5 pt-4">
+            <div class="space-y-1.5 pt-4 border-t border-white/10">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Research Forms</span>
-                
-                <button 
+
+                <button
                     type="button"
-                    @click="alert('Official NDMU Forms are ready for download')"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200 text-left cursor-pointer"
+                    @click="formsExpanded = ! formsExpanded; activeTab = 'forms'"
+                    :class="activeTab === 'forms' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                    :aria-expanded="formsExpanded"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] transition-all duration-200 text-left cursor-pointer"
                 >
                     <div class="flex items-center gap-3">
                         <i class="ph ph-file-pdf text-lg"></i>
                         <span>Official Forms</span>
                     </div>
-                    <i class="ph ph-caret-right text-xs text-white/60"></i>
+                    <i class="ph ph-caret-right text-xs transition-transform duration-200" :class="formsExpanded && 'rotate-90'"></i>
                 </button>
+
+                <div x-show="formsExpanded" x-cloak x-transition class="mt-1 space-y-0.5">
+                    @foreach ($officialFormPhases as $phase => $label)
+                        @php
+                            $phaseForms = $officialFormsByPhase->get($phase, collect());
+                        @endphp
+                        <div>
+                            <button type="button" @click="activeTab = 'forms'; activeFormPhase = activeFormPhase === '{{ $phase }}' ? null : '{{ $phase }}'" class="w-full flex items-center justify-between gap-2 py-2 pl-4 pr-3 rounded-xl text-white/55 hover:text-white hover:bg-white/5 transition-colors duration-200 text-[11px] font-semibold text-left">
+                                <span class="flex min-w-0 items-start gap-2"><i class="ph ph-caret-right mt-0.5 shrink-0 text-[10px] transition-transform duration-200" :class="activeFormPhase === '{{ $phase }}' && 'rotate-90'"></i><span class="leading-4">{{ $label }}</span></span>
+                                <span class="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#eebc3f]/20 px-1.5 text-[9px] font-bold text-[#eebc3f]">{{ $phaseForms->count() }}</span>
+                            </button>
+                            <div x-show="activeFormPhase === '{{ $phase }}'" x-cloak x-transition class="mt-0.5 space-y-0.5 pl-2">
+                                @foreach ($phaseForms as $code => $form)
+                                    <button type="button" @click="activeTab = 'forms'; activeOfficialForm = '{{ $code }}'" :class="activeOfficialForm === '{{ $code }}' ? 'bg-[#eebc3f] text-[#0e5c3a] ring-1 ring-white font-bold' : 'text-white/70 hover:text-white hover:bg-white/5'" class="w-full flex items-start gap-2 rounded-xl px-3 py-2 text-left transition-colors duration-200">
+                                        <i class="ph ph-file-plus mt-0.5 shrink-0 text-sm"></i>
+                                        <span class="min-w-0"><span class="block text-[10px] font-bold">{{ $code }}</span><span class="block text-[10px] leading-3.5">{{ $form['title'] }}</span></span>
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
             </div>
         </div>
 
@@ -3043,8 +3086,13 @@
                 ])
             </div>
 
+            <!-- TAB: Official Facilitator Forms -->
+            <div x-show="activeTab === 'forms'" x-cloak class="space-y-6 animate-fade-in">
+                @include('pages.facilitator.forms.index')
+            </div>
+
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'settings', 'monitoring', 'advisers', 'screening', 'defenses', 'statistics', 'reports', 'repository'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'settings', 'monitoring', 'advisers', 'screening', 'defenses', 'statistics', 'reports', 'repository', 'forms'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
