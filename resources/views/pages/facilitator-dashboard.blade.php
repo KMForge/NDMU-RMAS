@@ -754,6 +754,7 @@
         alert('Requested revisions for Chapter 3 methodology document.');
     },
 
+    rejectReportsDocument() {
         alert('Rejected Chapter 3 methodology document.');
     },
 

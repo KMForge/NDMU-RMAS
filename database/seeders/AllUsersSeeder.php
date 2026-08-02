@@ -19,7 +19,7 @@ class AllUsersSeeder extends Seeder
         ['role' => 'Student (test)', 'email' => 'student.test@ndmu.edu.ph', 'password' => 'TestOnly!2345'],
         ['role' => 'System administrator', 'email' => 'admin@ndmu.edu.ph', 'password' => 'Password!12345'],
         ['role' => 'College dean', 'email' => 'l.castillo@ndmu.edu.ph', 'password' => 'Password!12345'],
-        ['role' => 'Research facilitator', 'email' => 'r.dela-paz@ndmu.edu.ph', 'password' => 'Password!12345'],
+        ['role' => 'Research facilitator', 'email' => 'r.dela-paz@ndmu.edu.ph', 'password' => ''],
         ['role' => 'Research facilitator', 'email' => 'j.montero@ndmu.edu.ph', 'password' => 'Password!12345'],
         ['role' => 'Research adviser', 'email' => 'r.garcia@ndmu.edu.ph', 'password' => 'Password!12345'],
         ['role' => 'Research adviser', 'email' => 'm.tan@ndmu.edu.ph', 'password' => 'Password!12345'],
