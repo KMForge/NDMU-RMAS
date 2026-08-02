@@ -656,13 +656,6 @@
                         <h1 class="text-2xl md:text-3xl font-extrabold font-heading text-slate-900 tracking-tight">Welcome back, Dr. Antonio Santos</h1>
                         <p class="text-xs text-slate-500 max-w-xl">Review and evaluate research proposal & final defense presentations • Defense Panelist</p>
                     </div>
-
-                    <div class="relative z-10 flex items-center gap-3">
-                        <button @click="activeTab = 'evaluation'" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer">
-                            <i class="ph ph-file-text text-base"></i>
-                            <span>Defense Evaluations</span>
-                        </button>
-                    </div>
                 </div>
 
                 <!-- Stats Cards Row (4 Columns matching layout) -->
