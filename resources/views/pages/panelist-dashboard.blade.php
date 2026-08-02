@@ -646,67 +646,79 @@
                     <p class="text-xs text-gray-450 mt-1">Review and evaluate research defenses</p>
                 </div>
 
-                <!-- Stats Cards Row (4 Columns with left borders) -->
+                <!-- Stats Cards Row (4 Columns matching layout) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Upcoming Defenses -->
-                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-emerald-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Upcoming Defenses</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block">5</span>
+                            <span class="w-11 h-11 rounded-xl bg-emerald-50/80 text-[#0e5c3a] border border-emerald-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-calendar"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Upcoming Defenses</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">5</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-calendar"></i>
+                        <span class="text-emerald-600 text-xl font-bold">
+                            <i class="ph ph-clock"></i>
                         </span>
                     </div>
 
                     <!-- Pending Evaluations -->
-                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-blue-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Pending Evaluations</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block">3</span>
+                            <span class="w-11 h-11 rounded-xl bg-blue-50/80 text-blue-700 border border-blue-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-file-text"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Pending Evaluations</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">3</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-file-text"></i>
+                        <span class="text-blue-500 text-xl font-bold">
+                            <i class="ph ph-clipboard-text"></i>
                         </span>
                     </div>
 
                     <!-- Completed Reviews -->
-                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-amber-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Completed Reviews</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block">24</span>
+                            <span class="w-11 h-11 rounded-xl bg-amber-50/80 text-amber-700 border border-amber-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-star"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Completed Reviews</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">24</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-star"></i>
+                        <span class="text-amber-500 text-xl font-bold">
+                            <i class="ph ph-check-circle"></i>
                         </span>
                     </div>
 
                     <!-- Average Score -->
-                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-purple-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Average Score</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block">87%</span>
+                            <span class="w-11 h-11 rounded-xl bg-purple-50/80 text-purple-700 border border-purple-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-chart-line-up"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Average Score</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">87%</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-500 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-chart-line-up"></i>
+                        <span class="text-purple-500 text-xl font-bold">
+                            <i class="ph ph-trend-up"></i>
                         </span>
                     </div>
                 </div>
 
                 <!-- Scheduled Defense Panels section -->
-                <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
-                    <h3 class="font-bold text-gray-800 text-sm pb-2 border-b border-gray-50">Scheduled Defense Panels</h3>
+                <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-6">
+                    <h3 class="font-heading font-bold text-slate-900 text-sm pb-2 border-b border-slate-100 tracking-tight">Scheduled Defense Panels</h3>
                     
                     <div class="space-y-4">
                         <template x-for="def in defenses" :key="def.id">
-                            <div class="border border-gray-100/50 bg-gray-50/5 rounded-2xl p-5 flex items-center justify-between hover:border-emerald-100 hover:bg-emerald-50/5 transition-all">
+                            <div class="border border-slate-200/60 bg-slate-50/30 rounded-xl p-5 flex items-center justify-between hover:border-emerald-200 hover:bg-slate-50/80 transition-all">
                                 <div>
-                                    <h4 class="font-bold text-gray-850 text-sm" x-text="def.student">Student Name</h4>
-                                    <span class="text-xs text-gray-400 block mt-0.5" x-text="def.type">Defense Type</span>
+                                    <h4 class="font-bold text-slate-900 text-sm" x-text="def.student">Student Name</h4>
+                                    <span class="text-xs text-slate-500 block mt-0.5" x-text="def.type">Defense Type</span>
                                 </div>
                                 <div class="text-right">
-                                    <span class="text-xs text-gray-500 block font-semibold" x-text="def.date">Date</span>
-                                    <button @click="selectedDefense = def" class="px-4 py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl mt-2 shadow-sm transition-colors cursor-pointer">
+                                    <span class="text-xs text-slate-500 block font-medium" x-text="def.date">Date</span>
+                                    <button @click="selectedDefense = def" class="px-4 py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl mt-2 shadow-xs transition-colors cursor-pointer">
                                         View Details
                                     </button>
                                 </div>

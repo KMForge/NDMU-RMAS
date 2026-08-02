@@ -1144,29 +1144,29 @@
                 <!-- Stats Cards Row (4 Columns matching widgets) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Active Research -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl mb-3">
+                            <span class="w-11 h-11 rounded-xl bg-emerald-50/80 text-[#0e5c3a] border border-emerald-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
                                 <i class="ph ph-book-open"></i>
                             </span>
-                            <span class="text-xs text-gray-400 font-semibold block">Active Research</span>
-                            <span class="text-2xl font-bold text-gray-800 mt-1 block">0</span>
-                            <span class="text-[10px] text-emerald-600 font-bold mt-1 block">&nbsp;</span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Active Research</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">0</span>
+                            <span class="text-[10px] text-emerald-600 font-medium mt-1 block">&nbsp;</span>
                         </div>
-                        <span class="text-emerald-500 text-xl font-bold">
+                        <span class="text-emerald-600 text-xl font-bold">
                             <i class="ph ph-trend-up"></i>
                         </span>
                     </div>
 
                     <!-- Pending Approvals -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl mb-3">
+                            <span class="w-11 h-11 rounded-xl bg-amber-50/80 text-amber-700 border border-amber-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
                                 <i class="ph ph-clipboard-text"></i>
                             </span>
-                            <span class="text-xs text-gray-400 font-semibold block">Pending Approvals</span>
-                            <span class="text-2xl font-bold text-gray-800 mt-1 block">0</span>
-                            <span class="text-[10px] text-amber-600 font-bold mt-1 block">&nbsp;</span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Pending Approvals</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">0</span>
+                            <span class="text-[10px] text-amber-600 font-medium mt-1 block">&nbsp;</span>
                         </div>
                         <span class="text-amber-500 text-xl font-bold">
                             <i class="ph ph-warning-circle"></i>
@@ -1174,14 +1174,14 @@
                     </div>
 
                     <!-- Upcoming Defenses -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl mb-3">
+                            <span class="w-11 h-11 rounded-xl bg-blue-50/80 text-blue-700 border border-blue-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
                                 <i class="ph ph-calendar"></i>
                             </span>
-                            <span class="text-xs text-gray-400 font-semibold block">Upcoming Defenses</span>
-                            <span class="text-2xl font-bold text-gray-800 mt-1 block">0</span>
-                            <span class="text-[10px] text-blue-600 font-bold mt-1 block">&nbsp;</span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Upcoming Defenses</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">0</span>
+                            <span class="text-[10px] text-blue-600 font-medium mt-1 block">&nbsp;</span>
                         </div>
                         <span class="text-blue-500 text-xl font-bold">
                             <i class="ph ph-clock"></i>
@@ -1189,14 +1189,14 @@
                     </div>
 
                     <!-- Completed (2026) -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl mb-3">
+                            <span class="w-11 h-11 rounded-xl bg-purple-50/80 text-purple-700 border border-purple-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
                                 <i class="ph ph-certificate"></i>
                             </span>
-                            <span class="text-xs text-gray-400 font-semibold block">Completed</span>
-                            <span class="text-2xl font-bold text-gray-800 mt-1 block">0</span>
-                            <span class="text-[10px] text-purple-600 font-bold mt-1 block">&nbsp;</span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Completed</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">0</span>
+                            <span class="text-[10px] text-purple-600 font-medium mt-1 block">&nbsp;</span>
                         </div>
                         <span class="text-purple-500 text-xl font-bold">
                             <i class="ph ph-trend-up"></i>
@@ -1207,24 +1207,24 @@
                 <!-- Graphs & Adviser Workloads Split Row -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <!-- Performance Trends Graph Mockup -->
-                    <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6 lg:col-span-2">
-                        <div class="flex justify-between items-center pb-2 border-b border-gray-50">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-6 lg:col-span-2">
+                        <div class="flex justify-between items-center pb-2 border-b border-slate-100">
                             <div>
-                                <h3 class="font-bold text-gray-800 text-sm">Research Performance Trends</h3>
-                                <p class="text-[10px] text-gray-400 mt-0.5">Monthly completion and submission rates</p>
+                                <h3 class="font-heading font-bold text-slate-900 text-sm tracking-tight">Research Performance Trends</h3>
+                                <p class="text-xs text-slate-500 mt-0.5">Monthly completion and submission rates</p>
                             </div>
-                            <select class="bg-gray-50 border border-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-xl outline-none">
+                            <select class="bg-slate-50 border border-slate-200 text-slate-700 text-xs px-3 py-1.5 rounded-xl outline-none font-medium">
                                 <option>Last 6 Months</option>
                                 <option>This Year</option>
                             </select>
                         </div>
 
                         <!-- Pure CSS/SVG line graph representation -->
-                        <div class="relative h-48 w-full flex items-end justify-between pt-4 px-2 border-b border-l border-gray-150">
+                        <div class="relative h-48 w-full flex items-end justify-between pt-4 px-2 border-b border-l border-slate-200">
                             <!-- SVG lines visual overlay representation -->
                             <svg class="absolute inset-0 w-full h-full p-2" viewBox="0 0 400 120" preserveAspectRatio="none">
                                 <!-- Completed Line (Green) -->
-                                <path d="M 0 90 Q 80 50 160 70 T 320 20 T 400 10" fill="none" stroke="#10b981" stroke-width="2" />
+                                <path d="M 0 90 Q 80 50 160 70 T 320 20 T 400 10" fill="none" stroke="#0e5c3a" stroke-width="2.5" />
                                 <!-- In Progress Line (Blue) -->
                                 <path d="M 0 100 Q 80 80 160 50 T 320 60 T 400 40" fill="none" stroke="#3b82f6" stroke-width="2" />
                                 <!-- Delayed Line (Yellow) -->
@@ -1232,26 +1232,26 @@
                             </svg>
                             
                             <!-- Columns to structure grid baseline references -->
-                            <span class="text-[9px] text-gray-400 font-bold relative z-10 bg-white px-1">Jan</span>
-                            <span class="text-[9px] text-gray-400 font-bold relative z-10 bg-gray-100 border border-gray-200 rounded px-1.5">Feb</span>
-                            <span class="text-[9px] text-gray-400 font-bold relative z-10 bg-white px-1">Mar</span>
-                            <span class="text-[9px] text-gray-400 font-bold relative z-10 bg-white px-1">Apr</span>
-                            <span class="text-[9px] text-gray-400 font-bold relative z-10 bg-white px-1">May</span>
-                            <span class="text-[9px] text-gray-400 font-bold relative z-10 bg-white px-1">Jun</span>
+                            <span class="text-[9px] text-slate-400 font-bold relative z-10 bg-white px-1">Jan</span>
+                            <span class="text-[9px] text-slate-500 font-bold relative z-10 bg-slate-100 border border-slate-200 rounded px-1.5">Feb</span>
+                            <span class="text-[9px] text-slate-400 font-bold relative z-10 bg-white px-1">Mar</span>
+                            <span class="text-[9px] text-slate-400 font-bold relative z-10 bg-white px-1">Apr</span>
+                            <span class="text-[9px] text-slate-400 font-bold relative z-10 bg-white px-1">May</span>
+                            <span class="text-[9px] text-slate-400 font-bold relative z-10 bg-white px-1">Jun</span>
                         </div>
 
                         <!-- Graph Legend -->
-                        <div class="flex items-center gap-6 text-[10px] font-semibold text-gray-650 justify-center">
-                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 block"></span> Completed</span>
+                        <div class="flex items-center gap-6 text-xs font-medium text-slate-600 justify-center">
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#0e5c3a] block"></span> Completed</span>
                             <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 block"></span> In Progress</span>
                             <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 block"></span> Delayed</span>
                         </div>
                     </div>
 
                     <!-- Adviser Workload -->
-                    <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-5">
-                        <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
-                            <i class="ph ph-users text-emerald-600 text-lg"></i>
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-5">
+                        <h3 class="font-heading font-bold text-slate-900 text-sm flex items-center gap-2 pb-2 border-b border-slate-100 tracking-tight">
+                            <i class="ph ph-users text-[#0e5c3a] text-lg"></i>
                             <span>Adviser Workload</span>
                         </h3>
 
@@ -1259,24 +1259,24 @@
                             <template x-for="adv in advisers" :key="adv.name">
                                 <div class="space-y-1">
                                     <div class="flex justify-between items-center text-xs">
-                                        <span class="font-semibold text-gray-700" x-text="adv.name">Adviser Name</span>
-                                        <span class="font-bold text-gray-800" x-text="`${adv.load}/${adv.max}`">8/10</span>
+                                        <span class="font-semibold text-slate-700" x-text="adv.name">Adviser Name</span>
+                                        <span class="font-bold text-slate-900" x-text="`${adv.load}/${adv.max}`">8/10</span>
                                     </div>
-                                    <div class="h-2 bg-gray-100 rounded-full w-full overflow-hidden">
+                                    <div class="h-2 bg-slate-100 rounded-full w-full overflow-hidden">
                                         <div class="h-full rounded-full transition-all duration-300" :class="adv.color" :style="`width: ${(adv.load/adv.max)*100}%`"></div>
                                     </div>
                                 </div>
                             </template>
                         </div>
 
-                        <button @click="activeTab = 'advisers'" class="w-full text-center py-2.5 text-[#0e5c3a] font-bold text-xs hover:underline mt-2">
+                        <button @click="activeTab = 'advisers'" class="w-full text-center py-2.5 text-[#0e5c3a] font-bold text-xs hover:underline mt-2 cursor-pointer">
                             View All Advisers →
                         </button>
                     </div>
                 </div>
 
                 <!-- Section: Pending Approvals & Endorsements (Screenshot 2) -->
-                <div id="pending-approvals" class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
+                <div id="pending-approvals" class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-6">
                     <div class="flex justify-between items-center pb-2 border-b border-gray-50">
                         <div>
                             <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2">

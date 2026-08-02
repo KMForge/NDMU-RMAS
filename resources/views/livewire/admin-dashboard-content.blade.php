@@ -293,45 +293,45 @@
                     <!-- Row of 4 statistics cards -->
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <!-- Card 1: Total Users -->
-                        <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-emerald-500 border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                             <div class="space-y-1">
-                                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Total Users</span>
-                                <span class="text-3xl font-extrabold text-gray-800 font-heading">{{ $totalUsersCount }}</span>
+                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Total Users</span>
+                                <span class="text-3xl font-extrabold text-slate-900 tracking-tight block">{{ $totalUsersCount }}</span>
                             </div>
-                            <div class="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 text-2xl">
+                            <div class="w-11 h-11 bg-emerald-50/80 text-[#0e5c3a] border border-emerald-100/60 rounded-xl flex items-center justify-center text-xl shadow-2xs">
                                 <i class="ph ph-users"></i>
                             </div>
                         </div>
 
                         <!-- Card 2: Active Research -->
-                        <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-blue-500 border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                             <div class="space-y-1">
-                                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Active Research</span>
-                                <span class="text-3xl font-extrabold text-gray-800 font-heading">{{ $activeResearchCount }}</span>
+                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Active Research</span>
+                                <span class="text-3xl font-extrabold text-slate-900 tracking-tight block">{{ $activeResearchCount }}</span>
                             </div>
-                            <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 text-2xl">
+                            <div class="w-11 h-11 bg-blue-50/80 text-blue-700 border border-blue-100/60 rounded-xl flex items-center justify-center text-xl shadow-2xs">
                                 <i class="ph ph-file-text"></i>
                             </div>
                         </div>
 
                         <!-- Card 3: Completed -->
-                        <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-purple-500 border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                             <div class="space-y-1">
-                                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Completed</span>
-                                <span class="text-3xl font-extrabold text-gray-800 font-heading">{{ $completedResearchCount }}</span>
+                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Completed</span>
+                                <span class="text-3xl font-extrabold text-slate-900 tracking-tight block">{{ $completedResearchCount }}</span>
                             </div>
-                            <div class="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 text-2xl">
+                            <div class="w-11 h-11 bg-purple-50/80 text-purple-700 border border-purple-100/60 rounded-xl flex items-center justify-center text-xl shadow-2xs">
                                 <i class="ph ph-trend-up"></i>
                             </div>
                         </div>
 
                         <!-- Card 4: System Activity -->
-                        <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-amber-500 border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                             <div class="space-y-1">
-                                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Recent Activity</span>
-                                <span class="text-3xl font-extrabold text-emerald-600 font-heading">{{ count($recentActivities) }}</span>
+                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Recent Activity</span>
+                                <span class="text-3xl font-extrabold text-slate-900 tracking-tight block">{{ count($recentActivities) }}</span>
                             </div>
-                            <div class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 text-2xl">
+                            <div class="w-11 h-11 bg-amber-50/80 text-amber-700 border border-amber-100/60 rounded-xl flex items-center justify-center text-xl shadow-2xs">
                                 <i class="ph ph-activity"></i>
                             </div>
                         </div>
@@ -340,7 +340,7 @@
                     <!-- Lower Section: Recent Activity & System Statistics -->
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <!-- Recent Activity Card -->
-                        <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100">
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200">
                             <h3 class="text-lg font-bold text-gray-800 mb-6">Recent Activity</h3>
                             <div class="space-y-4">
                                 @forelse($recentActivities as $activity)

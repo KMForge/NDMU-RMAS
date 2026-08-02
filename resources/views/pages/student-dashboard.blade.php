@@ -326,70 +326,90 @@
                 @endif
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="bg-[#08af78] rounded-2xl p-6 shadow-sm text-white">
-                        <div class="flex justify-between items-start">
-                            <span class="text-sm font-medium">Research Progress</span>
-                            <i class="ph ph-trend-up text-2xl text-white/80"></i>
-                        </div>
-                        <span class="text-4xl font-bold block mt-4">{{ $progressPercentage }}%</span>
-                        <p class="text-xs text-white/90 mt-1">
-                            @if ($dashboardOverview['total_milestones'] > 0)
-                                {{ $dashboardOverview['completed_milestones'] }} of {{ $dashboardOverview['total_milestones'] }} milestones completed
-                            @else
-                                No milestones configured
-                            @endif
-                        </p>
-                    </div>
-
-                    <div class="bg-white rounded-2xl p-6 shadow-sm border-l-4 border-red-500">
-                        <div class="flex justify-between items-start">
-                            <span class="text-sm text-gray-600">Urgent Tasks</span>
-                            <i class="ph ph-warning-circle text-3xl text-red-500"></i>
-                        </div>
-                        <span class="text-3xl font-bold text-gray-900 block mt-4">{{ $dashboardOverview['urgent_task_count'] }}</span>
-                        <p class="text-xs text-red-500 mt-1">
-                            @if ($nextAction && $nextAction['due_at'])
-                                Next due {{ $nextAction['due_at']->diffForHumans() }}
-                            @else
-                                No upcoming deadline
-                            @endif
-                        </p>
-                    </div>
-
-                    <div class="bg-white rounded-2xl p-6 shadow-sm border-l-4 border-blue-500">
-                        <div class="flex justify-between items-start">
-                            <span class="text-sm text-gray-600">Next Consultation</span>
-                            <i class="ph ph-calendar-blank text-3xl text-blue-500"></i>
-                        </div>
-                        @if ($nextConsultation)
-                            <span class="text-xl font-bold text-gray-900 block mt-5">
-                                {{ $nextConsultation['starts_at']->isToday() ? 'Today' : $nextConsultation['starts_at']->format('M j') }}
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
+                        <div>
+                            <span class="w-11 h-11 rounded-xl bg-emerald-50/80 text-[#0e5c3a] border border-emerald-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-trend-up"></i>
                             </span>
-                            <p class="text-xs text-blue-500 mt-1">
-                                {{ $nextConsultation['starts_at']->format('g:i A') }}
-                                @if ($nextConsultation['adviser_name'])
-                                    with {{ $nextConsultation['adviser_name'] }}
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Research Progress</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">{{ $progressPercentage }}%</span>
+                            <p class="text-xs text-emerald-600 font-medium mt-1">
+                                @if ($dashboardOverview['total_milestones'] > 0)
+                                    {{ $dashboardOverview['completed_milestones'] }} of {{ $dashboardOverview['total_milestones'] }} milestones
+                                @else
+                                    No milestones configured
                                 @endif
                             </p>
-                        @else
-                            <span class="text-xl font-bold text-gray-900 block mt-5">Not scheduled</span>
-                            <p class="text-xs text-gray-400 mt-1">Book a consultation when needed</p>
-                        @endif
+                        </div>
+                        <span class="text-emerald-600 text-xl font-bold">
+                            <i class="ph ph-[#0e5c3a]"></i>
+                        </span>
                     </div>
 
-                    <div class="bg-white rounded-2xl p-6 shadow-sm border-l-4 border-purple-500">
-                        <div class="flex justify-between items-start">
-                            <span class="text-sm text-gray-600">Documents</span>
-                            <i class="ph ph-file-text text-3xl text-purple-500"></i>
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
+                        <div>
+                            <span class="w-11 h-11 rounded-xl bg-red-50/80 text-red-700 border border-red-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-warning-circle"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Urgent Tasks</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">{{ $dashboardOverview['urgent_task_count'] }}</span>
+                            <p class="text-xs text-red-600 font-medium mt-1">
+                                @if ($nextAction && $nextAction['due_at'])
+                                    Due {{ $nextAction['due_at']->diffForHumans() }}
+                                @else
+                                    No deadline
+                                @endif
+                            </p>
                         </div>
-                        <span class="text-3xl font-bold text-gray-900 block mt-4">{{ $dashboardOverview['document_count'] }}</span>
-                        <p class="text-xs text-purple-500 mt-1">{{ $dashboardOverview['pending_document_count'] }} pending review</p>
+                        <span class="text-red-500 text-xl font-bold">
+                            <i class="ph ph-warning"></i>
+                        </span>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
+                        <div>
+                            <span class="w-11 h-11 rounded-xl bg-blue-50/80 text-blue-700 border border-blue-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-calendar-blank"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Next Consultation</span>
+                            @if ($nextConsultation)
+                                <span class="text-2xl font-extrabold text-slate-900 tracking-tight mt-1 block">
+                                    {{ $nextConsultation['starts_at']->isToday() ? 'Today' : $nextConsultation['starts_at']->format('M j') }}
+                                </span>
+                                <p class="text-xs text-blue-600 font-medium mt-1">
+                                    {{ $nextConsultation['starts_at']->format('g:i A') }}
+                                    @if ($nextConsultation['adviser_name'])
+                                        with {{ $nextConsultation['adviser_name'] }}
+                                    @endif
+                                </p>
+                            @else
+                                <span class="text-xl font-bold text-slate-900 block mt-1">Not scheduled</span>
+                                <p class="text-xs text-slate-400 mt-1">Book when needed</p>
+                            @endif
+                        </div>
+                        <span class="text-blue-500 text-xl font-bold">
+                            <i class="ph ph-clock"></i>
+                        </span>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
+                        <div>
+                            <span class="w-11 h-11 rounded-xl bg-purple-50/80 text-purple-700 border border-purple-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-file-text"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Documents</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">{{ $dashboardOverview['document_count'] }}</span>
+                            <p class="text-xs text-purple-600 font-medium mt-1">{{ $dashboardOverview['pending_document_count'] }} pending review</p>
+                        </div>
+                        <span class="text-purple-500 text-xl font-bold">
+                            <i class="ph ph-files"></i>
+                        </span>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
                     <div class="xl:col-span-2 space-y-6">
-                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <div class="bg-white rounded-2xl p-6 shadow-xs hover:shadow-md transition-all duration-200 border border-slate-200/60">
                             <div class="flex items-center justify-between mb-4">
                                 <h2 class="font-bold text-lg text-gray-900">My Research</h2>
                                 <i class="ph ph-book-open text-2xl text-[#00a36c]"></i>

@@ -522,47 +522,59 @@
 
                 <!-- Stats Cards Row (4 Columns matching layout widgets) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <!-- Active Research Projects (Solid Dark Green) -->
-                    <div class="bg-[#0e5c3a] text-white rounded-3xl p-5 border border-[#0e5c3a]/10 shadow-sm flex items-center justify-between">
+                    <!-- Active Research Projects -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-white/80 font-medium block">Active Research Projects</span>
-                            <span class="text-3xl font-bold mt-2 block">145</span>
+                            <span class="w-11 h-11 rounded-xl bg-emerald-50/80 text-[#0e5c3a] border border-emerald-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-scroll"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Active Research Projects</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">145</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-white/10 text-[#eebc3f] flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-scroll"></i>
+                        <span class="text-emerald-600 text-xl font-bold">
+                            <i class="ph ph-trend-up"></i>
                         </span>
                     </div>
 
-                    <!-- Pending Approvals (Solid Yellow) -->
-                    <div class="bg-[#eebc3f] text-[#0e5c3a] rounded-3xl p-5 border border-[#eebc3f]/10 shadow-sm flex items-center justify-between">
+                    <!-- Pending Approvals -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-[#0e5c3a]/80 font-medium block">Pending Approvals</span>
-                            <span class="text-3xl font-bold mt-2 block">28</span>
+                            <span class="w-11 h-11 rounded-xl bg-amber-50/80 text-amber-700 border border-amber-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-clock"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Pending Approvals</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">28</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-white/20 text-[#0e5c3a] flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-clock"></i>
+                        <span class="text-amber-500 text-xl font-bold">
+                            <i class="ph ph-warning-circle"></i>
                         </span>
                     </div>
 
                     <!-- Appointed Advisers -->
-                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-[#0e5c3a] border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Appointed Advisers</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block">45</span>
+                            <span class="w-11 h-11 rounded-xl bg-blue-50/80 text-blue-700 border border-blue-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-shield"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Appointed Advisers</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">45</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-[#0e5c3a] flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-shield"></i>
+                        <span class="text-blue-500 text-xl font-bold">
+                            <i class="ph ph-user-check"></i>
                         </span>
                     </div>
 
                     <!-- Approved Manuscripts -->
-                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-[#0e5c3a] border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Approved Manuscripts</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block">52</span>
+                            <span class="w-11 h-11 rounded-xl bg-purple-50/80 text-purple-700 border border-purple-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-book-open"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Approved Manuscripts</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">52</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-[#0e5c3a] flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-book-open"></i>
+                        <span class="text-purple-500 text-xl font-bold">
+                            <i class="ph ph-certificate"></i>
                         </span>
                     </div>
                 </div>
@@ -570,10 +582,10 @@
                 <!-- Split Row: Requests vs Manuscript Approvals -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Left: Pending Research Requests -->
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col justify-between">
+                    <div class="bg-white rounded-2xl shadow-xs hover:shadow-md transition-all duration-200 border border-slate-200/60 overflow-hidden flex flex-col justify-between">
                         <!-- Dark Green Header -->
                         <div class="bg-[#0e5c3a] text-white p-5 flex items-center justify-between">
-                            <h3 class="font-bold text-sm flex items-center gap-2">
+                            <h3 class="font-heading font-bold text-sm flex items-center gap-2 tracking-tight">
                                 <i class="ph ph-file-text text-[#eebc3f] text-lg"></i>
                                 <span>Pending Research Requests</span>
                             </h3>
@@ -583,69 +595,69 @@
                         <!-- Requests List -->
                         <div class="p-6 space-y-4 flex-grow">
                             <template x-for="req in requests" :key="req.id">
-                                <div class="border border-gray-100 rounded-2xl p-4 flex items-center justify-between hover:border-emerald-100 transition-all">
+                                <div class="border border-slate-200/60 rounded-xl p-4 flex items-center justify-between hover:border-emerald-200 hover:bg-slate-50/50 transition-all">
                                     <div class="space-y-1">
-                                        <h4 class="font-bold text-gray-800 text-xs" x-text="req.title">Project Title</h4>
-                                        <span class="text-[10px] text-gray-450 block">Student: <span class="font-bold text-gray-700" x-text="req.student">Student Name</span></span>
-                                        <span class="text-[9px] text-gray-400 font-medium block" x-text="req.time">2 hours ago</span>
+                                        <h4 class="font-bold text-slate-900 text-xs" x-text="req.title">Project Title</h4>
+                                        <span class="text-[10px] text-slate-500 block">Student: <span class="font-bold text-slate-700" x-text="req.student">Student Name</span></span>
+                                        <span class="text-[9px] text-slate-400 font-medium block" x-text="req.time">2 hours ago</span>
                                     </div>
-                                    <span class="bg-amber-50 text-amber-600 px-2 py-0.5 rounded text-[9px] font-bold" x-text="req.status">Awaiting Approval</span>
+                                    <span class="bg-amber-50 text-amber-700 border border-amber-200/60 px-2.5 py-0.5 rounded-full text-[10px] font-bold" x-text="req.status">Awaiting Approval</span>
                                 </div>
                             </template>
                         </div>
 
                         <!-- Footer View All link -->
-                        <button @click="activeTab = 'pending'" class="w-full text-center py-4 bg-gray-50 border-t border-gray-100 hover:bg-gray-100 text-gray-600 font-bold text-xs transition-colors cursor-pointer">
+                        <button @click="activeTab = 'pending'" class="w-full text-center py-3.5 bg-slate-50/80 border-t border-slate-100 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer">
                             View All Requests →
                         </button>
                     </div>
 
                     <!-- Right: Final Manuscript Approvals -->
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col justify-between">
+                    <div class="bg-white rounded-2xl shadow-xs hover:shadow-md transition-all duration-200 border border-slate-200/60 overflow-hidden flex flex-col justify-between">
                         <!-- Yellow/Gold Header -->
-                        <div class="bg-[#eebc3f] text-[#0e5c3a] p-5 flex items-center justify-between">
-                            <h3 class="font-bold text-sm flex items-center gap-2">
-                                <i class="ph ph-certificate text-lg"></i>
+                        <div class="bg-[#0e5c3a] text-white p-5 flex items-center justify-between">
+                            <h3 class="font-heading font-bold text-sm flex items-center gap-2 tracking-tight">
+                                <i class="ph ph-certificate text-[#eebc3f] text-lg"></i>
                                 <span>Final Manuscript Approvals</span>
                             </h3>
-                            <i class="ph ph-dots-three-vertical text-[#0e5c3a]/60"></i>
+                            <i class="ph ph-dots-three-vertical text-white/60"></i>
                         </div>
 
                         <!-- Manuscripts List -->
                         <div class="p-6 space-y-4 flex-grow">
                             <template x-for="ms in manuscripts" :key="ms.id">
-                                <div class="border border-gray-100 rounded-2xl p-4 flex items-center justify-between hover:border-emerald-100 transition-all">
+                                <div class="border border-slate-200/60 rounded-xl p-4 flex items-center justify-between hover:border-emerald-200 hover:bg-slate-50/50 transition-all">
                                     <div class="space-y-1">
-                                        <h4 class="font-bold text-gray-800 text-xs" x-text="ms.title">Manuscript Title</h4>
-                                        <span class="text-[10px] text-gray-450 block">Student: <span class="font-bold text-gray-700" x-text="ms.student">Student Name</span></span>
-                                        <span class="text-[9px] text-gray-400 font-medium block" x-text="ms.phase">Quality Review</span>
+                                        <h4 class="font-bold text-slate-900 text-xs" x-text="ms.title">Manuscript Title</h4>
+                                        <span class="text-[10px] text-slate-500 block">Student: <span class="font-bold text-slate-700" x-text="ms.student">Student Name</span></span>
+                                        <span class="text-[9px] text-slate-400 font-medium block" x-text="ms.phase">Quality Review</span>
                                     </div>
-                                    <span class="px-2.5 py-0.5 rounded text-[9px] font-bold" :class="ms.ratingClass" x-text="ms.rating">Excellent</span>
+                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold" :class="ms.ratingClass" x-text="ms.rating">Excellent</span>
                                 </div>
                             </template>
                         </div>
 
                         <!-- Footer View All link -->
-                        <button @click="activeTab = 'manuscript'" class="w-full text-center py-4 bg-gray-50 border-t border-gray-100 hover:bg-gray-100 text-gray-600 font-bold text-xs transition-colors cursor-pointer">
+                        <button @click="activeTab = 'manuscript'" class="w-full text-center py-3.5 bg-slate-50/80 border-t border-slate-100 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer">
                             View All Manuscripts →
                         </button>
                     </div>
                 </div>
 
                 <!-- Recent Appointments Section -->
-                <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="bg-white rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden">
                     <div class="bg-[#0e5c3a] text-white p-5 flex items-center justify-between">
-                        <h3 class="font-bold text-sm flex items-center gap-2">
+                        <h3 class="font-heading font-bold text-sm flex items-center gap-2 tracking-tight">
                             <i class="ph ph-users-three text-[#eebc3f] text-lg"></i>
                             <span>Recent Appointments</span>
                         </h3>
-                        <button @click="activeTab = 'appointments'" class="text-xs text-white/80 hover:text-white font-bold cursor-pointer">Manage Appointments</button>
+                        <button @click="activeTab = 'appointments'" class="text-xs text-white/90 hover:text-white font-bold cursor-pointer">Manage Appointments</button>
                     </div>
 
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs border-collapse">
                             <thead>
-                                <tr class="bg-gray-50 text-gray-400 font-bold uppercase text-[10px] tracking-wider border-b border-gray-100">
+                                <tr class="bg-slate-50/80 text-slate-400 font-bold uppercase text-[10px] tracking-wider border-b border-slate-100">
                                     <th class="px-6 py-4">Name</th>
                                     <th class="px-6 py-4">Role</th>
                                     <th class="px-6 py-4">Department</th>
@@ -653,15 +665,15 @@
                                     <th class="px-6 py-4">Status</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-50 text-gray-700">
+                            <tbody class="divide-y divide-slate-100 text-slate-700">
                                 <template x-for="app in appointments" :key="app.name">
-                                    <tr class="hover:bg-gray-50/50 transition-colors">
-                                        <td class="px-6 py-4 font-bold text-gray-800" x-text="app.name">Faculty Name</td>
-                                        <td class="px-6 py-4 font-semibold text-gray-500" x-text="app.role">Role</td>
-                                        <td class="px-6 py-4 text-gray-600" x-text="app.dept">Department</td>
-                                        <td class="px-6 py-4 text-gray-400 font-medium" x-text="app.date">Date</td>
+                                    <tr class="hover:bg-slate-50/50 transition-colors">
+                                        <td class="px-6 py-4 font-bold text-slate-900" x-text="app.name">Faculty Name</td>
+                                        <td class="px-6 py-4 font-semibold text-slate-500" x-text="app.role">Role</td>
+                                        <td class="px-6 py-4 text-slate-600" x-text="app.dept">Department</td>
+                                        <td class="px-6 py-4 text-slate-400 font-medium" x-text="app.date">Date</td>
                                         <td class="px-6 py-4">
-                                            <span class="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full text-[10px] font-bold" x-text="app.status">Active</span>
+                                            <span class="bg-emerald-50 text-emerald-700 border border-emerald-200/60 px-2.5 py-0.5 rounded-full text-[10px] font-bold" x-text="app.status">Active</span>
                                         </td>
                                     </tr>
                                 </template>
@@ -673,24 +685,24 @@
                 <!-- Bottom quick navigation row (3 Columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <!-- Defense Schedule -->
-                    <button @click="activeTab = 'schedule'" class="bg-[#0e5c3a] text-white hover:bg-[#0a4a2e] text-center rounded-3xl p-6 flex flex-col items-center justify-center space-y-2 border border-[#0e5c3a]/15 shadow-sm transition-all cursor-pointer">
-                        <i class="ph ph-calendar text-3xl text-[#eebc3f]"></i>
-                        <span class="font-bold text-sm block">Defense Schedule</span>
-                        <span class="text-[10px] text-white/80">View upcoming defense schedules</span>
+                    <button @click="activeTab = 'schedule'" class="bg-white hover:bg-slate-50/80 text-center rounded-2xl p-6 flex flex-col items-center justify-center space-y-2 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+                        <i class="ph ph-calendar text-3xl text-[#0e5c3a]"></i>
+                        <span class="font-heading font-bold text-sm text-slate-900 block tracking-tight">Defense Schedule</span>
+                        <span class="text-xs text-slate-500">View upcoming defense schedules</span>
                     </button>
 
                     <!-- Research Reports -->
-                    <button @click="activeTab = 'reports'" class="bg-[#eebc3f] text-[#0e5c3a] hover:bg-[#e0b030] text-center rounded-3xl p-6 flex flex-col items-center justify-center space-y-2 border border-[#eebc3f]/15 shadow-sm transition-all cursor-pointer">
+                    <button @click="activeTab = 'reports'" class="bg-white hover:bg-slate-50/80 text-center rounded-2xl p-6 flex flex-col items-center justify-center space-y-2 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
                         <i class="ph ph-chart-line-up text-3xl text-[#0e5c3a]"></i>
-                        <span class="font-bold text-sm block">Research Reports</span>
-                        <span class="text-[10px] text-[#0e5c3a]/80">Generate college reports</span>
+                        <span class="font-heading font-bold text-sm text-slate-900 block tracking-tight">Research Reports</span>
+                        <span class="text-xs text-slate-500">Generate college reports</span>
                     </button>
 
                     <!-- Research Repository -->
-                    <button @click="activeTab = 'repository'" class="bg-white hover:bg-gray-50 text-center rounded-3xl p-6 flex flex-col items-center justify-center space-y-2 border border-gray-100 shadow-sm transition-all cursor-pointer">
+                    <button @click="activeTab = 'repository'" class="bg-white hover:bg-slate-50/80 text-center rounded-2xl p-6 flex flex-col items-center justify-center space-y-2 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
                         <i class="ph ph-book-open text-3xl text-[#0e5c3a]"></i>
-                        <span class="font-bold text-sm text-gray-800 block">Research Repository</span>
-                        <span class="text-[10px] text-gray-400">Browse approved research</span>
+                        <span class="font-heading font-bold text-sm text-slate-900 block tracking-tight">Research Repository</span>
+                        <span class="text-xs text-slate-500">Browse approved research</span>
                     </button>
                 </div>
             </div>

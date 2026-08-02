@@ -594,53 +594,65 @@
 
                 <!-- Stats Cards Row (4 Columns matching layout) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <!-- Active Advisees (Solid Green) -->
-                    <div class="bg-[#0e5c3a] text-white rounded-3xl p-5 border border-[#0e5c3a]/10 shadow-sm flex items-center justify-between">
+                    <!-- Active Advisees -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-white/80 font-medium block">Active Advisees</span>
-                            <span class="text-3xl font-bold mt-2 block">{{ $adviserOverviewStats['active_advisees'] }}</span>
-                            <span class="text-[10px] text-[#eebc3f] font-bold mt-1 block">{{ $adviserOverviewStats['nearing_defense'] }} nearing defense</span>
+                            <span class="w-11 h-11 rounded-xl bg-emerald-50/80 text-[#0e5c3a] border border-emerald-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-users-three"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Active Advisees</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">{{ $adviserOverviewStats['active_advisees'] }}</span>
+                            <span class="text-[10px] text-emerald-600 font-semibold mt-1 block">{{ $adviserOverviewStats['nearing_defense'] }} nearing defense</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-white/10 text-[#eebc3f] flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-users-three"></i>
+                        <span class="text-emerald-600 text-xl font-bold">
+                            <i class="ph ph-[#0e5c3a]"></i>
                         </span>
                     </div>
 
-                    <!-- Urgent Reviews (White/Red left border) -->
-                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-red-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                    <!-- Urgent Reviews -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Urgent Reviews</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block">{{ $adviserOverviewStats['urgent_reviews'] }}</span>
-                            <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $adviserOverviewStats['overdue_revisions'] }} overdue revisions</span>
+                            <span class="w-11 h-11 rounded-xl bg-red-50/80 text-red-700 border border-red-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-warning-circle"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Urgent Reviews</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">{{ $adviserOverviewStats['urgent_reviews'] }}</span>
+                            <span class="text-[10px] text-red-600 font-semibold mt-1 block">{{ $adviserOverviewStats['overdue_revisions'] }} overdue revisions</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-warning-circle"></i>
+                        <span class="text-red-500 text-xl font-bold">
+                            <i class="ph ph-warning"></i>
                         </span>
                     </div>
 
-                    <!-- Today's Consultations (White/Blue left border) -->
-                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-blue-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                    <!-- Today's Consultations -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Today's Consultations</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block">{{ $adviserOverviewStats['today_consultations'] }}</span>
-                            <span class="text-[10px] text-blue-500 font-bold mt-1 block">
+                            <span class="w-11 h-11 rounded-xl bg-blue-50/80 text-blue-700 border border-blue-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-calendar"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Today's Consultations</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">{{ $adviserOverviewStats['today_consultations'] }}</span>
+                            <span class="text-[10px] text-blue-600 font-semibold mt-1 block">
                                 Next: {{ $adviserOverviewStats['next_consultation_at']?->timezone(config('ndmu-rmas.timezone'))->format('g:i A') ?? 'None scheduled' }}
                             </span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-calendar"></i>
+                        <span class="text-blue-500 text-xl font-bold">
+                            <i class="ph ph-clock"></i>
                         </span>
                     </div>
 
-                    <!-- Completed Research (White/Purple left border) -->
-                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-purple-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                    <!-- Completed Research -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Completed Research</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block">{{ $adviserOverviewStats['completed_research'] }}</span>
-                            <span class="text-[10px] text-purple-500 font-bold mt-1 block">This academic year</span>
+                            <span class="w-11 h-11 rounded-xl bg-purple-50/80 text-purple-700 border border-purple-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-trend-up"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Completed Research</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">{{ $adviserOverviewStats['completed_research'] }}</span>
+                            <span class="text-[10px] text-purple-600 font-semibold mt-1 block">This academic year</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-500 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-trend-up"></i>
+                        <span class="text-purple-500 text-xl font-bold">
+                            <i class="ph ph-certificate"></i>
                         </span>
                     </div>
                 </div>
@@ -648,7 +660,7 @@
                 <!-- Main Layout Columns (Left: 2/3 Progress Monitor, Right: 1/3 Schedule & Actions) -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <!-- Left: Advisees Progress Monitor -->
-                    <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6 lg:col-span-2">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-6 lg:col-span-2">
                         <div class="flex justify-between items-center pb-2 border-b border-gray-50">
                             <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2">
                                 <i class="ph ph-chart-bar text-emerald-600 text-lg"></i>
