@@ -1,6 +1,6 @@
-<template x-if="activeOfficialForm === 'RES-031'"><div><x-student-official-form code="RES-Form-031" title="Consultation Record with Research Adviser" guidebook-page="106">
+<div x-show="activeOfficialForm === 'RES-031'" x-cloak><x-student-official-form code="RES-Form-031" title="Consultation Record with Research Adviser" guidebook-page="106">
     <div class="grid gap-4 md:grid-cols-2"><label>Name of Researchers:<textarea name="researchers" class="mt-1 min-h-20 w-full"></textarea></label><div class="space-y-4"><label class="block">Degree Program:<input name="degree_program" class="w-full"></label><label class="block">Date of Proposal/Final Defense:<input type="date" name="defense_date" class="w-full"></label></div></div>
     <label class="block">Name of Adviser:<input name="adviser_name" class="w-full"></label><label class="block">Research Title:<input name="research_title" class="w-full"></label>
     <p class="text-xs italic">Fill out the appropriate row every time you consult your adviser.</p>
     <table class="official-form-table text-xs"><thead><tr><th class="w-1/5">Number & Date of Consultation</th><th>Topics Discussed or Concerns</th><th class="w-1/4">Student / Adviser Signatures</th></tr></thead><tbody>@for ($i=1;$i<=6;$i++)<tr><td>#{{ $i }}<input type="date" name="consultations[{{ $i }}][date]" class="mt-2 w-full"></td><td><textarea name="consultations[{{ $i }}][topics]" class="min-h-20 w-full border-0"></textarea></td><td class="text-center text-gray-600">For signatures</td></tr>@endfor</tbody></table>
-</x-student-official-form></div></template>
+</x-student-official-form></div>

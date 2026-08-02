@@ -67,4 +67,79 @@ return [
             'purpose' => 'Student signs their certificate of authentic authorship.',
         ],
     ],
+
+    'adviser' => [
+        'RES-026' => [
+            'title' => 'Research Title Approval',
+            'phase' => 'phase-1',
+            'shared_with' => 'student',
+            'purpose' => 'Adviser signs the title approval for their student.',
+        ],
+        'RES-027' => [
+            'title' => 'Invitation to Research Adviser',
+            'phase' => 'phase-2',
+            'purpose' => 'Adviser receives the formal invitation to serve.',
+        ],
+        'RES-038' => [
+            'title' => 'Endorsement of Student Researchers to Research Adviser',
+            'phase' => 'phase-2',
+            'purpose' => 'Adviser receives the endorsement of their students.',
+        ],
+        'RES-031' => [
+            'title' => 'Consultation Record with Research Adviser',
+            'phase' => 'phase-3',
+            'shared_with' => 'student',
+            'purpose' => 'Adviser fills and signs the consultation record.',
+        ],
+        'RES-032' => [
+            'title' => 'Consultation Sheet (With Other Consultants)',
+            'phase' => 'phase-3',
+            'shared_with' => 'student',
+            'purpose' => 'Adviser co-signs consultations with other consultants.',
+        ],
+        'RES-033' => [
+            'title' => 'Endorsement for Research Proposal/Final Oral Defense',
+            'phase' => 'phase-3',
+            'purpose' => 'Adviser issues the endorsement for defense.',
+        ],
+        'RES-034' => [
+            'title' => 'Research Proposal/Final Oral Defense Pre-Conference',
+            'phase' => 'phase-4',
+            'shared_with' => 'student',
+            'purpose' => 'Adviser chairs the pre-conference session.',
+        ],
+        'RES-035' => [
+            'title' => 'Defense Proceedings',
+            'phase' => 'phase-4',
+            'purpose' => 'Adviser documents and signs the defense proceedings.',
+        ],
+        'RES-040' => [
+            'title' => 'Endorsement to Research Instructor',
+            'phase' => 'phase-5',
+            'purpose' => 'Adviser issues endorsement to the research instructor.',
+        ],
+        'RES-042' => [
+            'title' => 'Request for Research Instrument Validation',
+            'phase' => 'phase-6',
+            'shared_with' => 'student',
+            'purpose' => 'Adviser co-signs the instrument validation request.',
+        ],
+        'RES-044' => [
+            'title' => 'Endorsement of Student Researcher for Data Gathering',
+            'phase' => 'phase-6',
+            'purpose' => 'Adviser issues endorsement for data gathering.',
+        ],
+        'RES-048' => [
+            'title' => 'Self and Peer Evaluation',
+            'phase' => 'phase-7',
+            'shared_with' => 'student',
+            'purpose' => 'Adviser signs off on the peer evaluation.',
+        ],
+        'RES-049' => [
+            'title' => 'Certificate of Authentic Authorship',
+            'phase' => 'phase-7',
+            'shared_with' => 'student',
+            'purpose' => 'Adviser co-signs the authorship certificate.',
+        ],
+    ],
 ];

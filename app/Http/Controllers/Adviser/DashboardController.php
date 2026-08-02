@@ -34,6 +34,7 @@ class DashboardController extends Controller
             'docreview',
             'revisions',
             'repository',
+            'forms',
             'notifications',
             'settings',
         ];
@@ -111,6 +112,9 @@ class DashboardController extends Controller
                 ),
             ];
         }
+
+        $viewData['officialFormPhases'] = config('official-forms.phases', []);
+        $viewData['officialForms'] = config('official-forms.adviser', []);
 
         return view('pages.adviser-dashboard', [
             'area' => 'Research Adviser',
