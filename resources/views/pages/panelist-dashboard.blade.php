@@ -1035,82 +1035,94 @@
                 <!-- Stats Cards Row (4 Columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Approved -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-[#10b981] shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Approved</span>
-                            <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="proposalProposals.filter(p => p.status === 'Approved').length">1</span>
+                            <span class="w-11 h-11 rounded-xl bg-emerald-50/80 text-[#0e5c3a] border border-emerald-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-check-circle"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Approved</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="proposalProposals.filter(p => p.status === 'Approved').length">1</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-[#10b981] flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-check-circle"></i>
+                        <span class="text-emerald-600 text-xl font-bold">
+                            <i class="ph ph-check-fat"></i>
                         </span>
                     </div>
 
                     <!-- Pending -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-amber-500 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Pending</span>
-                            <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="proposalProposals.filter(p => p.status === 'Pending').length">0</span>
+                            <span class="w-11 h-11 rounded-xl bg-amber-50/80 text-amber-700 border border-amber-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-clock"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Pending</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="proposalProposals.filter(p => p.status === 'Pending').length">0</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-550 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-clock"></i>
+                        <span class="text-amber-500 text-xl font-bold">
+                            <i class="ph ph-hourglass"></i>
                         </span>
                     </div>
 
                     <!-- Revisions -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-red-500 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Revisions</span>
-                            <span class="text-3xl font-bold text-gray-855 mt-2 block" x-text="proposalProposals.filter(p => p.status === 'Revisions').length">0</span>
+                            <span class="w-11 h-11 rounded-xl bg-red-50/80 text-red-700 border border-red-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-x-circle"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Revisions</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="proposalProposals.filter(p => p.status === 'Revisions').length">0</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-x-circle"></i>
+                        <span class="text-red-500 text-xl font-bold">
+                            <i class="ph ph-warning"></i>
                         </span>
                     </div>
 
                     <!-- Total Proposals -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-blue-500 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Total Proposals</span>
-                            <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="proposalProposals.length">1</span>
+                            <span class="w-11 h-11 rounded-xl bg-blue-50/80 text-blue-700 border border-blue-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-file-text"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Total Proposals</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="proposalProposals.length">1</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-file-text"></i>
+                        <span class="text-blue-500 text-xl font-bold">
+                            <i class="ph ph-files"></i>
                         </span>
                     </div>
                 </div>
 
                 <!-- Main Proposal Card -->
-                <div class="bg-white rounded-2xl border border-gray-100/50 shadow-sm p-6 space-y-6">
-                    <h2 class="text-sm font-bold text-gray-850 font-heading tracking-wide">Research Proposal</h2>
+                <div class="bg-white rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 p-6 space-y-6">
+                    <h2 class="text-sm font-bold text-slate-900 font-heading tracking-wide">Research Proposal</h2>
                     
                     <div class="space-y-4">
                         <template x-for="p in filteredProposals()" :key="p.id">
-                            <div class="bg-[#f0fdf4] border border-emerald-100 rounded-2xl p-6 space-y-4">
+                            <div class="bg-white border border-slate-200/60 rounded-xl p-6 space-y-4 shadow-2xs hover:shadow-xs transition-all">
                                 <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                                     <div>
-                                        <h3 class="font-extrabold text-sm text-[#0e5c3a] leading-snug" x-text="p.title">Machine Learning Applications in Agricultural Pest Detection</h3>
-                                        <p class="text-[10px] text-gray-500 font-semibold mt-1.5" x-text="`Proposal ID: ${p.id}`">Proposal ID: PROP-2026-001</p>
-                                        <p class="text-[10px] text-gray-500 font-semibold mt-0.5" x-text="`Submitted: ${p.submitted}`">Submitted: March 5, 2026</p>
+                                        <h3 class="font-extrabold text-sm text-slate-900 leading-snug" x-text="p.title">Machine Learning Applications in Agricultural Pest Detection</h3>
+                                        <p class="text-[10px] text-slate-500 font-semibold mt-1.5" x-text="`Proposal ID: ${p.id}`">Proposal ID: PROP-2026-001</p>
+                                        <p class="text-[10px] text-slate-500 font-semibold mt-0.5" x-text="`Submitted: ${p.submitted}`">Submitted: March 5, 2026</p>
                                     </div>
                                     <span :class="p.statusClass" class="flex-shrink-0 self-start text-[10px] font-black" x-text="p.status">Approved</span>
                                 </div>
 
-                                <div class="border-t border-emerald-100/50 pt-4 grid grid-cols-2 gap-4">
+                                <div class="border-t border-slate-100 pt-4 grid grid-cols-2 gap-4">
                                     <div>
-                                        <span class="text-[10px] text-gray-400 font-bold block uppercase tracking-wider">Reviewed by</span>
-                                        <span class="text-xs text-gray-800 font-bold block mt-1" x-text="p.reviewedBy">Dr. Maria Santos</span>
+                                        <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Reviewed by</span>
+                                        <span class="text-xs text-slate-800 font-bold block mt-1" x-text="p.reviewedBy">Dr. Maria Santos</span>
                                     </div>
                                     <div>
-                                        <span class="text-[10px] text-gray-400 font-bold block uppercase tracking-wider">Approval Date</span>
-                                        <span class="text-xs text-gray-800 font-bold block mt-1" x-text="p.approvalDate">March 10, 2026</span>
+                                        <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Approval Date</span>
+                                        <span class="text-xs text-slate-800 font-bold block mt-1" x-text="p.approvalDate">March 10, 2026</span>
                                     </div>
                                 </div>
 
                                 <div class="flex items-center gap-3 pt-2">
-                                    <button @click="alert(`Viewing Proposal: ${p.title}`)" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer">
+                                    <button @click="alert(`Viewing Proposal: ${p.title}`)" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer">
                                         View Proposal
                                     </button>
-                                    <button @click="alert(`Downloading PDF for: ${p.title}`)" class="px-5 py-2.5 bg-white border border-gray-250 hover:bg-gray-50 text-gray-707 text-xs font-bold rounded-xl transition-all cursor-pointer">
+                                    <button @click="alert(`Downloading PDF for: ${p.title}`)" class="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer">
                                         Download PDF
                                     </button>
                                 </div>
@@ -1293,46 +1305,58 @@
                 <!-- Stats Row (4 columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Approved -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-[#10b981] shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Approved</span>
-                            <span class="text-3xl font-bold text-gray-850 mt-2 block">8</span>
+                            <span class="w-11 h-11 rounded-xl bg-emerald-50/80 text-[#0e5c3a] border border-emerald-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-check-circle"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Approved</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">8</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-[#10b981] flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-check-circle"></i>
+                        <span class="text-emerald-600 text-xl font-bold">
+                            <i class="ph ph-check-fat"></i>
                         </span>
                     </div>
 
                     <!-- Revisions -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-amber-500 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Revisions</span>
-                            <span class="text-3xl font-bold text-gray-855 mt-2 block">5</span>
+                            <span class="w-11 h-11 rounded-xl bg-amber-50/80 text-amber-700 border border-amber-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-warning"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Revisions</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">5</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-550 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-warning"></i>
+                        <span class="text-amber-500 text-xl font-bold">
+                            <i class="ph ph-hourglass"></i>
                         </span>
                     </div>
 
                     <!-- Comments -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-blue-500 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Comments</span>
-                            <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="recommendationComments.length">12</span>
+                            <span class="w-11 h-11 rounded-xl bg-blue-50/80 text-blue-700 border border-blue-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-chat-centered-text"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Comments</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="recommendationComments.length">12</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-chat-centered-text"></i>
+                        <span class="text-blue-500 text-xl font-bold">
+                            <i class="ph ph-chat-circle-dots"></i>
                         </span>
                     </div>
 
                     <!-- Critical -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-red-500 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Critical</span>
-                            <span class="text-3xl font-bold text-gray-855 mt-2 block">2</span>
+                            <span class="w-11 h-11 rounded-xl bg-red-50/80 text-red-700 border border-red-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-x-circle"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Critical</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">2</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-x-circle"></i>
+                        <span class="text-red-500 text-xl font-bold">
+                            <i class="ph ph-warning-circle"></i>
                         </span>
                     </div>
                 </div>
@@ -1441,46 +1465,58 @@
                 <!-- Stats Cards Row (4 Columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Total Scheduled -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Total Scheduled</span>
-                            <span class="text-3xl font-bold text-gray-855 mt-2 block" x-text="defenses.length">3</span>
+                            <span class="w-11 h-11 rounded-xl bg-emerald-50/80 text-[#0e5c3a] border border-emerald-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-calendar"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Total Scheduled</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="defenses.length">3</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-[#10b981] flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-calendar"></i>
+                        <span class="text-emerald-600 text-xl font-bold">
+                            <i class="ph ph-calendar-check"></i>
                         </span>
                     </div>
 
                     <!-- This Week -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">This Week</span>
-                            <span class="text-3xl font-bold text-gray-855 mt-2 block">2</span>
+                            <span class="w-11 h-11 rounded-xl bg-blue-50/80 text-blue-700 border border-blue-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-clock"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">This Week</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">2</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-clock"></i>
+                        <span class="text-blue-500 text-xl font-bold">
+                            <i class="ph ph-timer"></i>
                         </span>
                     </div>
 
                     <!-- Pending -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Pending</span>
-                            <span class="text-3xl font-bold text-gray-855 mt-2 block" x-text="defenses.filter(s => s.status === 'Pending').length">1</span>
+                            <span class="w-11 h-11 rounded-xl bg-amber-50/80 text-amber-700 border border-amber-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-calendar-blank"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Pending</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="defenses.filter(s => s.status === 'Pending').length">1</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-550 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-calendar-blank"></i>
+                        <span class="text-amber-500 text-xl font-bold">
+                            <i class="ph ph-hourglass"></i>
                         </span>
                     </div>
 
                     <!-- Completed -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Completed</span>
-                            <span class="text-3xl font-bold text-gray-855 mt-2 block">0</span>
+                            <span class="w-11 h-11 rounded-xl bg-purple-50/80 text-purple-700 border border-purple-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-calendar-check"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Completed</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">0</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-calendar-check"></i>
+                        <span class="text-purple-500 text-xl font-bold">
+                            <i class="ph ph-check-circle"></i>
                         </span>
                     </div>
                 </div>
@@ -1598,45 +1634,57 @@
                 <!-- Stats Cards Row (4 Columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Total Files -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Total Files</span>
-                            <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="repositoryDocuments.length">6</span>
+                            <span class="w-11 h-11 rounded-xl bg-emerald-50/80 text-[#0e5c3a] border border-emerald-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-file-search"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Total Files</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="repositoryDocuments.length">6</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-[#10b981] flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-file-search"></i>
+                        <span class="text-emerald-600 text-xl font-bold">
+                            <i class="ph ph-files"></i>
                         </span>
                     </div>
 
                     <!-- Approved -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Approved</span>
-                            <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="repositoryDocuments.filter(d => d.status === 'Approved').length">2</span>
+                            <span class="w-11 h-11 rounded-xl bg-blue-50/80 text-blue-700 border border-blue-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-check-circle"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Approved</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="repositoryDocuments.filter(d => d.status === 'Approved').length">2</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-550 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-check-circle"></i>
+                        <span class="text-blue-500 text-xl font-bold">
+                            <i class="ph ph-check-fat"></i>
                         </span>
                     </div>
 
                     <!-- Pending Review -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Pending Review</span>
-                            <span class="text-3xl font-bold text-gray-855 mt-2 block" x-text="repositoryDocuments.filter(d => d.status === 'Pending Review').length">2</span>
+                            <span class="w-11 h-11 rounded-xl bg-amber-50/80 text-amber-700 border border-amber-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-clock"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Pending Review</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="repositoryDocuments.filter(d => d.status === 'Pending Review').length">2</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-550 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-clock"></i>
+                        <span class="text-amber-500 text-xl font-bold">
+                            <i class="ph ph-hourglass"></i>
                         </span>
                     </div>
 
                     <!-- For Evaluation -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">For Evaluation</span>
-                            <span class="text-3xl font-bold text-gray-855 mt-2 block" x-text="repositoryDocuments.filter(d => d.status === 'For Evaluation').length">1</span>
+                            <span class="w-11 h-11 rounded-xl bg-purple-50/80 text-purple-700 border border-purple-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-textbox"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">For Evaluation</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="repositoryDocuments.filter(d => d.status === 'For Evaluation').length">1</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-500 flex items-center justify-center text-2xl flex-shrink-0">
+                        <span class="text-purple-500 text-xl font-bold">
                             <i class="ph ph-clipboard-text"></i>
                         </span>
                     </div>
