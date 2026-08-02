@@ -1122,19 +1122,29 @@
             
             <!-- TAB: Dashboard (Active Default) -->
             <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">
-                <!-- Welcome Title & Header Buttons -->
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h1 class="text-2xl font-bold font-heading text-gray-800 animate-fade-in">Welcome Back, Faculty Head!</h1>
-                        <p class="text-xs text-gray-450 mt-1">Department Research Oversight & Monitoring Dashboard</p>
+                <!-- Hero Header Card Section -->
+                <div class="relative overflow-hidden bg-white rounded-2xl p-8 border border-slate-200/60 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <!-- Subtle abstract NDMU logo watermark -->
+                    <div class="absolute -right-6 -bottom-6 opacity-[0.04] pointer-events-none">
+                        <img src="{{ asset('images/ndmu_logo.png') }}" alt="" class="w-64 h-auto">
                     </div>
-                    
-                    <div class="flex items-center gap-3">
-                        <a href="#pending-approvals" class="px-4 py-2.5 bg-[#eebc3f] hover:bg-[#e0b030] text-[#0e5c3a] text-xs font-bold rounded-xl flex items-center gap-2 shadow-sm transition-colors cursor-pointer">
-                            <i class="ph ph-warning-circle text-base"></i>
+
+                    <div class="relative z-10 space-y-1">
+                        <div class="flex items-center gap-2 text-xs font-semibold text-slate-400">
+                            <span>{{ now()->timezone(config('ndmu-rmas.timezone'))->format('l, F j, Y') }}</span>
+                            <span>•</span>
+                            <span class="text-[#0e5c3a] font-bold">Research Facilitator Portal</span>
+                        </div>
+                        <h1 class="text-2xl md:text-3xl font-extrabold font-heading text-slate-900 tracking-tight">Welcome back, Dr. Rosario Dela Paz</h1>
+                        <p class="text-xs text-slate-500 max-w-xl">Department Research Oversight & Monitoring • College of Information Technology</p>
+                    </div>
+
+                    <div class="relative z-10 flex items-center gap-3">
+                        <a href="#pending-approvals" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200/80 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-2 border border-slate-200/60 transition-all cursor-pointer">
+                            <i class="ph ph-warning-circle text-amber-600 text-base"></i>
                             <span>Pending Approvals</span>
                         </a>
-                        <button @click="alert('Generating Research Q2 report summary PDF...')" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-md transition-colors cursor-pointer">
+                        <button @click="alert('Generating Research Q2 report summary PDF...')" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer">
                             <i class="ph ph-chart-line-up text-base"></i>
                             <span>Generate Report</span>
                         </button>

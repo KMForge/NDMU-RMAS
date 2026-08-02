@@ -284,10 +284,29 @@
 
             <!-- TAB 1: ADMIN DASHBOARD VIEW -->
             <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">
-                    <!-- Title Section -->
-                    <div>
-                        <h1 class="text-3xl font-extrabold font-heading text-gray-800 tracking-tight">Admin Dashboard</h1>
-                        <p class="text-sm text-gray-500 font-light mt-1">System overview and management</p>
+                    <!-- Hero Header Card Section -->
+                    <div class="relative overflow-hidden bg-white rounded-2xl p-8 border border-slate-200/60 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                        <!-- Subtle abstract NDMU logo watermark -->
+                        <div class="absolute -right-6 -bottom-6 opacity-[0.04] pointer-events-none">
+                            <img src="{{ asset('images/ndmu_logo.png') }}" alt="" class="w-64 h-auto">
+                        </div>
+
+                        <div class="relative z-10 space-y-1">
+                            <div class="flex items-center gap-2 text-xs font-semibold text-slate-400">
+                                <span>{{ now()->timezone(config('ndmu-rmas.timezone'))->format('l, F j, Y') }}</span>
+                                <span>•</span>
+                                <span class="text-[#0e5c3a] font-bold">System Administration Portal</span>
+                            </div>
+                            <h1 class="text-2xl md:text-3xl font-extrabold font-heading text-slate-900 tracking-tight">Welcome back, Administrator</h1>
+                            <p class="text-xs text-slate-500 max-w-xl">System overview, account management, permissions, and audit monitoring</p>
+                        </div>
+
+                        <div class="relative z-10 flex items-center gap-3">
+                            <button @click="activeTab = 'users'" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer">
+                                <i class="ph ph-users text-base"></i>
+                                <span>Manage Users</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Row of 4 statistics cards -->

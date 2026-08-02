@@ -292,15 +292,29 @@
             @endif
 
             <section x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h1 class="text-3xl font-bold text-gray-900">Welcome Back, {{ $firstName }}!</h1>
-                        <p class="text-sm text-gray-500 mt-1">Here's your research journey overview</p>
+                <!-- Hero Header Card Section -->
+                <div class="relative overflow-hidden bg-white rounded-2xl p-8 border border-slate-200/60 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <!-- Subtle abstract NDMU logo watermark -->
+                    <div class="absolute -right-6 -bottom-6 opacity-[0.04] pointer-events-none">
+                        <img src="{{ asset('images/ndmu_logo.png') }}" alt="" class="w-64 h-auto">
                     </div>
-                    <button type="button" data-document-upload-trigger onclick="document.getElementById('student-document-upload-input').click()" class="px-5 py-3 bg-[#009b67] hover:bg-[#008558] text-white text-sm font-semibold rounded-xl flex items-center gap-2 shadow-md disabled:opacity-60">
-                        <i class="ph ph-upload-simple text-base"></i>
-                        <span>Submit Document</span>
-                    </button>
+
+                    <div class="relative z-10 space-y-1">
+                        <div class="flex items-center gap-2 text-xs font-semibold text-slate-400">
+                            <span>{{ now()->timezone(config('ndmu-rmas.timezone'))->format('l, F j, Y') }}</span>
+                            <span>•</span>
+                            <span class="text-[#0e5c3a] font-bold">Student Researcher Portal</span>
+                        </div>
+                        <h1 class="text-2xl md:text-3xl font-extrabold font-heading text-slate-900 tracking-tight">Welcome back, {{ $firstName }}!</h1>
+                        <p class="text-xs text-slate-500 max-w-xl">Track your research milestones, submit documents, and manage consultations</p>
+                    </div>
+
+                    <div class="relative z-10 flex items-center gap-3">
+                        <button type="button" data-document-upload-trigger onclick="document.getElementById('student-document-upload-input').click()" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer">
+                            <i class="ph ph-upload-simple text-base"></i>
+                            <span>Submit Document</span>
+                        </button>
+                    </div>
                 </div>
 
                 @if ($dashboardSearchQuery !== '')
