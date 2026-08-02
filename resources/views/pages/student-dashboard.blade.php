@@ -18,12 +18,34 @@
     $initialTab = in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard';
     $showConsultationModal = $errors->hasAny(['consultation', 'request_token', 'preferred_at', 'consultation_mode', 'agenda']);
     $showJoinClassModal = $errors->hasAny(['class', 'join_code']);
+    $officialFormPhases = $officialFormPhases ?? [];
+    $officialForms = $officialForms ?? [];
+    $officialFormsByPhase = collect($officialForms)->groupBy('phase', preserveKeys: true);
+    $requestedOfficialForm = request()->query('form');
+    $initialOfficialForm = is_string($requestedOfficialForm) && array_key_exists($requestedOfficialForm, $officialForms)
+        ? $requestedOfficialForm
+        : array_key_first($officialForms);
+    $initialFormPhase = $initialOfficialForm === null
+        ? array_key_first($officialFormPhases)
+        : $officialForms[$initialOfficialForm]['phase'];
 @endphp
 
 @section('content')
 <style>[x-cloak] { display: none !important; }</style>
 
-<div class="min-h-screen flex font-sans bg-[#f4f7f6]" x-data="{ activeTab: @js($initialTab), showConsultationModal: @js($showConsultationModal), showJoinClassModal: @js($showJoinClassModal) }">
+<div
+    class="min-h-screen flex font-sans bg-[#f4f7f6]"
+    x-data="{
+        activeTab: @js($initialTab),
+        activeFormPhase: @js($initialFormPhase),
+        activeOfficialForm: @js($initialOfficialForm),
+        officialForms: @js($officialForms),
+        researchProgress: @js($progressPercentage),
+        formsExpanded: @js($initialTab === 'forms'),
+        showConsultationModal: @js($showConsultationModal),
+        showJoinClassModal: @js($showJoinClassModal)
+    }"
+>
     <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col z-20 border-r border-white/5">
         <div class="flex items-center gap-3 p-6 border-b border-white/10">
             <div class="p-1 bg-white/10 rounded-xl border border-white/20">
@@ -75,16 +97,74 @@
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Research Forms</span>
                 <button
                     type="button"
-                    @click="activeTab = 'forms'"
+                    @click="formsExpanded = ! formsExpanded; activeTab = 'forms'"
                     :class="activeTab === 'forms' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                    :aria-expanded="formsExpanded"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left"
                 >
                     <span class="flex items-center gap-3">
                         <i class="ph ph-file-pdf text-lg"></i>
                         <span>Official Forms</span>
                     </span>
-                    <i class="ph ph-caret-right text-xs"></i>
+                    <i class="ph ph-caret-right text-xs transition-transform duration-200" :class="formsExpanded && 'rotate-90'"></i>
                 </button>
+
+                <div
+                    x-show="formsExpanded"
+                    x-cloak
+                    x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0 -translate-y-1"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    x-transition:leave="transition ease-in duration-150"
+                    x-transition:leave-start="opacity-100 translate-y-0"
+                    x-transition:leave-end="opacity-0 -translate-y-1"
+                    class="mt-1 space-y-0.5"
+                >
+                    @foreach ($officialFormPhases as $phase => $label)
+                        @php
+                            $phaseForms = $officialFormsByPhase->get($phase, collect());
+                        @endphp
+                        <div>
+                            <button
+                                type="button"
+                                @click="activeTab = 'forms'; activeFormPhase = activeFormPhase === '{{ $phase }}' ? null : '{{ $phase }}'"
+                                class="w-full flex items-center justify-between gap-2 py-2 pl-4 pr-3 rounded-xl text-white/55 hover:text-white hover:bg-white/5 transition-colors duration-200 text-[11px] font-semibold text-left"
+                            >
+                                <span class="flex min-w-0 items-start gap-2">
+                                    <i class="ph ph-caret-right mt-0.5 shrink-0 text-[10px] transition-transform duration-200" :class="activeFormPhase === '{{ $phase }}' && 'rotate-90'"></i>
+                                    <span class="leading-4">{{ $label }}</span>
+                                </span>
+                                <span class="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#eebc3f]/20 px-1.5 text-[9px] font-bold text-[#eebc3f]">
+                                    {{ $phaseForms->count() }}
+                                </span>
+                            </button>
+
+                            <div
+                                x-show="activeFormPhase === '{{ $phase }}'"
+                                x-cloak
+                                x-transition:enter="transition ease-out duration-150"
+                                x-transition:enter-start="opacity-0 -translate-y-1"
+                                x-transition:enter-end="opacity-100 translate-y-0"
+                                class="mt-0.5 space-y-0.5 pl-2"
+                            >
+                                @foreach ($phaseForms as $code => $form)
+                                    <button
+                                        type="button"
+                                        @click="activeTab = 'forms'; activeOfficialForm = '{{ $code }}'"
+                                        :class="activeOfficialForm === '{{ $code }}' ? 'bg-[#eebc3f] text-[#0e5c3a] ring-1 ring-white font-bold' : 'text-white/70 hover:text-white hover:bg-white/5'"
+                                        class="w-full flex items-start gap-2 rounded-xl px-3 py-2 text-left transition-colors duration-200"
+                                    >
+                                        <i class="ph ph-file-plus mt-0.5 shrink-0 text-sm"></i>
+                                        <span class="min-w-0">
+                                            <span class="block text-[10px] font-bold">{{ $code }}</span>
+                                            <span class="block text-[10px] leading-3.5">{{ $form['title'] }}</span>
+                                        </span>
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
             </div>
         </nav>
 
@@ -330,7 +410,7 @@
                                         <span class="font-bold text-emerald-700">{{ $progressPercentage }}%</span>
                                     </div>
                                     <div class="h-3 rounded-full bg-white mt-3 overflow-hidden">
-                                        <div class="h-full rounded-full bg-[#00a36c]" style="width: {{ $progressPercentage }}%"></div>
+                                        <div class="h-full rounded-full bg-[#00a36c]" :style="{ width: researchProgress + '%' }"></div>
                                     </div>
 
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
@@ -779,8 +859,7 @@
             </section>
 
             <section x-show="activeTab === 'forms'" x-cloak class="space-y-8">
-                <x-student-section-heading title="Official Forms" description="Official research forms made available by the university." />
-                <x-student-empty-state message="No official research forms have been published yet." />
+                @include('pages.student.forms.index')
             </section>
 
             <section x-show="activeTab === 'notifications'" x-cloak class="space-y-8">

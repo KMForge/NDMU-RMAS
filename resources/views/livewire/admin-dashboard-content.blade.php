@@ -33,32 +33,14 @@
         notes: '',
         generateNotice: true
     },
-    defensesList: [
-        { id: 1, type: 'Proposal Defense', title: 'AI-Powered Traffic Management System', student: 'Juan Dela Cruz', date: '2026-05-25', time: '09:00', duration: '2 hours', venue: 'Room 405, Research Building', adviser: 'Dr. Maria Santos', panelists: ['Dr. Maria Santos', 'Dr. John Reyes', 'Prof. Anna Garcia'], status: 'Scheduled', notes: '', generateNotice: true },
-        { id: 2, type: 'Final Defense', title: 'Blockchain-Based Voting System', student: 'Maria Clara', date: '2026-05-28', time: '14:00', duration: '2 hours', venue: 'Conference Room A', adviser: 'Dr. Pedro Cruz', panelists: ['Dr. Pedro Cruz', 'Dr. Sofia Martinez', 'Prof. Carlos Lopez'], status: 'Scheduled', notes: '', generateNotice: true }
-    ],
+    defensesList: @js($defensesList),
     repositorySearch: '',
     repositoryFilter: 'All Status',
-    repositoryList: [
-        { id: 1, label: 'CHAPTER 1', type: 'PDF', formatColor: 'text-red-500 bg-red-50', status: 'Reviewed', statusClass: 'bg-blue-50 text-blue-800 border-blue-100', title: 'Chapter 1 - Introduction', description: 'Background of the study, research objectives, and significance.', size: '2.4 MB', date: 'May 10, 2026', author: 'Maria Santos' },
-        { id: 2, label: 'CHAPTER 2', type: 'PDF', formatColor: 'text-red-500 bg-red-50', status: 'Pending Review', statusClass: 'bg-amber-50 text-amber-800 border-amber-100', title: 'Chapter 2 - Literature Review', description: 'Synthesis of related studies and theoretical framework.', size: '3.8 MB', date: 'May 12, 2026', author: 'Maria Santos' },
-        { id: 3, label: 'CHAPTER 3', type: 'PDF', formatColor: 'text-red-500 bg-red-50', status: 'For Evaluation', statusClass: 'bg-purple-50 text-purple-800 border-purple-100', title: 'Chapter 3 - Methodology', description: 'Research design, sampling, data gathering procedures.', size: '2.1 MB', date: 'May 15, 2026', author: 'Maria Santos' },
-        { id: 4, label: 'APPENDIX A', type: 'DOCX', formatColor: 'text-blue-500 bg-blue-50', status: 'Approved', statusClass: 'bg-emerald-50 text-emerald-800 border-emerald-100', title: 'Survey Questionnaire', description: 'Validated questionnaire used for primary data collection.', size: '856 KB', date: 'Apr 20, 2026', author: 'Maria Santos' },
-        { id: 5, label: 'PROPOSAL', type: 'PDF', formatColor: 'text-red-500 bg-red-50', status: 'Approved', statusClass: 'bg-emerald-50 text-emerald-800 border-emerald-100', title: 'Research Proposal - Final Draft', description: 'Full research proposal approved for continuation.', size: '1.5 MB', date: 'Mar 5, 2026', author: 'Maria Santos' },
-        { id: 6, label: 'APPENDIX B', type: 'DOCX', formatColor: 'text-blue-500 bg-blue-50', status: 'Pending Review', statusClass: 'bg-amber-50 text-amber-800 border-amber-100', title: 'Instrument Validation Form', description: 'Expert validation results for research instruments.', size: '620 KB', date: 'Apr 28, 2026', author: 'Maria Santos' }
-    ],
-    proposalsList: [
-        { id: 'PROP-2026-001', title: 'Machine Learning Applications in Agricultural Pest Detection', status: 'Approved', submitted: 'March 5, 2026', reviewer: 'Dr. Maria Santos', approvalDate: 'March 10, 2026' }
-    ],
-    staffList: [
-        { id: 1, name: 'Dr. Rosario Dela Paz', email: 'r.dela.paz@ndmu.edu.ph', role: 'Research Facilitator', department: 'College of Engineering, Architecture, and Computing', activeCount: 0, totalCount: 5, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false } },
-        { id: 2, name: 'Engr. Jose Montero', email: 'j.montero@ndmu.edu.ph', role: 'Research Facilitator', department: 'College of Engineering, Architecture, and Computing', activeCount: 0, totalCount: 5, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false } },
-        { id: 3, name: 'Dr. Reyna Garcia', email: 'r.garcia@ndmu.edu.ph', role: 'Research Adviser', department: 'College of Engineering, Architecture, and Computing', activeCount: 0, totalCount: 8, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false, users: false, stats: false, screening: false } },
-        { id: 4, name: 'Dr. Michael Tan', email: 'm.tan@ndmu.edu.ph', role: 'Research Adviser', department: 'College of Engineering, Architecture, and Computing', activeCount: 0, totalCount: 8, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false, users: false, stats: false, screening: false } },
-        { id: 5, name: 'Prof. Lucia Fernandez', email: 'l.fernandez@ndmu.edu.ph', role: 'Research Adviser', department: 'College of Engineering, Architecture, and Computing', activeCount: 0, totalCount: 8, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false, users: false, stats: false, screening: false } },
-        { id: 6, name: 'Dr. Benjamin Ramos', email: 'b.ramos@ndmu.edu.ph', role: 'Research Adviser', department: 'College of Engineering, Architecture, and Computing', activeCount: 0, totalCount: 8, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false, users: false, stats: false, screening: false } },
-        { id: 7, name: 'Dr. Miguel Torres', email: 'newadviser@ndmu.edu.ph', role: 'Research Adviser', department: 'College of Engineering, Architecture, and Computing', activeCount: 0, totalCount: 8, tempPassword: true, permissions: { paper: false, evaluation: false, defense: false, schedule: false, recommendations: false, users: false, stats: false, screening: false } }
-    ]
+    repositoryList: @js($repositoryList),
+    proposalsList: @js($proposalsList),
+    staffList: @js($staffList),
+    adviserOptions: @js($adviserOptions),
+    panelistOptions: @js($panelistOptions)
 }"
     @staff-account-created.window="activeTab = 'users'; userManagementTab = 'all-users'"
 >
@@ -79,10 +61,10 @@
             <!-- Profile Badge -->
             <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
                 <div class="w-10 h-10 rounded-full bg-[#eebc3f] text-[#0e5c3a] font-bold flex items-center justify-center text-lg flex-shrink-0">
-                    S
+                    {{ mb_strtoupper(mb_substr($administrator?->name ?? 'A', 0, 1)) }}
                 </div>
                 <div class="flex flex-col leading-tight overflow-hidden">
-                    <span class="font-semibold text-sm text-white truncate">System Administrator</span>
+                    <span class="font-semibold text-sm text-white truncate">{{ $administrator?->name ?? 'Administrator' }}</span>
                     <span class="text-[10px] text-white/60 font-medium mt-0.5">Administrator</span>
                 </div>
             </div>
@@ -294,6 +276,11 @@
                     </button>
                 </div>
             @endif
+            @error('account')
+                <div class="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700">
+                    {{ $message }}
+                </div>
+            @enderror
 
             <!-- TAB 1: ADMIN DASHBOARD VIEW -->
             <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">
@@ -320,7 +307,7 @@
                         <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-blue-500 border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
                             <div class="space-y-1">
                                 <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Active Research</span>
-                                <span class="text-3xl font-extrabold text-gray-800 font-heading">48</span>
+                                <span class="text-3xl font-extrabold text-gray-800 font-heading">{{ $activeResearchCount }}</span>
                             </div>
                             <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 text-2xl">
                                 <i class="ph ph-file-text"></i>
@@ -331,7 +318,7 @@
                         <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-purple-500 border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
                             <div class="space-y-1">
                                 <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Completed</span>
-                                <span class="text-3xl font-extrabold text-gray-800 font-heading">126</span>
+                                <span class="text-3xl font-extrabold text-gray-800 font-heading">{{ $completedResearchCount }}</span>
                             </div>
                             <div class="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 text-2xl">
                                 <i class="ph ph-trend-up"></i>
@@ -341,8 +328,8 @@
                         <!-- Card 4: System Activity -->
                         <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-amber-500 border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
                             <div class="space-y-1">
-                                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">System Activity</span>
-                                <span class="text-3xl font-extrabold text-emerald-600 font-heading">High</span>
+                                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Recent Activity</span>
+                                <span class="text-3xl font-extrabold text-emerald-600 font-heading">{{ count($recentActivities) }}</span>
                             </div>
                             <div class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 text-2xl">
                                 <i class="ph ph-activity"></i>
@@ -356,12 +343,16 @@
                         <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100">
                             <h3 class="text-lg font-bold text-gray-800 mb-6">Recent Activity</h3>
                             <div class="space-y-4">
-                                @foreach($recentActivities as $activity)
+                                @forelse($recentActivities as $activity)
                                     <div class="p-4 bg-gray-50/60 hover:bg-gray-50 border border-gray-100 rounded-2xl transition-all duration-200 flex items-center justify-between">
                                         <span class="text-sm font-medium text-gray-700">{{ $activity['text'] }}</span>
                                         <span class="text-xs text-gray-400">{{ $activity['time'] }}</span>
                                     </div>
-                                @endforeach
+                                @empty
+                                    <div class="p-6 bg-gray-50/60 border border-gray-100 rounded-2xl text-center text-sm text-gray-500">
+                                        No recent activity found.
+                                    </div>
+                                @endforelse
                             </div>
                         </div>
 
@@ -380,7 +371,7 @@
                                             @php
                                                 $studentPercent = $totalUsersCount > 0 ? ($studentCount / $totalUsersCount) * 100 : 0;
                                             @endphp
-                                            <div class="h-full bg-emerald-600 rounded-full" style="width: {{ max(10, min(100, $studentPercent)) }}%"></div>
+                                            <div class="h-full bg-emerald-600 rounded-full" x-init="$el.style.width = @js(max(0, min(100, $studentPercent))) + '%'"></div>
                                         </div>
                                     </div>
 
@@ -394,7 +385,7 @@
                                             @php
                                                 $adviserPercent = $totalUsersCount > 0 ? ($adviserCount / $totalUsersCount) * 100 : 0;
                                             @endphp
-                                            <div class="h-full bg-blue-600 rounded-full" style="width: {{ max(10, min(100, $adviserPercent)) }}%"></div>
+                                            <div class="h-full bg-blue-600 rounded-full" x-init="$el.style.width = @js(max(0, min(100, $adviserPercent))) + '%'"></div>
                                         </div>
                                     </div>
 
@@ -408,12 +399,128 @@
                                             @php
                                                 $panelistPercent = $totalUsersCount > 0 ? ($panelistCount / $totalUsersCount) * 100 : 0;
                                             @endphp
-                                            <div class="h-full bg-purple-600 rounded-full" style="width: {{ max(10, min(100, $panelistPercent)) }}%"></div>
+                                            <div class="h-full bg-purple-600 rounded-full" x-init="$el.style.width = @js(max(0, min(100, $panelistPercent))) + '%'"></div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Pending Actions -->
+                    <section class="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100">
+                        <div class="flex items-center justify-between gap-4 mb-6">
+                            <div>
+                                <h2 class="text-lg font-bold text-gray-800">Pending Actions</h2>
+                                <p class="text-xs text-gray-500 mt-1">Items that still require review or attention</p>
+                            </div>
+                            <span class="px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold">
+                                {{ collect($pendingActions)->sum('count') }} total
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                            @foreach ($pendingActions as $action)
+                                @php
+                                    $actionTone = match ($action['tone']) {
+                                        'purple' => 'bg-purple-50 text-purple-700 border-purple-100',
+                                        'blue' => 'bg-blue-50 text-blue-700 border-blue-100',
+                                        'emerald' => 'bg-emerald-50 text-emerald-700 border-emerald-100',
+                                        'red' => 'bg-red-50 text-red-700 border-red-100',
+                                        'orange' => 'bg-orange-50 text-orange-700 border-orange-100',
+                                        default => 'bg-amber-50 text-amber-700 border-amber-100',
+                                    };
+                                @endphp
+                                <button
+                                    type="button"
+                                    data-tab="{{ $action['tab'] }}"
+                                    data-subtab="{{ $action['subtab'] }}"
+                                    @click="if ($el.dataset.tab) { activeTab = $el.dataset.tab; if ($el.dataset.subtab) userManagementTab = $el.dataset.subtab; }"
+                                    @disabled($action['tab'] === null)
+                                    class="p-5 rounded-2xl border text-left flex items-center justify-between gap-4 transition-all hover:shadow-sm disabled:cursor-default {{ $actionTone }}"
+                                >
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <span class="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center flex-shrink-0">
+                                            <i class="ph {{ $action['icon'] }} text-xl"></i>
+                                        </span>
+                                        <span class="text-xs font-bold truncate">{{ $action['label'] }}</span>
+                                    </div>
+                                    <span class="text-2xl font-extrabold font-heading">{{ $action['count'] }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                    </section>
+
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                        <!-- Security Overview -->
+                        <section class="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100">
+                            <div class="flex items-center gap-3 mb-6">
+                                <span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                                    <i class="ph ph-shield-check text-xl"></i>
+                                </span>
+                                <div>
+                                    <h2 class="text-lg font-bold text-gray-800">Security Overview</h2>
+                                    <p class="text-xs text-gray-500 mt-1">Account and upload security indicators</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                @foreach ($securityOverview as $item)
+                                    <div @class([
+                                        'p-5 rounded-2xl border flex items-start justify-between gap-4',
+                                        'bg-red-50/60 border-red-100' => $item['attention'],
+                                        'bg-emerald-50/50 border-emerald-100' => ! $item['attention'],
+                                    ])>
+                                        <div class="min-w-0">
+                                            <p class="text-xs font-bold text-gray-700">{{ $item['label'] }}</p>
+                                            <p class="text-[10px] text-gray-500 mt-1">{{ $item['detail'] }}</p>
+                                        </div>
+                                        <div class="text-right flex-shrink-0">
+                                            <i @class(['ph', $item['icon'], 'text-lg', 'text-red-600' => $item['attention'], 'text-emerald-600' => ! $item['attention']])></i>
+                                            <span class="block text-xl font-extrabold text-gray-800 mt-1">{{ $item['count'] }}</span>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </section>
+
+                        <!-- System Health -->
+                        <section class="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100">
+                            <div class="flex items-center gap-3 mb-6">
+                                <span class="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+                                    <i class="ph ph-heartbeat text-xl"></i>
+                                </span>
+                                <div>
+                                    <h2 class="text-lg font-bold text-gray-800">System Health</h2>
+                                    <p class="text-xs text-gray-500 mt-1">Safe operational checks without exposing server details</p>
+                                </div>
+                            </div>
+
+                            <div class="space-y-3">
+                                @foreach ($systemHealth as $health)
+                                    <div class="p-4 rounded-2xl border border-gray-100 bg-gray-50/60 flex items-center justify-between gap-4">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <span @class([
+                                                'w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0',
+                                                'bg-emerald-100 text-emerald-700' => $health['healthy'],
+                                                'bg-red-100 text-red-700' => ! $health['healthy'],
+                                            ])>
+                                                <i class="ph {{ $health['icon'] }} text-lg"></i>
+                                            </span>
+                                            <div class="min-w-0">
+                                                <p class="text-xs font-bold text-gray-700">{{ $health['label'] }}</p>
+                                                <p class="text-[10px] text-gray-500 mt-0.5 truncate">{{ $health['detail'] }}</p>
+                                            </div>
+                                        </div>
+                                        <span @class([
+                                            'px-3 py-1 rounded-full text-[10px] font-bold flex-shrink-0',
+                                            'bg-emerald-100 text-emerald-700' => $health['healthy'],
+                                            'bg-red-100 text-red-700' => ! $health['healthy'],
+                                        ])>{{ $health['status'] }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </section>
                     </div>
             </div>
 
@@ -552,7 +659,10 @@
 
                                             <!-- Refresh Button -->
                                             <button 
-                                                wire:click="$refresh"
+                                                type="button"
+                                                wire:click="refreshUserManagement"
+                                                wire:loading.attr="disabled"
+                                                wire:target="refreshUserManagement"
                                                 class="px-4 py-2.5 bg-white hover:bg-gray-50 border border-gray-200 text-gray-600 hover:text-gray-800 text-sm font-semibold rounded-2xl flex items-center gap-2 shadow-sm transition-all duration-300"
                                             >
                                                 <i class="ph ph-arrows-counter-clockwise"></i> Refresh
@@ -588,25 +698,30 @@
                                                         <!-- Email -->
                                                         <td class="px-6 py-4">{{ $user->email }}</td>
 
-                                                        <!-- Role Badge -->
+                                                        <!-- Role Badges -->
                                                         <td class="px-6 py-4">
-                                                            @php
-                                                                $roleName = $user->roles->first()?->name ?? 'None';
-                                                                $roleBadgeClass = match($roleName) {
-                                                                    'system-administrator' => 'bg-emerald-50 text-emerald-700 border-emerald-100',
-                                                                    'college-dean' => 'bg-indigo-50 text-indigo-700 border-indigo-100',
-                                                                    'research-facilitator' => 'bg-sky-50 text-sky-700 border-sky-100',
-                                                                    'research-adviser' => 'bg-teal-50 text-teal-700 border-teal-100',
-                                                                    'panelist' => 'bg-purple-50 text-purple-700 border-purple-100',
-                                                                    default => 'bg-gray-50 text-gray-700 border-gray-100',
-                                                                };
-                                                                $roleLabel = str($roleName === 'system-administrator' ? 'Administrator' : $roleName)
-                                                                    ->replace('-', ' ')
-                                                                    ->title();
-                                                            @endphp
-                                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border {{ $roleBadgeClass }}">
-                                                                {{ $roleLabel }}
-                                                            </span>
+                                                            <div class="flex flex-wrap gap-1">
+                                                                @forelse ($user->roles as $assignedRole)
+                                                                    @php
+                                                                        $roleBadgeClass = match($assignedRole->name) {
+                                                                            'system-administrator' => 'bg-emerald-50 text-emerald-700 border-emerald-100',
+                                                                            'college-dean' => 'bg-indigo-50 text-indigo-700 border-indigo-100',
+                                                                            'research-facilitator' => 'bg-sky-50 text-sky-700 border-sky-100',
+                                                                            'research-adviser' => 'bg-teal-50 text-teal-700 border-teal-100',
+                                                                            'panelist' => 'bg-purple-50 text-purple-700 border-purple-100',
+                                                                            default => 'bg-gray-50 text-gray-700 border-gray-100',
+                                                                        };
+                                                                        $roleLabel = str($assignedRole->name === 'system-administrator' ? 'Administrator' : $assignedRole->name)
+                                                                            ->replace('-', ' ')
+                                                                            ->title();
+                                                                    @endphp
+                                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border {{ $roleBadgeClass }}">
+                                                                        {{ $roleLabel }}
+                                                                    </span>
+                                                                @empty
+                                                                    <span class="text-xs text-gray-400">No role</span>
+                                                                @endforelse
+                                                            </div>
                                                         </td>
 
                                                         <!-- Status Badge -->
@@ -634,7 +749,33 @@
                                                         <td class="px-6 py-4">{{ $user->created_at?->format('Y-m-d') }}</td>
 
                                                         <!-- Actions -->
-                                                        <td class="px-6 py-4 text-xs font-bold text-gray-400">System</td>
+                                                        <td class="px-6 py-4">
+                                                            @if (auth()->id() === $user->id)
+                                                                <span class="text-xs font-bold text-gray-400">Current account</span>
+                                                            @elseif ($status === 'active')
+                                                                <button
+                                                                    type="button"
+                                                                    wire:click="suspendUser({{ $user->id }})"
+                                                                    wire:confirm="Suspend this account? The user will no longer be able to sign in."
+                                                                    wire:loading.attr="disabled"
+                                                                    wire:target="suspendUser({{ $user->id }})"
+                                                                    class="px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-xs font-bold text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                                                                >
+                                                                    Suspend
+                                                                </button>
+                                                            @else
+                                                                <button
+                                                                    type="button"
+                                                                    wire:click="activateUser({{ $user->id }})"
+                                                                    wire:confirm="Activate this account?"
+                                                                    wire:loading.attr="disabled"
+                                                                    wire:target="activateUser({{ $user->id }})"
+                                                                    class="px-3 py-2 rounded-xl bg-[#0e5c3a] text-xs font-bold text-white hover:bg-[#0a4a2e] disabled:opacity-50"
+                                                                >
+                                                                    Activate
+                                                                </button>
+                                                            @endif
+                                                        </td>
                                                     </tr>
                                                 @empty
                                                     <tr>
@@ -672,7 +813,7 @@
                                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1.5 pt-2 text-xs font-medium text-gray-500">
                                                         <div class="flex items-center gap-2">
                                                             <i class="ph ph-identification-card text-base text-gray-400"></i>
-                                                            <span>{{ $student->student_id ?? 'STU-2026-' . str_pad($student->id, 4, '0', STR_PAD_LEFT) }}</span>
+                                                            <span>{{ $student->student_id ?? 'Student ID not provided' }}</span>
                                                         </div>
                                                         <div class="flex items-center gap-2">
                                                             <i class="ph ph-envelope-simple text-base text-gray-400"></i>
@@ -680,7 +821,7 @@
                                                         </div>
                                                         <div class="flex items-center gap-2 md:col-span-2">
                                                             <i class="ph ph-graduation-cap text-base text-gray-400"></i>
-                                                            <span>{{ $student->program ?? 'Bachelor of Science in Computer Science' }} - {{ $student->year_level ?? '3rd' }} Year</span>
+                                                            <span>{{ $student->program ?? 'Program not specified' }} - {{ $student->year_level ? $student->year_level.' Year' : 'Year level not specified' }}</span>
                                                         </div>
                                                         <div class="flex items-center gap-2">
                                                             <i class="ph ph-calendar text-base text-gray-400"></i>
@@ -694,12 +835,17 @@
                                             <div class="flex items-center gap-3 flex-shrink-0 self-end md:self-center">
                                                 <button 
                                                     wire:click="approveStudent({{ $student->id }})"
+                                                    wire:loading.attr="disabled"
+                                                    wire:target="approveStudent({{ $student->id }})"
                                                     class="px-5 py-3 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-md shadow-emerald-700/10 hover:shadow-lg transition-all duration-300"
                                                 >
                                                     <i class="ph ph-check-circle text-base"></i> Approve
                                                 </button>
                                                 <button 
                                                     wire:click="rejectStudent({{ $student->id }})"
+                                                    wire:confirm="Reject this student registration?"
+                                                    wire:loading.attr="disabled"
+                                                    wire:target="rejectStudent({{ $student->id }})"
                                                     class="px-5 py-3 border border-red-200 hover:border-red-300 text-red-600 bg-white hover:bg-red-50 text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm transition-all duration-300"
                                                 >
                                                     <i class="ph ph-x-circle text-base"></i> Reject
@@ -720,7 +866,7 @@
                                     <div class="mb-6 p-4 bg-sky-50 border border-sky-100 text-sky-800 rounded-2xl flex gap-3 text-xs leading-relaxed">
                                         <i class="ph ph-info text-lg text-sky-600 flex-shrink-0"></i>
                                         <div>
-                                            Creates a <strong>staff account</strong> (Adviser, Panelist, Research Facilitator, or College Dean). The user will be required to change their temporary password on first login.
+                                            Creates a <strong>staff account</strong> (Adviser, Panelist, Research Facilitator, or College Dean). Share the temporary password securely and ask the user to change it through the password reset flow.
                                         </div>
                                     </div>
 
@@ -797,8 +943,9 @@
                                                 <input
                                                     type="text"
                                                     id="new_department"
-                                                    wire:model="department"
+                                                    value="{{ config('academic.college.name') }}"
                                                     readonly
+                                                    aria-readonly="true"
                                                     class="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-600 focus:outline-none"
                                                 >
                                             </div>
@@ -829,9 +976,13 @@
                                         <!-- Submit button -->
                                         <button 
                                             type="submit" 
+                                            wire:loading.attr="disabled"
+                                            wire:target="createStaffAccount"
                                             class="w-full py-4 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-sm font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-[#0e5c3a]/10 hover:shadow-xl transition-all duration-300 mt-2"
                                         >
-                                            <i class="ph ph-plus text-base"></i> Create Account
+                                            <i class="ph ph-plus text-base"></i>
+                                            <span wire:loading.remove wire:target="createStaffAccount">Create Account</span>
+                                            <span wire:loading wire:target="createStaffAccount">Creating Account...</span>
                                         </button>
                                     </form>
                             </div>
@@ -1294,31 +1445,31 @@
                     <div class="flex items-center justify-between">
                         <div class="space-y-1">
                             <h3 class="text-lg font-bold text-gray-800">Overall Progress</h3>
-                            <p class="text-xs text-gray-400 font-light">Machine Learning Applications in Agricultural Pest Detection</p>
+                            <p class="text-xs text-gray-400 font-light">{{ $researchLifecycle['title'] ?? 'No research project found' }}</p>
                         </div>
                         <div class="text-right">
-                            <span class="text-2xl font-extrabold text-emerald-600 font-heading">42%</span>
+                            <span class="text-2xl font-extrabold text-emerald-600 font-heading">{{ $researchLifecycle['progress'] }}%</span>
                             <span class="text-[10px] text-gray-400 font-bold block uppercase tracking-wider mt-0.5">Complete</span>
                         </div>
                     </div>
 
                     <!-- Progress Bar -->
                     <div class="w-full h-4 bg-gray-100 rounded-full overflow-hidden">
-                        <div class="h-full bg-emerald-600 rounded-full" style="width: 42%"></div>
+                        <div class="h-full bg-emerald-600 rounded-full" x-init="$el.style.width = @js($researchLifecycle['progress']) + '%'"></div>
                     </div>
 
                     <!-- Counts -->
                     <div class="grid grid-cols-3 gap-6 text-center pt-2">
                         <div>
-                            <span class="text-xl font-extrabold text-emerald-600 font-heading block">6</span>
+                            <span class="text-xl font-extrabold text-emerald-600 font-heading block">{{ $researchLifecycle['completed'] }}</span>
                             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">Completed</span>
                         </div>
                         <div class="border-l border-r border-gray-150">
-                            <span class="text-xl font-extrabold text-amber-500 font-heading block">2</span>
+                            <span class="text-xl font-extrabold text-amber-500 font-heading block">{{ $researchLifecycle['in_progress'] }}</span>
                             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">In Progress</span>
                         </div>
                         <div>
-                            <span class="text-xl font-extrabold text-gray-400 font-heading block">4</span>
+                            <span class="text-xl font-extrabold text-gray-400 font-heading block">{{ $researchLifecycle['pending'] }}</span>
                             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">Pending</span>
                         </div>
                     </div>
@@ -1330,7 +1481,58 @@
 
                     <!-- Timeline Vertical Container -->
                     <div class="relative pl-10 border-l-2 border-gray-150 space-y-8 ml-6 py-2">
-                        
+
+                        @forelse ($researchLifecycle['milestones'] as $milestone)
+                            @php
+                                $milestoneCompleted = $milestone['status'] === 'completed';
+                                $milestoneInProgress = $milestone['status'] === 'in_progress';
+                            @endphp
+                            <div class="relative">
+                                <span @class([
+                                    'absolute -left-[57px] top-1.5 flex h-8 w-8 items-center justify-center rounded-full shadow-sm',
+                                    'bg-[#0fa47b] border border-[#0fa47b]' => $milestoneCompleted,
+                                    'bg-[#f59e0b] border border-[#f59e0b]' => $milestoneInProgress,
+                                    'bg-white border-2 border-gray-200' => ! $milestoneCompleted && ! $milestoneInProgress,
+                                ])>
+                                    @if ($milestoneCompleted)
+                                        <i class="ph-bold ph-check text-white text-xs"></i>
+                                    @elseif ($milestoneInProgress)
+                                        <i class="ph-bold ph-clock text-white text-xs"></i>
+                                    @else
+                                        <span class="w-2.5 h-2.5 bg-gray-200 rounded-full"></span>
+                                    @endif
+                                </span>
+                                <div @class([
+                                    'p-6 border rounded-3xl hover:shadow-sm transition-all duration-300 flex items-center justify-between',
+                                    'bg-[#f4faf7] border-emerald-100' => $milestoneCompleted,
+                                    'bg-[#fdfaf2] border-amber-100' => $milestoneInProgress,
+                                    'bg-white border-gray-150 opacity-70' => ! $milestoneCompleted && ! $milestoneInProgress,
+                                ])>
+                                    <div class="space-y-1.5">
+                                        <h4 class="font-extrabold text-gray-800 text-sm">{{ $milestone['name'] }}</h4>
+                                        <div class="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                                            <i class="ph ph-calendar"></i>
+                                            <span>{{ $milestone['due_at'] ?? 'No due date' }}</span>
+                                        </div>
+                                        @if ($milestone['description'])
+                                            <p class="text-xs text-gray-500 font-medium">{{ $milestone['description'] }}</p>
+                                        @endif
+                                    </div>
+                                    <span @class([
+                                        'text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider',
+                                        'bg-[#0fa47b]' => $milestoneCompleted,
+                                        'bg-amber-500' => $milestoneInProgress,
+                                        'bg-gray-400' => ! $milestoneCompleted && ! $milestoneInProgress,
+                                    ])>{{ str($milestone['status'])->headline() }}</span>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="p-10 bg-gray-50/60 border border-gray-100 rounded-3xl text-center text-sm text-gray-500">
+                                No research milestones found.
+                            </div>
+                        @endforelse
+
+                        {{-- Historical static milestone examples intentionally excluded from rendered output.
                         <!-- Milestone 1: Research Title Presentation (Completed) -->
                         <div class="relative">
                             <span class="absolute -left-[57px] top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-[#0fa47b] border border-[#0fa47b] shadow-sm">
@@ -1541,6 +1743,7 @@
                                 <span class="bg-gray-400 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Pending</span>
                             </div>
                         </div>
+                        --}}
                     </div>
 
                     <!-- Bottom Buttons -->
@@ -1737,28 +1940,11 @@
                         <h1 class="text-3xl font-extrabold font-heading text-gray-800 tracking-tight">Research Repository</h1>
                         <p class="text-sm text-gray-500 font-light mt-1">Manage, upload, and track all your research files.</p>
                     </div>
-                    <button 
-                        type="button" 
-                        @click="
-                            const title = prompt('Enter Document Title:');
-                            const student = prompt('Enter Student/Researcher Name:');
-                            if(title && student) {
-                                repositoryList.unshift({
-                                    id: Date.now(),
-                                    label: 'DOCUMENT',
-                                    type: 'PDF',
-                                    formatColor: 'text-red-500 bg-red-50',
-                                    status: 'Pending Review',
-                                    statusClass: 'bg-amber-50 text-amber-800 border-amber-100',
-                                    title: title,
-                                    description: 'Uploaded research document.',
-                                    size: '1.2 MB',
-                                    date: 'Today',
-                                    author: student
-                                });
-                            }
-                        "
-                        class="px-6 py-3.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-md shadow-emerald-700/10 hover:shadow-lg transition-all duration-300 font-sans"
+                    <button
+                        type="button"
+                        disabled
+                        title="Administrator uploads are not currently available"
+                        class="px-6 py-3.5 bg-[#0e5c3a] text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-md shadow-emerald-700/10 font-sans disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <i class="ph ph-upload-simple text-base"></i> Upload Document
                     </button>
@@ -1770,7 +1956,7 @@
                     <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
                         <div class="space-y-1">
                             <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Total Files</span>
-                            <span class="text-3xl font-extrabold text-gray-800 font-heading" x-text="repositoryList.length">6</span>
+                            <span class="text-3xl font-extrabold text-gray-800 font-heading" x-text="repositoryList.length"></span>
                         </div>
                         <div class="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 text-xl">
                             <i class="ph ph-file-text"></i>
@@ -1781,7 +1967,7 @@
                     <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
                         <div class="space-y-1">
                             <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Approved</span>
-                            <span class="text-3xl font-extrabold text-gray-800 font-heading" x-text="repositoryList.filter(r => r.status === 'Approved').length">2</span>
+                            <span class="text-3xl font-extrabold text-gray-800 font-heading" x-text="repositoryList.filter(r => r.status === 'Approved').length"></span>
                         </div>
                         <div class="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 text-xl">
                             <i class="ph ph-check-circle"></i>
@@ -1792,7 +1978,7 @@
                     <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
                         <div class="space-y-1">
                             <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Pending Review</span>
-                            <span class="text-3xl font-extrabold text-gray-800 font-heading" x-text="repositoryList.filter(r => r.status === 'Pending Review').length">2</span>
+                            <span class="text-3xl font-extrabold text-gray-800 font-heading" x-text="repositoryList.filter(r => r.status === 'Pending Review').length"></span>
                         </div>
                         <div class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 text-xl">
                             <i class="ph ph-clock"></i>
@@ -1803,7 +1989,7 @@
                     <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
                         <div class="space-y-1">
                             <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">For Evaluation</span>
-                            <span class="text-3xl font-extrabold text-gray-800 font-heading" x-text="repositoryList.filter(r => r.status === 'For Evaluation').length">1</span>
+                            <span class="text-3xl font-extrabold text-gray-800 font-heading" x-text="repositoryList.filter(r => r.status === 'For Evaluation').length"></span>
                         </div>
                         <div class="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 text-xl">
                             <i class="ph ph-clipboard-text"></i>
@@ -1867,15 +2053,18 @@
 
                             <!-- Action Buttons -->
                             <div class="grid grid-cols-2 gap-2 pt-2">
-                                <button type="button" @click="alert('Viewing ' + doc.title)" class="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-[#0e5c3a] text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all">
+                                <a :href="doc.viewUrl" class="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-[#0e5c3a] text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all">
                                     <i class="ph ph-eye text-sm"></i> View
-                                </button>
-                                <button type="button" @click="alert('Downloading ' + doc.title)" class="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all">
+                                </a>
+                                <a :href="doc.downloadUrl" class="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all">
                                     <i class="ph ph-download-simple text-sm"></i> Download
-                                </button>
+                                </a>
                             </div>
                         </div>
                     </template>
+                    <div x-show="repositoryList.length === 0" class="md:col-span-3 bg-white rounded-[2rem] p-12 border border-gray-100 text-center text-sm text-gray-500">
+                        No research documents found.
+                    </div>
                 </div>
             </div>
 
@@ -1893,7 +2082,7 @@
                     <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-emerald-500 border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
                         <div class="space-y-1">
                             <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Approved</span>
-                            <span class="text-2xl font-extrabold text-gray-800 font-heading">1</span>
+                            <span class="text-2xl font-extrabold text-gray-800 font-heading" x-text="proposalsList.filter(p => p.status === 'Approved').length"></span>
                         </div>
                         <div class="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 text-lg">
                             <i class="ph ph-check-circle"></i>
@@ -1904,7 +2093,7 @@
                     <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-amber-500 border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
                         <div class="space-y-1">
                             <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Pending</span>
-                            <span class="text-2xl font-extrabold text-gray-800 font-heading">0</span>
+                            <span class="text-2xl font-extrabold text-gray-800 font-heading" x-text="proposalsList.filter(p => ['Pending', 'Submitted', 'Under Review'].includes(p.status)).length"></span>
                         </div>
                         <div class="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600 text-lg">
                             <i class="ph ph-clock"></i>
@@ -1915,7 +2104,7 @@
                     <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-red-500 border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
                         <div class="space-y-1">
                             <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Revisions</span>
-                            <span class="text-2xl font-extrabold text-gray-800 font-heading">0</span>
+                            <span class="text-2xl font-extrabold text-gray-800 font-heading" x-text="proposalsList.filter(p => p.status.includes('Revision')).length"></span>
                         </div>
                         <div class="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-600 text-lg">
                             <i class="ph ph-x-circle"></i>
@@ -1926,7 +2115,7 @@
                     <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-blue-500 border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
                         <div class="space-y-1">
                             <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Proposals</span>
-                            <span class="text-2xl font-extrabold text-gray-800 font-heading">1</span>
+                            <span class="text-2xl font-extrabold text-gray-800 font-heading" x-text="proposalsList.length"></span>
                         </div>
                         <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 text-lg">
                             <i class="ph ph-file-text"></i>
@@ -1961,15 +2150,18 @@
                             </div>
 
                             <div class="flex items-center gap-3 pt-2">
-                                <button type="button" @click="alert('Viewing proposal details')" class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-2xl shadow-sm transition-all duration-300">
+                                <a x-show="prop.viewUrl" :href="prop.viewUrl" class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-2xl shadow-sm transition-all duration-300">
                                     View Proposal
-                                </button>
-                                <button type="button" @click="alert('Downloading PDF')" class="px-5 py-3 border border-gray-200 hover:bg-gray-50 text-gray-600 text-xs font-bold rounded-2xl shadow-sm transition-all duration-300 bg-white">
+                                </a>
+                                <a x-show="prop.downloadUrl" :href="prop.downloadUrl" class="px-5 py-3 border border-gray-200 hover:bg-gray-50 text-gray-600 text-xs font-bold rounded-2xl shadow-sm transition-all duration-300 bg-white">
                                     Download PDF
-                                </button>
+                                </a>
                             </div>
                         </div>
                     </template>
+                    <div x-show="proposalsList.length === 0" class="p-10 bg-gray-50/60 border border-gray-100 rounded-3xl text-center text-sm text-gray-500">
+                        No research proposals found.
+                    </div>
                 </div>
             </div>
 
@@ -1996,8 +2188,8 @@
                     <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
                         <div class="space-y-1">
                             <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Total Research</span>
-                            <span class="text-2xl font-extrabold text-gray-800 font-heading block">174</span>
-                            <span class="text-[10px] font-bold text-emerald-600 tracking-wide block">+12% from last year</span>
+                            <span class="text-2xl font-extrabold text-gray-800 font-heading block">{{ $totalResearchCount }}</span>
+                            <span class="text-[10px] font-bold text-emerald-600 tracking-wide block">Database total</span>
                         </div>
                         <div class="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 text-xl">
                             <i class="ph ph-chart-bar"></i>
@@ -2008,8 +2200,8 @@
                     <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
                         <div class="space-y-1">
                             <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Completed</span>
-                            <span class="text-2xl font-extrabold text-gray-800 font-heading block">126</span>
-                            <span class="text-[10px] font-bold text-blue-500 tracking-wide block">72% completion rate</span>
+                            <span class="text-2xl font-extrabold text-gray-800 font-heading block">{{ $completedResearchCount }}</span>
+                            <span class="text-[10px] font-bold text-blue-500 tracking-wide block">{{ $researchCompletionRate }}% completion rate</span>
                         </div>
                         <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 text-xl">
                             <i class="ph ph-trend-up"></i>
@@ -2020,8 +2212,8 @@
                     <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
                         <div class="space-y-1">
                             <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">In Progress</span>
-                            <span class="text-2xl font-extrabold text-gray-800 font-heading block">48</span>
-                            <span class="text-[10px] font-bold text-amber-500 tracking-wide block">28% ongoing</span>
+                            <span class="text-2xl font-extrabold text-gray-800 font-heading block">{{ $activeResearchCount }}</span>
+                            <span class="text-[10px] font-bold text-amber-500 tracking-wide block">{{ $researchInProgressRate }}% ongoing</span>
                         </div>
                         <div class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 text-xl">
                             <i class="ph ph-chart-pie-slice"></i>
@@ -2032,7 +2224,7 @@
                     <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
                         <div class="space-y-1">
                             <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Avg Duration</span>
-                            <span class="text-2xl font-extrabold text-gray-800 font-heading block">8.5</span>
+                            <span class="text-2xl font-extrabold text-gray-800 font-heading block">{{ $averageResearchMonths ?? '—' }}</span>
                             <span class="text-[10px] font-bold text-purple-500 tracking-wide block">months</span>
                         </div>
                         <div class="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 text-xl">
@@ -2048,49 +2240,19 @@
                         <h3 class="text-base font-extrabold text-gray-800 font-heading">Research by Program</h3>
                         
                         <div class="space-y-4">
-                            <!-- Computer Science -->
+                            @forelse ($researchByProgram as $program)
                             <div class="space-y-1.5">
                                 <div class="flex justify-between text-xs font-bold">
-                                    <span class="text-gray-600">Computer Science</span>
-                                    <span class="text-gray-800">45</span>
+                                    <span class="text-gray-600">{{ $program['name'] }}</span>
+                                    <span class="text-gray-800">{{ $program['count'] }}</span>
                                 </div>
                                 <div class="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                                    <div class="h-full bg-[#0e5c3a] rounded-full" style="width: 45%;"></div>
+                                    <div class="h-full bg-[#0e5c3a] rounded-full" x-init="$el.style.width = @js($program['percentage']) + '%'"></div>
                                 </div>
                             </div>
-
-                            <!-- Engineering -->
-                            <div class="space-y-1.5">
-                                <div class="flex justify-between text-xs font-bold">
-                                    <span class="text-gray-600">Engineering</span>
-                                    <span class="text-gray-800">38</span>
-                                </div>
-                                <div class="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                                    <div class="h-full bg-blue-500 rounded-full" style="width: 38%;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Education -->
-                            <div class="space-y-1.5">
-                                <div class="flex justify-between text-xs font-bold">
-                                    <span class="text-gray-600">Education</span>
-                                    <span class="text-gray-800">32</span>
-                                </div>
-                                <div class="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                                    <div class="h-full bg-purple-500 rounded-full" style="width: 32%;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Business -->
-                            <div class="space-y-1.5">
-                                <div class="flex justify-between text-xs font-bold">
-                                    <span class="text-gray-600">Business</span>
-                                    <span class="text-gray-800">28</span>
-                                </div>
-                                <div class="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                                    <div class="h-full bg-amber-500 rounded-full" style="width: 28%;"></div>
-                                </div>
-                            </div>
+                            @empty
+                                <p class="py-10 text-center text-sm text-gray-500">No research program data found.</p>
+                            @endforelse
                         </div>
                     </div>
 
@@ -2101,62 +2263,62 @@
                         <div class="flex items-end justify-between h-48 pt-4">
                             <!-- Jan -->
                             <div class="flex flex-col items-center flex-1 h-full justify-end group">
-                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" style="height: 30%"></div>
+                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" x-init="$el.style.height = @js($monthlyResearchSubmissions[0]['percentage']) + '%'" title="{{ $monthlyResearchSubmissions[0]['count'] }} submissions"></div>
                                 <span class="text-[9px] font-bold text-gray-400 mt-2">Jan</span>
                             </div>
                             <!-- Feb -->
                             <div class="flex flex-col items-center flex-1 h-full justify-end group">
-                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" style="height: 40%"></div>
+                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" x-init="$el.style.height = @js($monthlyResearchSubmissions[1]['percentage']) + '%'" title="{{ $monthlyResearchSubmissions[1]['count'] }} submissions"></div>
                                 <span class="text-[9px] font-bold text-gray-400 mt-2">Feb</span>
                             </div>
                             <!-- Mar -->
                             <div class="flex flex-col items-center flex-1 h-full justify-end group">
-                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" style="height: 35%"></div>
+                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" x-init="$el.style.height = @js($monthlyResearchSubmissions[2]['percentage']) + '%'" title="{{ $monthlyResearchSubmissions[2]['count'] }} submissions"></div>
                                 <span class="text-[9px] font-bold text-gray-400 mt-2">Mar</span>
                             </div>
                             <!-- Apr -->
                             <div class="flex flex-col items-center flex-1 h-full justify-end group">
-                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" style="height: 50%"></div>
+                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" x-init="$el.style.height = @js($monthlyResearchSubmissions[3]['percentage']) + '%'" title="{{ $monthlyResearchSubmissions[3]['count'] }} submissions"></div>
                                 <span class="text-[9px] font-bold text-gray-400 mt-2">Apr</span>
                             </div>
                             <!-- May -->
                             <div class="flex flex-col items-center flex-1 h-full justify-end group">
-                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" style="height: 60%"></div>
+                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" x-init="$el.style.height = @js($monthlyResearchSubmissions[4]['percentage']) + '%'" title="{{ $monthlyResearchSubmissions[4]['count'] }} submissions"></div>
                                 <span class="text-[9px] font-bold text-gray-400 mt-2">May</span>
                             </div>
                             <!-- Jun -->
                             <div class="flex flex-col items-center flex-1 h-full justify-end group">
-                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" style="height: 45%"></div>
+                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" x-init="$el.style.height = @js($monthlyResearchSubmissions[5]['percentage']) + '%'" title="{{ $monthlyResearchSubmissions[5]['count'] }} submissions"></div>
                                 <span class="text-[9px] font-bold text-gray-400 mt-2">Jun</span>
                             </div>
                             <!-- Jul -->
                             <div class="flex flex-col items-center flex-1 h-full justify-end group">
-                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" style="height: 70%"></div>
+                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" x-init="$el.style.height = @js($monthlyResearchSubmissions[6]['percentage']) + '%'" title="{{ $monthlyResearchSubmissions[6]['count'] }} submissions"></div>
                                 <span class="text-[9px] font-bold text-gray-400 mt-2">Jul</span>
                             </div>
                             <!-- Aug -->
                             <div class="flex flex-col items-center flex-1 h-full justify-end group">
-                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" style="height: 65%"></div>
+                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" x-init="$el.style.height = @js($monthlyResearchSubmissions[7]['percentage']) + '%'" title="{{ $monthlyResearchSubmissions[7]['count'] }} submissions"></div>
                                 <span class="text-[9px] font-bold text-gray-400 mt-2">Aug</span>
                             </div>
                             <!-- Sep -->
                             <div class="flex flex-col items-center flex-1 h-full justify-end group">
-                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" style="height: 68%"></div>
+                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" x-init="$el.style.height = @js($monthlyResearchSubmissions[8]['percentage']) + '%'" title="{{ $monthlyResearchSubmissions[8]['count'] }} submissions"></div>
                                 <span class="text-[9px] font-bold text-gray-400 mt-2">Sep</span>
                             </div>
                             <!-- Oct -->
                             <div class="flex flex-col items-center flex-1 h-full justify-end group">
-                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" style="height: 60%"></div>
+                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" x-init="$el.style.height = @js($monthlyResearchSubmissions[9]['percentage']) + '%'" title="{{ $monthlyResearchSubmissions[9]['count'] }} submissions"></div>
                                 <span class="text-[9px] font-bold text-gray-400 mt-2">Oct</span>
                             </div>
                             <!-- Nov -->
                             <div class="flex flex-col items-center flex-1 h-full justify-end group">
-                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" style="height: 55%"></div>
+                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" x-init="$el.style.height = @js($monthlyResearchSubmissions[10]['percentage']) + '%'" title="{{ $monthlyResearchSubmissions[10]['count'] }} submissions"></div>
                                 <span class="text-[9px] font-bold text-gray-400 mt-2">Nov</span>
                             </div>
                             <!-- Dec -->
                             <div class="flex flex-col items-center flex-1 h-full justify-end group">
-                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" style="height: 50%"></div>
+                                <div class="w-6 bg-[#0e5c3a] rounded-t-lg transition-all duration-300 group-hover:bg-[#0a4a2e]" x-init="$el.style.height = @js($monthlyResearchSubmissions[11]['percentage']) + '%'" title="{{ $monthlyResearchSubmissions[11]['count'] }} submissions"></div>
                                 <span class="text-[9px] font-bold text-gray-400 mt-2">Dec</span>
                             </div>
                         </div>
@@ -2178,7 +2340,7 @@
                     <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-amber-500 border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
                         <div class="space-y-1">
                             <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Pending Revisions</span>
-                            <span class="text-2xl font-extrabold text-gray-800 font-heading block">5</span>
+                            <span class="text-2xl font-extrabold text-gray-800 font-heading block">{{ $revisionStats['pending'] }}</span>
                         </div>
                         <div class="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600 text-lg">
                             <i class="ph ph-clock"></i>
@@ -2189,7 +2351,7 @@
                     <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-emerald-500 border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
                         <div class="space-y-1">
                             <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Completed</span>
-                            <span class="text-2xl font-extrabold text-gray-800 font-heading block">12</span>
+                            <span class="text-2xl font-extrabold text-gray-800 font-heading block">{{ $revisionStats['completed'] }}</span>
                         </div>
                         <div class="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 text-lg">
                             <i class="ph ph-check-circle"></i>
@@ -2200,7 +2362,7 @@
                     <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-red-500 border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
                         <div class="space-y-1">
                             <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Overdue</span>
-                            <span class="text-2xl font-extrabold text-gray-800 font-heading block">2</span>
+                            <span class="text-2xl font-extrabold text-gray-800 font-heading block">{{ $revisionStats['overdue'] }}</span>
                         </div>
                         <div class="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-600 text-lg">
                             <i class="ph ph-warning"></i>
@@ -2213,41 +2375,31 @@
                     <h3 class="text-base font-extrabold text-gray-800 font-heading">Revision History</h3>
                     
                     <div class="space-y-4">
-                        <!-- v3.2 -->
-                        <div class="p-6 bg-amber-50/20 border-l-4 border-l-amber-500 border border-gray-100 rounded-2xl flex items-center justify-between">
-                            <div class="space-y-1">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-sm font-extrabold text-gray-800">v3.2</span>
-                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider">In Progress</span>
+                        @forelse ($revisionHistory as $revision)
+                            @php($resolved = $revision['statusValue'] === 'resolved')
+                            <div @class([
+                                'p-6 border-l-4 border border-gray-100 rounded-2xl flex items-center justify-between',
+                                'bg-emerald-50/20 border-l-emerald-500' => $resolved,
+                                'bg-amber-50/20 border-l-amber-500' => ! $resolved,
+                            ])>
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-sm font-extrabold text-gray-800">Revision #{{ $revision['id'] }}</span>
+                                        <span @class([
+                                            'px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider',
+                                            'bg-emerald-100 text-emerald-800 border-emerald-200' => $resolved,
+                                            'bg-amber-100 text-amber-800 border-amber-200' => ! $resolved,
+                                        ])>{{ $revision['status'] }}</span>
+                                    </div>
+                                    <p class="text-xs font-semibold text-gray-700">{{ $revision['title'] }}</p>
+                                    <p class="text-[10px] text-gray-400 font-bold">{{ $revision['date'] }}</p>
                                 </div>
-                                <p class="text-xs font-semibold text-gray-700">Updated methodology section</p>
-                                <p class="text-[10px] text-gray-400 font-bold">May 18, 2026</p>
                             </div>
-                        </div>
-
-                        <!-- v3.1 -->
-                        <div class="p-6 bg-emerald-50/20 border-l-4 border-l-emerald-500 border border-gray-100 rounded-2xl flex items-center justify-between">
-                            <div class="space-y-1">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-sm font-extrabold text-gray-800">v3.1</span>
-                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase tracking-wider">Completed</span>
-                                </div>
-                                <p class="text-xs font-semibold text-gray-700">Added more recent references</p>
-                                <p class="text-[10px] text-gray-400 font-bold">May 15, 2026</p>
+                        @empty
+                            <div class="p-10 bg-gray-50/60 border border-gray-100 rounded-2xl text-center text-sm text-gray-500">
+                                No revision records found.
                             </div>
-                        </div>
-
-                        <!-- v3.0 -->
-                        <div class="p-6 bg-emerald-50/20 border-l-4 border-l-emerald-500 border border-gray-100 rounded-2xl flex items-center justify-between">
-                            <div class="space-y-1">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-sm font-extrabold text-gray-800">v3.0</span>
-                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase tracking-wider">Completed</span>
-                                </div>
-                                <p class="text-xs font-semibold text-gray-700">Expanded literature review</p>
-                                <p class="text-[10px] text-gray-400 font-bold">May 10, 2026</p>
-                            </div>
-                        </div>
+                        @endforelse
                     </div>
                 </div>
             </div>
@@ -2329,12 +2481,9 @@
                                     <label class="text-xs font-bold text-gray-600 uppercase block">Research Adviser *</label>
                                     <select x-model="formDefense.adviser" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all">
                                         <option value="">Select Adviser</option>
-                                        <option>Dr. Maria Santos</option>
-                                        <option>Dr. John Reyes</option>
-                                        <option>Prof. Anna Garcia</option>
-                                        <option>Dr. Pedro Cruz</option>
-                                        <option>Dr. Sofia Martinez</option>
-                                        <option>Prof. Carlos Lopez</option>
+                                        <template x-for="adviser in adviserOptions" :key="adviser">
+                                            <option :value="adviser" x-text="adviser"></option>
+                                        </template>
                                     </select>
                                 </div>
                                 <div class="space-y-3">
@@ -2342,12 +2491,9 @@
                                     <div class="flex gap-2">
                                         <select x-model="panelistInput" class="flex-grow px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all">
                                             <option value="">Select Panelist to Add</option>
-                                            <option>Dr. Maria Santos</option>
-                                            <option>Dr. John Reyes</option>
-                                            <option>Prof. Anna Garcia</option>
-                                            <option>Dr. Pedro Cruz</option>
-                                            <option>Dr. Sofia Martinez</option>
-                                            <option>Prof. Carlos Lopez</option>
+                                            <template x-for="panelist in panelistOptions" :key="panelist">
+                                                <option :value="panelist" x-text="panelist"></option>
+                                            </template>
                                         </select>
                                         <button 
                                             type="button" 
@@ -2511,12 +2657,9 @@
                                     <label class="text-xs font-bold text-gray-600 uppercase block">Research Adviser *</label>
                                     <select x-model="formDefense.adviser" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all">
                                         <option value="">Select Adviser</option>
-                                        <option>Dr. Maria Santos</option>
-                                        <option>Dr. John Reyes</option>
-                                        <option>Prof. Anna Garcia</option>
-                                        <option>Dr. Pedro Cruz</option>
-                                        <option>Dr. Sofia Martinez</option>
-                                        <option>Prof. Carlos Lopez</option>
+                                        <template x-for="adviser in adviserOptions" :key="adviser">
+                                            <option :value="adviser" x-text="adviser"></option>
+                                        </template>
                                     </select>
                                 </div>
                                 <div class="space-y-3">
@@ -2524,12 +2667,9 @@
                                     <div class="flex gap-2">
                                         <select x-model="panelistInput" class="flex-grow px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all">
                                             <option value="">Select Panelist to Add</option>
-                                            <option>Dr. Maria Santos</option>
-                                            <option>Dr. John Reyes</option>
-                                            <option>Prof. Anna Garcia</option>
-                                            <option>Dr. Pedro Cruz</option>
-                                            <option>Dr. Sofia Martinez</option>
-                                            <option>Prof. Carlos Lopez</option>
+                                            <template x-for="panelist in panelistOptions" :key="panelist">
+                                                <option :value="panelist" x-text="panelist"></option>
+                                            </template>
                                         </select>
                                         <button 
                                             type="button" 

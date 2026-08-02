@@ -3,9 +3,12 @@
 @section('auth-content')
 <div class="min-h-screen flex flex-col md:flex-row relative bg-[#f4f7f6]">
     <!-- Left Side: Image Banner & Brand Description -->
-    <div class="w-full md:w-[45%] lg:w-[40%] bg-[#0e5c3a] text-white p-8 md:p-16 flex flex-col justify-between relative min-h-[400px] md:min-h-screen overflow-hidden" style="background-image: linear-gradient(180deg, rgba(14, 92, 58, 0.94) 0%, rgba(10, 70, 44, 0.97) 100%), url('{{ asset('images/ndmu.jpg') }}'); background-size: cover; background-position: center;">
+    <div class="w-full md:w-[45%] lg:w-[40%] bg-[#0e5c3a] text-white p-8 md:p-16 flex flex-col justify-between relative min-h-[400px] md:min-h-screen overflow-hidden">
+        <img src="{{ asset('images/ndmu.jpg') }}" alt="" aria-hidden="true" class="absolute inset-0 h-full w-full object-cover">
+        <div aria-hidden="true" class="absolute inset-0 bg-gradient-to-b from-[rgba(14,92,58,0.82)] to-[rgba(10,70,44,0.88)]"></div>
+
         <!-- Logo -->
-        <div class="flex items-center gap-3">
+        <div class="relative z-10 flex items-center gap-3">
             <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" class="h-12 w-auto">
             <div class="flex flex-col leading-none">
                 <span class="font-heading font-extrabold text-2xl text-white tracking-tight">NDMU</span>
@@ -14,7 +17,7 @@
         </div>
 
         <!-- Banner Text Content -->
-        <div class="my-auto py-12 space-y-6">
+        <div class="relative z-10 my-auto py-12 space-y-6">
             <span class="text-xs font-bold tracking-widest text-[#eebc3f] uppercase block">Welcome Back</span>
             <h1 class="text-4xl md:text-5xl font-heading font-bold text-white leading-tight">
                 Access Your<br>Research Portal
@@ -53,7 +56,7 @@
         </div>
 
         <!-- Bottom spacer/branding link -->
-        <div class="text-xs text-white/50 font-medium">
+        <div class="relative z-10 text-xs text-white/50 font-medium">
             © 2026 Notre Dame of Marbel University.
         </div>
     </div>
@@ -89,6 +92,12 @@
             <!-- Form -->
             <form method="POST" action="{{ route('login.store') }}" class="space-y-5 mb-6">
                 @csrf
+
+                @if (session('status'))
+                    <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-700" role="status">
+                        {{ session('status') }}
+                    </div>
+                @endif
 
                 @if ($errors->any())
                     <div class="rounded-2xl border border-red-200 bg-red-50 p-3 text-xs text-red-700" role="alert">
@@ -132,16 +141,29 @@
                             placeholder="••••••••"
                             class="w-full pl-11 pr-11 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300"
                         >
-                        <button type="button" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
-                            <i class="ph ph-eye text-lg"></i>
+                        <button
+                            type="button"
+                            class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                            data-password-toggle
+                            data-password-input="password"
+                            aria-label="Show password"
+                            aria-pressed="false"
+                        >
+                            <i data-password-show-icon class="ph ph-eye text-lg" aria-hidden="true"></i>
+                            <i data-password-hide-icon class="ph ph-eye-slash text-lg hidden" aria-hidden="true"></i>
                         </button>
                     </div>
                 </div>
 
-                <label class="flex items-center gap-2 text-xs text-gray-600">
-                    <input type="checkbox" name="remember" value="1" class="rounded border-gray-300 text-[#0e5c3a] focus:ring-[#0e5c3a]">
-                    Remember me
-                </label>
+                <div class="flex items-center justify-between gap-4">
+                    <label class="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                        <input type="checkbox" name="remember" value="1" @checked(old('remember')) class="rounded border-gray-300 text-[#0e5c3a] focus:ring-[#0e5c3a]">
+                        Remember me
+                    </label>
+                    <a href="{{ route('password.request') }}" class="text-xs font-semibold text-[#0e5c3a] hover:text-[#0a4a2e] hover:underline">
+                        Forgot password?
+                    </a>
+                </div>
 
                 <!-- Submit Button -->
                 <button type="submit" class="w-full py-4 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-sm font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-[#0e5c3a]/10 hover:shadow-xl transition-all duration-300">

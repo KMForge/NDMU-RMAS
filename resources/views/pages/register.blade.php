@@ -3,9 +3,12 @@
 @section('auth-content')
 <div class="min-h-screen flex flex-col md:flex-row relative bg-[#f4f7f6]">
     <!-- Left Side: Image Banner & Brand Description -->
-    <div class="w-full md:w-[45%] lg:w-[40%] bg-[#0e5c3a] text-white p-8 md:p-16 flex flex-col justify-between relative min-h-[400px] md:min-h-screen overflow-hidden" style="background-image: linear-gradient(180deg, rgba(14, 92, 58, 0.94) 0%, rgba(10, 70, 44, 0.97) 100%), url('{{ asset('images/ndmu.jpg') }}'); background-size: cover; background-position: center;">
+    <div class="w-full md:w-[45%] lg:w-[40%] bg-[#0e5c3a] text-white p-8 md:p-16 flex flex-col justify-between relative min-h-[400px] md:min-h-screen overflow-hidden">
+        <img src="{{ asset('images/ndmu.jpg') }}" alt="" aria-hidden="true" class="absolute inset-0 h-full w-full object-cover">
+        <div aria-hidden="true" class="absolute inset-0 bg-gradient-to-b from-[rgba(14,92,58,0.82)] to-[rgba(10,70,44,0.88)]"></div>
+
         <!-- Logo -->
-        <div class="flex items-center gap-3">
+        <div class="relative z-10 flex items-center gap-3">
             <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" class="h-12 w-auto">
             <div class="flex flex-col leading-none">
                 <span class="font-heading font-extrabold text-2xl text-white tracking-tight">NDMU</span>
@@ -14,7 +17,7 @@
         </div>
 
         <!-- Banner Text Content -->
-        <div class="my-auto py-12 space-y-6">
+        <div class="relative z-10 my-auto py-12 space-y-6">
             <span class="text-xs font-bold tracking-widest text-[#eebc3f] uppercase block">Student Registration</span>
             <h1 class="text-4xl md:text-5xl font-heading font-bold text-white leading-tight">
                 Join the NDMU<br>Research Community
@@ -60,7 +63,7 @@
         </div>
 
         <!-- Bottom spacer/branding link -->
-        <div class="text-xs text-white/50 font-medium">
+        <div class="relative z-10 text-xs text-white/50 font-medium">
             © 2026 Notre Dame of Marbel University.
         </div>
     </div>

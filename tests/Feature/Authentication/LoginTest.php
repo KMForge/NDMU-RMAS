@@ -5,8 +5,10 @@ namespace Tests\Feature\Authentication;
 use App\Enums\AccountStatus;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Auth\SessionGuard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Support\Facades\Auth;
 use Tests\TestCase;
 
 class LoginTest extends TestCase
@@ -154,5 +156,40 @@ class LoginTest extends TestCase
         $this->get(route('login'))
             ->assertOk()
             ->assertDontSee('name="role"', false);
+    }
+
+    public function test_login_form_contains_password_toggle_remember_and_recovery_controls(): void
+    {
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertSee('data-password-toggle', false)
+            ->assertSee('data-password-input="password"', false)
+            ->assertSee('name="remember"', false)
+            ->assertSee(route('password.request'), false);
+    }
+
+    public function test_remember_me_issues_a_persistent_login_cookie(): void
+    {
+        $email = 'remembered.student@ndmu.edu.ph';
+        $user = User::factory()->create([
+            'email' => $email,
+            'password' => 'TestOnly!2345',
+        ]);
+        $user->assignRole('student-researcher');
+
+        $response = $this->post(route('login.store'), [
+            'email' => $email,
+            'password' => 'TestOnly!2345',
+            'remember' => '1',
+        ]);
+
+        /** @var SessionGuard $webGuard */
+        $webGuard = Auth::guard('web');
+
+        $response
+            ->assertRedirect(route('student.dashboard'))
+            ->assertCookie($webGuard->getRecallerName());
+
+        $this->assertAuthenticatedAs($user);
     }
 }

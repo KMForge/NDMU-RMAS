@@ -3,7 +3,7 @@
 return [
     'college' => [
         'code' => 'CEAC',
-        'name' => 'College of Engineering, Architecture, and Computing',
+        'name' => 'College of Engineering, Architecture, and Computing (CEAC)',
     ],
 
     /*

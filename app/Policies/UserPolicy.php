@@ -11,6 +11,11 @@ class UserPolicy
         return $user->can('users.manage');
     }
 
+    public function create(User $user): bool
+    {
+        return $user->can('users.manage');
+    }
+
     public function view(User $user, User $subject): bool
     {
         return $user->is($subject) || $user->can('users.manage');
@@ -22,6 +27,11 @@ class UserPolicy
     }
 
     public function manageRoles(User $user, User $subject): bool
+    {
+        return ! $user->is($subject) && $user->can('users.manage');
+    }
+
+    public function changeStatus(User $user, User $subject): bool
     {
         return ! $user->is($subject) && $user->can('users.manage');
     }

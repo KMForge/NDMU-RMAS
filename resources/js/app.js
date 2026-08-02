@@ -2,6 +2,43 @@ import './bootstrap';
 
 // Livewire 4 ships Alpine.js. Do not import Alpine separately.
 
+function initializePasswordToggles(root = document) {
+    root.querySelectorAll('[data-password-toggle]').forEach((button) => {
+        if (button.dataset.passwordToggleReady === 'true') {
+            return;
+        }
+
+        const inputId = button.dataset.passwordInput;
+        const input = inputId ? document.getElementById(inputId) : null;
+
+        if (!(input instanceof HTMLInputElement)) {
+            return;
+        }
+
+        const showIcon = button.querySelector('[data-password-show-icon]');
+        const hideIcon = button.querySelector('[data-password-hide-icon]');
+        const confirmation = inputId === 'password_confirmation';
+
+        button.dataset.passwordToggleReady = 'true';
+        input.type = 'password';
+
+        button.addEventListener('click', () => {
+            const shouldShow = input.type === 'password';
+
+            input.type = shouldShow ? 'text' : 'password';
+            button.setAttribute('aria-pressed', String(shouldShow));
+            button.setAttribute(
+                'aria-label',
+                shouldShow
+                    ? `Hide password${confirmation ? ' confirmation' : ''}`
+                    : `Show password${confirmation ? ' confirmation' : ''}`,
+            );
+            showIcon?.classList.toggle('hidden', shouldShow);
+            hideIcon?.classList.toggle('hidden', !shouldShow);
+        });
+    });
+}
+
 function initializeWelcomePage() {
     const page = document.querySelector('[data-welcome-page]');
 
@@ -138,7 +175,13 @@ function initializeWelcomePage() {
 }
 
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeWelcomePage, { once: true });
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeWelcomePage();
+        initializePasswordToggles();
+    }, { once: true });
 } else {
     initializeWelcomePage();
+    initializePasswordToggles();
 }
+
+document.addEventListener('livewire:navigated', () => initializePasswordToggles());
