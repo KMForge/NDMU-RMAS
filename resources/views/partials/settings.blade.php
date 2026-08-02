@@ -44,8 +44,8 @@
     </div>
 
     <!-- Profile Banner Summary -->
-    <div class="bg-[#0e5c3a] text-white rounded-3xl p-6 flex items-center gap-6 relative overflow-hidden shadow-sm">
-        <div class="w-24 h-24 rounded-3xl bg-[#eebc3f] text-[#0e5c3a] font-extrabold flex items-center justify-center text-4xl relative flex-shrink-0">
+    <div class="bg-[#0e5c3a] text-white rounded-2xl p-6 flex items-center gap-6 relative overflow-hidden shadow-xs">
+        <div class="w-24 h-24 rounded-2xl bg-[#eebc3f] text-[#0e5c3a] font-extrabold flex items-center justify-center text-4xl relative flex-shrink-0">
             <span>{{ $avatarInitials }}</span>
             <button @click="alert('Upload new profile picture mockup')" class="absolute -bottom-1 -right-1 w-7 h-7 bg-white text-gray-700 border border-gray-150 rounded-xl flex items-center justify-center shadow-sm hover:bg-gray-50 cursor-pointer">
                 <i class="ph ph-camera text-sm"></i>
@@ -73,7 +73,7 @@
         <!-- Left Column: Info Cards -->
         <div class="space-y-6">
             <!-- Profile Information -->
-            <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
+            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-4">
                 <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
                     <i class="ph ph-user text-emerald-600 text-lg"></i>
                     <span>Profile Information</span>
@@ -113,7 +113,7 @@
             </div>
 
             <!-- Account Details -->
-            <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
+            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-4">
                 <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
                     <i class="ph ph-hash text-emerald-600 text-lg"></i>
                     <span>Account Details</span>
@@ -148,7 +148,7 @@
             </div>
 
             <!-- Role & Portal Access -->
-            <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
+            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-4">
                 <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
                     <i class="ph ph-shield text-emerald-600 text-lg"></i>
                     <span>Role & Portal Access</span>
@@ -183,7 +183,7 @@
         <!-- Right Column: Settings & Preferences -->
         <div class="space-y-6">
             <!-- Notification Preferences -->
-            <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-5">
+            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-5">
                 <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
                     <i class="ph ph-bell text-emerald-600 text-lg"></i>
                     <span>Notification Preferences</span>
@@ -270,7 +270,7 @@
             </div>
 
             <!-- Security Settings & Device Activities -->
-            <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
+            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-6">
                 <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
                     <i class="ph ph-lock text-emerald-600 text-lg"></i>
                     <span>Security Settings</span>
@@ -367,7 +367,7 @@
             </div>
 
             <!-- Appearance & System -->
-            <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-5">
+            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-5">
                 <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
                     <i class="ph ph-palette text-emerald-600 text-lg"></i>
                     <span>Appearance & System</span>

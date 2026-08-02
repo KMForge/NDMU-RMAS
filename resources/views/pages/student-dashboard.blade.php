@@ -627,7 +627,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @forelse ($classes as $class)
-                        <article class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
+                        <article class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 space-y-4">
                             <div>
                                 <h2 class="font-bold text-gray-800 text-sm">{{ $class->name }}</h2>
                                 <p class="text-[11px] text-gray-500 mt-1">Adviser: {{ $class->adviser_name }}</p>
@@ -653,11 +653,11 @@
                 @if ($researchProject)
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div class="lg:col-span-2 space-y-8">
-                            <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200">
                                 <h2 class="font-bold text-gray-850 text-lg">Abstract</h2>
                                 <p class="text-sm text-gray-600 leading-7 mt-4">{{ $researchProject->abstract ?: 'No abstract has been provided.' }}</p>
                             </div>
-                            <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200">
                                 <h2 class="font-bold text-gray-850 text-lg mb-4">Keywords</h2>
                                 @forelse ($keywords as $keyword)
                                     <span class="inline-flex px-3 py-1.5 mr-2 mb-2 bg-[#e6f4ea] text-[#0e5c3a] text-xs font-semibold rounded-full">{{ $keyword }}</span>
@@ -667,14 +667,14 @@
                             </div>
                         </div>
                         <div class="space-y-8">
-                            <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-5">
+                            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-5">
                                 <h2 class="font-bold text-gray-850 text-lg">Research Information</h2>
                                 <x-student-detail label="Research ID" :value="'RES-'.str_pad((string) $researchProject->id, 6, '0', STR_PAD_LEFT)" />
                                 <x-student-detail label="Type" :value="$researchProject->category" />
                                 <x-student-detail label="Program" :value="$program?->name" />
                                 <x-student-detail label="Status" :value="$researchProject->status" />
                             </div>
-                            <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200">
                                 <h2 class="font-bold text-gray-850 text-lg mb-5">Team</h2>
                                 <div class="space-y-4">
                                     @forelse ($teamMembers as $member)
@@ -737,7 +737,7 @@
                     </button>
                 </div>
 
-                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200">
                     <h2 class="font-bold text-gray-850 text-lg mb-5">Consultation Requests</h2>
                     <div class="space-y-4">
                         @forelse ($consultationRequests as $consultationRequest)

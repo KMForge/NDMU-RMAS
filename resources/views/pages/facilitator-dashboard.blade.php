@@ -1326,7 +1326,7 @@
                 </div>
 
                 <!-- Section: Research Monitoring Board (Kanban - Screenshot 3) -->
-                <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
+                <div class="bg-white rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-6">
                     <div class="flex flex-wrap justify-between items-center pb-2 border-b border-gray-50 gap-4">
                         <div>
                             <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2">
@@ -1407,7 +1407,7 @@
                 <!-- Lower Split row: Category vs Defenses -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <!-- Research by Category -->
-                    <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-5 lg:col-span-2">
+                    <div class="bg-white rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-5 lg:col-span-2">
                         <h3 class="font-bold text-gray-800 text-sm pb-2 border-b border-gray-50">Research by Category</h3>
                         
                         <div class="space-y-4">
@@ -1426,7 +1426,7 @@
                     </div>
 
                     <!-- Upcoming Defenses list -->
-                    <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
+                    <div class="bg-white rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-4">
                         <div class="flex justify-between items-center pb-2 border-b border-gray-50">
                             <h3 class="font-bold text-gray-800 text-sm">Upcoming Defenses</h3>
                             <button @click="activeTab = 'defenses'" class="text-[#0e5c3a] font-bold text-xs hover:underline cursor-pointer">View All →</button>
@@ -1713,7 +1713,7 @@
                 <!-- Stats Widgets Cards Row (4 Columns matching screenshots) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Total Users -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl flex-shrink-0">
                             <i class="ph ph-users"></i>
                         </span>
@@ -1724,7 +1724,7 @@
                     </div>
 
                     <!-- Pending Approval -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl flex-shrink-0" :class="pendingUsersCount > 0 ? 'animate-pulse' : ''">
                             <i class="ph ph-clock"></i>
                         </span>
@@ -1735,7 +1735,7 @@
                     </div>
 
                     <!-- Active Accounts -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl flex-shrink-0">
                             <i class="ph ph-shield-check"></i>
                         </span>
@@ -1746,7 +1746,7 @@
                     </div>
 
                     <!-- Rejected -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center text-2xl flex-shrink-0">
                             <i class="ph ph-x-circle"></i>
                         </span>
@@ -2106,7 +2106,7 @@
                 <!-- Stats Widgets Cards Row (4 Columns matching screenshots) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Approved -->
-                    <div class="bg-white rounded-3xl p-5 border border-emerald-100/50 shadow-sm flex items-center justify-between animate-fade-in">
+                    <div class="bg-white rounded-2xl p-5 border border-emerald-100/50 shadow-sm flex items-center justify-between animate-fade-in">
                         <div>
                             <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Approved</span>
                             <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="approvedProposalsCount">1</span>
@@ -2117,7 +2117,7 @@
                     </div>
 
                     <!-- Pending -->
-                    <div class="bg-white rounded-3xl p-5 border border-amber-100/50 shadow-sm flex items-center justify-between animate-fade-in">
+                    <div class="bg-white rounded-2xl p-5 border border-amber-100/50 shadow-sm flex items-center justify-between animate-fade-in">
                         <div>
                             <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Pending</span>
                             <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="pendingProposalsCount">0</span>
@@ -2128,7 +2128,7 @@
                     </div>
 
                     <!-- Revisions -->
-                    <div class="bg-white rounded-3xl p-5 border border-red-100/50 shadow-sm flex items-center justify-between animate-fade-in">
+                    <div class="bg-white rounded-2xl p-5 border border-red-100/50 shadow-sm flex items-center justify-between animate-fade-in">
                         <div>
                             <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Revisions</span>
                             <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="revisionsProposalsCount">0</span>
@@ -2139,7 +2139,7 @@
                     </div>
 
                     <!-- Total Proposals -->
-                    <div class="bg-white rounded-3xl p-5 border border-blue-100/50 shadow-sm flex items-center justify-between animate-fade-in">
+                    <div class="bg-white rounded-2xl p-5 border border-blue-100/50 shadow-sm flex items-center justify-between animate-fade-in">
                         <div>
                             <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Total Proposals</span>
                             <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="totalProposalsCount">1</span>
@@ -2155,7 +2155,7 @@
                     <h3 class="font-bold text-gray-850 text-base">Research Proposal</h3>
                     
                     <!-- Proposal Display Card -->
-                    <div class="border border-gray-150 rounded-3xl p-6 md:p-8 space-y-6 transition-all duration-300 animate-fade-in"
+                    <div class="border border-gray-150 rounded-2xl p-6 md:p-8 space-y-6 transition-all duration-300 animate-fade-in"
                          :class="{
                              'bg-[#f2fcf7]/30 border-emerald-100': activeProposal.status === 'Approved',
                              'bg-[#fffbf0]/40 border-amber-100 ring-4 ring-amber-500/5': activeProposal.status === 'Pending',
@@ -2281,7 +2281,7 @@
                 <!-- Stats Widgets Cards Row (4 Columns matching screenshots) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Total Scheduled -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Total Scheduled</span>
                             <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="totalScheduledCount">3</span>
@@ -2292,7 +2292,7 @@
                     </div>
 
                     <!-- This Week -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">This Week</span>
                             <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="thisWeekCount">2</span>
@@ -2303,7 +2303,7 @@
                     </div>
 
                     <!-- Pending -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Pending</span>
                             <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="pendingDefenseCount">1</span>
@@ -2314,7 +2314,7 @@
                     </div>
 
                     <!-- Completed -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Completed</span>
                             <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="completedDefenseCount">0</span>
@@ -2326,7 +2326,7 @@
                 </div>
 
                 <!-- Filters Bar -->
-                <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 flex gap-4 items-center">
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex gap-4 items-center">
                     <span class="text-gray-400 pl-2">
                         <i class="ph ph-funnel text-base"></i>
                     </span>
@@ -2516,7 +2516,7 @@
                 <!-- Stats Widgets Cards Row (4 Columns matching screenshots) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Total Research -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-[10px] text-gray-450 font-bold uppercase tracking-wider block">Total Research</span>
                             <span class="text-3xl font-extrabold text-gray-850 mt-1 block leading-none" x-text="activeStats.totalResearch">174</span>
@@ -2528,7 +2528,7 @@
                     </div>
 
                     <!-- Completed -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-[10px] text-gray-455 font-bold uppercase tracking-wider block">Completed</span>
                             <span class="text-3xl font-extrabold text-gray-850 mt-1 block leading-none" x-text="activeStats.completed">126</span>
@@ -2540,7 +2540,7 @@
                     </div>
 
                     <!-- In Progress -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-[10px] text-gray-455 font-bold uppercase tracking-wider block">In Progress</span>
                             <span class="text-3xl font-extrabold text-gray-850 mt-1 block leading-none" x-text="activeStats.inProgress">48</span>
@@ -2552,7 +2552,7 @@
                     </div>
 
                     <!-- Avg Duration -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-[10px] text-gray-455 font-bold uppercase tracking-wider block">Avg Duration</span>
                             <span class="text-3xl font-extrabold text-gray-850 mt-1 block leading-none" x-text="activeStats.avgDuration">8.5</span>
@@ -2671,7 +2671,7 @@
                 <!-- Stats Widgets Row -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                     <!-- Approved -->
-                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-emerald-600 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
+                    <div class="bg-white rounded-2xl p-5 border-l-4 border-l-emerald-600 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
                         <div>
                             <span class="text-[10px] text-gray-455 font-bold uppercase tracking-wider block">Approved</span>
                             <span class="text-2xl font-bold text-gray-850 mt-1 block leading-none" x-text="reportsApprovedCount">8</span>
@@ -2682,7 +2682,7 @@
                     </div>
 
                     <!-- Revisions -->
-                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-amber-500 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
+                    <div class="bg-white rounded-2xl p-5 border-l-4 border-l-amber-500 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
                         <div>
                             <span class="text-[10px] text-gray-455 font-bold uppercase tracking-wider block">Revisions</span>
                             <span class="text-2xl font-bold text-gray-850 mt-1 block leading-none" x-text="reportsRevisionsCount">5</span>
@@ -2693,7 +2693,7 @@
                     </div>
 
                     <!-- Comments -->
-                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-blue-600 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
+                    <div class="bg-white rounded-2xl p-5 border-l-4 border-l-blue-600 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
                         <div>
                             <span class="text-[10px] text-gray-455 font-bold uppercase tracking-wider block">Comments</span>
                             <span class="text-2xl font-bold text-gray-850 mt-1 block leading-none" x-text="reportsCommentsCount">12</span>
@@ -2704,7 +2704,7 @@
                     </div>
 
                     <!-- Critical -->
-                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-red-650 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
+                    <div class="bg-white rounded-2xl p-5 border-l-4 border-l-red-650 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
                         <div>
                             <span class="text-[10px] text-gray-455 font-bold uppercase tracking-wider block">Critical</span>
                             <span class="text-2xl font-bold text-gray-850 mt-1 block leading-none" x-text="reportsCriticalCount">2</span>
@@ -2873,7 +2873,7 @@
                 <!-- Stats Widgets Row -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                     <!-- Total Files -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
                         <div class="flex items-center gap-4">
                             <span class="w-12 h-12 rounded-2xl bg-gray-50 text-gray-500 border border-gray-100 flex items-center justify-center text-2xl flex-shrink-0">
                                 <i class="ph ph-file-text"></i>
@@ -2886,7 +2886,7 @@
                     </div>
 
                     <!-- Approved -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
                         <div class="flex items-center gap-4">
                             <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center text-2xl flex-shrink-0">
                                 <i class="ph ph-check-circle"></i>
@@ -2899,7 +2899,7 @@
                     </div>
 
                     <!-- Pending Review -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
                         <div class="flex items-center gap-4">
                             <span class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center text-2xl flex-shrink-0">
                                 <i class="ph ph-clock"></i>
@@ -2912,7 +2912,7 @@
                     </div>
 
                     <!-- For Evaluation -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-2xs flex items-center justify-between animate-fade-in">
                         <div class="flex items-center gap-4">
                             <span class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center text-2xl flex-shrink-0">
                                 <i class="ph ph-textbox"></i>
@@ -2926,7 +2926,7 @@
                 </div>
 
                 <!-- Search & Filters Toolbar -->
-                <div class="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-3xl border border-gray-150/80 shadow-2xs">
+                <div class="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-2xl border border-gray-150/80 shadow-2xs">
                     <!-- Search Input -->
                     <div class="relative flex-grow w-full">
                         <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
@@ -3062,7 +3062,7 @@
 
     <!-- Approval Review Modal Mockup -->
     <div x-show="selectedApproval" x-transition x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-        <div @click.away="selectedApproval = null" class="bg-white rounded-3xl w-full max-w-lg p-6 shadow-xl space-y-4">
+        <div @click.away="selectedApproval = null" class="bg-white rounded-2xl w-full max-w-lg p-6 shadow-xl space-y-4">
             <div class="flex justify-between items-start">
                 <div>
                     <h3 class="font-bold text-gray-800 text-sm">Review Pending Submission</h3>
@@ -3113,7 +3113,7 @@
 
     <!-- Update Progress Modal Mockup -->
     <div x-show="showMonitoringEditModal" x-transition x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-        <div @click.away="showMonitoringEditModal = false" class="bg-white rounded-3xl w-full max-w-2xl p-6 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto">
+        <div @click.away="showMonitoringEditModal = false" class="bg-white rounded-2xl w-full max-w-2xl p-6 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto">
             <div class="flex justify-between items-start">
                 <div>
                     <h3 class="font-bold text-gray-800 text-sm">Update Research Progress</h3>
@@ -3194,7 +3194,7 @@
 
     <!-- Proposal Details Modal Mockup -->
     <div x-show="showProposalDetailModal" x-transition x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-        <div @click.away="showProposalDetailModal = false" class="bg-white rounded-3xl w-full max-w-2xl p-6 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto">
+        <div @click.away="showProposalDetailModal = false" class="bg-white rounded-2xl w-full max-w-2xl p-6 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto">
             <div class="flex justify-between items-start">
                 <div>
                     <span class="text-emerald-700 font-extrabold text-[10px] uppercase tracking-wider block" x-text="activeProposal.proposal_id">PROP-2026-001</span>
@@ -3247,7 +3247,7 @@
 
     <!-- Schedule/Edit Defense Modal Mockup -->
     <div x-show="showScheduleModal" x-transition x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-        <div @click.away="showScheduleModal = false" class="bg-white rounded-3xl w-full max-w-xl p-6 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto animate-scale-up">
+        <div @click.away="showScheduleModal = false" class="bg-white rounded-2xl w-full max-w-xl p-6 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto animate-scale-up">
             <div class="flex justify-between items-start">
                 <div>
                     <h3 class="font-bold text-gray-800 text-sm" x-text="editingDefenseId ? 'Edit Defense Schedule' : 'Schedule Defense Presentation'">Schedule Defense</h3>

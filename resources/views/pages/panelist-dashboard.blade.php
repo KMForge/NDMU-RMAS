@@ -843,46 +843,58 @@
                 <!-- Stats Cards Row (4 Columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Total Assigned -->
-                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-emerald-500 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Total Assigned</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block" x-text="assignedPapers.length">5</span>
+                            <span class="w-11 h-11 rounded-xl bg-emerald-50/80 text-[#0e5c3a] border border-emerald-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-file-text"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Total Assigned</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="assignedPapers.length">5</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-file-text"></i>
+                        <span class="text-emerald-600 text-xl font-bold">
+                            <i class="ph ph-files"></i>
                         </span>
                     </div>
 
                     <!-- For Review -->
-                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-orange-500 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">For Review</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block" x-text="assignedPapers.filter(p => p.status === 'For Review').length">1</span>
+                            <span class="w-11 h-11 rounded-xl bg-amber-50/80 text-amber-700 border border-amber-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-clock"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">For Review</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="assignedPapers.filter(p => p.status === 'For Review').length">1</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-clock"></i>
+                        <span class="text-amber-500 text-xl font-bold">
+                            <i class="ph ph-hourglass"></i>
                         </span>
                     </div>
 
                     <!-- Under Review -->
-                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-blue-500 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Under Review</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block" x-text="assignedPapers.filter(p => p.status === 'Under Review').length">1</span>
+                            <span class="w-11 h-11 rounded-xl bg-blue-50/80 text-blue-700 border border-blue-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-notebook"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Under Review</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="assignedPapers.filter(p => p.status === 'Under Review').length">1</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-notebook"></i>
+                        <span class="text-blue-500 text-xl font-bold">
+                            <i class="ph ph-pencil-line"></i>
                         </span>
                     </div>
 
                     <!-- Evaluated -->
-                    <div class="bg-white rounded-3xl p-5 border-l-4 border-l-emerald-600 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-400 font-semibold block">Evaluated</span>
-                            <span class="text-3xl font-bold text-gray-800 mt-2 block" x-text="assignedPapers.filter(p => ['Evaluated', 'Approved'].includes(p.status)).length">2</span>
+                            <span class="w-11 h-11 rounded-xl bg-purple-50/80 text-purple-700 border border-purple-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-file-check"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Evaluated</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="assignedPapers.filter(p => ['Evaluated', 'Approved'].includes(p.status)).length">2</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-file-check"></i>
+                        <span class="text-purple-500 text-xl font-bold">
+                            <i class="ph ph-check-circle"></i>
                         </span>
                     </div>
                 </div>
@@ -919,7 +931,7 @@
                 </div>
 
                 <!-- Assigned Papers Table Card -->
-                <div class="bg-white rounded-3xl border border-gray-100/50 shadow-sm overflow-hidden">
+                <div class="bg-white rounded-2xl border border-gray-100/50 shadow-sm overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full border-collapse">
                             <thead>
@@ -1023,7 +1035,7 @@
                 <!-- Stats Cards Row (4 Columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Approved -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 border-l-4 border-l-[#10b981] shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-[#10b981] shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Approved</span>
                             <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="proposalProposals.filter(p => p.status === 'Approved').length">1</span>
@@ -1034,7 +1046,7 @@
                     </div>
 
                     <!-- Pending -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 border-l-4 border-l-amber-500 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-amber-500 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Pending</span>
                             <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="proposalProposals.filter(p => p.status === 'Pending').length">0</span>
@@ -1045,7 +1057,7 @@
                     </div>
 
                     <!-- Revisions -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 border-l-4 border-l-red-500 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-red-500 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Revisions</span>
                             <span class="text-3xl font-bold text-gray-855 mt-2 block" x-text="proposalProposals.filter(p => p.status === 'Revisions').length">0</span>
@@ -1056,7 +1068,7 @@
                     </div>
 
                     <!-- Total Proposals -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 border-l-4 border-l-blue-500 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-blue-500 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Total Proposals</span>
                             <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="proposalProposals.length">1</span>
@@ -1068,12 +1080,12 @@
                 </div>
 
                 <!-- Main Proposal Card -->
-                <div class="bg-white rounded-3xl border border-gray-100/50 shadow-sm p-6 space-y-6">
+                <div class="bg-white rounded-2xl border border-gray-100/50 shadow-sm p-6 space-y-6">
                     <h2 class="text-sm font-bold text-gray-850 font-heading tracking-wide">Research Proposal</h2>
                     
                     <div class="space-y-4">
                         <template x-for="p in filteredProposals()" :key="p.id">
-                            <div class="bg-[#f0fdf4] border border-emerald-100 rounded-3xl p-6 space-y-4">
+                            <div class="bg-[#f0fdf4] border border-emerald-100 rounded-2xl p-6 space-y-4">
                                 <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                                     <div>
                                         <h3 class="font-extrabold text-sm text-[#0e5c3a] leading-snug" x-text="p.title">Machine Learning Applications in Agricultural Pest Detection</h3>
@@ -1123,7 +1135,7 @@
                 </div>
 
                 <!-- Big Solid Green Card -->
-                <div class="bg-[#10b981] rounded-3xl p-6 md:p-8 text-white shadow-md flex flex-col md:flex-row md:items-center md:justify-between gap-6 relative overflow-hidden">
+                <div class="bg-[#10b981] rounded-2xl p-6 md:p-8 text-white shadow-md flex flex-col md:flex-row md:items-center md:justify-between gap-6 relative overflow-hidden">
                     <div class="space-y-1 z-10">
                         <span class="text-xs text-white/80 font-bold tracking-wider uppercase block">Overall Research Score</span>
                         <span class="text-5xl font-black block tracking-tight">90.0%</span>
@@ -1146,7 +1158,7 @@
                 <!-- Scoring Breakdown & Panel Comments (2 Columns grid) -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <!-- Left: Scoring Breakdown -->
-                    <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-6">
                         <h2 class="text-sm font-bold text-gray-855 font-heading">Scoring Breakdown</h2>
 
                         <div class="space-y-5">
@@ -1170,7 +1182,7 @@
                     </div>
 
                     <!-- Right: Panel Comments -->
-                    <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-6">
                         <h2 class="text-sm font-bold text-gray-855 font-heading">Panel Comments</h2>
 
                         <div class="space-y-4">
@@ -1198,7 +1210,7 @@
                 </div>
 
                 <!-- Panel Recommendations (Full Width below) -->
-                <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
+                <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-6">
                     <h2 class="text-sm font-bold text-gray-850 font-heading">Panel Recommendations</h2>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1257,7 +1269,7 @@
                 </div>
 
                 <!-- Document Info Card -->
-                <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div class="flex items-center gap-4">
                         <span class="w-12 h-12 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center text-2xl flex-shrink-0">
                             <i class="ph ph-file-pdf"></i>
@@ -1281,7 +1293,7 @@
                 <!-- Stats Row (4 columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Approved -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 border-l-4 border-l-[#10b981] shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-[#10b981] shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Approved</span>
                             <span class="text-3xl font-bold text-gray-850 mt-2 block">8</span>
@@ -1292,7 +1304,7 @@
                     </div>
 
                     <!-- Revisions -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 border-l-4 border-l-amber-500 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-amber-500 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Revisions</span>
                             <span class="text-3xl font-bold text-gray-855 mt-2 block">5</span>
@@ -1303,7 +1315,7 @@
                     </div>
 
                     <!-- Comments -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 border-l-4 border-l-blue-500 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-blue-500 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Comments</span>
                             <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="recommendationComments.length">12</span>
@@ -1314,7 +1326,7 @@
                     </div>
 
                     <!-- Critical -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 border-l-4 border-l-red-500 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-red-500 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Critical</span>
                             <span class="text-3xl font-bold text-gray-855 mt-2 block">2</span>
@@ -1328,7 +1340,7 @@
                 <!-- Document Preview & Feedback List (Grid layout) -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <!-- Left: Document Preview (col-span-2) -->
-                    <div class="lg:col-span-2 bg-white rounded-3xl border border-gray-100/50 shadow-sm p-6 md:p-8 space-y-6">
+                    <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-100/50 shadow-sm p-6 md:p-8 space-y-6">
                         <h2 class="text-sm font-bold text-gray-850 font-heading tracking-wide border-b border-gray-50 pb-3">Document Preview</h2>
                         
                         <div class="space-y-6 text-xs text-gray-655 leading-relaxed font-medium">
@@ -1357,7 +1369,7 @@
                     </div>
 
                     <!-- Right: Comments & Feedback (col-span-1) -->
-                    <div class="bg-white rounded-3xl border border-gray-100/50 shadow-sm p-6 space-y-6">
+                    <div class="bg-white rounded-2xl border border-gray-100/50 shadow-sm p-6 space-y-6">
                         <h2 class="text-sm font-bold text-gray-855 font-heading tracking-wide border-b border-gray-50 pb-3">Comments & Feedback</h2>
 
                         <div class="space-y-4 max-h-[400px] overflow-y-auto pr-1">
@@ -1401,7 +1413,7 @@
                 </div>
 
                 <!-- Review Actions Section -->
-                <div class="bg-white rounded-3xl border border-gray-100/50 shadow-sm p-6 space-y-4">
+                <div class="bg-white rounded-2xl border border-gray-100/50 shadow-sm p-6 space-y-4">
                     <span class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Review Actions</span>
                     
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1429,7 +1441,7 @@
                 <!-- Stats Cards Row (4 Columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Total Scheduled -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Total Scheduled</span>
                             <span class="text-3xl font-bold text-gray-855 mt-2 block" x-text="defenses.length">3</span>
@@ -1440,7 +1452,7 @@
                     </div>
 
                     <!-- This Week -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">This Week</span>
                             <span class="text-3xl font-bold text-gray-855 mt-2 block">2</span>
@@ -1451,7 +1463,7 @@
                     </div>
 
                     <!-- Pending -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Pending</span>
                             <span class="text-3xl font-bold text-gray-855 mt-2 block" x-text="defenses.filter(s => s.status === 'Pending').length">1</span>
@@ -1462,7 +1474,7 @@
                     </div>
 
                     <!-- Completed -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Completed</span>
                             <span class="text-3xl font-bold text-gray-855 mt-2 block">0</span>
@@ -1501,7 +1513,7 @@
                 <!-- Defense Schedule Cards List -->
                 <div class="space-y-6">
                     <template x-for="(sched, idx) in filteredDefenses()" :key="idx">
-                        <div :class="sched.leftBorder" class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4 hover:border-gray-200 transition-all duration-200">
+                        <div :class="sched.leftBorder" class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-4 hover:border-gray-200 transition-all duration-200">
                             <!-- Card Header -->
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center">
@@ -1561,7 +1573,7 @@
                     </template>
 
                     <template x-if="filteredDefenses().length === 0">
-                        <div class="bg-white rounded-3xl p-12 border border-gray-100 text-center text-gray-455 font-semibold shadow-sm">
+                        <div class="bg-white rounded-2xl p-12 border border-gray-100 text-center text-gray-455 font-semibold shadow-sm">
                             No defense schedules found matching current filters.
                         </div>
                     </template>
@@ -1586,7 +1598,7 @@
                 <!-- Stats Cards Row (4 Columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Total Files -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Total Files</span>
                             <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="repositoryDocuments.length">6</span>
@@ -1597,7 +1609,7 @@
                     </div>
 
                     <!-- Approved -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Approved</span>
                             <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="repositoryDocuments.filter(d => d.status === 'Approved').length">2</span>
@@ -1608,7 +1620,7 @@
                     </div>
 
                     <!-- Pending Review -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Pending Review</span>
                             <span class="text-3xl font-bold text-gray-855 mt-2 block" x-text="repositoryDocuments.filter(d => d.status === 'Pending Review').length">2</span>
@@ -1619,7 +1631,7 @@
                     </div>
 
                     <!-- For Evaluation -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">For Evaluation</span>
                             <span class="text-3xl font-bold text-gray-855 mt-2 block" x-text="repositoryDocuments.filter(d => d.status === 'For Evaluation').length">1</span>
@@ -1662,7 +1674,7 @@
                 <!-- Grid of Repository Document Cards (3-column layout) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <template x-for="(doc, index) in filteredRepositoryDocuments()" :key="index">
-                        <div :class="doc.topBorder" class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-4 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+                        <div :class="doc.topBorder" class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm space-y-4 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
                             <!-- Card Header Badges -->
                             <div class="flex items-center justify-between">
                                 <span class="px-2.5 py-0.5 border text-[9px] font-bold rounded-lg" :class="doc.fileType === 'PDF' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-50 border-blue-200 text-blue-700'" x-text="doc.fileType">PDF</span>
@@ -1708,7 +1720,7 @@
                     </template>
 
                     <template x-if="filteredRepositoryDocuments().length === 0">
-                        <div class="col-span-1 md:col-span-2 lg:col-span-3 bg-white rounded-3xl p-12 border border-gray-100 text-center text-gray-455 font-semibold shadow-sm">
+                        <div class="col-span-1 md:col-span-2 lg:col-span-3 bg-white rounded-2xl p-12 border border-gray-100 text-center text-gray-455 font-semibold shadow-sm">
                             No files found in research repository matching current search or filters.
                         </div>
                     </template>
@@ -1739,7 +1751,7 @@
 
     <!-- Defense Details Modal -->
     <div x-show="selectedDefense" x-transition x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-        <div @click.away="selectedDefense = null" class="bg-white rounded-3xl w-full max-w-md p-6 shadow-xl space-y-4">
+        <div @click.away="selectedDefense = null" class="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl space-y-4">
             <div class="flex justify-between items-start">
                 <h3 class="font-bold text-gray-800 text-sm" x-text="selectedDefense?.type">Defense Details</h3>
                 <button @click="selectedDefense = null" class="text-gray-400 hover:text-gray-600 text-lg cursor-pointer">

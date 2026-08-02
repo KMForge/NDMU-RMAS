@@ -818,7 +818,7 @@
                 <!-- Stats Cards Row -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Approved -->
-                    <div class="bg-white rounded-3xl p-6 border-l-4 border-l-emerald-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border-l-4 border-l-emerald-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-medium block">Approved</span>
                             <span class="text-3xl font-bold text-gray-800 mt-2 block">1</span>
@@ -829,7 +829,7 @@
                     </div>
 
                     <!-- Pending -->
-                    <div class="bg-white rounded-3xl p-6 border-l-4 border-l-amber-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border-l-4 border-l-amber-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-medium block">Pending</span>
                             <span class="text-3xl font-bold text-gray-800 mt-2 block">0</span>
@@ -840,7 +840,7 @@
                     </div>
 
                     <!-- Revisions -->
-                    <div class="bg-white rounded-3xl p-6 border-l-4 border-l-red-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border-l-4 border-l-red-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-medium block">Revisions</span>
                             <span class="text-3xl font-bold text-gray-800 mt-2 block">0</span>
@@ -851,7 +851,7 @@
                     </div>
 
                     <!-- Total Proposals -->
-                    <div class="bg-white rounded-3xl p-6 border-l-4 border-l-blue-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border-l-4 border-l-blue-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-medium block">Total Proposals</span>
                             <span class="text-3xl font-bold text-gray-800 mt-2 block">1</span>
@@ -863,7 +863,7 @@
                 </div>
 
                 <!-- Research Proposal List Section -->
-                <div class="bg-white rounded-3xl p-6 border border-gray-100/50 shadow-sm space-y-6">
+                <div class="bg-white rounded-2xl p-6 border border-gray-100/50 shadow-sm space-y-6">
                     <h2 class="text-base font-bold text-gray-800 font-heading">Research Proposal</h2>
                     
                     <!-- Proposal Item Card -->
@@ -944,7 +944,7 @@
                 <!-- Stats Cards Row (4 Columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Approved -->
-                    <div class="bg-white rounded-3xl p-6 border-l-4 border-l-emerald-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border-l-4 border-l-emerald-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-medium block">Approved</span>
                             <span class="text-3xl font-bold text-gray-800 mt-2 block">8</span>
@@ -955,7 +955,7 @@
                     </div>
 
                     <!-- Revisions -->
-                    <div class="bg-white rounded-3xl p-6 border-l-4 border-l-amber-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border-l-4 border-l-amber-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-medium block">Revisions</span>
                             <span class="text-3xl font-bold text-gray-800 mt-2 block">5</span>
@@ -966,7 +966,7 @@
                     </div>
 
                     <!-- Comments -->
-                    <div class="bg-white rounded-3xl p-6 border-l-4 border-l-blue-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border-l-4 border-l-blue-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-medium block">Comments</span>
                             <span class="text-3xl font-bold text-gray-800 mt-2 block">12</span>
@@ -977,7 +977,7 @@
                     </div>
 
                     <!-- Critical -->
-                    <div class="bg-white rounded-3xl p-6 border-l-4 border-l-red-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-6 border-l-4 border-l-red-500 border-t border-r border-b border-gray-100/50 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-medium block">Critical</span>
                             <span class="text-3xl font-bold text-gray-800 mt-2 block">2</span>
@@ -991,7 +991,7 @@
                 <!-- Document Preview & Feedback Split Layout -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <!-- Left: Document Preview (Takes 2 spans) -->
-                    <div class="lg:col-span-2 bg-white rounded-3xl border border-gray-100/50 shadow-sm p-6 space-y-6 flex flex-col justify-between">
+                    <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-100/50 shadow-sm p-6 space-y-6 flex flex-col justify-between">
                         <h3 class="font-bold text-sm text-gray-800 flex items-center gap-2">
                             <i class="ph ph-eye text-[#0e5c3a] text-lg"></i>
                             <span>Document Preview</span>
@@ -1025,7 +1025,7 @@
                     </div>
 
                     <!-- Right: Comments & Feedback (Takes 1 span) -->
-                    <div class="lg:col-span-1 bg-white rounded-3xl border border-gray-100/50 shadow-sm p-6 flex flex-col justify-between space-y-6">
+                    <div class="lg:col-span-1 bg-white rounded-2xl border border-gray-100/50 shadow-sm p-6 flex flex-col justify-between space-y-6">
                         <h3 class="font-bold text-sm text-gray-800 flex items-center gap-2">
                             <i class="ph ph-chat-text text-[#0e5c3a] text-lg"></i>
                             <span>Comments & Feedback</span>
@@ -1108,7 +1108,7 @@
                 </div>
 
                 <!-- Review Actions Section (Full width bottom card) -->
-                <div class="bg-white rounded-3xl border border-gray-100/50 shadow-sm p-6 space-y-6">
+                <div class="bg-white rounded-2xl border border-gray-100/50 shadow-sm p-6 space-y-6">
                     <h3 class="font-bold text-sm text-gray-800 flex items-center gap-2">
                         <i class="ph ph-shield-check text-[#0e5c3a] text-lg"></i>
                         <span>Review Actions</span>
@@ -1142,7 +1142,7 @@
                 <!-- Stats Cards Row (4 Columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Total Users -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100/50 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100/50 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-full bg-slate-100/80 text-slate-655 flex items-center justify-center text-xl flex-shrink-0">
                             <i class="ph ph-users"></i>
                         </span>
@@ -1153,7 +1153,7 @@
                     </div>
 
                     <!-- Pending Approval -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100/50 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100/50 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center text-xl flex-shrink-0">
                             <i class="ph ph-clock"></i>
                         </span>
@@ -1164,7 +1164,7 @@
                     </div>
 
                     <!-- Active Accounts -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100/50 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100/50 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl flex-shrink-0">
                             <i class="ph ph-check-circle"></i>
                         </span>
@@ -1175,7 +1175,7 @@
                     </div>
 
                     <!-- Rejected -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100/50 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100/50 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center text-xl flex-shrink-0">
                             <i class="ph ph-x-circle"></i>
                         </span>
@@ -1256,7 +1256,7 @@
                         </div>
 
                         <!-- Users table card -->
-                        <div class="bg-white rounded-3xl border border-gray-100/50 shadow-sm overflow-hidden">
+                        <div class="bg-white rounded-2xl border border-gray-100/50 shadow-sm overflow-hidden">
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left text-xs border-collapse">
                                     <thead>
@@ -1324,7 +1324,7 @@
                     </div>
 
                     <!-- Tab: Create User Form -->
-                    <div x-show="managementSubTab === 'create'" class="bg-white rounded-3xl border border-gray-100/50 shadow-sm p-6 md:p-8 space-y-6">
+                    <div x-show="managementSubTab === 'create'" class="bg-white rounded-2xl border border-gray-100/50 shadow-sm p-6 md:p-8 space-y-6">
                         <div class="border-b border-gray-100 pb-4">
                             <h3 class="text-base font-bold text-gray-800 font-heading">Register New User</h3>
                             <p class="text-xs text-gray-455 mt-1">Add a new academic evaluator, facilitator, advisor, or student researcher.</p>
@@ -1443,7 +1443,7 @@
                 <!-- Stats Cards Row (4 Columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Total Scheduled -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl flex-shrink-0">
                             <i class="ph ph-calendar"></i>
                         </span>
@@ -1454,7 +1454,7 @@
                     </div>
 
                     <!-- This Week -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl flex-shrink-0">
                             <i class="ph ph-clock"></i>
                         </span>
@@ -1465,7 +1465,7 @@
                     </div>
 
                     <!-- Pending -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center text-xl flex-shrink-0">
                             <i class="ph ph-calendar-blank"></i>
                         </span>
@@ -1476,7 +1476,7 @@
                     </div>
 
                     <!-- Completed -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xl flex-shrink-0">
                             <i class="ph ph-calendar-check"></i>
                         </span>
@@ -1519,7 +1519,7 @@
                 <!-- Defense Cards List -->
                 <div class="space-y-6">
                     <template x-for="(schedule, index) in filteredSchedules()" :key="index">
-                        <div :class="schedule.borderColor" class="bg-white rounded-3xl p-6 border border-l-4 border-gray-100 shadow-sm flex flex-col gap-6 hover:border-gray-200 transition-all duration-200 relative">
+                        <div :class="schedule.borderColor" class="bg-white rounded-2xl p-6 border border-l-4 border-gray-100 shadow-sm flex flex-col gap-6 hover:border-gray-200 transition-all duration-200 relative">
                             <!-- Top Header Row of Card -->
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">
@@ -1591,7 +1591,7 @@
                     </template>
                     
                     <template x-if="filteredSchedules().length === 0">
-                        <div class="bg-white rounded-3xl p-12 border border-gray-100 text-center text-gray-450 font-semibold shadow-sm">
+                        <div class="bg-white rounded-2xl p-12 border border-gray-100 text-center text-gray-450 font-semibold shadow-sm">
                             No defense schedules found matching current filters.
                         </div>
                     </template>
@@ -1614,7 +1614,7 @@
                 <!-- Stats Cards Row (4 Columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Total Research -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Total Research</span>
                             <span class="text-2xl font-bold text-gray-800 mt-2 block">174</span>
@@ -1626,7 +1626,7 @@
                     </div>
 
                     <!-- Completed -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Completed</span>
                             <span class="text-2xl font-bold text-gray-800 mt-2 block">126</span>
@@ -1638,7 +1638,7 @@
                     </div>
 
                     <!-- In Progress -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">In Progress</span>
                             <span class="text-2xl font-bold text-gray-800 mt-2 block">48</span>
@@ -1650,7 +1650,7 @@
                     </div>
 
                     <!-- Avg Duration -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Avg Duration</span>
                             <span class="text-2xl font-bold text-gray-800 mt-2 block">8.5</span>
@@ -1770,7 +1770,7 @@
                 <!-- Stats Cards Row (4 Columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Total Files -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-full bg-slate-100/80 text-slate-655 flex items-center justify-center text-xl flex-shrink-0">
                             <i class="ph ph-file-text"></i>
                         </span>
@@ -1781,7 +1781,7 @@
                     </div>
 
                     <!-- Approved -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl flex-shrink-0">
                             <i class="ph ph-check-circle"></i>
                         </span>
@@ -1792,7 +1792,7 @@
                     </div>
 
                     <!-- Pending Review -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center text-xl flex-shrink-0">
                             <i class="ph ph-clock"></i>
                         </span>
@@ -1803,7 +1803,7 @@
                     </div>
 
                     <!-- For Evaluation -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-full bg-purple-50 text-purple-650 flex items-center justify-center text-xl flex-shrink-0">
                             <i class="ph ph-certificate"></i>
                         </span>
@@ -1851,7 +1851,7 @@
                 <!-- Document Grid (3 Columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <template x-for="(doc, idx) in filteredDocuments()" :key="idx">
-                        <div :class="doc.topBorder" class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between gap-5 hover:border-gray-200 transition-all duration-200 relative">
+                        <div :class="doc.topBorder" class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between gap-5 hover:border-gray-200 transition-all duration-200 relative">
                             <!-- Card Header -->
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-2">

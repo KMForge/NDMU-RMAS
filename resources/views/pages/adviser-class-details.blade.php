@@ -102,7 +102,7 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                     <p class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Class Adviser</p>
                     <div class="flex items-center gap-3 mt-4">
                         <div class="w-11 h-11 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center">
@@ -115,7 +115,7 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                     <p class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Enrollment</p>
                     <p class="text-2xl font-bold text-gray-850 mt-3">{{ $activeStudents }} / {{ $researchClass->max_students }}</p>
                     <div class="h-2 rounded-full bg-gray-100 mt-4 overflow-hidden">
@@ -127,14 +127,14 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                     <p class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Created</p>
                     <p class="text-sm font-bold text-gray-850 mt-3">{{ $researchClass->created_at?->format('M j, Y') ?? 'Not available' }}</p>
                     <p class="text-[10px] text-gray-500 mt-1">{{ $researchClass->created_at?->diffForHumans() ?? 'Timestamp unavailable' }}</p>
                 </div>
             </div>
 
-            <section class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+            <section class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
                         <h2 class="font-bold text-lg text-gray-850">Student Roster</h2>

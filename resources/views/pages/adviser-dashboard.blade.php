@@ -735,7 +735,7 @@
                     <div class="space-y-6">
                         
                         <!-- Side Widget 1: Pending Reviews -->
-                        <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
+                        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-4">
                             <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
                                 <i class="ph ph-file-text text-amber-500 text-lg"></i>
                                 <span>Pending Reviews ({{ $adviserOverviewStats['urgent_reviews'] }})</span>
@@ -763,7 +763,7 @@
                         </div>
 
                         <!-- Side Widget 2: Today's Consultations (Solid Blue Card) -->
-                        <div class="bg-blue-600 text-white rounded-3xl p-6 shadow-md space-y-4">
+                        <div class="bg-blue-600 text-white rounded-2xl p-6 shadow-md space-y-4">
                             <h3 class="font-bold text-white text-sm flex items-center gap-2 pb-2 border-b border-white/10">
                                 <i class="ph ph-calendar text-lg"></i>
                                 <span>Today's Consultations</span>
@@ -791,7 +791,7 @@
                         </div>
 
                         <!-- Side Widget 3: Quick Actions -->
-                        <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
+                        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-4">
                             <h3 class="font-bold text-gray-800 text-sm pb-2 border-b border-gray-50">Quick Actions</h3>
                             <div class="space-y-2.5">
                                 <button @click="activeTab = 'proposal'" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs w-full py-2.5 rounded-xl transition-colors cursor-pointer text-center">
@@ -807,7 +807,7 @@
                         </div>
 
                         <!-- Side Widget 4: Recent Activity -->
-                        <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
+                        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-4">
                             <h3 class="font-bold text-gray-800 text-sm pb-2 border-b border-gray-50">Recent Activity</h3>
                             <div class="space-y-4">
                                 @forelse ($adviserRecentActivity as $activity)
@@ -865,7 +865,7 @@
                 <!-- Stats Cards Row -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Total Card -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between animate-fade-in">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between animate-fade-in">
                         <div>
                             <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.length">{{ $adviserNotificationStats['total'] }}</span>
                             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block font-heading mt-0.5">Total</span>
@@ -876,7 +876,7 @@
                     </div>
 
                     <!-- Unread Card -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.filter(n => n.unread).length">{{ $adviserNotificationStats['unread'] }}</span>
                             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block font-heading mt-0.5">Unread</span>
@@ -887,7 +887,7 @@
                     </div>
 
                     <!-- Defense Card -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.filter(n => n.category === 'defense').length">{{ $adviserNotificationStats['defense'] }}</span>
                             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block font-heading mt-0.5">Defense</span>
@@ -898,7 +898,7 @@
                     </div>
 
                     <!-- Documents Card -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-2xl font-bold text-gray-800 block" x-text="notifications.filter(n => n.category === 'documents').length">{{ $adviserNotificationStats['documents'] }}</span>
                             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block font-heading mt-0.5">Documents</span>
@@ -1053,7 +1053,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     @forelse ($researchClasses as $researchClass)
-                        <a href="{{ route('adviser.classes.show', $researchClass) }}" wire:navigate class="block bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4 hover:border-[#0e5c3a]/30 hover:shadow-md transition-all">
+                        <a href="{{ route('adviser.classes.show', $researchClass) }}" wire:navigate class="block bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-4 hover:border-[#0e5c3a]/30 hover:shadow-md transition-all">
                             <div class="flex justify-between items-start">
                                 <span class="px-3 py-1 bg-amber-50 text-amber-700 text-[10px] font-extrabold rounded-full">{{ $researchClass->revealJoinCode() }}</span>
                                 <i class="ph ph-dots-three-vertical text-gray-400 text-lg"></i>
@@ -1072,7 +1072,7 @@
                              </div>
                         </a>
                     @empty
-                        <div class="md:col-span-3 bg-white rounded-3xl p-10 border border-gray-100 shadow-sm text-center">
+                        <div class="md:col-span-3 bg-white rounded-2xl p-10 border border-gray-100 shadow-sm text-center">
                             <i class="ph ph-chalkboard-teacher text-3xl text-gray-300"></i>
                             <p class="text-sm text-gray-500 mt-3">You have not created a research class yet.</p>
                         </div>
@@ -2013,7 +2013,7 @@
                 <!-- Stats Cards Row (4 Columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Total Users -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-full bg-slate-100/80 text-slate-655 flex items-center justify-center text-xl flex-shrink-0">
                             <i class="ph ph-users"></i>
                         </span>
@@ -2024,7 +2024,7 @@
                     </div>
 
                     <!-- Pending Approval -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center text-xl flex-shrink-0">
                             <i class="ph ph-clock"></i>
                         </span>
@@ -2035,7 +2035,7 @@
                     </div>
 
                     <!-- Active Accounts -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl flex-shrink-0">
                             <i class="ph ph-check-circle"></i>
                         </span>
@@ -2046,7 +2046,7 @@
                     </div>
 
                     <!-- Rejected -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
                         <span class="w-12 h-12 rounded-full bg-red-50 text-red-505 flex items-center justify-center text-xl flex-shrink-0">
                             <i class="ph ph-x-circle"></i>
                         </span>
@@ -2127,7 +2127,7 @@
                         </div>
 
                         <!-- Users table card -->
-                        <div class="bg-white rounded-3xl border border-gray-100/50 shadow-sm overflow-hidden">
+                        <div class="bg-white rounded-2xl border border-gray-100/50 shadow-sm overflow-hidden">
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left text-xs border-collapse">
                                     <thead>
@@ -2195,7 +2195,7 @@
                     </div>
 
                     <!-- Tab: Create User Form -->
-                    <div x-show="managementSubTab === 'create'" class="bg-white rounded-3xl border border-gray-100/50 shadow-sm p-6 md:p-8 space-y-6">
+                    <div x-show="managementSubTab === 'create'" class="bg-white rounded-2xl border border-gray-100/50 shadow-sm p-6 md:p-8 space-y-6">
                         <div class="border-b border-gray-100 pb-4">
                             <h3 class="text-base font-bold text-gray-800 font-heading">Register New User</h3>
                             <p class="text-xs text-gray-455 mt-1">Add a new academic evaluator, facilitator, advisor, or student researcher.</p>
@@ -2314,7 +2314,7 @@
                 <!-- Stats Cards Row (4 Columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Approved -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 border-l-4 border-l-[#10b981] shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-[#10b981] shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Approved</span>
                             <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="proposalProposals.filter(p => p.status === 'Approved').length">1</span>
@@ -2325,7 +2325,7 @@
                     </div>
 
                     <!-- Pending -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 border-l-4 border-l-amber-500 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-amber-500 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Pending</span>
                             <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="proposalProposals.filter(p => p.status === 'Pending').length">0</span>
@@ -2336,7 +2336,7 @@
                     </div>
 
                     <!-- Revisions -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 border-l-4 border-l-red-500 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-red-500 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Revisions</span>
                             <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="proposalProposals.filter(p => p.status === 'Revisions').length">0</span>
@@ -2347,7 +2347,7 @@
                     </div>
 
                     <!-- Total Proposals -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 border-l-4 border-l-blue-500 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 border-l-4 border-l-blue-500 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Total Proposals</span>
                             <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="proposalProposals.length">1</span>
@@ -2359,12 +2359,12 @@
                 </div>
 
                 <!-- Main Proposal Card -->
-                <div class="bg-white rounded-3xl border border-gray-100/50 shadow-sm p-6 space-y-6">
+                <div class="bg-white rounded-2xl border border-gray-100/50 shadow-sm p-6 space-y-6">
                     <h2 class="text-sm font-bold text-gray-850 font-heading tracking-wide">Research Proposal</h2>
                     
                     <div class="space-y-4">
                         <template x-for="p in filteredProposals()" :key="p.id">
-                            <div class="bg-[#f0fdf4] border border-emerald-100 rounded-3xl p-6 space-y-4">
+                            <div class="bg-[#f0fdf4] border border-emerald-100 rounded-2xl p-6 space-y-4">
                                 <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                                     <div>
                                         <h3 class="font-extrabold text-sm text-[#0e5c3a] leading-snug" x-text="p.title">Machine Learning Applications in Agricultural Pest Detection</h3>
@@ -2414,7 +2414,7 @@
                 </div>
 
                 <!-- Overall Progress Card -->
-                <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
+                <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6">
                     <div class="flex justify-between items-center">
                         <div>
                             <span class="text-sm font-bold text-gray-800 block">Overall Progress</span>
@@ -2446,7 +2446,7 @@
                 </div>
 
                 <!-- Milestones Timeline Wrapper -->
-                <div class="bg-white rounded-3xl border border-gray-100/50 shadow-sm p-6 md:p-8 space-y-6">
+                <div class="bg-white rounded-2xl border border-gray-100/50 shadow-sm p-6 md:p-8 space-y-6">
                     <h2 class="text-sm font-bold text-gray-855 font-heading tracking-wide">Research Milestones</h2>
 
                     <!-- Timeline Vertical line track -->
@@ -2519,7 +2519,7 @@
                 <!-- Stats Cards Row (4 Columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Total Scheduled -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Total Scheduled</span>
                             <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="defenseSchedules.length">3</span>
@@ -2530,7 +2530,7 @@
                     </div>
 
                     <!-- This Week -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">This Week</span>
                             <span class="text-3xl font-bold text-gray-850 mt-2 block">2</span>
@@ -2541,7 +2541,7 @@
                     </div>
 
                     <!-- Pending -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Pending</span>
                             <span class="text-3xl font-bold text-gray-850 mt-2 block" x-text="defenseSchedules.filter(s => s.status === 'Pending').length">1</span>
@@ -2552,7 +2552,7 @@
                     </div>
 
                     <!-- Completed -->
-                    <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold block">Completed</span>
                             <span class="text-3xl font-bold text-gray-855 mt-2 block">0</span>
@@ -2591,7 +2591,7 @@
                 <!-- Defense Schedule Cards List -->
                 <div class="space-y-6">
                     <template x-for="(sched, idx) in filteredSchedules()" :key="idx">
-                        <div :class="sched.leftBorder" class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4 hover:border-gray-200 transition-all duration-200">
+                        <div :class="sched.leftBorder" class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-4 hover:border-gray-200 transition-all duration-200">
                             <!-- Card Header -->
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center">
@@ -2651,7 +2651,7 @@
                     </template>
 
                     <template x-if="filteredSchedules().length === 0">
-                        <div class="bg-white rounded-3xl p-12 border border-gray-100 text-center text-gray-455 font-semibold shadow-sm">
+                        <div class="bg-white rounded-2xl p-12 border border-gray-100 text-center text-gray-455 font-semibold shadow-sm">
                             No defense schedules found matching current filters.
                         </div>
                     </template>
@@ -2667,7 +2667,7 @@
                 </div>
 
                 <!-- Big Solid Green Card -->
-                <div class="bg-emerald-500 rounded-3xl p-6 md:p-8 text-white shadow-md flex flex-col md:flex-row md:items-center md:justify-between gap-6 relative overflow-hidden">
+                <div class="bg-emerald-500 rounded-2xl p-6 md:p-8 text-white shadow-md flex flex-col md:flex-row md:items-center md:justify-between gap-6 relative overflow-hidden">
                     <div class="space-y-1 z-10">
                         <span class="text-xs text-white/80 font-bold tracking-wider uppercase block">Overall Research Score</span>
                         <span class="text-5xl font-black block tracking-tight">90.0%</span>
@@ -2690,7 +2690,7 @@
                 <!-- Scoring Breakdown & Panel Comments (2 Columns grid) -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <!-- Left: Scoring Breakdown -->
-                    <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
+                    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6">
                         <h2 class="text-sm font-bold text-gray-855 font-heading">Scoring Breakdown</h2>
 
                         <div class="space-y-5">
@@ -2714,7 +2714,7 @@
                     </div>
 
                     <!-- Right: Panel Comments -->
-                    <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
+                    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6">
                         <h2 class="text-sm font-bold text-gray-855 font-heading">Panel Comments</h2>
 
                         <div class="space-y-4">
@@ -2742,7 +2742,7 @@
                 </div>
 
                 <!-- Panel Recommendations (Full Width below) -->
-                <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
+                <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6">
                     <h2 class="text-sm font-bold text-gray-850 font-heading">Panel Recommendations</h2>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2816,7 +2816,7 @@
 
     <!-- Notification Details Modal -->
     <div x-show="selectedNotification" x-transition x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-        <div @click.away="selectedNotification = null" class="bg-white rounded-3xl w-full max-w-md p-6 shadow-xl space-y-4">
+        <div @click.away="selectedNotification = null" class="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl space-y-4">
             <div class="flex justify-between items-start">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0" :class="selectedNotification?.iconBg">
@@ -2846,7 +2846,7 @@
 
     <!-- Repository Upload Modal -->
     <div x-show="showRepositoryUploadModal" x-transition x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-        <div @click.away="showRepositoryUploadModal = false" class="bg-white rounded-3xl w-full max-w-lg p-6 shadow-xl space-y-5">
+        <div @click.away="showRepositoryUploadModal = false" class="bg-white rounded-2xl w-full max-w-lg p-6 shadow-xl space-y-5">
             <div class="flex justify-between items-start">
                 <div>
                     <h3 class="font-bold text-gray-900">Upload Repository Document</h3>
@@ -2898,7 +2898,7 @@
 
     <!-- Create Class Modal -->
     <div x-show="showClassModal" x-transition x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-        <div @click.away="showClassModal = false" class="bg-white rounded-3xl w-full max-w-md p-6 shadow-xl space-y-4">
+        <div @click.away="showClassModal = false" class="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl space-y-4">
             <div class="flex justify-between items-start">
                 <h3 class="font-bold text-gray-800 text-sm">Create New Research Class</h3>
                 <button @click="showClassModal = false" class="text-gray-400 hover:text-gray-600 text-lg cursor-pointer">
