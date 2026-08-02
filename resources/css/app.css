@@ -9,6 +9,12 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
     --font-heading: 'Outfit', sans-serif;
+
+    --color-emerald-650: #05875c;
+    --color-emerald-755: #046a4d;
+    --color-red-650: #c22222;
+    --color-red-750: #a21a1a;
+    --color-red-755: #a21a1a;
 }
 
 h1, h2, h3, h4, h5, h6, .font-heading {

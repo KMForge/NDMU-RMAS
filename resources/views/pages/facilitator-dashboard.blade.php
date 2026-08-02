@@ -882,67 +882,6 @@
         }
 
         return list;
-    },
-
-    // Design-only state: keep every facilitator view and interaction shell while
-    // preventing seeded/demo records from appearing in any sidebar destination.
-    approvals: [],
-    advisers: [],
-    kanban: [],
-    categories: [],
-    defenses: [],
-    notifications: [],
-    monitoringProjects: [],
-    userList: [],
-    proposalList: [],
-    defenseList: [],
-    reportsApprovedCount: 0,
-    reportsRevisionsCount: 0,
-    reportsCommentsCount: 0,
-    reportsCriticalCount: 0,
-    reportsCommentsList: [],
-    repositoryFilesList: [],
-    get activeMonitoringProject() {
-        return {
-            id: null,
-            code: '',
-            title: '',
-            students: '',
-            adviser: '',
-            milestones: []
-        };
-    },
-    get activeMonitoringStats() {
-        return { completed: 0, inProgress: 0, pending: 0, total: 0, percent: 0 };
-    },
-    get activeProposal() {
-        return {
-            id: null,
-            code: '',
-            title: '',
-            student: '',
-            adviser: '',
-            date: '',
-            status: '',
-            reviewer: '',
-            approval_date: '',
-            abstract: '',
-            objectives: ''
-        };
-    },
-    get activeStats() {
-        return {
-            totalResearch: 0,
-            totalResearchSub: '',
-            completed: 0,
-            completedSub: '',
-            inProgress: 0,
-            inProgressSub: '',
-            avgDuration: 0,
-            avgDurationSub: '',
-            programs: [],
-            monthly: []
-        };
     }
 }">
     <!-- Left Sidebar: Navigation -->
