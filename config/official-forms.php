@@ -142,4 +142,46 @@ return [
             'purpose' => 'Adviser co-signs the authorship certificate.',
         ],
     ],
+
+    'panelist' => [
+        'RES-028' => [
+            'title' => 'Invitation to Research Examination Panelist',
+            'phase' => 'phase-2',
+            'purpose' => 'Panelist receives the formal invitation to serve.',
+        ],
+        'RES-034' => [
+            'title' => 'Research Proposal/Final Oral Defense Pre-Conference',
+            'phase' => 'phase-4',
+            'shared_with' => 'student',
+            'purpose' => 'Panelist attends the pre-conference as a panel member.',
+        ],
+        'RES-035' => [
+            'title' => 'Defense Proceedings',
+            'phase' => 'phase-4',
+            'shared_with' => 'adviser',
+            'purpose' => 'Panelist participates in and signs the defense proceedings.',
+        ],
+        'RES-036' => [
+            'title' => 'Evaluation of Research Defense',
+            'phase' => 'phase-4',
+            'purpose' => 'Panelist individually evaluates and grades the defense.',
+        ],
+        'RES-037' => [
+            'title' => 'Evaluation Summary of Research Defense',
+            'phase' => 'phase-4',
+            'purpose' => 'Panelist signs the evaluation summary.',
+        ],
+        'RES-039' => [
+            'title' => 'Research Revision Chart',
+            'phase' => 'phase-5',
+            'shared_with' => 'student',
+            'purpose' => 'Panelist records the required revisions after defense.',
+        ],
+        'RES-044' => [
+            'title' => 'Endorsement of Student Researcher for Data Gathering',
+            'phase' => 'phase-6',
+            'shared_with' => 'adviser',
+            'purpose' => 'Panelist co-signs the data gathering endorsement.',
+        ],
+    ],
 ];
