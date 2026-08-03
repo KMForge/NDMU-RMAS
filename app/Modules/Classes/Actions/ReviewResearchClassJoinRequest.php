@@ -13,30 +13,30 @@ use Illuminate\Support\Facades\DB;
 class ReviewResearchClassJoinRequest
 {
     public function approve(
-        User $adviser,
+        User $facilitator,
         ResearchClass $researchClass,
         ResearchClassEnrollment $joinRequest,
     ): ResearchClassEnrollment {
-        return $this->review($adviser, $researchClass, $joinRequest, 'active');
+        return $this->review($facilitator, $researchClass, $joinRequest, 'active');
     }
 
     public function reject(
-        User $adviser,
+        User $facilitator,
         ResearchClass $researchClass,
         ResearchClassEnrollment $joinRequest,
     ): ResearchClassEnrollment {
-        return $this->review($adviser, $researchClass, $joinRequest, 'rejected');
+        return $this->review($facilitator, $researchClass, $joinRequest, 'rejected');
     }
 
     private function review(
-        User $adviser,
+        User $facilitator,
         ResearchClass $researchClass,
         ResearchClassEnrollment $joinRequest,
         string $decision,
     ): ResearchClassEnrollment {
         try {
             return DB::transaction(function () use (
-                $adviser,
+                $facilitator,
                 $researchClass,
                 $joinRequest,
                 $decision,
@@ -46,7 +46,7 @@ class ReviewResearchClassJoinRequest
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                if ($lockedClass->adviser_id !== $adviser->getKey()) {
+                if ($lockedClass->facilitator_id !== $facilitator->getKey()) {
                     throw new ClassOperationException('This join request does not belong to your class.');
                 }
 
@@ -78,7 +78,7 @@ class ReviewResearchClassJoinRequest
                 $lockedRequest->update([
                     'status' => $decision,
                     'joined_at' => $decision === 'active' ? now() : null,
-                    'reviewed_by' => $adviser->getKey(),
+                    'reviewed_by' => $facilitator->getKey(),
                     'reviewed_at' => now(),
                 ]);
 

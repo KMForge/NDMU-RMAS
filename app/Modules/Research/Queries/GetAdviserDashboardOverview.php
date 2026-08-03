@@ -8,14 +8,16 @@ use App\Models\Document;
 use App\Models\DocumentReview;
 use App\Models\User;
 use App\Modules\Documents\Support\DocumentReviewerAccess;
+use App\Support\CachesDatabaseSchema;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class GetAdviserDashboardOverview
 {
+    use CachesDatabaseSchema;
+
     public function __construct(
         private readonly DocumentReviewerAccess $reviewerAccess,
     ) {}
@@ -72,18 +74,17 @@ class GetAdviserDashboardOverview
     private function adviseesFor(User $adviser): Collection
     {
         if (! $this->tablesExist([
-            'research_classes',
-            'research_class_enrollments',
+            'research_class_groups',
+            'research_class_group_members',
             'users',
         ])) {
             return collect();
         }
 
-        return DB::table('research_class_enrollments as enrollments')
-            ->join('research_classes as classes', 'classes.id', '=', 'enrollments.research_class_id')
-            ->join('users as students', 'students.id', '=', 'enrollments.student_id')
-            ->where('classes.adviser_id', $adviser->getKey())
-            ->where('enrollments.status', 'active')
+        return DB::table('research_class_group_members as members')
+            ->join('research_class_groups as groups', 'groups.id', '=', 'members.research_class_group_id')
+            ->join('users as students', 'students.id', '=', 'members.student_id')
+            ->where('groups.adviser_id', $adviser->getKey())
             ->select(['students.id', 'students.name'])
             ->distinct()
             ->orderBy('students.name')
@@ -139,7 +140,7 @@ class GetAdviserDashboardOverview
 
     private function projectProgress(int $projectId): int
     {
-        if (! Schema::hasTable('research_progress_updates')) {
+        if (! $this->tableExists('research_progress_updates')) {
             return 0;
         }
 
@@ -154,16 +155,15 @@ class GetAdviserDashboardOverview
 
     private function activeAdviseeCount(User $adviser): int
     {
-        if (! $this->tablesExist(['research_classes', 'research_class_enrollments'])) {
+        if (! $this->tablesExist(['research_class_groups', 'research_class_group_members'])) {
             return 0;
         }
 
-        return DB::table('research_class_enrollments as enrollments')
-            ->join('research_classes as classes', 'classes.id', '=', 'enrollments.research_class_id')
-            ->where('classes.adviser_id', $adviser->getKey())
-            ->where('enrollments.status', 'active')
+        return DB::table('research_class_group_members as members')
+            ->join('research_class_groups as groups', 'groups.id', '=', 'members.research_class_group_id')
+            ->where('groups.adviser_id', $adviser->getKey())
             ->distinct()
-            ->count('enrollments.student_id');
+            ->count('members.student_id');
     }
 
     private function completedResearchCount(User $adviser): int
@@ -223,7 +223,7 @@ class GetAdviserDashboardOverview
 
     private function overdueRevisionCount(User $adviser): int
     {
-        if (! Schema::hasTable('revision_requests')) {
+        if (! $this->tableExists('revision_requests')) {
             return 0;
         }
 
@@ -306,7 +306,7 @@ class GetAdviserDashboardOverview
      */
     private function notificationsFor(User $adviser): Collection
     {
-        if (! Schema::hasTable('notifications')) {
+        if (! $this->tableExists('notifications')) {
             return collect();
         }
 
@@ -413,15 +413,5 @@ class GetAdviserDashboardOverview
             'adviserTodayConsultations' => collect(),
             'adviserRecentActivity' => collect(),
         ];
-    }
-
-    /**
-     * @param  array<int, string>  $tables
-     */
-    private function tablesExist(array $tables): bool
-    {
-        return collect($tables)->every(
-            fn (string $table): bool => Schema::hasTable($table),
-        );
     }
 }

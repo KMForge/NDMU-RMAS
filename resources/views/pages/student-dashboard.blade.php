@@ -15,7 +15,7 @@
     $nextAction = $dashboardOverview['action_items']->first();
     $firstName = \Illuminate\Support\Str::before($student->name, ' ');
     $allowedTabs = ['dashboard', 'classes', 'research', 'proposal', 'progress', 'consultation', 'revisions', 'defense', 'evaluations', 'repository', 'forms', 'notifications', 'settings'];
-    $initialTab = in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard';
+    $initialTab = $activeDashboardTab ?? (in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard');
     $showConsultationModal = $errors->hasAny(['consultation', 'request_token', 'preferred_at', 'consultation_mode', 'agenda']);
     $showJoinClassModal = $errors->hasAny(['class', 'join_code']);
     $officialFormPhases = $officialFormPhases ?? [];
@@ -43,13 +43,24 @@
         researchProgress: @js($progressPercentage),
         formsExpanded: @js($initialTab === 'forms'),
         showConsultationModal: @js($showConsultationModal),
-        showJoinClassModal: @js($showJoinClassModal)
+        showJoinClassModal: @js($showJoinClassModal),
+        dashboardUrl: @js(route('student.dashboard'))
     }"
+    x-init="$watch('activeTab', (tab, previousTab) => {
+        if (tab === previousTab) return;
+
+        const url = new URL(dashboardUrl, window.location.origin);
+        url.searchParams.set('tab', tab);
+
+        window.Livewire?.navigate
+            ? window.Livewire.navigate(url.toString())
+            : window.location.assign(url.toString());
+    })"
 >
     <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col z-20 border-r border-white/5">
         <div class="flex items-center gap-3 p-6 border-b border-white/10">
             <div class="p-1 bg-white/10 rounded-xl border border-white/20">
-                <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" class="h-10 w-auto">
+                <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto">
             </div>
             <div class="flex flex-col leading-none">
                 <span class="font-heading font-extrabold text-xl tracking-tight">NDMU</span>
@@ -82,22 +93,22 @@
                 'evaluations' => ['ph-exam', 'Evaluation Results'],
                 'repository' => ['ph-folder', 'Research Repository'],
             ] as $tab => [$icon, $label])
-                <button
-                    type="button"
-                    @click="activeTab = '{{ $tab }}'"
+                <a
+                    href="{{ route('student.dashboard', ['tab' => $tab]) }}"
+                    wire:navigate
                     :class="activeTab === '{{ $tab }}' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                     class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left"
                 >
                     <i class="ph {{ $icon }} text-lg"></i>
                     <span>{{ $label }}</span>
-                </button>
+                </a>
             @endforeach
 
             <div class="pt-5 mt-5 border-t border-white/10">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Research Forms</span>
-                <button
-                    type="button"
-                    @click="formsExpanded = ! formsExpanded; activeTab = 'forms'"
+                <a
+                    href="{{ route('student.dashboard', ['tab' => 'forms']) }}"
+                    wire:navigate
                     :class="activeTab === 'forms' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                     :aria-expanded="formsExpanded"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left"
@@ -107,7 +118,7 @@
                         <span>Official Forms</span>
                     </span>
                     <i class="ph ph-caret-right text-xs transition-transform duration-200" :class="formsExpanded && 'rotate-90'"></i>
-                </button>
+                </a>
 
                 <div
                     x-show="formsExpanded"
@@ -170,24 +181,24 @@
 
         <div class="px-6 pb-6">
             <div class="pt-4 border-t border-white/10 space-y-1">
-                <button
-                    type="button"
-                    @click="activeTab = 'notifications'"
+                <a
+                    href="{{ route('student.dashboard', ['tab' => 'notifications']) }}"
+                    wire:navigate
                     :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold' : 'text-white/90 hover:bg-white/5 font-semibold'"
                     class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] text-left transition-all"
                 >
                     <i class="ph ph-bell text-lg"></i>
                     <span>Notifications</span>
-                </button>
-                <button
-                    type="button"
-                    @click="activeTab = 'settings'"
+                </a>
+                <a
+                    href="{{ route('student.dashboard', ['tab' => 'settings']) }}"
+                    wire:navigate
                     :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold' : 'text-white/90 hover:bg-white/5 font-semibold'"
                     class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] text-left transition-all"
                 >
                     <i class="ph ph-gear text-lg"></i>
                     <span>Settings</span>
-                </button>
+                </a>
             </div>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
@@ -609,7 +620,7 @@
                                 <div class="min-w-0">
                                     <h3 class="font-bold text-gray-800 text-sm">{{ $joinRequest->class_name }}</h3>
                                     <p class="text-[11px] text-gray-500 mt-1">
-                                        Adviser: {{ $joinRequest->adviser_name }}
+                                        Facilitator: {{ $joinRequest->facilitator_name }}
                                         · Requested {{ \Illuminate\Support\Carbon::parse($joinRequest->requested_at)->diffForHumans() }}
                                     </p>
                                 </div>
@@ -627,10 +638,10 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @forelse ($classes as $class)
-                        <article class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 space-y-4">
+                        <a href="{{ route('student.classes.show', $class->id) }}" class="block bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 space-y-4">
                             <div>
                                 <h2 class="font-bold text-gray-800 text-sm">{{ $class->name }}</h2>
-                                <p class="text-[11px] text-gray-500 mt-1">Adviser: {{ $class->adviser_name }}</p>
+                                <p class="text-[11px] text-gray-500 mt-1">Facilitator: {{ $class->facilitator_name }}</p>
                             </div>
                             @if ($class->description)
                                 <p class="text-xs text-gray-500 leading-6">{{ $class->description }}</p>
@@ -638,7 +649,10 @@
                             <p class="text-[10px] text-gray-400 pt-3 border-t border-gray-100">
                                 Joined {{ \Illuminate\Support\Carbon::parse($class->joined_at)->diffForHumans() }}
                             </p>
-                        </article>
+                            <div class="flex items-center justify-between pt-1 text-[10px] font-bold text-[#0e5c3a]">
+                                <span>View class</span><i class="ph ph-arrow-right"></i>
+                            </div>
+                        </a>
                     @empty
                         <div class="md:col-span-2 lg:col-span-3">
                             <x-student-empty-state message="You have not joined a research class yet." />

@@ -11,9 +11,28 @@ class DashboardController extends Controller
 {
     public function __invoke(Request $request, GetStudentDashboardData $dashboardData): View
     {
+        $allowedTabs = [
+            'dashboard',
+            'classes',
+            'research',
+            'proposal',
+            'progress',
+            'consultation',
+            'revisions',
+            'defense',
+            'evaluations',
+            'repository',
+            'forms',
+            'notifications',
+            'settings',
+        ];
+        $activeTab = in_array($request->query('tab'), $allowedTabs, true)
+            ? (string) $request->query('tab')
+            : 'dashboard';
         $data = $dashboardData->for(
             $request->user(),
             $request->query('dashboard_q'),
+            $activeTab,
         );
 
         $data['officialFormPhases'] = config('official-forms.phases', []);
@@ -28,6 +47,9 @@ class DashboardController extends Controller
             })
             ->all();
 
-        return view('pages.student-dashboard', $data);
+        return view('pages.student-dashboard', [
+            ...$data,
+            'activeDashboardTab' => $activeTab,
+        ]);
     }
 }

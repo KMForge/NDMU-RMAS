@@ -54,7 +54,7 @@ class AdminDashboardTest extends TestCase
         Livewire::test(AdminDashboard::class)
             ->assertOk()
             ->assertDontSee('Updating dashboard')
-            ->assertSee('Admin Dashboard')
+            ->assertSee('Welcome back, Administrator')
             ->assertSee('User Management')
             ->assertSee('Pending Actions')
             ->assertSee('Security Overview')

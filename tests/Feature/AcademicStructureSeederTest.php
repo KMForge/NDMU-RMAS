@@ -4,49 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Database\Seeders\AcademicStructureSeeder;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class AcademicStructureSeederTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        Schema::create('colleges', function (Blueprint $table): void {
-            $table->id();
-            $table->string('code', 30)->unique();
-            $table->string('name')->unique();
-            $table->boolean('is_active')->default(true);
-            $table->timestampsTz();
-        });
-
-        Schema::create('departments', function (Blueprint $table): void {
-            $table->id();
-            $table->foreignId('college_id')->constrained()->restrictOnDelete();
-            $table->string('code', 30)->unique();
-            $table->string('name');
-            $table->boolean('is_active')->default(true);
-            $table->timestampsTz();
-            $table->unique(['college_id', 'name']);
-        });
-
-        Schema::create('programs', function (Blueprint $table): void {
-            $table->id();
-            $table->foreignId('department_id')->constrained()->restrictOnDelete();
-            $table->string('code', 30)->unique();
-            $table->string('name');
-            $table->string('degree_level', 50)->nullable();
-            $table->boolean('is_active')->default(true);
-            $table->timestampsTz();
-            $table->unique(['department_id', 'name']);
-        });
-    }
 
     public function test_it_seeds_one_active_ceac_college_and_eight_active_programs(): void
     {

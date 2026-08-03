@@ -37,7 +37,7 @@ class RequestToJoinResearchClass
                 }
 
                 if ($existing?->status === 'pending') {
-                    throw new DuplicateClassOperation('Your join request is already pending adviser review.');
+                    throw new DuplicateClassOperation('Your join request is already pending facilitator review.');
                 }
 
                 $activeStudents = ResearchClassEnrollment::query()

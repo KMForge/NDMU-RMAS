@@ -14,13 +14,13 @@ use Illuminate\Support\Str;
 class CreateResearchClass
 {
     public function handle(
-        User $adviser,
+        User $facilitator,
         string $creationToken,
         string $name,
         ?string $description,
         int $maxStudents,
     ): ResearchClass {
-        $lock = Cache::lock("class-creation:{$adviser->getKey()}:{$creationToken}", 30);
+        $lock = Cache::lock("class-creation:{$facilitator->getKey()}:{$creationToken}", 30);
 
         if (! $lock->get()) {
             throw new DuplicateClassOperation('This class creation request is already being processed.');
@@ -28,7 +28,7 @@ class CreateResearchClass
 
         try {
             if (ResearchClass::query()
-                ->where('adviser_id', $adviser->getKey())
+                ->where('facilitator_id', $facilitator->getKey())
                 ->where('creation_token', $creationToken)
                 ->exists()) {
                 throw new DuplicateClassOperation('This class has already been created.');
@@ -37,7 +37,7 @@ class CreateResearchClass
             $joinCode = $this->generateJoinCode();
 
             return DB::transaction(function () use (
-                $adviser,
+                $facilitator,
                 $creationToken,
                 $name,
                 $description,
@@ -45,7 +45,7 @@ class CreateResearchClass
                 $maxStudents,
             ): ResearchClass {
                 $researchClass = new ResearchClass([
-                    'adviser_id' => $adviser->getKey(),
+                    'facilitator_id' => $facilitator->getKey(),
                     'creation_token' => $creationToken,
                     'name' => $name,
                     'description' => $description,

@@ -7,16 +7,18 @@ use App\Models\Document;
 use App\Models\ResearchProposal;
 use App\Models\RevisionRequest;
 use App\Models\User;
+use App\Support\CachesDatabaseSchema;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
 
 class GetAdminDashboardData
 {
+    use CachesDatabaseSchema;
+
     /**
      * @return array<string, mixed>
      */
@@ -49,19 +51,19 @@ class GetAdminDashboardData
             ->role('student-researcher')
             ->where('status', 'pending')
             ->count();
-        $pendingDocuments = Schema::hasTable('documents')
+        $pendingDocuments = $this->tableExists('documents')
             ? DB::table('documents')->whereIn('status', ['pending', 'submitted', 'under_review'])->count()
             : 0;
-        $pendingProposals = Schema::hasTable('research_proposals')
+        $pendingProposals = $this->tableExists('research_proposals')
             ? DB::table('research_proposals')->whereIn('status', ['pending', 'submitted', 'under_review'])->count()
             : 0;
-        $pendingJoinRequests = Schema::hasTable('research_class_enrollments')
+        $pendingJoinRequests = $this->tableExists('research_class_enrollments')
             ? DB::table('research_class_enrollments')->where('status', 'pending')->count()
             : 0;
-        $pendingDefenses = Schema::hasTable('defense_requests')
+        $pendingDefenses = $this->tableExists('defense_requests')
             ? DB::table('defense_requests')->whereIn('status', ['pending', 'requested'])->count()
             : 0;
-        $overdueRevisions = Schema::hasTable('revision_requests')
+        $overdueRevisions = $this->tableExists('revision_requests')
             ? DB::table('revision_requests')
                 ->whereIn('status', ['open', 'in_progress'])
                 ->whereNotNull('due_at')
@@ -87,7 +89,7 @@ class GetAdminDashboardData
         $suspendedAccounts = User::query()->where('status', 'suspended')->count();
         $unverifiedAccounts = User::query()->whereNull('email_verified_at')->count();
         $accountsWithoutRoles = User::query()->doesntHave('roles')->count();
-        $failedUploads = Schema::hasTable('document_upload_audits')
+        $failedUploads = $this->tableExists('document_upload_audits')
             ? DB::table('document_upload_audits')
                 ->where('upload_status', 'failed')
                 ->where('attempted_at', '>=', now()->subDay())
@@ -109,7 +111,7 @@ class GetAdminDashboardData
     {
         $databaseHealthy = $this->databaseIsHealthy();
         $storageHealthy = $this->privateStorageIsHealthy();
-        $failedJobs = Schema::hasTable('failed_jobs') ? DB::table('failed_jobs')->count() : 0;
+        $failedJobs = $this->tableExists('failed_jobs') ? DB::table('failed_jobs')->count() : 0;
 
         return [
             ['label' => 'Database', 'status' => $databaseHealthy ? 'Operational' : 'Unavailable', 'healthy' => $databaseHealthy, 'detail' => 'Application database connection', 'icon' => 'ph-database'],
@@ -166,7 +168,7 @@ class GetAdminDashboardData
             'researchLifecycle' => $emptyLifecycle,
         ];
 
-        if (! Schema::hasTable('research_projects')) {
+        if (! $this->tableExists('research_projects')) {
             return $empty;
         }
 
@@ -224,7 +226,7 @@ class GetAdminDashboardData
             return $empty;
         }
 
-        $progress = Schema::hasTable('research_progress_updates')
+        $progress = $this->tableExists('research_progress_updates')
             ? (int) (DB::table('research_progress_updates')
                 ->where('research_project_id', $project->id)
                 ->latest('created_at')
@@ -263,7 +265,7 @@ class GetAdminDashboardData
             return collect();
         }
 
-        $updates = Schema::hasTable('research_progress_updates')
+        $updates = $this->tableExists('research_progress_updates')
             ? DB::table('research_progress_updates')
                 ->where('research_project_id', $project->id)
                 ->latest('created_at')
@@ -532,7 +534,7 @@ class GetAdminDashboardData
      */
     private function proposalsList(): array
     {
-        if (! Schema::hasTable('research_proposals')) {
+        if (! $this->tableExists('research_proposals')) {
             return [];
         }
 
@@ -564,7 +566,7 @@ class GetAdminDashboardData
             'revisionHistory' => [],
         ];
 
-        if (! Schema::hasTable('revision_requests')) {
+        if (! $this->tableExists('revision_requests')) {
             return $empty;
         }
 
@@ -610,13 +612,5 @@ class GetAdminDashboardData
             ->orderBy('name')
             ->pluck('name')
             ->all();
-    }
-
-    /**
-     * @param  array<int, string>  $tables
-     */
-    private function tablesExist(array $tables): bool
-    {
-        return collect($tables)->every(fn (string $table): bool => Schema::hasTable($table));
     }
 }

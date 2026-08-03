@@ -39,16 +39,15 @@ class DocumentReviewerAccess
             $accessQuery->whereExists(function ($classQuery) use ($reviewer): void {
                 $classQuery
                     ->selectRaw('1')
-                    ->from('research_class_enrollments as review_enrollments')
+                    ->from('research_class_group_members as review_group_members')
                     ->join(
-                        'research_classes as review_classes',
-                        'review_classes.id',
+                        'research_class_groups as review_groups',
+                        'review_groups.id',
                         '=',
-                        'review_enrollments.research_class_id',
+                        'review_group_members.research_class_group_id',
                     )
-                    ->whereColumn('review_enrollments.student_id', 'documents.user_id')
-                    ->where('review_enrollments.status', 'active')
-                    ->where('review_classes.adviser_id', $reviewer->getKey());
+                    ->whereColumn('review_group_members.student_id', 'documents.user_id')
+                    ->where('review_groups.adviser_id', $reviewer->getKey());
             });
 
             if ($this->assignmentTablesExist()) {
@@ -93,11 +92,10 @@ class DocumentReviewerAccess
 
     private function hasClassAccess(User $reviewer, Document $document): bool
     {
-        return DB::table('research_class_enrollments as enrollments')
-            ->join('research_classes as classes', 'classes.id', '=', 'enrollments.research_class_id')
-            ->where('enrollments.student_id', $document->user_id)
-            ->where('enrollments.status', 'active')
-            ->where('classes.adviser_id', $reviewer->getKey())
+        return DB::table('research_class_group_members as members')
+            ->join('research_class_groups as groups', 'groups.id', '=', 'members.research_class_group_id')
+            ->where('members.student_id', $document->user_id)
+            ->where('groups.adviser_id', $reviewer->getKey())
             ->exists();
     }
 

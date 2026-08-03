@@ -7,6 +7,8 @@ use App\Models\Document;
 use App\Models\DocumentReviewComment;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
+use App\Models\ResearchClassGroup;
+use App\Models\ResearchClassGroupMember;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Database\Schema\Blueprint;
@@ -329,8 +331,10 @@ class AdviserDocumentReviewTest extends TestCase
 
     private function enroll(User $adviser, User $student): void
     {
+        $facilitator = User::factory()->create();
+        $facilitator->assignRole('research-facilitator');
         $researchClass = new ResearchClass([
-            'adviser_id' => $adviser->getKey(),
+            'facilitator_id' => $facilitator->getKey(),
             'creation_token' => (string) Str::uuid(),
             'name' => 'Research Class '.$student->getKey(),
             'max_students' => 50,
@@ -339,14 +343,29 @@ class AdviserDocumentReviewTest extends TestCase
         $researchClass->setJoinCode(Str::upper(Str::random(8)));
         $researchClass->save();
 
-        ResearchClassEnrollment::query()->create([
+        $enrollment = ResearchClassEnrollment::query()->create([
             'research_class_id' => $researchClass->getKey(),
             'student_id' => $student->getKey(),
             'status' => 'active',
             'requested_at' => now()->subDay(),
             'joined_at' => now(),
-            'reviewed_by' => $adviser->getKey(),
+            'reviewed_by' => $facilitator->getKey(),
             'reviewed_at' => now(),
+        ]);
+
+        $group = ResearchClassGroup::query()->create([
+            'research_class_id' => $researchClass->getKey(),
+            'creation_token' => (string) Str::uuid(),
+            'name' => 'Capstone Group '.$student->getKey(),
+            'adviser_id' => $adviser->getKey(),
+            'created_by' => $facilitator->getKey(),
+        ]);
+        ResearchClassGroupMember::query()->create([
+            'research_class_group_id' => $group->getKey(),
+            'research_class_id' => $researchClass->getKey(),
+            'research_class_enrollment_id' => $enrollment->getKey(),
+            'student_id' => $student->getKey(),
+            'assigned_by' => $facilitator->getKey(),
         ]);
     }
 
@@ -403,6 +422,14 @@ class AdviserDocumentReviewTest extends TestCase
 
     private function createResearchContextTables(): void
     {
+        Schema::disableForeignKeyConstraints();
+
+        foreach (['consultation_requests', 'adviser_assignments', 'research_projects', 'research_group_members', 'research_groups', 'student_profiles'] as $table) {
+            Schema::dropIfExists($table);
+        }
+
+        Schema::enableForeignKeyConstraints();
+
         if (! Schema::hasTable('student_profiles')) {
             Schema::create('student_profiles', function (Blueprint $table): void {
                 $table->id();

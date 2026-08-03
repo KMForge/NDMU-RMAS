@@ -15,9 +15,9 @@ class RolePermissionSeeder extends Seeder
 
         $matrix = [
             'student-researcher' => ['research.view-own', 'research.create', 'research.update-own', 'proposal.submit', 'documents.upload', 'documents.download', 'consultations.request', 'classes.join', 'classes.view-enrolled', 'revisions.resolve', 'defenses.view', 'evaluations.view-own'],
-            'research-adviser' => ['research.view-assigned', 'proposal.review', 'documents.upload', 'documents.review', 'documents.download', 'consultations.manage-assigned', 'classes.create', 'classes.view-own', 'classes.manage-join-requests', 'revisions.create', 'revisions.resolve', 'defenses.view', 'evaluations.view-assigned'],
+            'research-adviser' => ['research.view-assigned', 'proposal.review', 'documents.upload', 'documents.review', 'documents.download', 'consultations.manage-assigned', 'revisions.create', 'revisions.resolve', 'defenses.view', 'evaluations.view-assigned', 'classes.view-assigned'],
             'panelist' => ['research.view-assigned', 'documents.download', 'defenses.view', 'evaluations.create', 'evaluations.view-own', 'evaluations.view-assigned'],
-            'research-facilitator' => ['research.view-all', 'proposal.review', 'proposal.approve', 'documents.review', 'documents.download', 'revisions.create', 'defenses.view', 'defenses.manage', 'evaluations.view-assigned', 'reports.view', 'reports.export', 'notifications.broadcast'],
+            'research-facilitator' => ['research.view-all', 'proposal.review', 'proposal.approve', 'documents.review', 'documents.download', 'revisions.create', 'defenses.view', 'defenses.manage', 'evaluations.view-assigned', 'reports.view', 'reports.export', 'notifications.broadcast', 'classes.create', 'classes.view-own', 'classes.manage-join-requests', 'classes.manage-groups', 'classes.assign-advisers'],
             'college-dean' => ['research.view-college', 'research.approve', 'proposal.approve', 'documents.download', 'defenses.view', 'evaluations.view-assigned', 'reports.view', 'reports.export'],
             'system-administrator' => ['research.view-all', 'documents.download', 'documents.download-any', 'defenses.view', 'reports.view', 'reports.export', 'users.manage', 'audit-logs.view', 'settings.manage', 'notifications.broadcast'],
         ];

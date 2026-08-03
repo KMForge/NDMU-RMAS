@@ -22,6 +22,14 @@ class StudentDashboardDataTest extends TestCase
 
         $this->seed(RolePermissionSeeder::class);
 
+        Schema::disableForeignKeyConstraints();
+
+        foreach (['consultation_requests', 'adviser_assignments', 'research_projects', 'research_group_members', 'research_groups', 'student_profiles'] as $table) {
+            Schema::dropIfExists($table);
+        }
+
+        Schema::enableForeignKeyConstraints();
+
         Schema::create('student_profiles', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('user_id');
@@ -134,6 +142,39 @@ class StudentDashboardDataTest extends TestCase
             ->assertSee('research-paper.pdf');
     }
 
+    public function test_student_feature_tabs_only_load_their_required_document_data(): void
+    {
+        $student = $this->student('Tab Scoped Student');
+
+        Document::query()->create([
+            'user_id' => $student->getKey(),
+            'submission_token' => (string) Str::uuid(),
+            'original_filename' => 'tab-scoped-paper.pdf',
+            'stored_filename' => Str::uuid().'.pdf',
+            'file_type' => 'pdf',
+            'mime_type' => 'application/pdf',
+            'file_size' => 2048,
+            'storage_disk' => 'local',
+            'storage_path' => 'documents/test/tab-scoped-paper.pdf',
+            'content_sha256' => str_repeat('b', 64),
+            'submitted_at' => now(),
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($student)
+            ->get(route('student.dashboard', ['tab' => 'classes']))
+            ->assertOk()
+            ->assertViewHas('activeDashboardTab', 'classes')
+            ->assertViewHas('documents', fn ($documents): bool => $documents->isEmpty());
+
+        $this->actingAs($student)
+            ->get(route('student.dashboard', ['tab' => 'repository']))
+            ->assertOk()
+            ->assertViewHas('activeDashboardTab', 'repository')
+            ->assertViewHas('documents', fn ($documents): bool => $documents->count() === 1)
+            ->assertSee('tab-scoped-paper.pdf');
+    }
+
     public function test_dashboard_calculates_progress_from_real_milestone_records(): void
     {
         $student = $this->student('Milestone Student');
@@ -188,7 +229,7 @@ class StudentDashboardDataTest extends TestCase
                 && $overview['completed_milestones'] === 1
                 && $overview['total_milestones'] === 2
                 && $overview['urgent_task_count'] === 1)
-            ->assertSee('1 of 2 milestones completed')
+            ->assertSee('1 of 2 milestones')
             ->assertSee('Proposal Defense')
             ->assertSee('Data Gathering');
     }

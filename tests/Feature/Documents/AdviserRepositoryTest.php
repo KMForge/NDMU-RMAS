@@ -6,6 +6,8 @@ use App\Enums\DocumentStatus;
 use App\Models\Document;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
+use App\Models\ResearchClassGroup;
+use App\Models\ResearchClassGroupMember;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -129,8 +131,10 @@ class AdviserRepositoryTest extends TestCase
 
     private function enroll(User $adviser, User $student): void
     {
+        $facilitator = User::factory()->create();
+        $facilitator->assignRole('research-facilitator');
         $researchClass = new ResearchClass([
-            'adviser_id' => $adviser->getKey(),
+            'facilitator_id' => $facilitator->getKey(),
             'creation_token' => (string) Str::uuid(),
             'name' => "Repository Class {$student->getKey()}",
             'max_students' => 50,
@@ -139,14 +143,29 @@ class AdviserRepositoryTest extends TestCase
         $researchClass->setJoinCode(Str::upper(Str::random(8)));
         $researchClass->save();
 
-        ResearchClassEnrollment::query()->create([
+        $enrollment = ResearchClassEnrollment::query()->create([
             'research_class_id' => $researchClass->getKey(),
             'student_id' => $student->getKey(),
             'status' => 'active',
             'requested_at' => now()->subDay(),
             'joined_at' => now(),
-            'reviewed_by' => $adviser->getKey(),
+            'reviewed_by' => $facilitator->getKey(),
             'reviewed_at' => now(),
+        ]);
+
+        $group = ResearchClassGroup::query()->create([
+            'research_class_id' => $researchClass->getKey(),
+            'creation_token' => (string) Str::uuid(),
+            'name' => 'Repository Group '.$student->getKey(),
+            'adviser_id' => $adviser->getKey(),
+            'created_by' => $facilitator->getKey(),
+        ]);
+        ResearchClassGroupMember::query()->create([
+            'research_class_group_id' => $group->getKey(),
+            'research_class_id' => $researchClass->getKey(),
+            'research_class_enrollment_id' => $enrollment->getKey(),
+            'student_id' => $student->getKey(),
+            'assigned_by' => $facilitator->getKey(),
         ]);
     }
 

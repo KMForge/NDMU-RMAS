@@ -4,18 +4,20 @@ namespace App\Modules\Research\Queries;
 
 use App\Models\Document;
 use App\Models\User;
+use App\Support\CachesDatabaseSchema;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class GetStudentDashboardData
 {
+    use CachesDatabaseSchema;
+
     /**
      * @return array<string, mixed>
      */
-    public function for(User $user, mixed $dashboardSearch = null): array
+    public function for(User $user, mixed $dashboardSearch = null, string $activeTab = 'dashboard'): array
     {
         $empty = collect();
         $studentProfile = null;
@@ -32,7 +34,18 @@ class GetStudentDashboardData
         $defenses = $empty;
         $evaluations = $empty;
 
-        if ($this->tablesExist(['research_projects', 'student_profiles', 'research_group_members'])) {
+        $isDashboard = $activeTab === 'dashboard';
+        $needsProject = $isDashboard || in_array($activeTab, [
+            'research',
+            'proposal',
+            'progress',
+            'consultation',
+            'revisions',
+            'defense',
+            'evaluations',
+        ], true);
+
+        if ($needsProject && $this->tablesExist(['research_projects', 'student_profiles', 'research_group_members'])) {
             $studentProfile = DB::table('student_profiles')
                 ->where('user_id', $user->getKey())
                 ->first();
@@ -57,38 +70,66 @@ class GetStudentDashboardData
                 ->first();
 
             if ($project !== null) {
-                $program = $this->programFor((int) $project->research_group_id);
-                $team = $this->teamFor((int) $project->research_group_id);
-                $adviser = $this->adviserFor((int) $project->id);
-                $proposals = $this->proposalsFor((int) $project->id);
-                $progress = $this->progressFor((int) $project->id);
-                $milestones = $this->milestonesFor(
-                    (int) $project->id,
-                    (int) $project->research_group_id,
-                );
-                $consultations = $this->consultationsFor((int) $project->id);
-                $consultationRequests = $this->consultationRequestsFor((int) $project->id, $user);
-                $defenses = $this->defensesFor((int) $project->id);
-                $evaluations = $this->evaluationsFor((int) $project->id);
+                if ($activeTab === 'research') {
+                    $program = $this->programFor((int) $project->research_group_id);
+                    $team = $this->teamFor((int) $project->research_group_id);
+                }
+
+                if ($isDashboard || in_array($activeTab, ['research', 'consultation'], true)) {
+                    $adviser = $this->adviserFor((int) $project->id);
+                }
+
+                if ($activeTab === 'proposal') {
+                    $proposals = $this->proposalsFor((int) $project->id);
+                }
+
+                if ($isDashboard || $activeTab === 'progress') {
+                    $progress = $this->progressFor((int) $project->id);
+                    $milestones = $this->milestonesFor(
+                        (int) $project->id,
+                        (int) $project->research_group_id,
+                    );
+                }
+
+                if ($isDashboard || $activeTab === 'consultation') {
+                    $consultations = $this->consultationsFor((int) $project->id);
+                    $consultationRequests = $this->consultationRequestsFor((int) $project->id, $user);
+                }
+
+                if ($isDashboard || $activeTab === 'defense') {
+                    $defenses = $this->defensesFor((int) $project->id);
+                }
+
+                if ($activeTab === 'evaluations') {
+                    $evaluations = $this->evaluationsFor((int) $project->id);
+                }
             }
         }
 
-        $revisions = $this->revisionsFor(
-            (int) $user->getKey(),
-            $project === null ? null : (int) $project->id,
-        );
+        if ($isDashboard || $activeTab === 'revisions') {
+            $revisions = $this->revisionsFor(
+                (int) $user->getKey(),
+                $project === null ? null : (int) $project->id,
+            );
+        }
 
-        $documents = Document::query()
-            ->whereBelongsTo($user)
-            ->latest('submitted_at')
-            ->get();
+        $documents = ($isDashboard || $activeTab === 'repository')
+            ? Document::query()
+                ->whereBelongsTo($user)
+                ->latest('submitted_at')
+                ->get()
+            : $empty;
 
-        $notifications = Schema::hasTable('notifications')
+        $notifications = $this->tableExists('notifications')
             ? $user->notifications()->latest()->limit(25)->get()
             : $empty;
 
-        $classes = $this->classesFor($user);
-        $classJoinRequests = $this->classJoinRequestsFor($user);
+        $classes = ($isDashboard || $activeTab === 'classes')
+            ? $this->classesFor($user)
+            : $empty;
+        $classJoinRequests = $activeTab === 'classes'
+            ? $this->classJoinRequestsFor($user)
+            : $empty;
         $dashboard = $this->buildDashboardOverview(
             $project,
             $adviser,
@@ -100,7 +141,9 @@ class GetStudentDashboardData
             $defenses,
             $documents,
         );
-        $searchQuery = Str::limit(trim(is_string($dashboardSearch) ? $dashboardSearch : ''), 100, '');
+        $searchQuery = $isDashboard
+            ? Str::limit(trim(is_string($dashboardSearch) ? $dashboardSearch : ''), 100, '')
+            : '';
         $dashboardSearchResults = $this->searchDashboardRecords(
             $searchQuery,
             $project,
@@ -195,7 +238,7 @@ class GetStudentDashboardData
      */
     private function proposalsFor(int $researchProjectId): Collection
     {
-        if (! Schema::hasTable('research_proposals')) {
+        if (! $this->tableExists('research_proposals')) {
             return collect();
         }
 
@@ -340,11 +383,11 @@ class GetStudentDashboardData
      */
     private function revisionsFor(int $userId, ?int $researchProjectId): Collection
     {
-        if (! Schema::hasTable('revision_requests')) {
+        if (! $this->tableExists('revision_requests')) {
             return collect();
         }
 
-        $supportsAssignedWorkflow = Schema::hasColumns('revision_requests', [
+        $supportsAssignedWorkflow = $this->columnsExist('revision_requests', [
             'assigned_to',
             'document_id',
         ]);
@@ -359,7 +402,7 @@ class GetStudentDashboardData
 
         if (
             $supportsAssignedWorkflow
-            && Schema::hasColumn('documents', 'revision_request_id')
+            && $this->columnExists('documents', 'revision_request_id')
         ) {
             $query->addSelect([
                 'latest_document_id' => Document::query()
@@ -461,7 +504,7 @@ class GetStudentDashboardData
 
         return DB::table('research_class_enrollments as enrollments')
             ->join('research_classes as classes', 'classes.id', '=', 'enrollments.research_class_id')
-            ->join('users as advisers', 'advisers.id', '=', 'classes.adviser_id')
+            ->join('users as facilitators', 'facilitators.id', '=', 'classes.facilitator_id')
             ->where('enrollments.student_id', $user->getKey())
             ->where('enrollments.status', 'active')
             ->where('classes.is_active', true)
@@ -471,7 +514,7 @@ class GetStudentDashboardData
                 'classes.name',
                 'classes.description',
                 'classes.max_students',
-                'advisers.name as adviser_name',
+                'facilitators.name as facilitator_name',
                 'enrollments.joined_at',
             ])
             ->get();
@@ -488,7 +531,7 @@ class GetStudentDashboardData
 
         return DB::table('research_class_enrollments as enrollments')
             ->join('research_classes as classes', 'classes.id', '=', 'enrollments.research_class_id')
-            ->join('users as advisers', 'advisers.id', '=', 'classes.adviser_id')
+            ->join('users as facilitators', 'facilitators.id', '=', 'classes.facilitator_id')
             ->where('enrollments.student_id', $user->getKey())
             ->whereIn('enrollments.status', ['pending', 'rejected'])
             ->latest('enrollments.requested_at')
@@ -498,7 +541,7 @@ class GetStudentDashboardData
                 'enrollments.requested_at',
                 'enrollments.reviewed_at',
                 'classes.name as class_name',
-                'advisers.name as adviser_name',
+                'facilitators.name as facilitator_name',
             ])
             ->get();
     }
@@ -727,7 +770,7 @@ class GetStudentDashboardData
             $records->push([
                 'type' => 'Class',
                 'title' => $class->name,
-                'description' => 'Adviser: '.$class->adviser_name,
+                'description' => 'Facilitator: '.$class->facilitator_name,
                 'tab' => 'classes',
             ]);
         }
@@ -750,15 +793,5 @@ class GetStudentDashboardData
         }
 
         return Carbon::parse($value)->timezone(config('ndmu-rmas.timezone'));
-    }
-
-    /**
-     * @param  array<int, string>  $tables
-     */
-    private function tablesExist(array $tables): bool
-    {
-        return collect($tables)->every(
-            fn (string $table): bool => Schema::hasTable($table),
-        );
     }
 }

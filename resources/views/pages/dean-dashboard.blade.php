@@ -295,7 +295,7 @@
             <!-- Logo -->
             <div class="flex items-center gap-3 p-6 border-b border-white/10">
                 <div class="p-1 bg-white/10 rounded-xl border border-white/20">
-                    <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" class="h-10 w-auto">
+                    <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto">
                 </div>
                 <div class="flex flex-col leading-none">
                     <span class="font-heading font-extrabold text-xl text-white tracking-tight">NDMU</span>

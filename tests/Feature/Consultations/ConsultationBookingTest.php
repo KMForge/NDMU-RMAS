@@ -221,6 +221,14 @@ class ConsultationBookingTest extends TestCase
 
     private function createResearchTables(): void
     {
+        Schema::disableForeignKeyConstraints();
+
+        foreach (['consultation_requests', 'adviser_assignments', 'research_projects', 'research_group_members', 'student_profiles', 'faculty_profiles'] as $table) {
+            Schema::dropIfExists($table);
+        }
+
+        Schema::enableForeignKeyConstraints();
+
         Schema::create('student_profiles', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('user_id');
@@ -258,6 +266,29 @@ class ConsultationBookingTest extends TestCase
             $table->string('status');
             $table->timestamp('assigned_at')->nullable();
             $table->timestamp('ended_at')->nullable();
+        });
+
+        $this->createConsultationRequestsTable();
+    }
+
+    private function createConsultationRequestsTable(): void
+    {
+        Schema::create('consultation_requests', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('research_project_id');
+            $table->foreignId('adviser_assignment_id');
+            $table->foreignId('requested_by');
+            $table->uuid('request_token');
+            $table->timestamp('preferred_at');
+            $table->string('consultation_mode', 20);
+            $table->text('agenda');
+            $table->string('status', 20)->default('pending');
+            $table->foreignId('reviewed_by')->nullable();
+            $table->timestamp('reviewed_at')->nullable();
+            $table->text('review_notes')->nullable();
+            $table->timestamps();
+
+            $table->unique(['requested_by', 'request_token']);
         });
     }
 }

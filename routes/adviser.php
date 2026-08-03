@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Adviser\ClassJoinRequestController;
 use App\Http\Controllers\Adviser\ConsultationController;
 use App\Http\Controllers\Adviser\DashboardController;
 use App\Http\Controllers\Adviser\DocumentReviewController;
@@ -14,27 +13,15 @@ Route::prefix('adviser')->name('adviser.')->middleware([
 ])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
-    Route::post('/repository/documents', [RepositoryDocumentController::class, 'store'])
-        ->middleware(['permission:documents.upload', 'throttle:document-uploads'])
-        ->name('repository.documents.store');
-
     Route::post('/classes', [ResearchClassController::class, 'store'])
-        ->middleware('throttle:class-creation')
+        ->middleware('permission:classes.create')
         ->name('classes.store');
-
     Route::get('/classes/{researchClass}', [ResearchClassController::class, 'show'])
         ->whereNumber('researchClass')
         ->name('classes.show');
-
-    Route::prefix('/classes/{researchClass}/join-requests/{joinRequest}')
-        ->whereNumber(['researchClass', 'joinRequest'])
-        ->middleware('throttle:class-join-decisions')
-        ->group(function (): void {
-            Route::patch('/approve', [ClassJoinRequestController::class, 'approve'])
-                ->name('classes.join-requests.approve');
-            Route::patch('/reject', [ClassJoinRequestController::class, 'reject'])
-                ->name('classes.join-requests.reject');
-        });
+    Route::post('/repository/documents', [RepositoryDocumentController::class, 'store'])
+        ->middleware(['permission:documents.upload', 'throttle:document-uploads'])
+        ->name('repository.documents.store');
 
     Route::prefix('/consultations/{consultationRequest}')
         ->whereNumber('consultationRequest')

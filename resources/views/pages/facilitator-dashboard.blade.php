@@ -1,7 +1,7 @@
 @extends('layouts.blank')
 
 @php
-    $allowedTabs = ['dashboard', 'monitoring', 'advisers', 'screening', 'defenses', 'statistics', 'reports', 'repository', 'forms', 'notifications', 'settings'];
+    $allowedTabs = ['dashboard', 'classes', 'join-requests', 'monitoring', 'advisers', 'screening', 'defenses', 'statistics', 'reports', 'repository', 'forms', 'notifications', 'settings'];
     $initialTab = in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard';
     $officialFormPhases = $officialFormPhases ?? [];
     $officialForms = $officialForms ?? [];
@@ -909,7 +909,7 @@
             <!-- Logo -->
             <div class="flex items-center gap-3 p-6 border-b border-white/10">
                 <div class="p-1 bg-white/10 rounded-xl border border-white/20">
-                    <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" class="h-10 w-auto">
+                    <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto">
                 </div>
                 <div class="flex flex-col leading-none">
                     <span class="font-heading font-extrabold text-xl text-white tracking-tight">NDMU</span>
@@ -945,6 +945,37 @@
                         <span>Dashboard</span>
                     </div>
                     <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                </button>
+
+                <!-- Capstone Classes -->
+                <button
+                   type="button"
+                   @click="activeTab = 'classes'"
+                   :class="activeTab === 'classes' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-chalkboard-teacher text-lg"></i>
+                        <span>Capstone Classes</span>
+                    </div>
+                    <span x-show="activeTab === 'classes'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                </button>
+
+                <!-- Class Join Requests -->
+                <button
+                   type="button"
+                   @click="activeTab = 'join-requests'"
+                   :class="activeTab === 'join-requests' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-user-plus text-lg"></i>
+                        <span>Join Requests</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        @if (($classRequestStats['pending'] ?? 0) > 0)
+                            <span class="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[9px] font-bold text-white">{{ $classRequestStats['pending'] }}</span>
+                        @endif
+                        <span x-show="activeTab === 'join-requests'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    </div>
                 </button>
                 
                 <!-- Research Monitoring -->
@@ -1162,6 +1193,16 @@
 
         <!-- Main Body Content -->
         <main class="flex-grow p-8 space-y-8">
+
+            <!-- TAB: Capstone Classes -->
+            <div x-show="activeTab === 'classes'" x-cloak>
+                @include('pages.facilitator.classes')
+            </div>
+
+            <!-- TAB: Join Requests -->
+            <div x-show="activeTab === 'join-requests'" x-cloak>
+                @include('pages.facilitator.join-requests')
+            </div>
             
             <!-- TAB: Dashboard (Active Default) -->
             <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">
@@ -3092,7 +3133,7 @@
             </div>
 
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'settings', 'monitoring', 'advisers', 'screening', 'defenses', 'statistics', 'reports', 'repository', 'forms'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'classes', 'join-requests', 'settings', 'monitoring', 'advisers', 'screening', 'defenses', 'statistics', 'reports', 'repository', 'forms'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>

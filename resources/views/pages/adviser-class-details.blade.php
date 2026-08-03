@@ -18,7 +18,7 @@
     <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col z-20 border-r border-white/5">
         <div class="flex items-center gap-3 p-6 border-b border-white/10">
             <div class="p-1 bg-white/10 rounded-xl border border-white/20">
-                <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" class="h-10 w-auto">
+                <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto">
             </div>
             <div class="flex flex-col leading-none">
                 <span class="font-heading font-extrabold text-xl tracking-tight">NDMU</span>

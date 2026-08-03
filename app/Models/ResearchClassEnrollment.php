@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'research_class_id',
@@ -30,6 +31,11 @@ class ResearchClassEnrollment extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function groupMembership(): HasOne
+    {
+        return $this->hasOne(ResearchClassGroupMember::class, 'research_class_enrollment_id');
     }
 
     protected function casts(): array

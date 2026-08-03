@@ -29,6 +29,10 @@ Route::prefix('student')->name('student.')->middleware([
     Route::post('/classes/join', [ResearchClassController::class, 'store'])
         ->middleware('throttle:class-joining')
         ->name('classes.join');
+    Route::get('/classes/{researchClass}', [ResearchClassController::class, 'show'])
+        ->middleware('permission:classes.view-enrolled')
+        ->whereNumber('researchClass')
+        ->name('classes.show');
 
     Route::prefix('/revisions/{revisionRequest}')
         ->whereNumber('revisionRequest')

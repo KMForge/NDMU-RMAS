@@ -44,7 +44,7 @@ class CreateResearchClassRequest extends FormRequest
         }
 
         throw new HttpResponseException(
-            to_route('adviser.dashboard', ['tab' => 'classes'])
+            to_route('facilitator.dashboard', ['tab' => 'classes'])
                 ->withErrors(['class' => $message]),
         );
     }

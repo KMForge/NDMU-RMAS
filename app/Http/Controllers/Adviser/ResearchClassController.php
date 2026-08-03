@@ -25,6 +25,9 @@ class ResearchClassController extends Controller
         $enrollmentQuery = $researchClass->enrollments()
             ->with('student:id,name,email,student_id')
             ->where('status', 'active')
+            ->whereHas('groupMembership.group', function ($query) use ($request): void {
+                $query->where('adviser_id', $request->user()->getKey());
+            })
             ->latest('joined_at');
 
         if ($search !== '') {
@@ -42,7 +45,12 @@ class ResearchClassController extends Controller
         $enrollments = $enrollmentQuery->paginate(20)->withQueryString();
         $activeStudents = $search === ''
             ? $enrollments->total()
-            : $researchClass->enrollments()->where('status', 'active')->count();
+            : $researchClass->enrollments()
+                ->where('status', 'active')
+                ->whereHas('groupMembership.group', function ($query) use ($request): void {
+                    $query->where('adviser_id', $request->user()->getKey());
+                })
+                ->count();
 
         return view('pages.adviser-class-details', [
             'adviser' => $request->user(),

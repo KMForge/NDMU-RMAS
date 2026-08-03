@@ -5,22 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>NDMU Research Management System</title>
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        h1, h2, h3, h4, h5, h6, .font-heading { font-family: 'Outfit', sans-serif; }
+        body { font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; }
+        h1, h2, h3, h4, h5, h6, .font-heading { font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; }
         
         .hero-bg {
-            background-image: linear-gradient(180deg, rgba(14, 58, 38, 0.85) 0%, rgba(10, 44, 28, 0.9) 100%), url('{{ asset('images/ndmu.jpg') }}');
+            background-image: linear-gradient(180deg, rgba(14, 58, 38, 0.85) 0%, rgba(10, 44, 28, 0.9) 100%), url('{{ asset('images/ndmu-optimized.jpg') }}');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -123,7 +115,7 @@
             <div class="flex justify-between items-center h-20">
                 <!-- Logo -->
                 <div class="flex items-center gap-3">
-                    <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" class="h-11 w-auto">
+                    <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-11 w-auto">
                     <div class="flex flex-col leading-none">
                         <span class="font-heading font-extrabold text-lg text-[#0e5c3a] tracking-tight">NDMU</span>
                         <span class="text-[9px] font-bold text-[#d69f24] tracking-wider uppercase mt-1">Research Management</span>
@@ -236,7 +228,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                 <!-- Left Image with 360 Badge -->
                 <div class="relative rounded-3xl overflow-hidden shadow-xl group">
-                    <img src="{{ asset('images/ndmu.jpg') }}" alt="NDMU Campus" class="w-full h-[500px] object-cover group-hover:scale-105 transition-transform duration-700">
+                    <img src="{{ asset('images/ndmu-optimized.jpg') }}" alt="NDMU Campus" loading="lazy" decoding="async" class="w-full h-[500px] object-cover group-hover:scale-105 transition-transform duration-700">
                     <div class="absolute top-4 right-4 bg-[#eebc3f] text-[#0f3d24] text-xs font-extrabold px-4 py-2 rounded-full shadow-lg flex items-center gap-1.5">
                         <span class="w-1.5 h-1.5 rounded-full bg-[#0f3d24]"></span>
                         360° Tour
@@ -651,7 +643,7 @@
     </section>
 
     <!-- Research Impact Section -->
-    <section class="py-24 relative overflow-hidden" style="background-image: linear-gradient(180deg, rgba(14, 58, 38, 0.9) 0%, rgba(10, 44, 28, 0.92) 100%), url('{{ asset('images/ndmu.jpg') }}'); background-size: cover; background-position: center; background-attachment: fixed;">
+    <section class="py-24 relative overflow-hidden" style="background-image: linear-gradient(180deg, rgba(14, 58, 38, 0.9) 0%, rgba(10, 44, 28, 0.92) 100%), url('{{ asset('images/ndmu-optimized.jpg') }}'); background-size: cover; background-position: center; background-attachment: fixed;">
         <div class="max-w-7xl mx-auto px-6 lg:px-8 text-center flex flex-col items-center">
             <span class="text-sm font-bold tracking-widest text-[#d69f24] uppercase mb-2 block">By the Numbers</span>
             <h2 class="text-4xl md:text-5xl font-heading font-bold text-white mb-4">Research Impact</h2>
@@ -791,7 +783,7 @@
                 <!-- Left: Logo, Description & Social Icons -->
                 <div class="space-y-6 max-w-xl">
                     <div class="flex items-center gap-3">
-                        <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" class="h-12 w-auto">
+                        <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" loading="lazy" decoding="async" class="h-12 w-auto">
                         <div class="flex flex-col leading-none">
                             <span class="font-heading font-extrabold text-2xl text-white tracking-tight">NDMU</span>
                             <span class="text-[10px] font-bold text-[#eebc3f] tracking-wider uppercase mt-1">Research Management System</span>

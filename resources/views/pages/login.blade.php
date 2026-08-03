@@ -4,12 +4,12 @@
 <div class="min-h-screen flex flex-col md:flex-row relative bg-[#f4f7f6]">
     <!-- Left Side: Image Banner & Brand Description -->
     <div class="w-full md:w-[45%] lg:w-[40%] bg-[#0e5c3a] text-white p-8 md:p-16 flex flex-col justify-between relative min-h-[400px] md:min-h-screen overflow-hidden">
-        <img src="{{ asset('images/ndmu.jpg') }}" alt="" aria-hidden="true" class="absolute inset-0 h-full w-full object-cover">
+        <img src="{{ asset('images/ndmu-optimized.jpg') }}" alt="" aria-hidden="true" fetchpriority="high" decoding="async" class="absolute inset-0 h-full w-full object-cover">
         <div aria-hidden="true" class="absolute inset-0 bg-gradient-to-b from-[rgba(14,92,58,0.82)] to-[rgba(10,70,44,0.88)]"></div>
 
         <!-- Logo -->
         <div class="relative z-10 flex items-center gap-3">
-            <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" class="h-12 w-auto">
+            <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-12 w-auto">
             <div class="flex flex-col leading-none">
                 <span class="font-heading font-extrabold text-2xl text-white tracking-tight">NDMU</span>
                 <span class="text-[10px] font-bold text-[#eebc3f] tracking-wider uppercase mt-1">Research Management</span>
