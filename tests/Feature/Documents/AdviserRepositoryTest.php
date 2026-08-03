@@ -105,7 +105,7 @@ class AdviserRepositoryTest extends TestCase
         $document = Document::query()->sole();
 
         $this->assertSame($adviser->getKey(), $document->user_id);
-        Storage::disk('local')->assertExists($document->storage_path);
+        $this->assertTrue(Storage::disk('local')->exists($document->storage_path));
         $this->assertDatabaseHas('document_upload_audits', [
             'document_id' => $document->getKey(),
             'user_id' => $adviser->getKey(),

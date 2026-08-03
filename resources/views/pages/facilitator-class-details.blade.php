@@ -99,7 +99,13 @@
                 <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
                     <p class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Enrollment</p>
                     <p class="mt-3 text-2xl font-bold text-gray-850">{{ $activeStudents }} / {{ $researchClass->max_students }}</p>
-                    <div class="mt-4 h-2 overflow-hidden rounded-full bg-gray-100"><div class="h-full rounded-full bg-[#0e5c3a]" style="width: {{ $capacityPercentage }}%"></div></div>
+                    <div class="mt-4 h-2 overflow-hidden rounded-full bg-gray-100">
+                        <div
+                            class="h-full rounded-full bg-[#0e5c3a]"
+                            x-data="{ percentage: @js($capacityPercentage) }"
+                            x-bind:style="{ width: percentage + '%' }"
+                        ></div>
+                    </div>
                 </div>
                 <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
                     <p class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Research Groups</p>

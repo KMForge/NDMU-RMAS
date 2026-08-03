@@ -12,7 +12,14 @@
         h1, h2, h3, h4, h5, h6, .font-heading { font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; }
         
         .hero-bg {
-            background-image: linear-gradient(180deg, rgba(14, 58, 38, 0.85) 0%, rgba(10, 44, 28, 0.9) 100%), url('{{ asset('images/ndmu-optimized.jpg') }}');
+            background-image: linear-gradient(180deg, rgba(14, 58, 38, 0.85) 0%, rgba(10, 44, 28, 0.9) 100%), url('/images/ndmu-optimized.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        .research-impact-bg {
+            background-image: linear-gradient(180deg, rgba(14, 58, 38, 0.9) 0%, rgba(10, 44, 28, 0.92) 100%), url('/images/ndmu-optimized.jpg');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -643,7 +650,7 @@
     </section>
 
     <!-- Research Impact Section -->
-    <section class="py-24 relative overflow-hidden" style="background-image: linear-gradient(180deg, rgba(14, 58, 38, 0.9) 0%, rgba(10, 44, 28, 0.92) 100%), url('{{ asset('images/ndmu-optimized.jpg') }}'); background-size: cover; background-position: center; background-attachment: fixed;">
+    <section class="research-impact-bg py-24 relative overflow-hidden">
         <div class="max-w-7xl mx-auto px-6 lg:px-8 text-center flex flex-col items-center">
             <span class="text-sm font-bold tracking-widest text-[#d69f24] uppercase mb-2 block">By the Numbers</span>
             <h2 class="text-4xl md:text-5xl font-heading font-bold text-white mb-4">Research Impact</h2>
