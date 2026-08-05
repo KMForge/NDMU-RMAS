@@ -8,8 +8,8 @@
         <p>has/have fully accomplished the following:</p>
         <ol class="list-[lower-alpha] space-y-2 pl-5 text-xs leading-5"><li>Full revision of the research proposal paper, duly approved by the members of the panel.</li><li>Acquired a Validation Rating of not less than 4.00 (Very Good), with 1.00 as the lowest and 5.00 as the highest rating.</li></ol>
         <p>Therefore, the above-mentioned student researcher/s is/are highly endorsed to proceed to the data-gathering phase.</p>
-        <div><strong>Endorsed by:</strong><div class="mt-5 grid gap-6 text-center md:grid-cols-3">@for ($i=1; $i<=3; $i++)@if (($formActor ?? 'adviser') === 'panelist')<label><input name="res_044_panelist_signatures[]" class="w-full text-center"><span class="block">Panelist {{ $i }}<br><small>(Name & Electronic Signature)</small></span></label>@else<div class="border-t border-[#173c30] pt-1">Panelist {{ $i }}<br><small>(Name & Signature)</small></div>@endif @endfor</div></div>
-        <label class="mx-auto block max-w-sm pt-8 text-center"><input name="res_044_adviser_signature" class="w-full text-center"><span class="block font-bold">Research Adviser (Name & Electronic Signature)</span></label>
-        <div class="grid gap-8 pt-8 text-center md:grid-cols-2"><div class="border-t border-[#173c30] pt-1">Program Coordinator<br><small>(Name & Signature)</small></div><div class="border-t border-[#173c30] pt-1">College Dean<br><small>(Name & Signature)</small></div></div>
+        <div><strong>Endorsed by:</strong><div class="mt-5 grid gap-6 text-center md:grid-cols-3">@for ($i=1; $i<=3; $i++)<x-official-signature-field name-field="res_044_panelist_names[]" :label="'Panelist '.$i" />@endfor</div></div>
+        <x-official-signature-field name-field="res_044_adviser_printed_name" label="Research Adviser" class="mx-auto max-w-sm pt-8" />
+        <div class="grid gap-8 pt-8 text-center md:grid-cols-2"><x-official-signature-field name-field="res_044_program_coordinator_name" label="Program Coordinator" /><x-official-signature-field name-field="res_044_college_dean_name" label="College Dean" /></div>
     </x-student-official-form>
 </div>

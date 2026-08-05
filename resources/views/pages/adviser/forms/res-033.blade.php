@@ -16,7 +16,7 @@
         </fieldset>
         <p class="text-xs leading-5">Attached are four (4) copies of the research paper: three copies for the panelists and one for the Research Adviser.</p>
         <div class="grid gap-8 pt-8 text-center md:grid-cols-2">
-            <label><input type="text" name="res_033_adviser_signature" class="w-full text-center"><span class="block font-bold">Instructor / Research Adviser Electronic Signature</span></label>
+            <x-official-signature-field name-field="res_033_adviser_printed_name" label="Instructor / Research Adviser" />
             <label><input type="text" name="res_033_received_by" class="w-full text-center"><span class="block">Received by</span><input type="date" name="res_033_received_date" class="mt-2"></label>
         </div>
     </x-student-official-form>

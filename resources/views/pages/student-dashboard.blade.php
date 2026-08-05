@@ -31,7 +31,23 @@
 @endphp
 
 @section('content')
-<style>[x-cloak] { display: none !important; }</style>
+<style>
+    [x-cloak] { display: none !important; }
+    /* Match the scroll behavior and appearance used by the other role sidebars. */
+    aside::-webkit-scrollbar {
+        width: 4px;
+    }
+    aside::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.02);
+    }
+    aside::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+    }
+    aside::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+</style>
 
 <div
     class="min-h-screen flex font-sans bg-[#f4f7f6]"
@@ -57,80 +73,74 @@
             : window.location.assign(url.toString());
     })"
 >
-    <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col z-20 border-r border-white/5">
-        <div class="flex items-center gap-3 p-6 border-b border-white/10">
-            <div class="p-1 bg-white/10 rounded-xl border border-white/20">
-                <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto">
+    <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5 overflow-y-auto">
+        <div class="flex-shrink-0">
+            <div class="flex items-center gap-3 p-6 border-b border-white/10">
+                <div class="p-1 bg-white/10 rounded-xl border border-white/20">
+                    <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto">
+                </div>
+                <div class="flex flex-col leading-none">
+                    <span class="font-heading font-extrabold text-xl tracking-tight">NDMU</span>
+                    <span class="text-[9px] font-bold text-[#eebc3f] tracking-wider uppercase mt-1">Research Management</span>
+                </div>
             </div>
-            <div class="flex flex-col leading-none">
-                <span class="font-heading font-extrabold text-xl tracking-tight">NDMU</span>
-                <span class="text-[9px] font-bold text-[#eebc3f] tracking-wider uppercase mt-1">Research Management</span>
+
+            <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
+                <div class="w-10 h-10 rounded-full bg-[#eebc3f] text-[#0e5c3a] font-bold flex items-center justify-center text-lg">
+                    {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($student->name, 0, 1)) }}
+                </div>
+                <div class="flex flex-col leading-tight overflow-hidden">
+                    <span class="font-semibold text-sm truncate">{{ $student->name }}</span>
+                    <span class="text-[10px] text-white/60 font-medium mt-0.5">Student Researcher</span>
+                </div>
             </div>
         </div>
 
-        <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
-            <div class="w-10 h-10 rounded-full bg-[#eebc3f] text-[#0e5c3a] font-bold flex items-center justify-center text-lg">
-                {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($student->name, 0, 1)) }}
+        <div class="flex-grow px-6 py-4 space-y-6">
+            <div class="space-y-1.5">
+                <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
+
+                @foreach ([
+                    'dashboard' => ['ph-squares-four', 'Dashboard'],
+                    'classes' => ['ph-users', 'My Classes'],
+                    'research' => ['ph-book-open', 'My Research'],
+                    'proposal' => ['ph-file-text', 'Research Proposal'],
+                    'progress' => ['ph-chart-line-up', 'Research Progress'],
+                    'consultation' => ['ph-chat-teardrop', 'Consultation Records'],
+                    'revisions' => ['ph-note-pencil', 'Revision Tracker'],
+                    'defense' => ['ph-calendar', 'My Defense Schedule'],
+                    'evaluations' => ['ph-exam', 'Evaluation Results'],
+                    'repository' => ['ph-folder', 'Research Repository'],
+                ] as $tab => [$icon, $label])
+                    <a
+                        href="{{ route('student.dashboard', ['tab' => $tab]) }}"
+                        wire:navigate
+                        :class="activeTab === '{{ $tab }}' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
+                    >
+                        <i class="ph {{ $icon }} text-lg"></i>
+                        <span>{{ $label }}</span>
+                    </a>
+                @endforeach
             </div>
-            <div class="flex flex-col leading-tight overflow-hidden">
-                <span class="font-semibold text-sm truncate">{{ $student->name }}</span>
-                <span class="text-[10px] text-white/60 font-medium mt-0.5">Student Researcher</span>
-            </div>
-        </div>
 
-        <nav class="flex-1 overflow-y-auto px-6 py-4 space-y-1.5">
-            <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
-
-            @foreach ([
-                'dashboard' => ['ph-squares-four', 'Dashboard'],
-                'classes' => ['ph-users', 'My Classes'],
-                'research' => ['ph-book-open', 'My Research'],
-                'proposal' => ['ph-file-text', 'Research Proposal'],
-                'progress' => ['ph-chart-line-up', 'Research Progress'],
-                'consultation' => ['ph-chat-teardrop', 'Consultation Records'],
-                'revisions' => ['ph-note-pencil', 'Revision Tracker'],
-                'defense' => ['ph-calendar', 'My Defense Schedule'],
-                'evaluations' => ['ph-exam', 'Evaluation Results'],
-                'repository' => ['ph-folder', 'Research Repository'],
-            ] as $tab => [$icon, $label])
-                <a
-                    href="{{ route('student.dashboard', ['tab' => $tab]) }}"
-                    wire:navigate
-                    :class="activeTab === '{{ $tab }}' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left"
-                >
-                    <i class="ph {{ $icon }} text-lg"></i>
-                    <span>{{ $label }}</span>
-                </a>
-            @endforeach
-
-            <div class="pt-5 mt-5 border-t border-white/10">
+            <div class="space-y-1.5 pt-4 mt-4 border-t border-white/10">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Research Forms</span>
-                <a
-                    href="{{ route('student.dashboard', ['tab' => 'forms']) }}"
-                    wire:navigate
+                <button
+                    type="button"
+                    @click="formsExpanded = ! formsExpanded; activeTab = 'forms'"
                     :class="activeTab === 'forms' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                     :aria-expanded="formsExpanded"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
                 >
-                    <span class="flex items-center gap-3">
+                    <div class="flex items-center gap-3">
                         <i class="ph ph-file-pdf text-lg"></i>
                         <span>Official Forms</span>
-                    </span>
+                    </div>
                     <i class="ph ph-caret-right text-xs transition-transform duration-200" :class="formsExpanded && 'rotate-90'"></i>
-                </a>
+                </button>
 
-                <div
-                    x-show="formsExpanded"
-                    x-cloak
-                    x-transition:enter="transition ease-out duration-200"
-                    x-transition:enter-start="opacity-0 -translate-y-1"
-                    x-transition:enter-end="opacity-100 translate-y-0"
-                    x-transition:leave="transition ease-in duration-150"
-                    x-transition:leave-start="opacity-100 translate-y-0"
-                    x-transition:leave-end="opacity-0 -translate-y-1"
-                    class="mt-1 space-y-0.5"
-                >
+                <div x-show="formsExpanded" x-cloak x-transition class="mt-1 space-y-0.5">
                     @foreach ($officialFormPhases as $phase => $label)
                         @php
                             $phaseForms = $officialFormsByPhase->get($phase, collect());
@@ -177,9 +187,9 @@
                     @endforeach
                 </div>
             </div>
-        </nav>
+        </div>
 
-        <div class="px-6 pb-6">
+        <div class="flex-shrink-0 px-6 pb-6 mt-8">
             <div class="pt-4 border-t border-white/10 space-y-1">
                 <a
                     href="{{ route('student.dashboard', ['tab' => 'notifications']) }}"
@@ -207,6 +217,9 @@
                     <span>Logout</span>
                 </button>
             </form>
+            <div class="text-[9px] text-white/30 text-center font-medium mt-6">
+                NDMU © {{ now()->year }} - v1.0
+            </div>
         </div>
     </aside>
 
@@ -722,19 +735,158 @@
                 </div>
             </section>
 
-            <section x-show="activeTab === 'progress'" x-cloak class="space-y-8">
-                <x-student-section-heading title="Research Progress" description="Milestone updates recorded for your research." />
-                <div class="space-y-4">
-                    @forelse ($progressUpdates as $update)
-                        <x-student-record-card
-                            :title="$update->milestone_name"
-                            :status="$update->status"
-                            :date="$update->submitted_at"
-                            :description="$update->summary ?: $update->milestone_description"
-                        />
-                    @empty
-                        <x-student-empty-state message="No research progress updates have been recorded." />
-                    @endforelse
+            <section x-show="activeTab === 'progress'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Title Section -->
+                <div>
+                    <h1 class="text-3xl font-extrabold font-heading text-gray-800 tracking-tight">Research Lifecycle Tracker</h1>
+                    <p class="text-sm text-gray-500 font-light mt-1">Track your research progress through each milestone</p>
+                </div>
+
+                @php
+                    $completedStatuses = ['accepted', 'approved', 'completed', 'resolved', 'passed'];
+                    $activeStatuses = ['pending', 'in_progress', 'submitted', 'review', 'under_review'];
+                    
+                    $completedCount = $researchMilestones->filter(fn($m) => in_array(strtolower($m->status ?? ''), $completedStatuses, true))->count();
+                    $inProgressCount = $researchMilestones->filter(fn($m) => in_array(strtolower($m->status ?? ''), $activeStatuses, true))->count();
+                    $pendingCount = $researchMilestones->filter(fn($m) => empty($m->status) || !in_array(strtolower($m->status), array_merge($completedStatuses, $activeStatuses), true))->count();
+                    
+                    $totalMilestones = $researchMilestones->count();
+                    $progressPercentage = $dashboardOverview['progress_percentage'] ?? 0;
+                    if ($progressPercentage === 0 && $totalMilestones > 0) {
+                        $progressPercentage = (int) round(($completedCount / $totalMilestones) * 100);
+                    }
+                @endphp
+
+                <!-- Overall Progress Card -->
+                <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div class="space-y-1">
+                            <h3 class="text-lg font-bold text-gray-800">Overall Progress</h3>
+                            <p class="text-xs text-gray-400 font-light">{{ $researchProject->title ?? 'No active research project found' }}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-2xl font-extrabold text-emerald-600 font-heading">{{ $progressPercentage }}%</span>
+                            <span class="text-[10px] text-gray-400 font-bold block uppercase tracking-wider mt-0.5">Complete</span>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full h-4 bg-gray-100 rounded-full overflow-hidden">
+                        <div class="h-full bg-emerald-600 rounded-full transition-all duration-500" x-init="$el.style.width = @js($progressPercentage) + '%'" style="width: 0"></div>
+                    </div>
+
+                    <!-- Counts -->
+                    <div class="grid grid-cols-3 gap-6 text-center pt-2">
+                        <div>
+                            <span class="text-xl font-extrabold text-emerald-600 font-heading block">{{ $completedCount }}</span>
+                            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">Completed</span>
+                        </div>
+                        <div class="border-l border-r border-gray-150">
+                            <span class="text-xl font-extrabold text-amber-500 font-heading block">{{ $inProgressCount }}</span>
+                            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">In Progress</span>
+                        </div>
+                        <div>
+                            <span class="text-xl font-extrabold text-gray-400 font-heading block">{{ $pendingCount }}</span>
+                            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">Pending</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Research Milestones Container -->
+                <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 space-y-6">
+                    <h3 class="text-base font-bold text-gray-800">Research Milestones</h3>
+
+                    <!-- Timeline Vertical Container -->
+                    <div class="relative pl-10 border-l-2 border-gray-150 space-y-8 ml-6 py-2">
+                        @forelse ($researchMilestones as $milestone)
+                            @php
+                                $statusLower = strtolower($milestone->status ?? 'not_started');
+                                $milestoneCompleted = in_array($statusLower, $completedStatuses, true);
+                                $milestoneInProgress = in_array($statusLower, $activeStatuses, true);
+                                
+                                $isOverdue = !$milestoneCompleted
+                                    && $milestone->due_at
+                                    && Illuminate\Support\Carbon::parse($milestone->due_at)->isPast();
+                                
+                                $displayStatus = $milestoneCompleted ? 'completed' : ($milestoneInProgress ? 'in_progress' : 'pending');
+                                if ($isOverdue && !$milestoneCompleted) {
+                                    $displayStatus = 'overdue';
+                                }
+                            @endphp
+                            <div class="relative">
+                                <!-- Bullet Circle -->
+                                <span @class([
+                                    'absolute -left-[57px] top-1.5 flex h-8 w-8 items-center justify-center rounded-full shadow-sm bg-white',
+                                    'bg-[#0fa47b] border border-[#0fa47b]' => $milestoneCompleted,
+                                    'bg-[#f59e0b] border border-[#f59e0b]' => $milestoneInProgress,
+                                    'bg-white border border-gray-200' => !$milestoneCompleted && !$milestoneInProgress,
+                                ])>
+                                    @if ($milestoneCompleted)
+                                        <i class="ph-bold ph-check text-white text-xs"></i>
+                                    @elseif ($milestoneInProgress)
+                                        <i class="ph-bold ph-clock text-white text-xs"></i>
+                                    @else
+                                        <span class="w-2.5 h-2.5 bg-gray-250 rounded-full"></span>
+                                    @endif
+                                </span>
+
+                                <!-- Content Card -->
+                                <div @class([
+                                    'p-6 border rounded-3xl hover:shadow-sm transition-all duration-300 flex items-center justify-between',
+                                    'bg-[#f4faf7] border-emerald-100' => $milestoneCompleted,
+                                    'bg-[#fdfaf2] border-amber-100' => $milestoneInProgress,
+                                    'bg-white border-gray-150 opacity-70' => !$milestoneCompleted && !$milestoneInProgress,
+                                ])>
+                                    <div class="space-y-1.5">
+                                        <h4 class="font-extrabold text-gray-800 text-sm">{{ $milestone->name }}</h4>
+                                        <div class="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                                            <i class="ph ph-calendar"></i>
+                                            @if ($milestone->due_at)
+                                                <span>{{ \Illuminate\Support\Carbon::parse($milestone->due_at)->format('M j, Y') }}</span>
+                                            @else
+                                                <span>Not Started</span>
+                                            @endif
+                                        </div>
+                                        @if ($milestoneCompleted)
+                                            <p class="text-xs text-emerald-705 font-medium flex items-center gap-1">✓ All requirements met and approved</p>
+                                        @elseif ($milestoneInProgress)
+                                            <p class="text-xs text-amber-705 font-medium flex items-center gap-1">Currently working on this milestone</p>
+                                        @elseif ($milestone->description)
+                                            <p class="text-xs text-gray-500 font-medium">{{ $milestone->description }}</p>
+                                        @endif
+                                    </div>
+                                    <span @class([
+                                        'text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider',
+                                        'bg-[#0fa47b]' => $milestoneCompleted,
+                                        'bg-amber-500' => $milestoneInProgress,
+                                        'bg-gray-400' => !$milestoneCompleted && !$milestoneInProgress,
+                                    ])>{{ str($displayStatus)->headline() }}</span>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="p-10 bg-gray-55/60 border border-gray-100 rounded-3xl text-center text-sm text-gray-500">
+                                No research milestones have been configured for your program and academic term.
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <!-- Bottom Action Buttons -->
+                <div class="flex items-center gap-3 pt-6">
+                    <button 
+                        type="button"
+                        @click="alert('Progress updates are submitted automatically when you upload documents or complete consultations.')"
+                        class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl transition-all duration-200 cursor-pointer"
+                    >
+                        Update Progress
+                    </button>
+                    <button 
+                        type="button"
+                        @click="window.print()"
+                        class="px-5 py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl transition-all duration-200 cursor-pointer"
+                    >
+                        Download Timeline
+                    </button>
                 </div>
             </section>
 

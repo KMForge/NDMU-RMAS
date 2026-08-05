@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentAccessController;
+use App\Http\Controllers\UserSignatureController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -22,6 +23,21 @@ Route::middleware(['auth', 'verified', 'active'])
         Route::get('/{document}/download', [DocumentAccessController::class, 'download'])
             ->whereNumber('document')
             ->name('download');
+    });
+
+Route::middleware(['auth', 'verified', 'active'])
+    ->prefix('settings/signature')
+    ->name('signature.')
+    ->group(function (): void {
+        Route::get('/', [UserSignatureController::class, 'show'])
+            ->middleware('throttle:60,1')
+            ->name('show');
+        Route::put('/', [UserSignatureController::class, 'store'])
+            ->middleware('throttle:signature-enrollment')
+            ->name('store');
+        Route::delete('/', [UserSignatureController::class, 'destroy'])
+            ->middleware('throttle:signature-enrollment')
+            ->name('destroy');
     });
 
 require __DIR__.'/auth.php';

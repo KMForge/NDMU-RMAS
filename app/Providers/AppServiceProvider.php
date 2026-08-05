@@ -80,6 +80,10 @@ class AppServiceProvider extends ServiceProvider
             'document-review|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
         ));
 
+        RateLimiter::for('signature-enrollment', fn (Request $request) => Limit::perMinute(10)->by(
+            'signature-enrollment|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
+        ));
+
         RateLimiter::for('consultation-bookings', fn (Request $request) => Limit::perHour(5)->by(
             'consultation-booking|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
         ));

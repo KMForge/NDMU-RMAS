@@ -1,3 +1,10 @@
+@php
+    $settingsUser = auth()->user();
+    $canManageDigitalSignature = $settingsUser
+        && Illuminate\Support\Facades\Gate::allows('create', App\Models\UserSignature::class);
+    $registeredSignature = $canManageDigitalSignature ? $settingsUser->signature : null;
+@endphp
+
 <!-- NDMU Research Management Account Settings Partial -->
 <div x-data="{
     emailNotifications: true,
@@ -182,6 +189,85 @@
 
         <!-- Right Column: Settings & Preferences -->
         <div class="space-y-6">
+            <!-- Digital Signature Enrollment -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-5">
+                <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
+                    <i class="ph ph-signature text-emerald-600 text-lg"></i>
+                    <span>Digital Signature</span>
+                </h3>
+
+                @if (session('signature_success'))
+                    <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-800" role="status">
+                        {{ session('signature_success') }}
+                    </div>
+                @endif
+
+                @error('signature')
+                    <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-800" role="alert">
+                        {{ $message }}
+                    </div>
+                @enderror
+
+                @if (! $canManageDigitalSignature)
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-xs leading-relaxed text-slate-600">
+                        System administrators cannot register or apply academic digital signatures.
+                    </div>
+                @else
+                    <p class="text-xs leading-relaxed text-slate-500">
+                        Register a clear PNG or JPEG image of your signature. It remains private and will only be applied after you explicitly approve a form.
+                    </p>
+
+                    @if ($registeredSignature)
+                        <div class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+                            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div class="rounded-lg border border-white bg-white p-3">
+                                    <img
+                                        src="{{ route('signature.show') }}"
+                                        alt="Your registered digital signature"
+                                        class="h-20 w-56 object-contain"
+                                    >
+                                </div>
+                                <div class="text-xs text-slate-600 sm:text-right">
+                                    <p class="font-bold text-emerald-800">Signature registered</p>
+                                    <p class="mt-1">{{ $registeredSignature->registered_at?->timezone(config('ndmu-rmas.timezone'))->format('M j, Y g:i A') }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    <form method="POST" action="{{ route('signature.store') }}" enctype="multipart/form-data" class="space-y-3">
+                        @csrf
+                        @method('PUT')
+                        <label class="block">
+                            <span class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                {{ $registeredSignature ? 'Replace signature image' : 'Signature image' }}
+                            </span>
+                            <input
+                                type="file"
+                                name="signature"
+                                accept="image/png,image/jpeg,.png,.jpg,.jpeg"
+                                required
+                                class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#0e5c3a] file:px-3 file:py-2 file:text-xs file:font-bold file:text-white"
+                            >
+                        </label>
+                        <p class="text-[10px] text-slate-400">PNG or JPEG only, maximum 2 MB. Recommended: transparent PNG with a clean white or transparent background.</p>
+                        <button type="submit" class="w-full rounded-xl bg-[#0e5c3a] px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-[#0a4a2e]">
+                            {{ $registeredSignature ? 'Replace Digital Signature' : 'Register Digital Signature' }}
+                        </button>
+                    </form>
+
+                    @if ($registeredSignature)
+                        <form method="POST" action="{{ route('signature.destroy') }}" onsubmit="return confirm('Remove your registered digital signature?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="w-full rounded-xl border border-red-200 bg-white px-4 py-2.5 text-xs font-bold text-red-600 transition-colors hover:bg-red-50">
+                                Remove Digital Signature
+                            </button>
+                        </form>
+                    @endif
+                @endif
+            </div>
+
             <!-- Notification Preferences -->
             <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-5">
                 <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">

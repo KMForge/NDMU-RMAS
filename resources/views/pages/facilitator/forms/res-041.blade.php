@@ -6,6 +6,6 @@
         <p>Below is the list of Research Titles and the corresponding student-researchers:</p>
         <table class="official-form-table text-xs"><thead><tr><th>Research Titles</th><th>Student-Researchers</th></tr></thead><tbody>@for ($i=1; $i<=8; $i++)<tr><td><input name="res_041_entries[{{ $i }}][title]" class="w-full"></td><td><textarea name="res_041_entries[{{ $i }}][researchers]" class="min-h-12 w-full border-0"></textarea></td></tr>@endfor</tbody></table>
         <p>Sincerely yours,</p>
-        <label class="ml-auto block max-w-sm pt-8 text-center"><input name="res_041_instructor_signature" class="w-full text-center"><span class="block font-bold">Research Instructor (Name & Electronic Signature)</span></label>
+        <x-official-signature-field name-field="res_041_instructor_printed_name" label="Research Instructor" class="ml-auto max-w-sm pt-8" />
     </x-student-official-form>
 </div>

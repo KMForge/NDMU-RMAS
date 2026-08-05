@@ -8,6 +8,6 @@
         <p>of the following student researchers:</p>
         <div class="grid gap-3 md:grid-cols-2">@for ($i=1; $i<=4; $i++)<label class="flex gap-2"><span>{{ $i }}.</span><input name="res_040_students[]" class="flex-1"></label>@endfor</div>
         <p>approved by the panel of reviewers.</p><p>Thank you very much.</p><p>Sincerely yours,</p>
-        <label class="ml-auto block max-w-sm pt-8 text-center"><input name="res_040_adviser_signature" class="w-full text-center"><span class="block font-bold">Research Adviser (Name & Electronic Signature)</span></label>
+        <x-official-signature-field name-field="res_040_adviser_printed_name" label="Research Adviser" class="ml-auto max-w-sm pt-8" />
     </x-student-official-form>
 </div>

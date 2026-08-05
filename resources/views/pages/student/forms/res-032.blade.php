@@ -3,5 +3,5 @@
     <fieldset><legend class="font-bold">Type of Consultant (Please check):</legend><div class="mt-2 flex flex-wrap gap-5">@foreach (['Panelist','Language Editor','Statistician','College Dean','Validator','Others'] as $type)<label><input type="checkbox" name="consultant_types[]" value="{{ $type }}"> {{ $type }}</label>@endforeach</div></fieldset>
     <label class="block font-bold">Specific Concern/s:<textarea name="specific_concerns" class="mt-2 min-h-28 w-full"></textarea></label>
     <label class="block font-bold">Consultant's Recommendations:<textarea name="recommendations" class="mt-2 min-h-36 w-full"></textarea></label>
-    <div class="grid gap-6 md:grid-cols-2"><label>Follow-up consultation on:<input type="date" name="follow_up_date" class="w-full"></label><div class="border-t border-[#173c30] pt-1 text-center">Name & Signature of Consultant</div></div>
+    <div class="grid gap-6 md:grid-cols-2"><label>Follow-up consultation on:<input type="date" name="follow_up_date" class="w-full"></label><x-official-signature-field name-field="consultant_name" label="Consultant" /></div>
 </x-student-official-form></div>

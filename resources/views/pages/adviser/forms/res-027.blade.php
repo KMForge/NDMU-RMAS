@@ -26,7 +26,7 @@
         <p>Thank you very much.</p>
         <div class="grid gap-8 pt-8 text-center md:grid-cols-2">
             <label><input type="text" name="res_027_issued_by" class="w-full text-center"><span class="block">Program Coordinator / College Dean</span></label>
-            <label><input type="text" name="res_027_adviser_signature" class="w-full text-center"><span class="block font-bold">Research Adviser Electronic Signature</span></label>
+            <x-official-signature-field name-field="res_027_adviser_printed_name" label="Research Adviser" />
         </div>
     </x-student-official-form>
 </div>

@@ -18,6 +18,11 @@ return [
             ],
         ],
     ],
+    'signature' => [
+        'max_upload_kilobytes' => (int) env('SIGNATURE_MAX_UPLOAD_KB', 2048),
+        'storage_disk' => env('SIGNATURE_STORAGE_DISK', 'local'),
+        'storage_directory' => env('SIGNATURE_STORAGE_DIRECTORY', 'signatures'),
+    ],
     'accounts' => [
         'require_approval' => (bool) env('ACCOUNT_APPROVAL_REQUIRED', true),
     ],

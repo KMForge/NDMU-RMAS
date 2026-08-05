@@ -10,6 +10,6 @@
             <thead><tr><th>Area</th><th>Comments / Corrections / Suggestions</th></tr></thead>
             <tbody>@foreach (['Title','Introduction','Method','Results','Discussion','References','Others'] as $area)<tr><th class="w-1/4 text-left">{{ $area }}</th><td><textarea name="res_035_comments[{{ strtolower($area) }}]" class="min-h-16 w-full border-0"></textarea></td></tr>@endforeach</tbody>
         </table>
-        <div class="grid gap-8 pt-8 text-center md:grid-cols-2"><label><input name="res_035_adviser_signature" class="w-full text-center"><span class="block font-bold">Research Adviser Electronic Signature</span></label><label><input name="res_035_panel_chair_signature" class="w-full text-center"><span class="block">Panel Chair Electronic Signature</span></label></div>
+        <div class="grid gap-8 pt-8 text-center md:grid-cols-2"><x-official-signature-field name-field="res_035_adviser_printed_name" label="Research Adviser" /><x-official-signature-field name-field="res_035_panel_chair_printed_name" label="Panel Chair" /></div>
     </x-student-official-form>
 </div>

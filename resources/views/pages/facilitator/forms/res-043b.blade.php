@@ -12,6 +12,6 @@
             ];
         @endphp
         <table class="official-form-table text-[10px]"><thead><tr><th>Criteria</th>@for ($rating=1; $rating<=5; $rating++)<th class="w-10">{{ $rating }}</th>@endfor</tr></thead><tbody>@foreach ($validationCriteria as $index=>$criterion)<tr><td><strong>{{ $index + 1 }}.</strong> {{ $criterion }}</td>@for ($rating=1; $rating<=5; $rating++)<td class="text-center"><input type="radio" name="res_043b_ratings[{{ $index }}]" value="{{ $rating }}"></td>@endfor</tr>@endforeach<tr><th>Mean</th><td colspan="5"><input type="number" min="1" max="5" step="0.01" name="res_043b_mean" class="w-full"></td></tr></tbody></table>
-        <div class="grid gap-8 pt-8 text-center md:grid-cols-2"><label>Date Validated:<input type="date" name="res_043b_validated_at" class="w-full"></label><label><input name="res_043b_validator_signature" class="w-full text-center"><span class="block font-bold">Validated by (Name & Electronic Signature)</span></label></div>
+        <div class="grid gap-8 pt-8 text-center md:grid-cols-2"><label>Date Validated:<input type="date" name="res_043b_validated_at" class="w-full"></label><x-official-signature-field name-field="res_043b_validator_printed_name" label="Validated by" /></div>
     </x-student-official-form>
 </div>
