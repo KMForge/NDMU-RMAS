@@ -44,6 +44,8 @@
     @staff-account-created.window="activeTab = 'users'; userManagementTab = 'all-users'"
     x-on:role-editor-opened.window="activeTab = 'permissions'; $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))"
     x-on:role-editor-closed.window="activeTab = 'permissions'; $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))"
+    x-on:role-assignment-opened.window="activeTab = 'assign-roles'; $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))"
+    x-on:role-assignment-closed.window="activeTab = 'users'; userManagementTab = 'all-users'; $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))"
 >
     <style>[x-cloak] { display: none !important; }</style>
     <!-- Left Sidebar: Navigation -->
@@ -94,13 +96,13 @@
                 <button
                    type="button"
                    @click="activeTab = 'users'"
-                   :class="activeTab === 'users' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   :class="['users', 'assign-roles'].includes(activeTab) ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-users text-lg"></i>
                         <span>User Management</span>
                     </div>
-                    <span x-show="activeTab === 'users'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="['users', 'assign-roles'].includes(activeTab)" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
 
                 <button
@@ -215,7 +217,7 @@
                 </a>
                 
                 <!-- Real Logout Form -->
-                <form method="POST" action="{{ route('logout') }}" id="logout-form" class="hidden" onsubmit="return window.confirm('Are you sure you want to log out?')">
+                <form method="POST" action="{{ route('logout') }}" id="logout-form" class="hidden" data-confirm-logout>
                     @csrf
                 </form>
                 <a href="#" 
@@ -789,26 +791,26 @@
                                                             @else
                                                                 <div class="flex flex-wrap gap-2">
                                                                     <button type="button" wire:click="openRoleAssignment({{ $user->id }})" class="px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-xs font-bold text-blue-700 hover:bg-blue-100">
-                                                                        Roles
+                                                                        Assign Role
                                                                     </button>
                                                                     @if ($status === 'active')
                                                                         <button
                                                                             type="button"
                                                                             wire:click="suspendUser({{ $user->id }})"
-                                                                            wire:confirm="Suspend this account? The user will no longer be able to sign in."
+                                                                            wire:confirm="Disable this account? The user will no longer be able to sign in."
                                                                             wire:loading.attr="disabled"
                                                                             wire:target="suspendUser({{ $user->id }})"
                                                                             class="px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-xs font-bold text-amber-700 hover:bg-amber-100 disabled:opacity-50"
-                                                                        >Suspend</button>
+                                                                        >Disable</button>
                                                                     @else
                                                                         <button
                                                                             type="button"
                                                                             wire:click="activateUser({{ $user->id }})"
-                                                                            wire:confirm="Activate this account?"
+                                                                            wire:confirm="Enable this account and allow the user to sign in again?"
                                                                             wire:loading.attr="disabled"
                                                                             wire:target="activateUser({{ $user->id }})"
                                                                             class="px-3 py-2 rounded-xl bg-[#0e5c3a] text-xs font-bold text-white hover:bg-[#0a4a2e] disabled:opacity-50"
-                                                                        >Activate</button>
+                                                                        >Enable</button>
                                                                     @endif
                                                                 </div>
                                                             @endif
@@ -1025,6 +1027,8 @@
                         </div>
                     </div>
             </div>
+
+            @include('admin.assign-roles')
 
             @include('admin.roles-permissions')
 

@@ -325,6 +325,27 @@ class AdminDashboard extends Component
         $this->clearDashboardCache();
     }
 
+    public function selectAllAssignableRoles(): void
+    {
+        $subject = $this->roleAssignmentSubject();
+        Gate::authorize('manageRoles', $subject);
+
+        $this->assignedRoles = Role::query()
+            ->where('guard_name', 'web')
+            ->where('is_assignable', true)
+            ->orderBy('name')
+            ->pluck('name')
+            ->all();
+    }
+
+    public function clearAssignedRoles(): void
+    {
+        $subject = $this->roleAssignmentSubject();
+        Gate::authorize('manageRoles', $subject);
+        $this->assignedRoles = [];
+        $this->resetValidation('assignedRoles');
+    }
+
     public function closeRoleAssignment(): void
     {
         $this->reset(['roleAssignmentUserId', 'assignedRoles', 'assignedUserType']);
@@ -503,6 +524,13 @@ class AdminDashboard extends Component
         abort_unless($administrator instanceof User, 401);
 
         return $administrator;
+    }
+
+    private function roleAssignmentSubject(): User
+    {
+        abort_if($this->roleAssignmentUserId === null, 404);
+
+        return User::query()->findOrFail($this->roleAssignmentUserId);
     }
 
     /** @return array<string, mixed> */

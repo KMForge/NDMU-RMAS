@@ -45,6 +45,8 @@ class AdminDashboardTest extends TestCase
 
         $response = $this->actingAs($admin)->get(route('admin.dashboard'));
         $response->assertOk();
+        $response->assertSee('Log out of NDMU-RMAS?');
+        $response->assertSee('data-confirm-logout', false);
 
         $document = new \DOMDocument;
         @$document->loadHTML($response->getContent());
@@ -238,6 +240,24 @@ class AdminDashboardTest extends TestCase
         $this->assertNotNull($adviser->approved_at);
     }
 
+    public function test_user_management_uses_assign_role_and_disable_action_labels(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+
+        $faculty = User::factory()->create([
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+        ]);
+        $faculty->assignRole('faculty');
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->assertSee('Assign Role')
+            ->assertSee('Disable');
+    }
+
     public function test_admin_cannot_change_their_own_account_status(): void
     {
         $admin = User::factory()->create();
@@ -350,9 +370,15 @@ class AdminDashboardTest extends TestCase
         Livewire::test(AdminDashboard::class)
             ->call('openRoleAssignment', $faculty->id)
             ->assertSet('roleAssignmentUserId', $faculty->id)
+            ->assertDispatched('role-assignment-opened')
+            ->assertSee('Assign Roles')
+            ->assertSee($faculty->name)
+            ->assertSee('Save Roles')
+            ->assertDontSee('Save Assignments')
             ->set('assignedRoles', ['research-facilitator', 'program-coordinator', 'thesis-adviser'])
             ->call('saveUserRoles')
-            ->assertHasNoErrors();
+            ->assertHasNoErrors()
+            ->assertDispatched('role-assignment-closed');
 
         $this->assertTrue($faculty->fresh()->hasAllRoles([
             'research-facilitator',

@@ -42,7 +42,7 @@
         </nav>
 
         <div class="px-6 pb-6">
-            <form method="POST" action="{{ route('logout') }}" onsubmit="return window.confirm('Are you sure you want to log out?')">
+            <form method="POST" action="{{ route('logout') }}" data-confirm-logout>
                 @csrf
                 <button type="submit" class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-semibold text-white/90 hover:bg-white/5">
                     <i class="ph ph-sign-out text-lg"></i><span>Logout</span>

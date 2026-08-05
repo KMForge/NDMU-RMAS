@@ -10,6 +10,7 @@
 </head>
 <body class="min-h-screen bg-[#f4f7f6] text-slate-900 antialiased">
     @yield('content')
+    <x-logout-confirmation />
     @livewireScripts
 </body>
 </html>

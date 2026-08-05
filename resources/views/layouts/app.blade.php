@@ -12,6 +12,7 @@
         {{ $slot ?? '' }}
         @yield('content')
     </main>
+    <x-logout-confirmation />
     @livewireScripts
 </body>
 </html>
