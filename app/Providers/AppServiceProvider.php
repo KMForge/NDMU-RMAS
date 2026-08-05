@@ -7,7 +7,9 @@ use App\APIs\Contracts\StorageProvider;
 use App\Integrations\Supabase\SupabaseRealtimeService;
 use App\Integrations\Supabase\SupabaseStorageService;
 use App\Modules\Documents\Actions\RecordDocumentUploadAttempt;
+use App\Support\PortableSchemaBlueprint;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\RateLimiter;
@@ -20,6 +22,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(Blueprint::class, function ($app, array $parameters): PortableSchemaBlueprint {
+            return new PortableSchemaBlueprint(
+                $parameters['connection'],
+                $parameters['table'],
+                $parameters['callback'] ?? null,
+            );
+        });
+
         $this->app->singleton(StorageProvider::class, SupabaseStorageService::class);
         $this->app->singleton(RealtimeProvider::class, SupabaseRealtimeService::class);
     }

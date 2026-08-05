@@ -8,6 +8,7 @@ use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class AdminDashboardTest extends TestCase
@@ -250,5 +251,87 @@ class AdminDashboardTest extends TestCase
             ->set('selectedRole', 'role-that-does-not-exist')
             ->assertSet('selectedRole', '')
             ->assertOk();
+    }
+
+    public function test_admin_can_create_a_custom_role_from_the_permission_catalog(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->assertSee('Roles & Permissions')
+            ->set('roleName', 'Program Coordinator')
+            ->set('selectedPermissions', ['research.view-all', 'classes.create', 'reports.view'])
+            ->call('saveRole')
+            ->assertHasNoErrors()
+            ->assertSet('roleName', '');
+
+        $role = Role::findByName('program-coordinator');
+
+        $this->assertEqualsCanonicalizing(
+            ['research.view-all', 'classes.create', 'reports.view'],
+            $role->permissions()->pluck('name')->all(),
+        );
+    }
+
+    public function test_admin_can_assign_custom_and_multiple_roles_to_another_user(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+        $faculty = User::factory()->create();
+        $faculty->assignRole('research-facilitator');
+        Role::create(['name' => 'program-coordinator', 'guard_name' => 'web'])
+            ->syncPermissions(['reports.view']);
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->call('openRoleAssignment', $faculty->id)
+            ->assertSet('roleAssignmentUserId', $faculty->id)
+            ->set('assignedRoles', ['research-facilitator', 'program-coordinator', 'research-adviser'])
+            ->call('saveUserRoles')
+            ->assertHasNoErrors();
+
+        $this->assertTrue($faculty->fresh()->hasAllRoles([
+            'research-facilitator',
+            'program-coordinator',
+            'research-adviser',
+        ]));
+    }
+
+    public function test_custom_role_cannot_replace_the_users_primary_portal_role(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+        $faculty = User::factory()->create();
+        $faculty->assignRole('research-facilitator');
+        Role::create(['name' => 'program-coordinator', 'guard_name' => 'web']);
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->call('openRoleAssignment', $faculty->id)
+            ->set('assignedRoles', ['program-coordinator'])
+            ->call('saveUserRoles')
+            ->assertHasErrors(['assignedRoles']);
+
+        $this->assertTrue($faculty->fresh()->hasRole('research-facilitator'));
+    }
+
+    public function test_built_in_role_cannot_be_edited_or_deleted(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+        $builtInRole = Role::findByName('research-facilitator');
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->call('editRole', $builtInRole->id)
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('roles', ['id' => $builtInRole->id]);
     }
 }

@@ -5,27 +5,21 @@ namespace App\Livewire;
 use App\Enums\AccountStatus;
 use App\Models\User;
 use App\Modules\Dashboard\Queries\GetAdminDashboardData;
+use App\Modules\UserManagement\Actions\ManageRoleAccess;
 use App\Modules\UserManagement\Actions\ManageUserAccount;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Spatie\Permission\Models\Role;
 
 class AdminDashboard extends Component
 {
     use WithPagination;
-
-    private const MANAGED_ROLES = [
-        'system-administrator',
-        'college-dean',
-        'research-facilitator',
-        'research-adviser',
-        'panelist',
-        'student-researcher',
-    ];
 
     private const CREATABLE_STAFF_ROLES = [
         'research-adviser',
@@ -52,6 +46,18 @@ class AdminDashboard extends Component
 
     public ?string $successMessage = null;
 
+    public ?int $editingRoleId = null;
+
+    public string $roleName = '';
+
+    /** @var list<string> */
+    public array $selectedPermissions = [];
+
+    public ?int $roleAssignmentUserId = null;
+
+    /** @var list<string> */
+    public array $assignedRoles = [];
+
     protected $queryString = [
         'searchQuery' => ['except' => ''],
         'selectedRole' => ['except' => ''],
@@ -71,7 +77,7 @@ class AdminDashboard extends Component
 
     public function updatedSelectedRole(string $value): void
     {
-        if ($value !== '' && ! in_array($value, self::MANAGED_ROLES, true)) {
+        if ($value !== '' && ! Role::query()->where('guard_name', 'web')->where('name', $value)->exists()) {
             $this->selectedRole = '';
         }
 
@@ -158,6 +164,117 @@ class AdminDashboard extends Component
         $this->dispatch('staff-account-created');
     }
 
+    public function editRole(int $roleId): void
+    {
+        $this->authorizeRoleManagement();
+        $role = Role::query()->with('permissions:id,name')->findOrFail($roleId);
+
+        abort_if(in_array($role->name, config('access-control.protected_roles', []), true), 403);
+
+        $this->editingRoleId = (int) $role->getKey();
+        $this->roleName = $role->name;
+        $this->selectedPermissions = $role->permissions->pluck('name')->sort()->values()->all();
+        $this->resetValidation();
+        $this->dispatch('role-editor-opened');
+    }
+
+    public function saveRole(ManageRoleAccess $manageRoleAccess): void
+    {
+        $this->authorizeRoleManagement();
+        $this->roleName = Str::slug(mb_strtolower(trim($this->roleName)));
+        $catalogNames = collect(config('access-control.permissions', []))
+            ->flatMap(fn (array $group): array => array_keys($group))
+            ->values()
+            ->all();
+
+        $this->validate([
+            'roleName' => [
+                'required',
+                'string',
+                'min:3',
+                'max:80',
+                'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
+                Rule::notIn(config('access-control.protected_roles', [])),
+                Rule::unique('roles', 'name')->ignore($this->editingRoleId),
+            ],
+            'selectedPermissions' => ['required', 'array', 'min:1'],
+            'selectedPermissions.*' => ['string', Rule::in($catalogNames)],
+        ], [
+            'roleName.not_in' => 'Built-in portal role names are reserved.',
+            'selectedPermissions.required' => 'Select at least one permission for this role.',
+        ]);
+
+        $role = $this->editingRoleId === null
+            ? null
+            : Role::query()->findOrFail($this->editingRoleId);
+        $savedRole = $manageRoleAccess->saveCustomRole(
+            $this->administrator(),
+            $role,
+            $this->roleName,
+            array_values(array_unique($this->selectedPermissions)),
+        );
+
+        $this->successMessage = "Role {$savedRole->name} saved successfully.";
+        $this->resetRoleEditor();
+    }
+
+    public function deleteRole(int $roleId, ManageRoleAccess $manageRoleAccess): void
+    {
+        $role = Role::query()->findOrFail($roleId);
+        $name = $role->name;
+        $manageRoleAccess->deleteCustomRole($this->administrator(), $role);
+        $this->successMessage = "Role {$name} deleted successfully.";
+        $this->resetRoleEditor();
+    }
+
+    public function resetRoleEditor(): void
+    {
+        $this->reset(['editingRoleId', 'roleName', 'selectedPermissions']);
+        $this->resetValidation();
+        $this->dispatch('role-editor-closed');
+    }
+
+    public function openRoleAssignment(int $userId): void
+    {
+        $subject = User::query()->with('roles:id,name')->findOrFail($userId);
+        Gate::authorize('manageRoles', $subject);
+
+        $this->roleAssignmentUserId = (int) $subject->getKey();
+        $this->assignedRoles = $subject->roles->pluck('name')->sort()->values()->all();
+        $this->resetValidation();
+        $this->dispatch('role-assignment-opened');
+    }
+
+    public function saveUserRoles(ManageRoleAccess $manageRoleAccess): void
+    {
+        abort_if($this->roleAssignmentUserId === null, 404);
+        $subject = User::query()->findOrFail($this->roleAssignmentUserId);
+        Gate::authorize('manageRoles', $subject);
+        $availableRoles = Role::query()->where('guard_name', 'web')->pluck('name')->all();
+
+        $this->validate([
+            'assignedRoles' => ['required', 'array', 'min:1'],
+            'assignedRoles.*' => ['string', Rule::in($availableRoles)],
+        ]);
+
+        $manageRoleAccess->syncUserRoles(
+            $this->administrator(),
+            $subject,
+            array_values(array_unique($this->assignedRoles)),
+        );
+
+        $this->successMessage = "Roles for {$subject->name} updated successfully.";
+        $this->closeRoleAssignment();
+        $this->clearDashboardCache();
+    }
+
+    public function closeRoleAssignment(): void
+    {
+        $this->reset(['roleAssignmentUserId', 'assignedRoles']);
+        $this->resetValidation();
+        $this->dispatch('role-assignment-closed');
+    }
+
     public function render(GetAdminDashboardData $getAdminDashboardData)
     {
         $data = [
@@ -179,6 +296,7 @@ class AdminDashboard extends Component
             $this->dashboardData(),
             $this->userManagementData(),
             $getAdminDashboardData->get(),
+            $this->roleManagementData(),
         );
 
         return view('livewire.admin-dashboard-content', $data);
@@ -283,6 +401,43 @@ class AdminDashboard extends Component
         abort_unless($administrator instanceof User, 401);
 
         return $administrator;
+    }
+
+    /** @return array<string, mixed> */
+    private function roleManagementData(): array
+    {
+        $protected = config('access-control.protected_roles', []);
+
+        return [
+            'permissionCatalog' => config('access-control.permissions', []),
+            'rolesList' => Role::query()
+                ->where('guard_name', 'web')
+                ->withCount(['permissions', 'users'])
+                ->with('permissions:id,name')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (Role $role): array => [
+                    'id' => (int) $role->getKey(),
+                    'name' => $role->name,
+                    'label' => Str::headline($role->name),
+                    'permissions_count' => (int) $role->permissions_count,
+                    'users_count' => (int) $role->users_count,
+                    'protected' => in_array($role->name, $protected, true),
+                    'permissions' => $role->permissions->pluck('name')->sort()->values()->all(),
+                ]),
+            'roleAssignmentUser' => $this->roleAssignmentUserId === null
+                ? null
+                : User::query()->select(['id', 'name', 'email'])->find($this->roleAssignmentUserId),
+        ];
+    }
+
+    private function authorizeRoleManagement(): void
+    {
+        abort_unless(
+            $this->administrator()->can('roles.manage')
+            && $this->administrator()->can('permissions.manage'),
+            403,
+        );
     }
 
     private function clearDashboardCache(): void

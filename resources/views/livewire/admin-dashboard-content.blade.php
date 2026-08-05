@@ -108,7 +108,7 @@
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-shield-check text-lg"></i>
-                        <span>Permissions Management</span>
+                        <span>Roles &amp; Permissions</span>
                     </div>
                     <span x-show="activeTab === 'permissions'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
@@ -668,12 +668,9 @@
                                                 class="px-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300 appearance-none pr-10 relative"
                                             >
                                                 <option value="">All Roles</option>
-                                                <option value="system-administrator">Administrator</option>
-                                                <option value="college-dean">College Dean</option>
-                                                <option value="research-facilitator">Research Facilitator</option>
-                                                <option value="research-adviser">Research Adviser</option>
-                                                <option value="panelist">Panelist</option>
-                                                <option value="student-researcher">Student Researcher</option>
+                                                @foreach ($rolesList as $filterRole)
+                                                    <option value="{{ $filterRole['name'] }}">{{ $filterRole['label'] }}</option>
+                                                @endforeach
                                             </select>
 
                                             <!-- Refresh Button -->
@@ -771,28 +768,31 @@
                                                         <td class="px-6 py-4">
                                                             @if (auth()->id() === $user->id)
                                                                 <span class="text-xs font-bold text-gray-400">Current account</span>
-                                                            @elseif ($status === 'active')
-                                                                <button
-                                                                    type="button"
-                                                                    wire:click="suspendUser({{ $user->id }})"
-                                                                    wire:confirm="Suspend this account? The user will no longer be able to sign in."
-                                                                    wire:loading.attr="disabled"
-                                                                    wire:target="suspendUser({{ $user->id }})"
-                                                                    class="px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-xs font-bold text-amber-700 hover:bg-amber-100 disabled:opacity-50"
-                                                                >
-                                                                    Suspend
-                                                                </button>
                                                             @else
-                                                                <button
-                                                                    type="button"
-                                                                    wire:click="activateUser({{ $user->id }})"
-                                                                    wire:confirm="Activate this account?"
-                                                                    wire:loading.attr="disabled"
-                                                                    wire:target="activateUser({{ $user->id }})"
-                                                                    class="px-3 py-2 rounded-xl bg-[#0e5c3a] text-xs font-bold text-white hover:bg-[#0a4a2e] disabled:opacity-50"
-                                                                >
-                                                                    Activate
-                                                                </button>
+                                                                <div class="flex flex-wrap gap-2">
+                                                                    <button type="button" wire:click="openRoleAssignment({{ $user->id }})" class="px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-xs font-bold text-blue-700 hover:bg-blue-100">
+                                                                        Roles
+                                                                    </button>
+                                                                    @if ($status === 'active')
+                                                                        <button
+                                                                            type="button"
+                                                                            wire:click="suspendUser({{ $user->id }})"
+                                                                            wire:confirm="Suspend this account? The user will no longer be able to sign in."
+                                                                            wire:loading.attr="disabled"
+                                                                            wire:target="suspendUser({{ $user->id }})"
+                                                                            class="px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-xs font-bold text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                                                                        >Suspend</button>
+                                                                    @else
+                                                                        <button
+                                                                            type="button"
+                                                                            wire:click="activateUser({{ $user->id }})"
+                                                                            wire:confirm="Activate this account?"
+                                                                            wire:loading.attr="disabled"
+                                                                            wire:target="activateUser({{ $user->id }})"
+                                                                            class="px-3 py-2 rounded-xl bg-[#0e5c3a] text-xs font-bold text-white hover:bg-[#0a4a2e] disabled:opacity-50"
+                                                                        >Activate</button>
+                                                                    @endif
+                                                                </div>
                                                             @endif
                                                         </td>
                                                     </tr>
@@ -1009,8 +1009,10 @@
                     </div>
             </div>
 
-            <!-- TAB 3: PERMISSIONS MANAGEMENT VIEW -->
-            <div x-show="activeTab === 'permissions'" x-cloak class="space-y-8 animate-fade-in">
+            @include('admin.roles-permissions')
+
+            <!-- Legacy visual prototype retained temporarily but no longer reachable. -->
+            <div x-show="activeTab === 'legacy-permissions'" x-cloak class="space-y-8 animate-fade-in">
                 <!-- Title Section -->
                 <div>
                     <h1 class="text-3xl font-extrabold font-heading text-gray-800 tracking-tight">Permissions Management</h1>

@@ -19,11 +19,17 @@ class RolePermissionSeeder extends Seeder
             'panelist' => ['research.view-assigned', 'documents.download', 'defenses.view', 'evaluations.create', 'evaluations.view-own', 'evaluations.view-assigned'],
             'research-facilitator' => ['research.view-all', 'proposal.review', 'proposal.approve', 'documents.review', 'documents.download', 'revisions.create', 'defenses.view', 'defenses.manage', 'evaluations.view-assigned', 'reports.view', 'reports.export', 'notifications.broadcast', 'classes.create', 'classes.view-own', 'classes.manage-join-requests', 'classes.manage-groups', 'classes.assign-advisers'],
             'college-dean' => ['research.view-college', 'research.approve', 'proposal.approve', 'documents.download', 'defenses.view', 'evaluations.view-assigned', 'reports.view', 'reports.export'],
-            'system-administrator' => ['research.view-all', 'documents.download', 'documents.download-any', 'defenses.view', 'reports.view', 'reports.export', 'users.manage', 'audit-logs.view', 'settings.manage', 'notifications.broadcast'],
+            'system-administrator' => ['research.view-all', 'documents.download', 'documents.download-any', 'defenses.view', 'reports.view', 'reports.export', 'users.manage', 'roles.manage', 'permissions.manage', 'audit-logs.view', 'settings.manage', 'notifications.broadcast'],
         ];
 
         $timestamp = now();
-        $permissionNames = collect($matrix)->flatten()->unique()->values();
+        $catalogPermissions = collect(config('access-control.permissions', []))
+            ->flatMap(fn (array $group): array => array_keys($group));
+        $permissionNames = collect($matrix)
+            ->flatten()
+            ->merge($catalogPermissions)
+            ->unique()
+            ->values();
 
         Permission::query()->upsert(
             $permissionNames->map(fn (string $name) => [
