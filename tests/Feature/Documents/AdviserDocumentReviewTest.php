@@ -424,7 +424,7 @@ class AdviserDocumentReviewTest extends TestCase
     {
         Schema::disableForeignKeyConstraints();
 
-        foreach (['consultation_requests', 'adviser_assignments', 'research_projects', 'research_group_members', 'research_groups', 'student_profiles'] as $table) {
+        foreach (['research_milestones', 'consultation_requests', 'adviser_assignments', 'research_projects', 'research_group_members', 'research_groups', 'student_profiles'] as $table) {
             Schema::dropIfExists($table);
         }
 

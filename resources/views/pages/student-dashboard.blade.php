@@ -16,7 +16,7 @@
     $firstName = \Illuminate\Support\Str::before($student->name, ' ');
     $allowedTabs = ['dashboard', 'classes', 'research', 'proposal', 'progress', 'consultation', 'revisions', 'defense', 'evaluations', 'repository', 'forms', 'notifications', 'settings'];
     $initialTab = $activeDashboardTab ?? (in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard');
-    $showConsultationModal = $errors->hasAny(['consultation', 'request_token', 'preferred_at', 'consultation_mode', 'agenda']);
+    $showConsultationModal = request()->boolean('book') || $errors->hasAny(['consultation', 'request_token', 'preferred_at', 'consultation_mode', 'agenda']);
     $showJoinClassModal = $errors->hasAny(['class', 'join_code']);
     $officialFormPhases = $officialFormPhases ?? [];
     $officialForms = $officialForms ?? [];
@@ -364,7 +364,7 @@
                 @endif
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
+                    <button type="button" @click="activeTab = 'progress'" class="w-full text-left bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between cursor-pointer">
                         <div>
                             <span class="w-11 h-11 rounded-xl bg-emerald-50/80 text-[#0e5c3a] border border-emerald-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
                                 <i class="ph ph-trend-up"></i>
@@ -380,11 +380,11 @@
                             </p>
                         </div>
                         <span class="text-emerald-600 text-xl font-bold">
-                            <i class="ph ph-[#0e5c3a]"></i>
+                            <i class="ph ph-arrow-right"></i>
                         </span>
-                    </div>
+                    </button>
 
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
+                    <button type="button" @click="activeTab = @js($nextAction['tab'] ?? 'progress')" class="w-full text-left bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between cursor-pointer">
                         <div>
                             <span class="w-11 h-11 rounded-xl bg-red-50/80 text-red-700 border border-red-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
                                 <i class="ph ph-warning-circle"></i>
@@ -402,9 +402,9 @@
                         <span class="text-red-500 text-xl font-bold">
                             <i class="ph ph-warning"></i>
                         </span>
-                    </div>
+                    </button>
 
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
+                    <button type="button" @click="activeTab = 'consultation'" class="w-full text-left bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between cursor-pointer">
                         <div>
                             <span class="w-11 h-11 rounded-xl bg-blue-50/80 text-blue-700 border border-blue-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
                                 <i class="ph ph-calendar-blank"></i>
@@ -428,9 +428,9 @@
                         <span class="text-blue-500 text-xl font-bold">
                             <i class="ph ph-clock"></i>
                         </span>
-                    </div>
+                    </button>
 
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
+                    <button type="button" @click="activeTab = 'repository'" class="w-full text-left bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between cursor-pointer">
                         <div>
                             <span class="w-11 h-11 rounded-xl bg-purple-50/80 text-purple-700 border border-purple-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
                                 <i class="ph ph-file-text"></i>
@@ -442,7 +442,7 @@
                         <span class="text-purple-500 text-xl font-bold">
                             <i class="ph ph-files"></i>
                         </span>
-                    </div>
+                    </button>
                 </div>
 
                 <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
@@ -576,9 +576,9 @@
                                 </button>
                             @else
                                 <p class="text-sm text-blue-100 mt-4">No upcoming consultation is scheduled.</p>
-                                <button type="button" @click="activeTab = 'consultation'; showConsultationModal = true" class="w-full mt-4 py-3 bg-white text-blue-600 text-sm font-semibold rounded-xl">
+                                <a href="{{ route('student.dashboard', ['tab' => 'consultation', 'book' => 1]) }}" wire:navigate class="block w-full mt-4 py-3 bg-white text-blue-600 text-sm font-semibold text-center rounded-xl">
                                     Book Consultation
-                                </button>
+                                </a>
                             @endif
                         </div>
 

@@ -35,6 +35,9 @@ class GetStudentDashboardData
         $evaluations = $empty;
 
         $isDashboard = $activeTab === 'dashboard';
+        $searchQuery = $isDashboard
+            ? Str::limit(trim(is_string($dashboardSearch) ? $dashboardSearch : ''), 100, '')
+            : '';
         $needsProject = $isDashboard || in_array($activeTab, [
             'research',
             'proposal',
@@ -113,12 +116,44 @@ class GetStudentDashboardData
             );
         }
 
-        $documents = ($isDashboard || $activeTab === 'repository')
-            ? Document::query()
+        $documentCount = 0;
+        $pendingDocumentCount = 0;
+        $documents = $empty;
+        $documentsForSearch = $empty;
+
+        if ($isDashboard) {
+            $documentQuery = Document::query()->whereBelongsTo($user);
+            $documentCount = (clone $documentQuery)->count();
+            $pendingDocumentCount = (clone $documentQuery)
+                ->whereIn('status', ['pending', 'submitted', 'under_review'])
+                ->count();
+            $documents = $documentQuery
+                ->latest('submitted_at')
+                ->limit(5)
+                ->get();
+
+            if ($searchQuery !== '') {
+                $documentsForSearch = Document::query()
+                    ->whereBelongsTo($user)
+                    ->whereRaw('LOWER(original_filename) LIKE ?', ['%'.Str::lower($searchQuery).'%'])
+                    ->latest('submitted_at')
+                    ->limit(25)
+                    ->get();
+            }
+        } elseif ($activeTab === 'repository') {
+            $documents = Document::query()
                 ->whereBelongsTo($user)
                 ->latest('submitted_at')
-                ->get()
-            : $empty;
+                ->get();
+            $documentCount = $documents->count();
+            $pendingDocumentCount = $documents
+                ->filter(fn (Document $document): bool => in_array(
+                    $document->status->value,
+                    ['pending', 'submitted', 'under_review'],
+                    true,
+                ))
+                ->count();
+        }
 
         $notifications = $this->tableExists('notifications')
             ? $user->notifications()->latest()->limit(25)->get()
@@ -140,16 +175,15 @@ class GetStudentDashboardData
             $revisions,
             $defenses,
             $documents,
+            $documentCount,
+            $pendingDocumentCount,
         );
-        $searchQuery = $isDashboard
-            ? Str::limit(trim(is_string($dashboardSearch) ? $dashboardSearch : ''), 100, '')
-            : '';
         $dashboardSearchResults = $this->searchDashboardRecords(
             $searchQuery,
             $project,
             $milestones,
             $revisions,
-            $documents,
+            $documentsForSearch,
             $classes,
         );
 
@@ -559,6 +593,8 @@ class GetStudentDashboardData
         Collection $revisions,
         Collection $defenses,
         Collection $documents,
+        int $documentCount,
+        int $pendingDocumentCount,
     ): array {
         $completedStatuses = ['accepted', 'approved', 'completed', 'resolved'];
         $latestProgress = $progress
@@ -685,8 +721,6 @@ class GetStudentDashboardData
             ]);
         }
 
-        $pendingDocumentStatuses = ['pending', 'submitted', 'under_review'];
-
         return [
             'project' => $project,
             'progress_percentage' => max(0, min(100, $progressPercentage)),
@@ -695,14 +729,8 @@ class GetStudentDashboardData
             'current_milestones' => $milestones->take(4)->values(),
             'urgent_task_count' => $actionItems->count(),
             'action_items' => $actionItems->take(3)->values(),
-            'document_count' => $documents->count(),
-            'pending_document_count' => $documents
-                ->filter(fn (Document $document): bool => in_array(
-                    $document->status->value,
-                    $pendingDocumentStatuses,
-                    true,
-                ))
-                ->count(),
+            'document_count' => $documentCount,
+            'pending_document_count' => $pendingDocumentCount,
             'next_consultation' => $nextConsultation,
             'next_defense' => $nextDefense,
             'recent_updates' => $recentUpdates

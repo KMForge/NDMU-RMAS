@@ -20,7 +20,6 @@ return new class extends Migration
             $table->char('content_sha256', 64);
             $table->timestampTz('registered_at');
             $table->timestampsTz();
-
             $table->index(['user_id', 'registered_at']);
             $table->index('content_sha256');
         });
