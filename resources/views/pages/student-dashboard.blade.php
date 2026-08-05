@@ -210,7 +210,7 @@
                     <span>Settings</span>
                 </a>
             </div>
-            <form method="POST" action="{{ route('logout') }}">
+            <form method="POST" action="{{ route('logout') }}" onsubmit="return window.confirm('Are you sure you want to log out?')">
                 @csrf
                 <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-xl text-white/90 hover:bg-white/5 font-semibold text-[13px]">
                     <i class="ph ph-sign-out text-lg"></i>
@@ -255,6 +255,17 @@
         </header>
 
         <main class="flex-1 p-8">
+            <x-portal-feature-banner class="mb-8" :sections="[
+                'classes' => ['eyebrow' => 'Student Research Portal', 'title' => 'My Classes', 'description' => 'Join your Capstone class and view your approved class membership.', 'icon' => 'ph-users-three'],
+                'research' => ['eyebrow' => 'Student Research Portal', 'title' => 'My Research', 'description' => 'View your research profile, team, adviser, and project information.', 'icon' => 'ph-book-open'],
+                'proposal' => ['eyebrow' => 'Student Research Portal', 'title' => 'Research Proposal', 'description' => 'Prepare, submit, and track your research proposal documents.', 'icon' => 'ph-file-text'],
+                'progress' => ['eyebrow' => 'Student Research Portal', 'title' => 'Research Progress', 'description' => 'Follow every approved milestone in your research journey.', 'icon' => 'ph-chart-line-up'],
+                'consultation' => ['eyebrow' => 'Student Research Portal', 'title' => 'Consultation Records', 'description' => 'Book adviser consultations and review your consultation history.', 'icon' => 'ph-chats-circle'],
+                'revisions' => ['eyebrow' => 'Student Research Portal', 'title' => 'Revision Tracker', 'description' => 'Track requested revisions, deadlines, and resubmissions.', 'icon' => 'ph-note-pencil'],
+                'defense' => ['eyebrow' => 'Student Research Portal', 'title' => 'My Defense Schedule', 'description' => 'View your approved defense schedule, venue, and panel information.', 'icon' => 'ph-calendar-check'],
+                'evaluations' => ['eyebrow' => 'Student Research Portal', 'title' => 'Evaluation Results', 'description' => 'Review released evaluation results and panel feedback.', 'icon' => 'ph-clipboard-text'],
+                'repository' => ['eyebrow' => 'Student Research Portal', 'title' => 'Research Repository', 'description' => 'Securely view and download the research files available to you.', 'icon' => 'ph-folder-open'],
+            ]" />
             <form id="student-document-upload-form" method="POST" action="{{ route('student.documents.store') }}" enctype="multipart/form-data" class="hidden">
                 @csrf
                 <input type="hidden" name="submission_token" value="{{ (string) Illuminate\Support\Str::uuid() }}">

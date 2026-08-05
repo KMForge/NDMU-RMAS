@@ -135,7 +135,7 @@ class ResearchClassController extends Controller
     private function availableAdvisers(): Collection
     {
         return User::query()
-            ->role('research-adviser')
+            ->permission('classes.serve-as-adviser')
             ->where('status', 'active')
             ->whereNotNull('approved_at')
             ->orderBy('name')

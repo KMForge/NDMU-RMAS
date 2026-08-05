@@ -2,7 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Enums\UserType;
+use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -13,42 +16,98 @@ class RolePermissionSeeder extends Seeder
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $matrix = [
-            'student-researcher' => ['research.view-own', 'research.create', 'research.update-own', 'proposal.submit', 'documents.upload', 'documents.download', 'consultations.request', 'classes.join', 'classes.view-enrolled', 'revisions.resolve', 'defenses.view', 'evaluations.view-own'],
-            'research-adviser' => ['research.view-assigned', 'proposal.review', 'documents.upload', 'documents.review', 'documents.download', 'consultations.manage-assigned', 'revisions.create', 'revisions.resolve', 'defenses.view', 'evaluations.view-assigned', 'classes.view-assigned'],
-            'panelist' => ['research.view-assigned', 'documents.download', 'defenses.view', 'evaluations.create', 'evaluations.view-own', 'evaluations.view-assigned'],
-            'research-facilitator' => ['research.view-all', 'proposal.review', 'proposal.approve', 'documents.review', 'documents.download', 'revisions.create', 'defenses.view', 'defenses.manage', 'evaluations.view-assigned', 'reports.view', 'reports.export', 'notifications.broadcast', 'classes.create', 'classes.view-own', 'classes.manage-join-requests', 'classes.manage-groups', 'classes.assign-advisers'],
-            'college-dean' => ['research.view-college', 'research.approve', 'proposal.approve', 'documents.download', 'defenses.view', 'evaluations.view-assigned', 'reports.view', 'reports.export'],
-            'system-administrator' => ['research.view-all', 'documents.download', 'documents.download-any', 'defenses.view', 'reports.view', 'reports.export', 'users.manage', 'roles.manage', 'permissions.manage', 'audit-logs.view', 'settings.manage', 'notifications.broadcast'],
-        ];
-
-        $timestamp = now();
-        $catalogPermissions = collect(config('access-control.permissions', []))
-            ->flatMap(fn (array $group): array => array_keys($group));
-        $permissionNames = collect($matrix)
-            ->flatten()
-            ->merge($catalogPermissions)
-            ->unique()
-            ->values();
-
-        Permission::query()->upsert(
-            $permissionNames->map(fn (string $name) => [
-                'name' => $name,
-                'guard_name' => 'web',
-                'created_at' => $timestamp,
-                'updated_at' => $timestamp,
-            ])->all(),
-            ['name', 'guard_name'],
-            ['updated_at'],
-        );
-
-        foreach ($matrix as $roleName => $permissions) {
-            Role::query()->firstOrCreate([
-                'name' => $roleName,
-                'guard_name' => 'web',
-            ])->syncPermissions($permissions);
-        }
+        $this->seedPermissionCatalog();
+        $this->seedDefaultRoles();
+        $this->migrateLegacyAssignments();
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    private function seedPermissionCatalog(): void
+    {
+        $timestamp = now();
+        $rows = [];
+
+        foreach (config('access-control.permissions', []) as $module => $permissions) {
+            foreach ($permissions as $name => $metadata) {
+                $rows[] = [
+                    'name' => $name,
+                    'guard_name' => 'web',
+                    'display_name' => $metadata['label'] ?? Str::headline($name),
+                    'description' => $metadata['description'] ?? null,
+                    'module' => $module,
+                    'scope' => $metadata['scope'] ?? null,
+                    'created_at' => $timestamp,
+                    'updated_at' => $timestamp,
+                ];
+            }
+        }
+
+        Permission::query()->upsert(
+            $rows,
+            ['name', 'guard_name'],
+            ['display_name', 'description', 'module', 'scope', 'updated_at'],
+        );
+    }
+
+    private function seedDefaultRoles(): void
+    {
+        foreach (config('access-control.roles', []) as $name => $definition) {
+            $role = Role::query()->firstOrCreate(
+                ['name' => $name, 'guard_name' => 'web'],
+                [
+                    'display_name' => $definition['label'],
+                    'description' => $definition['description'],
+                    'is_system' => true,
+                    'is_assignable' => true,
+                ],
+            );
+
+            $role->forceFill([
+                'display_name' => $definition['label'],
+                'description' => $definition['description'],
+                'is_system' => true,
+                'is_assignable' => true,
+            ])->save();
+
+            // Defaults are installed once. Future seeding must not overwrite
+            // permission changes deliberately made by an administrator.
+            if ($role->wasRecentlyCreated) {
+                $role->syncPermissions($definition['permissions']);
+            }
+        }
+    }
+
+    private function migrateLegacyAssignments(): void
+    {
+        foreach (config('access-control.legacy_role_aliases', []) as $legacy => $canonical) {
+            $canonicalRole = Role::query()->where('name', $canonical)->where('guard_name', 'web')->firstOrFail();
+            $legacyRole = Role::query()->firstOrCreate(['name' => $legacy, 'guard_name' => 'web']);
+
+            $legacyRole->forceFill([
+                'display_name' => ($legacyRole->display_name ?: Str::headline($legacy)).' (Legacy)',
+                'description' => "Compatibility alias for {$canonicalRole->display_name}.",
+                'is_system' => true,
+                'is_assignable' => false,
+            ])->save();
+
+            // Add the current canonical capabilities so old sessions continue
+            // to work while user assignments are migrated safely.
+            $legacyRole->givePermissionTo($canonicalRole->permissions);
+
+            User::role($legacy)->with('roles')->each(function (User $user) use ($canonical, $legacy): void {
+                if (! $user->hasRole($canonical)) {
+                    $user->assignRole($canonical);
+                }
+
+                $user->removeRole($legacy);
+            });
+        }
+
+        User::query()->where('user_type', UserType::Faculty->value)->each(function (User $user): void {
+            if (! $user->hasRole('faculty')) {
+                $user->assignRole('faculty');
+            }
+        });
     }
 }

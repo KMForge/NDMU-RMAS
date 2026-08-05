@@ -9,7 +9,7 @@ use App\Http\Controllers\Student\RevisionRequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('student')->name('student.')->middleware([
-    'auth', 'verified', 'active', 'role:student-researcher', 'permission:research.view-own',
+    'auth', 'verified', 'active', 'permission:dashboards.student.view',
 ])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 

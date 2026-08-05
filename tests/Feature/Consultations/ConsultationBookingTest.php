@@ -105,7 +105,10 @@ class ConsultationBookingTest extends TestCase
     public function test_missing_permission_is_rejected(): void
     {
         [$student] = $this->studentWithProjectAndAdviser();
-        Role::findByName('student-researcher')->syncPermissions(['research.view-own']);
+        Role::findByName('student-researcher')->syncPermissions([
+            'dashboards.student.view',
+            'research.view-own',
+        ]);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $this->actingAs($student)

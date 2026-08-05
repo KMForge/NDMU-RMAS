@@ -17,7 +17,7 @@ class AssignAdviserToResearchClassGroup
         ResearchClassGroup $group,
         User $adviser,
     ): ResearchClassGroup {
-        if (! $adviser->hasRole('research-adviser') || ! $adviser->isActiveAndApproved()) {
+        if (! $adviser->can('classes.serve-as-adviser') || ! $adviser->isActiveAndApproved()) {
             throw new ClassOperationException('Select an active and approved research adviser.');
         }
 

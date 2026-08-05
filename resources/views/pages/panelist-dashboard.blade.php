@@ -584,7 +584,7 @@
                 </a>
 
                 <!-- Logout -->
-                <form method="POST" action="{{ route('logout') }}" class="block">
+                <form method="POST" action="{{ route('logout') }}" class="block" onsubmit="return window.confirm('Are you sure you want to log out?')">
                     @csrf
                     <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200 text-left cursor-pointer">
                         <i class="ph ph-sign-out text-lg"></i>
@@ -637,6 +637,14 @@
 
         <!-- Main Body Content -->
         <main class="flex-grow p-8">
+            <x-portal-feature-banner class="mb-8" :sections="[
+                'assigned-papers' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Assigned Papers', 'description' => 'Access the research papers assigned to you for review.', 'icon' => 'ph-files'],
+                'proposal-eval' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Proposal Evaluation', 'description' => 'Evaluate assigned proposal defenses using the approved criteria.', 'icon' => 'ph-clipboard-text'],
+                'final-eval' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Final Evaluation', 'description' => 'Record final-defense scores and evidence-based feedback.', 'icon' => 'ph-medal'],
+                'recommendations' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Recommendations', 'description' => 'Review and manage recommendations issued to research groups.', 'icon' => 'ph-lightbulb'],
+                'schedule' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Defense Schedule', 'description' => 'View your assigned defense dates, venues, and research groups.', 'icon' => 'ph-calendar-check'],
+                'repository' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Research Repository', 'description' => 'Securely access research documents assigned to your panel.', 'icon' => 'ph-folder-open'],
+            ]" />
             
             <!-- TAB: Dashboard (Active Default) -->
             <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">

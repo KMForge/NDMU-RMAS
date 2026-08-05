@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\AccountStatus;
+use App\Enums\UserType;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -85,10 +86,11 @@ class AllUsersSeeder extends Seeder
                 'status' => AccountStatus::Active,
                 'approved_at' => now(),
                 'email_verified_at' => now(),
+                'user_type' => UserType::Admin,
             ],
         );
 
-        $administrator->syncRoles('system-administrator');
+        $administrator->syncRoles('administrator');
     }
 
     private function seedStaffAccounts(): void
@@ -118,10 +120,11 @@ class AllUsersSeeder extends Seeder
                     'approved_at' => now()->subMonths(6),
                     'email_verified_at' => now()->subMonths(6),
                     'department' => $department,
+                    'user_type' => $role === 'system-administrator' ? UserType::Admin : UserType::Faculty,
                 ],
             );
 
-            $user->syncRoles($role);
+            $this->assignMigratedRoles($user, $role);
         }
     }
 
@@ -147,10 +150,11 @@ class AllUsersSeeder extends Seeder
                     'status' => AccountStatus::Pending,
                     'approved_at' => null,
                     'email_verified_at' => now()->subDays(5),
+                    'user_type' => UserType::Student,
                 ],
             );
 
-            $user->syncRoles('student-researcher');
+            $user->syncRoles('student');
         }
     }
 
@@ -170,10 +174,11 @@ class AllUsersSeeder extends Seeder
                     'status' => AccountStatus::Active,
                     'approved_at' => now()->subDays(10),
                     'email_verified_at' => now()->subDays(10),
+                    'user_type' => UserType::Student,
                 ],
             );
 
-            $user->syncRoles('student-researcher');
+            $user->syncRoles('student');
         }
     }
 
@@ -188,10 +193,24 @@ class AllUsersSeeder extends Seeder
                 'status' => AccountStatus::Active,
                 'approved_at' => now(),
                 'email_verified_at' => now(),
+                'user_type' => UserType::Student,
             ],
         );
 
-        $user->syncRoles('student-researcher');
+        $user->syncRoles('student');
+    }
+
+    private function assignMigratedRoles(User $user, string $legacyRole): void
+    {
+        $canonical = config("access-control.legacy_role_aliases.{$legacyRole}", $legacyRole);
+
+        if ($canonical === 'administrator') {
+            $user->syncRoles($canonical);
+
+            return;
+        }
+
+        $user->syncRoles(array_values(array_unique(['faculty', $canonical])));
     }
 
     private function passwordFor(string $email): string

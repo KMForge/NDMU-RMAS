@@ -34,8 +34,8 @@ class GetAdminDashboardData
             'defensesList' => $this->defensesList(),
             'repositoryList' => $this->repositoryList(),
             'proposalsList' => $this->proposalsList(),
-            'adviserOptions' => $this->staffOptions('research-adviser'),
-            'panelistOptions' => $this->staffOptions('panelist'),
+            'adviserOptions' => $this->staffOptions('classes.serve-as-adviser'),
+            'panelistOptions' => $this->staffOptions('evaluations.create'),
             'pendingActions' => $this->pendingActions(),
             'securityOverview' => $this->securityOverview(),
             'systemHealth' => $this->systemHealth(),
@@ -48,7 +48,10 @@ class GetAdminDashboardData
     private function pendingActions(): array
     {
         $pendingStudents = User::query()
-            ->role('student-researcher')
+            ->where(function ($query): void {
+                $query->where('user_type', 'student')
+                    ->orWhereHas('roles', fn ($roles) => $roles->where('name', 'student-researcher'));
+            })
             ->where('status', 'pending')
             ->count();
         $pendingDocuments = $this->tableExists('documents')
@@ -360,12 +363,15 @@ class GetAdminDashboardData
     private function staffList(): array
     {
         return User::query()
-            ->role(['research-adviser', 'research-facilitator'])
+            ->whereHas('roles.permissions', fn ($query) => $query->whereIn('name', [
+                'classes.serve-as-adviser',
+                'dashboards.facilitator.view',
+            ]))
             ->with(['roles:id,name', 'permissions:id,name'])
             ->orderBy('name')
             ->get()
             ->map(function (User $user): array {
-                $role = $user->hasRole('research-adviser')
+                $role = $user->can('classes.serve-as-adviser')
                     ? 'Research Adviser'
                     : 'Research Facilitator';
                 $capabilities = [
@@ -604,10 +610,10 @@ class GetAdminDashboardData
     /**
      * @return array<int, string>
      */
-    private function staffOptions(string $role): array
+    private function staffOptions(string $permission): array
     {
         return User::query()
-            ->role($role)
+            ->permission($permission)
             ->where('status', 'active')
             ->orderBy('name')
             ->pluck('name')

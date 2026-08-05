@@ -2,6 +2,7 @@
 
 namespace App\Modules\UserManagement\Actions;
 
+use App\Enums\UserType;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -19,10 +20,20 @@ class ManageRoleAccess
         $this->authorizeManager($actor);
         $this->ensureCatalogPermissions($permissions);
 
-        if ($role !== null && $this->isProtected($role->name)) {
+        if ($role !== null && $this->isProtected($role->name) && $name !== $role->name) {
             throw ValidationException::withMessages([
-                'roleName' => 'Built-in portal roles cannot be modified here.',
+                'roleName' => 'The protected administrator role cannot be renamed.',
             ]);
+        }
+
+        if ($role?->name === 'administrator') {
+            $required = ['dashboards.admin.view', 'users.manage', 'roles.manage', 'permissions.manage'];
+
+            if (collect($required)->diff($permissions)->isNotEmpty()) {
+                throw ValidationException::withMessages([
+                    'selectedPermissions' => 'Administrator must retain dashboard, user, role, and permission management access.',
+                ]);
+            }
         }
 
         return DB::transaction(function () use ($actor, $role, $name, $permissions): Role {
@@ -34,6 +45,8 @@ class ManageRoleAccess
             $role ??= new Role(['guard_name' => 'web']);
             $role->name = $name;
             $role->guard_name = 'web';
+            $role->display_name = $role->display_name ?: str($name)->headline()->toString();
+            $role->is_assignable = true;
             $role->save();
             $role->syncPermissions($permissions);
 
@@ -79,7 +92,7 @@ class ManageRoleAccess
     /**
      * @param  list<string>  $roles
      */
-    public function syncUserRoles(User $actor, User $subject, array $roles): User
+    public function syncUserRoles(User $actor, User $subject, array $roles, UserType $userType): User
     {
         $this->authorizeManager($actor);
 
@@ -101,30 +114,36 @@ class ManageRoleAccess
             ]);
         }
 
-        $protectedRoles = config('access-control.protected_roles', []);
-
-        if (collect($validRoles)->intersect($protectedRoles)->isEmpty()) {
+        if ($validRoles === []) {
             throw ValidationException::withMessages([
-                'assignedRoles' => 'Every account must retain one primary portal role.',
+                'assignedRoles' => 'Every account must retain at least one access role.',
             ]);
         }
 
         if (
-            $subject->hasRole('system-administrator')
-            && ! in_array('system-administrator', $validRoles, true)
-            && User::role('system-administrator')->count() <= 1
+            $subject->can('roles.manage')
+            && ! Role::query()->whereIn('name', $validRoles)
+                ->whereHas('permissions', fn ($query) => $query->where('name', 'roles.manage'))
+                ->exists()
+            && User::permission('roles.manage')->count() <= 1
         ) {
             throw ValidationException::withMessages([
-                'assignedRoles' => 'The last system administrator role cannot be removed.',
+                'assignedRoles' => 'The last access-control administrator cannot lose role management access.',
             ]);
         }
 
-        return DB::transaction(function () use ($actor, $subject, $validRoles): User {
+        return DB::transaction(function () use ($actor, $subject, $validRoles, $userType): User {
             $oldRoles = $subject->roles()->pluck('name')->sort()->values()->all();
+            $oldUserType = $subject->user_type->value;
+            $subject->forceFill(['user_type' => $userType])->save();
             $subject->syncRoles($validRoles);
             app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-            $this->audit($actor, $subject, 'user.roles-updated', ['roles' => $oldRoles], [
+            $this->audit($actor, $subject, 'user.access-updated', [
+                'user_type' => $oldUserType,
+                'roles' => $oldRoles,
+            ], [
+                'user_type' => $userType->value,
                 'roles' => collect($validRoles)->sort()->values()->all(),
             ]);
 

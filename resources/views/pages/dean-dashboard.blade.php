@@ -458,7 +458,7 @@
                 </a>
 
                 <!-- Logout -->
-                <form method="POST" action="{{ route('logout') }}" class="block">
+                <form method="POST" action="{{ route('logout') }}" class="block" onsubmit="return window.confirm('Are you sure you want to log out?')">
                     @csrf
                     <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200 text-left cursor-pointer">
                         <i class="ph ph-sign-out text-lg"></i>
@@ -511,6 +511,14 @@
 
         <!-- Main Body Content -->
         <main class="flex-grow p-8 space-y-8">
+            <x-portal-feature-banner :sections="[
+                'pending' => ['eyebrow' => 'College Dean Portal', 'title' => 'Pending Approvals', 'description' => 'Review research matters that require college-level approval.', 'icon' => 'ph-hourglass-medium'],
+                'manuscript' => ['eyebrow' => 'College Dean Portal', 'title' => 'Manuscript Review', 'description' => 'Review authorized manuscripts and associated recommendations.', 'icon' => 'ph-file-search'],
+                'schedule' => ['eyebrow' => 'College Dean Portal', 'title' => 'Defense Schedule', 'description' => 'View and oversee scheduled research defenses.', 'icon' => 'ph-calendar-check'],
+                'appointments' => ['eyebrow' => 'College Dean Portal', 'title' => 'Appointments', 'description' => 'Review research personnel appointments and assignments.', 'icon' => 'ph-user-focus'],
+                'reports' => ['eyebrow' => 'College Dean Portal', 'title' => 'College Reports', 'description' => 'Review research performance and compliance across CEAC.', 'icon' => 'ph-presentation-chart'],
+                'repository' => ['eyebrow' => 'College Dean Portal', 'title' => 'Research Repository', 'description' => 'Access authorized college research records and documents.', 'icon' => 'ph-folder-open'],
+            ]" />
             
             <!-- TAB: Dashboard (Active Default) -->
             <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">

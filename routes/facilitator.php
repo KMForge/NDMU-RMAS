@@ -7,7 +7,7 @@ use App\Http\Controllers\Facilitator\ResearchClassGroupController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('facilitator')->name('facilitator.')->middleware([
-    'auth', 'verified', 'active', 'role:research-facilitator', 'permission:defenses.manage',
+    'auth', 'verified', 'active', 'permission:dashboards.facilitator.view',
 ])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 

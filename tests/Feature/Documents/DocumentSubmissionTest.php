@@ -144,7 +144,10 @@ class DocumentSubmissionTest extends TestCase
     public function test_missing_upload_permission_is_rejected_and_audited(): void
     {
         $user = $this->student();
-        Role::findByName('student-researcher')->syncPermissions(['research.view-own']);
+        Role::findByName('student-researcher')->syncPermissions([
+            'dashboards.student.view',
+            'research.view-own',
+        ]);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $this->actingAs($user)->postJson(route('student.documents.store'), [

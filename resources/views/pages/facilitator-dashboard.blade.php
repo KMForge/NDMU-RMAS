@@ -1140,7 +1140,7 @@
                 </a>
 
                 <!-- Logout -->
-                <form method="POST" action="{{ route('logout') }}" class="block">
+                <form method="POST" action="{{ route('logout') }}" class="block" onsubmit="return window.confirm('Are you sure you want to log out?')">
                     @csrf
                     <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200 text-left cursor-pointer">
                         <i class="ph ph-sign-out text-lg"></i>
@@ -1193,6 +1193,17 @@
 
         <!-- Main Body Content -->
         <main class="flex-grow p-8 space-y-8">
+            <x-portal-feature-banner :sections="[
+                'classes' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Capstone Classes', 'description' => 'Create classes, organize research groups, and assign advisers.', 'icon' => 'ph-chalkboard-teacher'],
+                'join-requests' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Join Requests', 'description' => 'Approve or reject student requests before they enter a class.', 'icon' => 'ph-user-plus'],
+                'monitoring' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Research Monitoring', 'description' => 'Monitor milestones and academic progress across all groups.', 'icon' => 'ph-chart-line-up'],
+                'advisers' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Adviser Assignments', 'description' => 'Manage adviser assignments and research-group responsibilities.', 'icon' => 'ph-users-four'],
+                'screening' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Proposal Screening', 'description' => 'Screen submitted proposals before the next review stage.', 'icon' => 'ph-file-search'],
+                'defenses' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Defense Management', 'description' => 'Coordinate defense requests, schedules, rooms, and panels.', 'icon' => 'ph-calendar-check'],
+                'statistics' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Research Statistics', 'description' => 'Review current research activity and program-level outcomes.', 'icon' => 'ph-chart-bar'],
+                'reports' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Reports & Analytics', 'description' => 'Generate and review operational research reports.', 'icon' => 'ph-presentation-chart'],
+                'repository' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Research Repository', 'description' => 'Access authorized research records and submitted files.', 'icon' => 'ph-folder-open'],
+            ]" />
 
             <!-- TAB: Capstone Classes -->
             <div x-show="activeTab === 'classes'" x-cloak>

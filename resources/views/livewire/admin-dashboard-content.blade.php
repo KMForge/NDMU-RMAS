@@ -1,5 +1,4 @@
 {{-- Livewire UI rendered by the AdminDashboard component. --}}
-<style>[x-cloak] { display: none !important; }</style>
 <div
     class="min-h-screen flex font-sans bg-[#f4f7f6]"
     x-data="{
@@ -43,7 +42,10 @@
     panelistOptions: @js($panelistOptions)
 }"
     @staff-account-created.window="activeTab = 'users'; userManagementTab = 'all-users'"
+    x-on:role-editor-opened.window="activeTab = 'permissions'; $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))"
+    x-on:role-editor-closed.window="activeTab = 'permissions'; $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))"
 >
+    <style>[x-cloak] { display: none !important; }</style>
     <!-- Left Sidebar: Navigation -->
     <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5">
         <div class="flex-shrink-0">
@@ -191,13 +193,15 @@
 
                 <button 
                     type="button"
-                    @click="alert('System settings are configured automatically.')"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]"
+                    @click="activeTab = 'settings'"
+                    :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]"
                 >
                     <div class="flex items-center gap-3">
                         <i class="ph ph-gear text-lg"></i>
                         <span>System Settings</span>
                     </div>
+                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
             </div>
         </div>
@@ -211,11 +215,11 @@
                 </a>
                 
                 <!-- Real Logout Form -->
-                <form method="POST" action="{{ route('logout') }}" id="logout-form" class="hidden">
+                <form method="POST" action="{{ route('logout') }}" id="logout-form" class="hidden" onsubmit="return window.confirm('Are you sure you want to log out?')">
                     @csrf
                 </form>
                 <a href="#" 
-                   onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
+                   onclick="event.preventDefault(); document.getElementById('logout-form').requestSubmit();"
                    class="flex items-center gap-3 px-3 py-2 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200">
                     <i class="ph ph-sign-out text-lg"></i>
                     <span>Logout</span>
@@ -266,6 +270,15 @@
 
         <!-- Dynamic Content Body -->
         <main class="flex-grow px-10 py-8 w-full">
+            <x-portal-feature-banner class="mb-8" :sections="[
+                'users' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'User Management', 'description' => 'Manage accounts, approve registrations, and assign reusable roles.', 'icon' => 'ph-users-three'],
+                'research' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Research Management', 'description' => 'Oversee research records, assignments, and approval activity.', 'icon' => 'ph-book-open'],
+                'defenses' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Defense Scheduling', 'description' => 'Coordinate defense requests, schedules, rooms, and panels.', 'icon' => 'ph-calendar-check'],
+                'repository' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Research Repository', 'description' => 'Administer secure research records and document access.', 'icon' => 'ph-folder-open'],
+                'forms' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Forms Management', 'description' => 'Manage official form availability, records, and workflow status.', 'icon' => 'ph-file-text'],
+                'reports' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Reports & Analytics', 'description' => 'Review operational metrics and research-system outcomes.', 'icon' => 'ph-chart-bar'],
+                'audit' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Audit Logs', 'description' => 'Review security-relevant and administrative activity.', 'icon' => 'ph-list-magnifying-glass'],
+            ]" />
             <!-- Alert / Success Notification Banner -->
             @if ($successMessage)
                 <div class="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-center gap-3 shadow-sm animate-fade-in relative" x-data="{ show: true }" x-show="show">
@@ -693,6 +706,7 @@
                                                 <tr>
                                                     <th scope="col" class="px-6 py-4">Name</th>
                                                     <th scope="col" class="px-6 py-4">Email</th>
+                                                    <th scope="col" class="px-6 py-4">Type</th>
                                                     <th scope="col" class="px-6 py-4">Role</th>
                                                     <th scope="col" class="px-6 py-4">Status</th>
                                                     <th scope="col" class="px-6 py-4">Department</th>
@@ -714,6 +728,12 @@
                                                         <!-- Email -->
                                                         <td class="px-6 py-4">{{ $user->email }}</td>
 
+                                                        <td class="px-6 py-4">
+                                                            <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-700">
+                                                                {{ $user->user_type->label() }}
+                                                            </span>
+                                                        </td>
+
                                                         <!-- Role Badges -->
                                                         <td class="px-6 py-4">
                                                             <div class="flex flex-wrap gap-1">
@@ -727,9 +747,7 @@
                                                                             'panelist' => 'bg-purple-50 text-purple-700 border-purple-100',
                                                                             default => 'bg-gray-50 text-gray-700 border-gray-100',
                                                                         };
-                                                                        $roleLabel = str($assignedRole->name === 'system-administrator' ? 'Administrator' : $assignedRole->name)
-                                                                            ->replace('-', ' ')
-                                                                            ->title();
+                                                                        $roleLabel = $assignedRole->display_name ?: str($assignedRole->name)->replace('-', ' ')->title();
                                                                     @endphp
                                                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border {{ $roleBadgeClass }}">
                                                                         {{ $roleLabel }}
@@ -940,10 +958,9 @@
                                                     class="w-full pl-11 pr-10 py-3.5 bg-white border @error('role') border-red-300 focus:border-red-500 focus:ring-red-500/5 @else border-gray-200 focus:border-[#0e5c3a] focus:ring-[#0e5c3a]/5 @enderror rounded-2xl text-sm focus:outline-none focus:ring-4 transition-all duration-300 appearance-none"
                                                 >
                                                     <option value="">Select role</option>
-                                                    <option value="research-adviser">Research Adviser</option>
-                                                    <option value="panelist">Panelist</option>
-                                                    <option value="research-facilitator">Research Facilitator</option>
-                                                    <option value="college-dean">College Dean</option>
+                                                    @foreach ($staffRoleOptions as $staffRole)
+                                                        <option value="{{ $staffRole['name'] }}">{{ $staffRole['label'] }}</option>
+                                                    @endforeach
                                                 </select>
                                                 <span class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 pointer-events-none">
                                                     <i class="ph ph-caret-down text-base"></i>
@@ -2423,6 +2440,122 @@
                         @endforelse
                     </div>
                 </div>
+            </div>
+
+            <!-- TAB 10: SYSTEM SETTINGS -->
+            <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
+                <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                    <div>
+                        <h1 class="text-3xl font-extrabold font-heading text-gray-800 tracking-tight">System Settings</h1>
+                        <p class="mt-1 text-sm font-light text-gray-500">Manage protected institutional and academic configuration.</p>
+                    </div>
+                    @if ($systemSettingsUpdatedAt)
+                        <p class="text-xs font-semibold text-gray-400">Last saved {{ \Illuminate\Support\Carbon::parse($systemSettingsUpdatedAt)->diffForHumans() }}</p>
+                    @endif
+                </div>
+
+                <form wire:submit="saveSystemSettings" class="space-y-6">
+                    <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                        <section class="rounded-[2rem] border border-gray-100 bg-white p-7 shadow-sm">
+                            <div class="mb-6 flex items-center gap-3">
+                                <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-xl text-[#0e5c3a]"><i class="ph ph-buildings"></i></div>
+                                <div>
+                                    <h2 class="font-heading text-lg font-extrabold text-gray-800">Institutional Identity</h2>
+                                    <p class="text-xs text-gray-500">Names and contact information shown by the system.</p>
+                                </div>
+                            </div>
+
+                            <div class="space-y-5">
+                                <div>
+                                    <label for="settings-system-name" class="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-600">System Name</label>
+                                    <input id="settings-system-name" type="text" wire:model="settingsSystemName" maxlength="150" class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm focus:border-[#0e5c3a] focus:outline-none focus:ring-4 focus:ring-[#0e5c3a]/5">
+                                    @error('settingsSystemName') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-600">College</label>
+                                    <input type="text" value="{{ config('academic.college.name') }}" readonly class="w-full cursor-not-allowed rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500">
+                                    <p class="mt-1 text-[11px] text-gray-400">NDMU-RMAS is scoped to this single college.</p>
+                                </div>
+                                <div>
+                                    <label for="settings-support-email" class="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-600">Support Email</label>
+                                    <input id="settings-support-email" type="email" wire:model="settingsSupportEmail" maxlength="255" class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm focus:border-[#0e5c3a] focus:outline-none focus:ring-4 focus:ring-[#0e5c3a]/5">
+                                    @error('settingsSupportEmail') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="rounded-[2rem] border border-gray-100 bg-white p-7 shadow-sm">
+                            <div class="mb-6 flex items-center gap-3">
+                                <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-xl text-amber-600"><i class="ph ph-calendar-dots"></i></div>
+                                <div>
+                                    <h2 class="font-heading text-lg font-extrabold text-gray-800">Current Academic Cycle</h2>
+                                    <p class="text-xs text-gray-500">Select the year and term used by active research workflows.</p>
+                                </div>
+                            </div>
+
+                            <div class="space-y-5">
+                                <div>
+                                    <label for="settings-academic-year" class="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-600">Academic Year</label>
+                                    <select id="settings-academic-year" wire:model.live="settingsAcademicYearId" class="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm focus:border-[#0e5c3a] focus:outline-none focus:ring-4 focus:ring-[#0e5c3a]/5">
+                                        <option value="">No active academic year</option>
+                                        @foreach ($academicYears as $academicYear)
+                                            <option value="{{ $academicYear->id }}">{{ $academicYear->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('settingsAcademicYearId') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label for="settings-academic-term" class="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-600">Academic Term</label>
+                                    <select id="settings-academic-term" wire:model="settingsAcademicTermId" @disabled($settingsAcademicYearId === null) class="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm disabled:cursor-not-allowed disabled:bg-gray-50 focus:border-[#0e5c3a] focus:outline-none focus:ring-4 focus:ring-[#0e5c3a]/5">
+                                        <option value="">Select a term</option>
+                                        @foreach ($academicYears->firstWhere('id', $settingsAcademicYearId)?->terms ?? collect() as $academicTerm)
+                                            <option value="{{ $academicTerm->id }}">{{ $academicTerm->name }} · {{ $academicTerm->starts_at->format('M j') }}–{{ $academicTerm->ends_at->format('M j, Y') }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('settingsAcademicTermId') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                                @if ($academicYears->isEmpty())
+                                    <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-800">No academic years exist yet. Seed or create an academic year before selecting the active cycle.</div>
+                                @endif
+                            </div>
+                        </section>
+                    </div>
+
+                    <section class="rounded-[2rem] border border-gray-100 bg-white p-7 shadow-sm">
+                        <div class="mb-6 flex items-center gap-3">
+                            <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-xl text-blue-600"><i class="ph ph-sliders-horizontal"></i></div>
+                            <div>
+                                <h2 class="font-heading text-lg font-extrabold text-gray-800">Platform Controls</h2>
+                                <p class="text-xs text-gray-500">Control user-facing services without changing source code.</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                            <label class="flex cursor-pointer items-start justify-between gap-4 rounded-2xl border border-gray-200 p-5">
+                                <span><span class="block text-sm font-bold text-gray-800">Student Registration</span><span class="mt-1 block text-xs leading-5 text-gray-500">Allow new student registration requests.</span></span>
+                                <input type="checkbox" wire:model="settingsStudentRegistrationEnabled" class="mt-1 h-5 w-5 rounded border-gray-300 text-[#0e5c3a] focus:ring-[#0e5c3a]">
+                            </label>
+                            <label class="flex cursor-pointer items-start justify-between gap-4 rounded-2xl border border-gray-200 p-5">
+                                <span><span class="block text-sm font-bold text-gray-800">Email Notifications</span><span class="mt-1 block text-xs leading-5 text-gray-500">Allow workflow notifications to be delivered by email.</span></span>
+                                <input type="checkbox" wire:model="settingsEmailNotificationsEnabled" class="mt-1 h-5 w-5 rounded border-gray-300 text-[#0e5c3a] focus:ring-[#0e5c3a]">
+                            </label>
+                        </div>
+
+                        <div class="mt-5">
+                            <label for="settings-maintenance-notice" class="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-600">Maintenance Notice</label>
+                            <textarea id="settings-maintenance-notice" wire:model="settingsMaintenanceNotice" maxlength="500" rows="3" placeholder="Leave blank when there is no maintenance announcement." class="w-full resize-none rounded-2xl border border-gray-200 px-4 py-3 text-sm focus:border-[#0e5c3a] focus:outline-none focus:ring-4 focus:ring-[#0e5c3a]/5"></textarea>
+                            @error('settingsMaintenanceNotice') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                    </section>
+
+                    <div class="flex justify-end">
+                        <button type="submit" wire:loading.attr="disabled" wire:target="saveSystemSettings" class="inline-flex items-center gap-2 rounded-2xl bg-[#0e5c3a] px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#0a4a2e] disabled:cursor-wait disabled:opacity-60">
+                            <i class="ph ph-floppy-disk"></i>
+                            <span wire:loading.remove wire:target="saveSystemSettings">Save System Settings</span>
+                            <span wire:loading wire:target="saveSystemSettings">Saving…</span>
+                        </button>
+                    </div>
+                </form>
             </div>
 
             <!-- SCHEDULE NEW DEFENSE MODAL -->

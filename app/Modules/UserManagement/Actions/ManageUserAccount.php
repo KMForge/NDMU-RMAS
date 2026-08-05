@@ -3,6 +3,7 @@
 namespace App\Modules\UserManagement\Actions;
 
 use App\Enums\AccountStatus;
+use App\Enums\UserType;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -12,7 +13,7 @@ class ManageUserAccount
 {
     public function approveStudent(User $student, User $actor): User
     {
-        if (! $student->hasRole('student-researcher')) {
+        if ($student->user_type !== UserType::Student && ! $student->hasRole('student-researcher')) {
             throw ValidationException::withMessages([
                 'account' => 'Only student researcher accounts can be approved here.',
             ]);
@@ -25,7 +26,7 @@ class ManageUserAccount
 
     public function rejectStudent(User $student, User $actor): User
     {
-        if (! $student->hasRole('student-researcher')) {
+        if ($student->user_type !== UserType::Student && ! $student->hasRole('student-researcher')) {
             throw ValidationException::withMessages([
                 'account' => 'Only student researcher accounts can be rejected here.',
             ]);
@@ -43,7 +44,7 @@ class ManageUserAccount
 
     public function suspend(User $user, User $actor): User
     {
-        if ($user->hasRole('system-administrator') && User::role('system-administrator')
+        if ($user->can('roles.manage') && User::permission('roles.manage')
             ->where('status', AccountStatus::Active)
             ->count() <= 1) {
             throw ValidationException::withMessages([
@@ -67,6 +68,7 @@ class ManageUserAccount
                 'status' => AccountStatus::Active,
                 'approved_at' => now(),
                 'email_verified_at' => now(),
+                'user_type' => UserType::Faculty,
                 'department' => $attributes['department'],
             ]);
 

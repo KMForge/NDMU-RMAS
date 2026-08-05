@@ -2,22 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\UserRole;
 use App\Models\User;
+use App\Modules\Authorization\Services\ResolveUserDashboard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request): RedirectResponse
+    public function __invoke(Request $request, ResolveUserDashboard $dashboard): RedirectResponse
     {
         /** @var User $user */
         $user = $request->user();
 
-        $role = UserRole::highestFor($user);
+        $route = $dashboard->routeFor($user);
 
-        abort_if($role === null, 403, 'No dashboard is assigned to this account.');
+        abort_if($route === null, 403, 'No dashboard is assigned to this account.');
 
-        return redirect()->route($role->dashboardRoute());
+        return redirect()->route($route);
     }
 }

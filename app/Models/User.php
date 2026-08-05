@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AccountStatus;
+use App\Enums\UserType;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -14,7 +15,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'status', 'approved_at', 'student_id', 'program', 'year_level', 'department'])]
+#[Fillable(['name', 'email', 'password', 'status', 'approved_at', 'user_type', 'student_id', 'program', 'year_level', 'department'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -51,6 +52,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'approved_at' => 'datetime',
             'password' => 'hashed',
             'status' => AccountStatus::class,
+            'user_type' => UserType::class,
         ];
     }
 }

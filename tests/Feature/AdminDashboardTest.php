@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Enums\AccountStatus;
 use App\Livewire\AdminDashboard;
+use App\Models\SystemSetting;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -43,6 +45,14 @@ class AdminDashboardTest extends TestCase
 
         $response = $this->actingAs($admin)->get(route('admin.dashboard'));
         $response->assertOk();
+
+        $document = new \DOMDocument;
+        @$document->loadHTML($response->getContent());
+        $livewireRoots = collect(iterator_to_array($document->getElementsByTagName('*')))
+            ->filter(fn (\DOMElement $element): bool => $element->hasAttribute('wire:id'));
+
+        $this->assertCount(1, $livewireRoots);
+        $this->assertSame('div', $livewireRoots->first()->tagName);
     }
 
     public function test_admin_can_render_the_user_management_tab(): void
@@ -64,6 +74,55 @@ class AdminDashboardTest extends TestCase
             ->assertSee('Private Storage')
             ->assertSee('Administrator')
             ->assertSee('Temporary Password');
+    }
+
+    public function test_admin_can_render_and_save_system_settings(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+
+        $academicYearId = DB::table('academic_years')->insertGetId([
+            'name' => '2026–2027',
+            'starts_at' => '2026-08-01',
+            'ends_at' => '2027-05-31',
+            'is_current' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $academicTermId = DB::table('academic_terms')->insertGetId([
+            'academic_year_id' => $academicYearId,
+            'name' => 'First Semester',
+            'starts_at' => '2026-08-01',
+            'ends_at' => '2026-12-20',
+            'is_current' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->assertSee('System Settings')
+            ->set('settingsSystemName', 'NDMU Research Portal')
+            ->set('settingsSupportEmail', 'support@ndmu.edu.ph')
+            ->set('settingsStudentRegistrationEnabled', false)
+            ->set('settingsEmailNotificationsEnabled', true)
+            ->set('settingsMaintenanceNotice', '<b>Scheduled maintenance</b>')
+            ->set('settingsAcademicYearId', $academicYearId)
+            ->set('settingsAcademicTermId', $academicTermId)
+            ->call('saveSystemSettings')
+            ->assertHasNoErrors()
+            ->assertSet('successMessage', 'System settings saved successfully.');
+
+        $settings = SystemSetting::query()->firstOrFail();
+
+        $this->assertSame('NDMU Research Portal', $settings->system_name);
+        $this->assertSame('support@ndmu.edu.ph', $settings->support_email);
+        $this->assertFalse($settings->student_registration_enabled);
+        $this->assertSame('Scheduled maintenance', $settings->maintenance_notice);
+        $this->assertSame($admin->id, $settings->updated_by);
+        $this->assertDatabaseHas('academic_years', ['id' => $academicYearId, 'is_current' => true]);
+        $this->assertDatabaseHas('academic_terms', ['id' => $academicTermId, 'is_current' => true]);
     }
 
     public function test_admin_dashboard_does_not_render_sample_records(): void
@@ -204,7 +263,7 @@ class AdminDashboardTest extends TestCase
             ->assertSee('College of Engineering, Architecture, and Computing (CEAC)')
             ->set('name', 'Dr. Lourdes Castillo')
             ->set('email', 'l.castillo@ndmu.edu.ph')
-            ->set('role', 'college-dean')
+            ->set('role', 'dean')
             ->set('department', 'Untrusted College Value')
             ->set('password', 'SecurePassword123!')
             ->call('createStaffAccount')
@@ -216,7 +275,8 @@ class AdminDashboardTest extends TestCase
         $this->assertEquals('Dr. Lourdes Castillo', $newUser->name);
         $this->assertEquals(config('academic.college.name'), $newUser->department);
         $this->assertEquals(AccountStatus::Active, $newUser->status);
-        $this->assertTrue($newUser->hasRole('college-dean'));
+        $this->assertTrue($newUser->hasRole('dean'));
+        $this->assertSame('faculty', $newUser->user_type->value);
     }
 
     public function test_create_staff_account_validation(): void
@@ -262,13 +322,16 @@ class AdminDashboardTest extends TestCase
 
         Livewire::test(AdminDashboard::class)
             ->assertSee('Roles & Permissions')
-            ->set('roleName', 'Program Coordinator')
+            ->call('createRole')
+            ->assertSet('showRoleEditor', true)
+            ->set('roleName', 'Ethics Review Coordinator')
             ->set('selectedPermissions', ['research.view-all', 'classes.create', 'reports.view'])
             ->call('saveRole')
             ->assertHasNoErrors()
-            ->assertSet('roleName', '');
+            ->assertSet('roleName', '')
+            ->assertSet('showRoleEditor', false);
 
-        $role = Role::findByName('program-coordinator');
+        $role = Role::findByName('ethics-review-coordinator');
 
         $this->assertEqualsCanonicalizing(
             ['research.view-all', 'classes.create', 'reports.view'],
@@ -282,56 +345,55 @@ class AdminDashboardTest extends TestCase
         $admin->assignRole('system-administrator');
         $faculty = User::factory()->create();
         $faculty->assignRole('research-facilitator');
-        Role::create(['name' => 'program-coordinator', 'guard_name' => 'web'])
-            ->syncPermissions(['reports.view']);
-
         $this->actingAs($admin);
 
         Livewire::test(AdminDashboard::class)
             ->call('openRoleAssignment', $faculty->id)
             ->assertSet('roleAssignmentUserId', $faculty->id)
-            ->set('assignedRoles', ['research-facilitator', 'program-coordinator', 'research-adviser'])
+            ->set('assignedRoles', ['research-facilitator', 'program-coordinator', 'thesis-adviser'])
             ->call('saveUserRoles')
             ->assertHasNoErrors();
 
         $this->assertTrue($faculty->fresh()->hasAllRoles([
             'research-facilitator',
             'program-coordinator',
-            'research-adviser',
+            'thesis-adviser',
         ]));
     }
 
-    public function test_custom_role_cannot_replace_the_users_primary_portal_role(): void
+    public function test_dynamic_role_can_be_the_users_only_access_role(): void
     {
         $admin = User::factory()->create();
         $admin->assignRole('system-administrator');
         $faculty = User::factory()->create();
         $faculty->assignRole('research-facilitator');
-        Role::create(['name' => 'program-coordinator', 'guard_name' => 'web']);
-
         $this->actingAs($admin);
 
         Livewire::test(AdminDashboard::class)
             ->call('openRoleAssignment', $faculty->id)
             ->set('assignedRoles', ['program-coordinator'])
             ->call('saveUserRoles')
-            ->assertHasErrors(['assignedRoles']);
+            ->assertHasNoErrors();
 
-        $this->assertTrue($faculty->fresh()->hasRole('research-facilitator'));
+        $this->assertTrue($faculty->fresh()->hasExactRoles(['program-coordinator']));
     }
 
-    public function test_built_in_role_cannot_be_edited_or_deleted(): void
+    public function test_default_roles_are_editable_but_administrator_cannot_be_deleted(): void
     {
         $admin = User::factory()->create();
         $admin->assignRole('system-administrator');
         $builtInRole = Role::findByName('research-facilitator');
+        $administratorRole = Role::findByName('administrator');
 
         $this->actingAs($admin);
 
         Livewire::test(AdminDashboard::class)
             ->call('editRole', $builtInRole->id)
-            ->assertForbidden();
+            ->assertSet('editingRoleId', $builtInRole->id)
+            ->call('deleteRole', $administratorRole->id)
+            ->assertHasErrors(['roleName']);
 
         $this->assertDatabaseHas('roles', ['id' => $builtInRole->id]);
+        $this->assertDatabaseHas('roles', ['id' => $administratorRole->id]);
     }
 }

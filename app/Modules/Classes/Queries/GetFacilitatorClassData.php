@@ -74,7 +74,7 @@ class GetFacilitatorClassData
             'requestSearch' => $search,
             'requestStatus' => $status,
             'classAdviserOptions' => User::query()
-                ->role('research-adviser')
+                ->permission('classes.serve-as-adviser')
                 ->where('status', 'active')
                 ->whereNotNull('approved_at')
                 ->orderBy('name')

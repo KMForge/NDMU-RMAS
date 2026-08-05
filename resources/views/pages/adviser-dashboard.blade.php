@@ -449,7 +449,7 @@
                 </a>
 
                 <!-- Logout -->
-                <form method="POST" action="{{ route('logout') }}" class="block">
+                <form method="POST" action="{{ route('logout') }}" class="block" onsubmit="return window.confirm('Are you sure you want to log out?')">
                     @csrf
                     <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200 text-left cursor-pointer">
                         <i class="ph ph-sign-out text-lg"></i>
@@ -502,6 +502,18 @@
 
         <!-- Main Body Content -->
         <main class="flex-grow p-8">
+            <x-portal-feature-banner class="mb-8" :sections="[
+                'classes' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'My Classes', 'description' => 'View the classes and student groups assigned to you.', 'icon' => 'ph-chalkboard-teacher'],
+                'researchers' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Assigned Researchers', 'description' => 'Manage assigned research groups and student researchers.', 'icon' => 'ph-users-three'],
+                'proposal' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Proposal Review', 'description' => 'Review proposals and return clear decisions and feedback.', 'icon' => 'ph-file-search'],
+                'monitoring' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Research Monitoring', 'description' => 'Monitor group milestones, progress, and outstanding work.', 'icon' => 'ph-chart-line-up'],
+                'consultation' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Consultation Records', 'description' => 'Manage consultation requests, schedules, and completed sessions.', 'icon' => 'ph-chats-circle'],
+                'docreview' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Document Review', 'description' => 'Review submitted manuscripts and provide secure feedback.', 'icon' => 'ph-file-text'],
+                'revisions' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Revision Management', 'description' => 'Create revision requests and verify student resubmissions.', 'icon' => 'ph-note-pencil'],
+                'endorsement' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Defense Endorsement', 'description' => 'Review readiness and endorse qualified groups for defense.', 'icon' => 'ph-seal-check'],
+                'evaluations' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Evaluation Records', 'description' => 'Review evaluation outcomes for your assigned researchers.', 'icon' => 'ph-clipboard-text'],
+                'repository' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Research Repository', 'description' => 'Manage and access authorized research documents.', 'icon' => 'ph-folder-open'],
+            ]" />
             @if (session('class_success'))
                 <div role="status" class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                     {{ session('class_success') }}

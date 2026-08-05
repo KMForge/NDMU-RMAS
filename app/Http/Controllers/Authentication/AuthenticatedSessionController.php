@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Authentication;
 
-use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Authentication\LoginRequest;
 use App\Models\User;
+use App\Modules\Authorization\Services\ResolveUserDashboard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 class AuthenticatedSessionController extends Controller
 {
-    public function store(LoginRequest $request): JsonResponse|RedirectResponse
+    public function store(LoginRequest $request, ResolveUserDashboard $dashboard): JsonResponse|RedirectResponse
     {
         $credentials = $request->safe()->only(['email', 'password']);
 
@@ -27,9 +27,9 @@ class AuthenticatedSessionController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $role = UserRole::highestFor($user);
+        $route = $dashboard->routeFor($user);
 
-        if (! $user->isActiveAndApproved() || $role === null) {
+        if (! $user->isActiveAndApproved() || $route === null) {
             $this->endSession($request);
 
             throw ValidationException::withMessages([
@@ -39,13 +39,13 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        $destination = route($role->dashboardRoute());
+        $destination = route($route);
 
         if ($request->expectsJson()) {
             return response()->json([
                 'message' => 'Login successful.',
                 'redirect_url' => $destination,
-                'role' => $role->value,
+                'user_type' => $user->user_type->value,
                 'user' => [
                     'name' => $user->name,
                     'email' => $user->email,

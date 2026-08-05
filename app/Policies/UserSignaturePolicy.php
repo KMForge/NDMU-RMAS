@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\UserType;
 use App\Models\User;
 use App\Models\UserSignature;
 
@@ -9,7 +10,7 @@ class UserSignaturePolicy
 {
     public function create(User $user): bool
     {
-        return ! $user->hasRole('system-administrator');
+        return $user->user_type !== UserType::Admin && ! $user->hasRole('system-administrator');
     }
 
     public function view(User $user, UserSignature $signature): bool

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Authentication;
 
 use App\Enums\AccountStatus;
+use App\Enums\UserType;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Auth\SessionGuard;
@@ -27,6 +28,7 @@ class LoginTest extends TestCase
         $user = User::factory()->create([
             'email' => 'student.test@ndmu.edu.ph',
             'password' => 'TestOnly!2345',
+            'user_type' => UserType::Student,
         ]);
         $user->assignRole('student-researcher');
 
@@ -35,7 +37,8 @@ class LoginTest extends TestCase
             'password' => 'TestOnly!2345',
         ])->assertOk()
             ->assertJsonPath('message', 'Login successful.')
-            ->assertJsonPath('role', 'student-researcher')
+            ->assertJsonPath('user.roles.0', 'student-researcher')
+            ->assertJsonPath('user_type', UserType::Student->value)
             ->assertJsonPath('redirect_url', route('student.dashboard'))
             ->assertJsonPath('user.email', 'student.test@ndmu.edu.ph');
 
@@ -116,7 +119,7 @@ class LoginTest extends TestCase
             'email' => 'admin.test@ndmu.edu.ph',
             'password' => 'TestOnly!2345',
         ])->assertOk()
-            ->assertJsonPath('role', 'system-administrator')
+            ->assertJsonPath('user.roles.0', 'system-administrator')
             ->assertJsonPath('redirect_url', route('admin.dashboard'));
 
         $this->assertAuthenticatedAs($user);
@@ -125,12 +128,12 @@ class LoginTest extends TestCase
     public function test_each_supported_role_redirects_to_its_dashboard(): void
     {
         $destinations = [
-            'student-researcher' => 'student.dashboard',
-            'research-adviser' => 'adviser.dashboard',
-            'panelist' => 'panelist.dashboard',
+            'student' => 'student.dashboard',
+            'thesis-adviser' => 'adviser.dashboard',
+            'panel-member' => 'panelist.dashboard',
             'research-facilitator' => 'facilitator.dashboard',
-            'college-dean' => 'dean.dashboard',
-            'system-administrator' => 'admin.dashboard',
+            'dean' => 'dean.dashboard',
+            'administrator' => 'admin.dashboard',
         ];
 
         foreach ($destinations as $role => $routeName) {
@@ -144,7 +147,7 @@ class LoginTest extends TestCase
                 'email' => $user->email,
                 'password' => 'TestOnly!2345',
             ])->assertOk()
-                ->assertJsonPath('role', $role)
+                ->assertJsonPath('user.roles.0', $role)
                 ->assertJsonPath('redirect_url', route($routeName));
 
             $this->postJson(route('logout'))->assertOk();
