@@ -10,9 +10,12 @@ This tracker records the backend rebuild progress after the baseline reset. GitH
 | --- | --- |
 | Active repository | `KMForge/NDMU-RMAS` |
 | Backup repositories | `KMForge/NDMU-RMAS-Legacy`, `KMForge/NDMU-RMAS-Rebuild` |
-| Current baseline commit | `f701324 chore: disable feature backends for rebuild baseline` |
+| Rebuild baseline commit | `f701324 chore: disable feature backends for rebuild baseline` |
+| Latest reviewed commit | `45ff3f0 docs: add project progress tracker` |
 | Backend strategy | Rebuild feature modules one at a time |
 | UI strategy | Keep existing UI while reconnecting backend modules |
+
+> **Baseline note:** Commit `f701324` remains the functional rebuild baseline. Commit `45ff3f0` only added this project progress tracker and did not implement or reconnect a backend feature, so no feature phase status changed as a result of that commit.
 
 ## Phase Tracker
 
@@ -46,15 +49,33 @@ This tracker records the backend rebuild progress after the baseline reset. GitH
 | Phase 26 | Security Review and Hardening | Planned | Validate authorization, rate limits, file handling, SQL injection protection, XSS handling, and error safety. |
 | Phase 27 | Testing and Final Documentation | Planned | Complete feature tests, integration tests, user guide, technical documentation, and capstone evidence. |
 
+## Latest Commit Review
+
+### `45ff3f0` — `docs: add project progress tracker`
+
+**Change type:** Documentation only  
+**Files changed:** `docs/PROJECT_PROGRESS.md`  
+**Backend impact:** None  
+**Database impact:** None  
+**Security/RBAC impact:** None  
+**Testing impact:** No application tests are required for the documentation-only change.  
+**Phase impact:** No phase status changes. The commit establishes the 27-phase tracker used to document the rebuild.
+
 ## Documentation Workflow
 
 For each backend feature:
 
 1. Create or update the relevant feature documentation.
-2. Implement the backend in a focused commit.
-3. Add or update tests for validation, authorization, and important workflows.
-4. Update this progress tracker.
-5. Push the commit to `KMForge/NDMU-RMAS`.
+2. Explain the complete user and backend flow, including routes, middleware/permissions, validation, controllers, services/actions, models, database changes, and responses.
+3. Identify every important file added or modified and explain why it changed.
+4. Document database tables, relationships, migrations, seeders, status transitions, and business rules where applicable.
+5. Document authentication, authorization/RBAC, ownership checks, validation, rate limiting, file security, and other security controls where applicable.
+6. Add or update tests for validation, authorization, success paths, failure paths, and important edge cases.
+7. Record the evidence needed for capstone documentation, such as test output, screenshots, Postman results, UI evidence, and database evidence.
+8. Update this progress tracker with the resulting phase status and remaining work.
+9. Push the focused commit to `KMForge/NDMU-RMAS`.
+
+Documentation should be detailed enough that the capstone manuscript/documentation writer can understand the feature without first reverse-engineering the Laravel source code. Clearly distinguish implemented behavior from planned behavior.
 
 ## Protected Repositories
 
