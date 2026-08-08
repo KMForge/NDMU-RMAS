@@ -11,11 +11,11 @@ This tracker records the backend rebuild progress after the baseline reset. GitH
 | Active repository | `KMForge/NDMU-RMAS` |
 | Backup repositories | `KMForge/NDMU-RMAS-Legacy`, `KMForge/NDMU-RMAS-Rebuild` |
 | Rebuild baseline commit | `f701324 chore: disable feature backends for rebuild baseline` |
-| Latest reviewed commit | `45ff3f0 docs: add project progress tracker` |
+| Latest reviewed commit | `8be86fb feat: implement Phase 10 research class management, including class creation and detail viewing` |
 | Backend strategy | Rebuild feature modules one at a time |
 | UI strategy | Keep existing UI while reconnecting backend modules |
 
-> **Baseline note:** Commit `f701324` remains the functional rebuild baseline. Commit `45ff3f0` only added this project progress tracker and did not implement or reconnect a backend feature, so no feature phase status changed as a result of that commit.
+> **Baseline note:** Commit `f701324` remains the functional rebuild baseline. Commit `8be86fb` is the first rebuilt feature module after that baseline and reconnects only Phase 10 Research Class Management.
 
 ## Phase Tracker
 
@@ -30,7 +30,7 @@ This tracker records the backend rebuild progress after the baseline reset. GitH
 | Phase 7 | Adviser Dashboard UI Shell | Completed | UI remains available; feature data sources are disabled for rebuild. |
 | Phase 8 | Facilitator Dashboard UI Shell | Completed | UI remains available; class/group/join request backend is disabled for rebuild. |
 | Phase 9 | Panelist and Dean Dashboard UI Shell | Completed | UI remains available; feature workflows are not rebuilt yet. |
-| Phase 10 | Research Class Management | Planned | Rebuild class creation, class cards, student list, and facilitator-owned class details. |
+| Phase 10 | Research Class Management | Completed | Rebuilt facilitator-owned class creation, class cards, class details, and active student roster. Groups, adviser assignment, and join request approval remain reserved for later phases. Commit: `8be86fb`. |
 | Phase 11 | Student Join Class Requests | Planned | Rebuild student join requests and facilitator approval/rejection flow. |
 | Phase 12 | Research Groups and Adviser Assignment | Planned | Rebuild group creation, student assignment, and adviser assignment. |
 | Phase 13 | Document Upload and Secure Storage | Planned | Rebuild PDF/DOCX validation, private storage, audit attempts, and metadata saving. |
