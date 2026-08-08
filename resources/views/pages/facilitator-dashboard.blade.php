@@ -1194,7 +1194,7 @@
         <!-- Main Body Content -->
         <main class="flex-grow p-8 space-y-8">
             <x-portal-feature-banner :sections="[
-                'classes' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Capstone Classes', 'description' => 'Create classes, organize research groups, and assign advisers.', 'icon' => 'ph-chalkboard-teacher'],
+                'classes' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Capstone Classes', 'description' => 'Create classes and view approved student rosters.', 'icon' => 'ph-chalkboard-teacher'],
                 'join-requests' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Join Requests', 'description' => 'Approve or reject student requests before they enter a class.', 'icon' => 'ph-user-plus'],
                 'monitoring' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Research Monitoring', 'description' => 'Monitor milestones and academic progress across all groups.', 'icon' => 'ph-chart-line-up'],
                 'advisers' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Adviser Assignments', 'description' => 'Manage adviser assignments and research-group responsibilities.', 'icon' => 'ph-users-four'],

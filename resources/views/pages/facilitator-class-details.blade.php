@@ -10,7 +10,7 @@
 @section('content')
 <style>[x-cloak] { display: none !important; }</style>
 
-<div class="min-h-screen bg-[#f4f7f6] font-sans" x-data="{ copied: false, showGroupModal: @js($errors->hasAny(['group', 'creation_token', 'name'])) }">
+<div class="min-h-screen bg-[#f4f7f6] font-sans" x-data="{ copied: false }">
     <aside class="fixed inset-y-0 left-0 z-20 flex w-72 flex-col border-r border-white/5 bg-[#0e5c3a] text-white">
         <div class="flex items-center gap-3 border-b border-white/10 p-6">
             <div class="rounded-xl border border-white/20 bg-white/10 p-1">
@@ -108,9 +108,9 @@
                     </div>
                 </div>
                 <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                    <p class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Research Groups</p>
-                    <p class="mt-3 text-2xl font-bold text-gray-850">{{ $groups->count() }}</p>
-                    <button type="button" @click="showGroupModal = true" class="mt-3 text-xs font-bold text-[#0e5c3a] hover:underline">+ Create Group</button>
+                    <p class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Phase Scope</p>
+                    <p class="mt-3 text-sm font-bold text-gray-850">Class Management</p>
+                    <p class="mt-1 text-[10px] text-gray-500">Groups and adviser assignment are rebuilt in Phase 12.</p>
                 </div>
             </section>
 
@@ -124,28 +124,15 @@
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
-                        <thead class="bg-gray-50 text-[9px] uppercase tracking-wider text-gray-400"><tr><th class="px-6 py-3">Student</th><th class="px-6 py-3">Student ID</th><th class="px-6 py-3">Current Group</th><th class="px-6 py-3">Assign Group</th></tr></thead>
+                        <thead class="bg-gray-50 text-[9px] uppercase tracking-wider text-gray-400"><tr><th class="px-6 py-3">Student</th><th class="px-6 py-3">Student ID</th><th class="px-6 py-3">Program</th><th class="px-6 py-3">Joined</th></tr></thead>
                         <tbody class="divide-y divide-gray-100">
                             @forelse ($enrollments as $enrollment)
                                 @php($student = $enrollment->student)
                                 <tr>
                                     <td class="px-6 py-4"><p class="text-sm font-bold text-gray-800">{{ $student?->name ?? 'Deleted account' }}</p><p class="mt-0.5 text-[10px] text-gray-500">{{ $student?->email }}</p></td>
                                     <td class="px-6 py-4 text-xs text-gray-600">{{ $student?->student_id ?: 'Not available' }}</td>
-                                    <td class="px-6 py-4 text-xs font-semibold text-gray-700">{{ $enrollment->groupMembership?->group?->name ?? 'Unassigned' }}</td>
-                                    <td class="px-6 py-4">
-                                        @if ($groups->isNotEmpty())
-                                            <form method="POST" action="{{ route('facilitator.classes.groups.students.assign', [$researchClass, '__group__', $enrollment]) }}" onsubmit="this.action = this.action.replace('__group__', this.querySelector('select').value)" class="flex gap-2">
-                                                @csrf @method('PUT')
-                                                <select required class="rounded-lg border border-gray-200 px-2 py-2 text-xs" onchange="this.form.action = this.form.action.replace('__group__', this.value)">
-                                                    <option value="">Select group</option>
-                                                    @foreach ($groups as $group)<option value="{{ $group->getKey() }}" @selected($enrollment->groupMembership?->research_class_group_id === $group->getKey())>{{ $group->name }}</option>@endforeach
-                                                </select>
-                                                <button type="submit" class="rounded-lg bg-[#0e5c3a] px-3 py-2 text-[10px] font-bold text-white">Assign</button>
-                                            </form>
-                                        @else
-                                            <span class="text-xs text-gray-400">Create a group first</span>
-                                        @endif
-                                    </td>
+                                    <td class="px-6 py-4 text-xs text-gray-600">{{ $student?->program ?: 'Not available' }}</td>
+                                    <td class="px-6 py-4 text-xs text-gray-600">{{ $enrollment->joined_at?->format('M j, Y') ?: 'Not available' }}</td>
                                 </tr>
                             @empty
                                 <tr><td colspan="4" class="px-6 py-12 text-center text-sm text-gray-500">{{ $search !== '' ? 'No students matched your search.' : 'No approved students have joined this class.' }}</td></tr>
@@ -156,42 +143,7 @@
                 @if ($enrollments->hasPages())<div class="border-t border-gray-100 px-6 py-4">{{ $enrollments->links() }}</div>@endif
             </section>
 
-            <section class="space-y-4">
-                <div class="flex items-center justify-between"><div><h2 class="text-lg font-bold text-gray-850">Research Groups</h2><p class="mt-1 text-xs text-gray-500">Assign one adviser to each Capstone group.</p></div><button type="button" @click="showGroupModal = true" class="rounded-xl bg-[#0e5c3a] px-4 py-2.5 text-xs font-bold text-white"><i class="ph ph-plus mr-1"></i>Create Group</button></div>
-                <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
-                    @forelse ($groups as $group)
-                        <article class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                            <div class="flex items-start justify-between"><div><h3 class="font-bold text-gray-850">{{ $group->name }}</h3><p class="mt-1 text-[10px] text-gray-500">{{ $group->members_count }} member(s)</p></div><i class="ph ph-users-three text-xl text-[#0e5c3a]"></i></div>
-                            <form method="POST" action="{{ route('facilitator.classes.groups.adviser.assign', [$researchClass, $group]) }}" class="mt-4 flex gap-2 border-t border-gray-100 pt-4">
-                                @csrf @method('PUT')
-                                <select name="adviser_id" required class="min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-2 text-xs">
-                                    <option value="">Select adviser</option>
-                                    @foreach ($availableAdvisers as $adviser)<option value="{{ $adviser->getKey() }}" @selected($group->adviser_id === $adviser->getKey())>{{ $adviser->name }}</option>@endforeach
-                                </select>
-                                <button type="submit" class="rounded-lg bg-[#0e5c3a] px-3 py-2 text-[10px] font-bold text-white">Save</button>
-                            </form>
-                            <div class="mt-4 space-y-2">
-                                @forelse ($group->members as $member)<div class="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2"><div class="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold text-emerald-700">{{ Illuminate\Support\Str::upper(Illuminate\Support\Str::substr($member->student?->name ?? '?', 0, 1)) }}</div><span class="text-xs font-semibold text-gray-700">{{ $member->student?->name ?? 'Deleted account' }}</span></div>@empty<p class="text-xs text-gray-400">No students assigned.</p>@endforelse
-                            </div>
-                        </article>
-                    @empty
-                        <div class="col-span-full rounded-2xl border border-dashed border-gray-200 bg-white p-10 text-center text-sm text-gray-500">No groups created yet.</div>
-                    @endforelse
-                </div>
-            </section>
         </main>
-    </div>
-
-    <div x-show="showGroupModal" x-transition x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
-        <div @click.away="showGroupModal = false" class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <div class="flex items-start justify-between"><div><h2 class="font-bold text-gray-800">Create Research Group</h2><p class="mt-1 text-xs text-gray-500">Students can be assigned after the group is created.</p></div><button type="button" @click="showGroupModal = false" class="text-gray-400"><i class="ph ph-x text-lg"></i></button></div>
-            <form method="POST" action="{{ route('facilitator.classes.groups.store', $researchClass) }}" class="mt-5 space-y-4">
-                @csrf
-                <input type="hidden" name="creation_token" value="{{ old('creation_token', (string) Illuminate\Support\Str::uuid()) }}">
-                <div><label for="group_name" class="mb-1.5 block text-xs font-bold text-gray-600">Group name</label><input id="group_name" name="name" value="{{ old('name') }}" required minlength="2" maxlength="120" placeholder="e.g. Group 1" class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-xs focus:border-[#0e5c3a] focus:outline-none">@error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
-                <div class="flex justify-end gap-3"><button type="button" @click="showGroupModal = false" class="rounded-xl bg-gray-100 px-4 py-2 text-xs font-bold text-gray-700">Cancel</button><button type="submit" class="rounded-xl bg-[#0e5c3a] px-4 py-2 text-xs font-bold text-white">Create Group</button></div>
-            </form>
-        </div>
     </div>
 </div>
 @endsection

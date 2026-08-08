@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DisabledFeatureController;
 use App\Http\Controllers\Facilitator\DashboardController;
+use App\Http\Controllers\Facilitator\ResearchClassController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('facilitator')->name('facilitator.')->middleware([
@@ -9,10 +10,10 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
 ])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
-    Route::post('/classes', DisabledFeatureController::class)
+    Route::post('/classes', [ResearchClassController::class, 'store'])
         ->middleware(['permission:classes.create', 'throttle:class-creation'])
         ->name('classes.store');
-    Route::get('/classes/{researchClass}', DisabledFeatureController::class)
+    Route::get('/classes/{researchClass}', [ResearchClassController::class, 'show'])
         ->middleware('permission:classes.view-own')
         ->whereNumber('researchClass')
         ->name('classes.show');

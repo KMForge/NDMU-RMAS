@@ -2,7 +2,7 @@
     <div class="flex items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold font-heading text-gray-800">My Classes</h1>
-            <p class="mt-1 text-xs text-gray-500">Manage Capstone classes, student groups, and adviser assignments.</p>
+            <p class="mt-1 text-xs text-gray-500">Create Capstone classes and view approved student rosters.</p>
         </div>
         <button type="button" @click="showCreateClassModal = true" class="flex items-center gap-2 rounded-xl bg-[#0e5c3a] px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[#0a4a2e]">
             <i class="ph ph-plus-circle text-base"></i>
@@ -43,12 +43,12 @@
                         <p class="text-[9px] uppercase text-gray-400">Students</p>
                     </div>
                     <div>
-                        <p class="text-sm font-bold text-gray-800">{{ $researchClass->pending_join_requests_count }}</p>
-                        <p class="text-[9px] uppercase text-gray-400">Requests</p>
+                        <p class="text-sm font-bold text-gray-800">{{ $researchClass->max_students }}</p>
+                        <p class="text-[9px] uppercase text-gray-400">Limit</p>
                     </div>
                     <div>
-                        <p class="text-sm font-bold text-gray-800">{{ $researchClass->groups_count }}</p>
-                        <p class="text-[9px] uppercase text-gray-400">Groups</p>
+                        <p class="text-sm font-bold text-gray-800">{{ $researchClass->is_active ? 'Active' : 'Closed' }}</p>
+                        <p class="text-[9px] uppercase text-gray-400">Status</p>
                     </div>
                 </div>
             </a>

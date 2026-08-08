@@ -5,11 +5,9 @@ namespace App\Http\Controllers\Facilitator;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Classes\CreateResearchClassRequest;
 use App\Models\ResearchClass;
-use App\Models\User;
 use App\Modules\Classes\Actions\CreateResearchClass;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -61,7 +59,7 @@ class ResearchClassController extends Controller
 
         if (! $request->expectsJson()) {
             $enrollmentQuery = $researchClass->enrollments()
-                ->with(['student:id,name,email,student_id,program,year_level', 'groupMembership.group:id,name'])
+                ->with(['student:id,name,email,student_id,program,year_level'])
                 ->where('status', 'active')
                 ->latest('joined_at');
 
@@ -84,12 +82,6 @@ class ResearchClassController extends Controller
                 'enrollments' => $enrollments,
                 'activeStudents' => $researchClass->enrollments()->where('status', 'active')->count(),
                 'search' => $search,
-                'groups' => $researchClass->groups()
-                    ->with(['adviser:id,name,email', 'members.student:id,name,email,student_id'])
-                    ->withCount('members')
-                    ->orderBy('name')
-                    ->get(),
-                'availableAdvisers' => $this->availableAdvisers(),
             ]);
         }
 
@@ -103,8 +95,6 @@ class ResearchClassController extends Controller
                         ->where('name', 'like', '%'.addcslashes($search, '%_\\').'%')
                         ->orWhere('email', 'like', '%'.addcslashes($search, '%_\\').'%')))
                 ->orderBy('joined_at'),
-            'groups.adviser:id,name,email',
-            'groups.members.student:id,name,email,student_id,program,year_level',
         ]);
 
         return response()->json([
@@ -120,26 +110,8 @@ class ResearchClassController extends Controller
                     'joined_at' => $enrollment->joined_at?->toIso8601String(),
                     'student' => $enrollment->student,
                 ]),
-                'groups' => $researchClass->groups->map(fn ($group): array => [
-                    'id' => $group->getKey(),
-                    'name' => $group->name,
-                    'adviser' => $group->adviser,
-                    'members' => $group->members->map(fn ($member) => $member->student),
-                ]),
             ],
-            'available_advisers' => $this->availableAdvisers(),
         ]);
-    }
-
-    /** @return Collection<int, User> */
-    private function availableAdvisers(): Collection
-    {
-        return User::query()
-            ->permission('classes.serve-as-adviser')
-            ->where('status', 'active')
-            ->whereNotNull('approved_at')
-            ->orderBy('name')
-            ->get(['id', 'name', 'email']);
     }
 
     private function errorResponse(Request $request, string $message, int $status): JsonResponse|RedirectResponse
