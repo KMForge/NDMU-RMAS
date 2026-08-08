@@ -21,6 +21,8 @@ class ResearchClassGroupWorkflowTest extends TestCase
     {
         parent::setUp();
 
+        $this->markTestSkipped('Research class groups are intentionally disabled until Phase 12.');
+
         $this->seed(RolePermissionSeeder::class);
     }
 

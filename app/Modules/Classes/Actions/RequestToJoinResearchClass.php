@@ -5,17 +5,34 @@ namespace App\Modules\Classes\Actions;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\User;
+use App\Modules\Classes\Exceptions\ClassJoinRateLimited;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 
 class RequestToJoinResearchClass
 {
+    private const FAILED_ATTEMPTS_LIMIT = 5;
+
+    private const FAILED_ATTEMPTS_DECAY_SECONDS = 600;
+
+    private const MAX_REJECTED_ATTEMPTS_PER_CLASS = 5;
+
     public function handle(User $student, string $joinCode): ResearchClassEnrollment
     {
         try {
             return DB::transaction(function () use ($student, $joinCode): ResearchClassEnrollment {
+                $failedAttemptKey = $this->failedAttemptKey($student);
+
+                if (RateLimiter::tooManyAttempts($failedAttemptKey, self::FAILED_ATTEMPTS_LIMIT)) {
+                    throw new ClassJoinRateLimited(
+                        'Too many failed class-code attempts. Please wait before trying again.',
+                        RateLimiter::availableIn($failedAttemptKey),
+                    );
+                }
+
                 $researchClass = ResearchClass::query()
                     ->where('join_code_hash', ResearchClass::joinCodeFingerprint($joinCode))
                     ->where('is_active', true)
@@ -23,22 +40,34 @@ class RequestToJoinResearchClass
                     ->first();
 
                 if ($researchClass === null) {
+                    RateLimiter::hit($failedAttemptKey, self::FAILED_ATTEMPTS_DECAY_SECONDS);
+
                     throw new ClassOperationException('No active class was found for that join code.');
                 }
 
-                $existing = ResearchClassEnrollment::query()
-                    ->where('research_class_id', $researchClass->getKey())
+                RateLimiter::clear($failedAttemptKey);
+
+                $activeEnrollment = ResearchClassEnrollment::query()
                     ->where('student_id', $student->getKey())
+                    ->where('status', 'active')
                     ->lockForUpdate()
                     ->first();
 
-                if ($existing?->status === 'active') {
-                    throw new DuplicateClassOperation('You are already enrolled in this class.');
+                if ($activeEnrollment !== null) {
+                    throw new DuplicateClassOperation('You are already enrolled in a research class.');
                 }
 
-                if ($existing?->status === 'pending') {
+                $pendingEnrollment = ResearchClassEnrollment::query()
+                    ->where('student_id', $student->getKey())
+                    ->where('status', 'pending')
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($pendingEnrollment !== null) {
                     throw new DuplicateClassOperation('Your join request is already pending facilitator review.');
                 }
+
+                $this->enforceRejectionPolicy($student, $researchClass);
 
                 $activeStudents = ResearchClassEnrollment::query()
                     ->where('research_class_id', $researchClass->getKey())
@@ -57,12 +86,6 @@ class RequestToJoinResearchClass
                     'reviewed_at' => null,
                 ];
 
-                if ($existing !== null) {
-                    $existing->update($requestData);
-
-                    return $existing->refresh();
-                }
-
                 return ResearchClassEnrollment::query()->create([
                     'research_class_id' => $researchClass->getKey(),
                     'student_id' => $student->getKey(),
@@ -74,5 +97,49 @@ class RequestToJoinResearchClass
 
             throw new ClassOperationException('The join request could not be submitted. Please try again.');
         }
+    }
+
+    private function enforceRejectionPolicy(User $student, ResearchClass $researchClass): void
+    {
+        $rejectedRequests = ResearchClassEnrollment::query()
+            ->where('student_id', $student->getKey())
+            ->where('research_class_id', $researchClass->getKey())
+            ->where('status', 'rejected')
+            ->orderByDesc('reviewed_at')
+            ->lockForUpdate()
+            ->get();
+
+        $rejectedCount = $rejectedRequests->count();
+
+        if ($rejectedCount >= self::MAX_REJECTED_ATTEMPTS_PER_CLASS) {
+            throw new DuplicateClassOperation(
+                'You have reached the maximum number of rejected attempts for this class. Please contact the facilitator or administrator.',
+            );
+        }
+
+        $lastRejectedAt = $rejectedRequests->first()?->reviewed_at;
+
+        if ($lastRejectedAt === null) {
+            return;
+        }
+
+        $cooldownHours = match (true) {
+            $rejectedCount <= 1 => 24,
+            $rejectedCount === 2 => 48,
+            default => 72,
+        };
+
+        $availableAt = $lastRejectedAt->addHours($cooldownHours);
+
+        if ($availableAt->isFuture()) {
+            throw new DuplicateClassOperation(
+                'You can request this class again '.$availableAt->diffForHumans().'.',
+            );
+        }
+    }
+
+    private function failedAttemptKey(User $student): string
+    {
+        return 'class-join-failed|'.$student->getKey();
     }
 }

@@ -1190,7 +1190,7 @@
             <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100">
                 <div>
                     <h2 class="font-bold text-lg text-gray-850">Request to Join a Research Class</h2>
-                    <p class="text-xs text-gray-500 mt-1">Enter the class code. Your adviser must approve the request before you are enrolled.</p>
+                    <p class="text-xs text-gray-500 mt-1">Enter the class code. Your facilitator must approve the request before you are enrolled.</p>
                 </div>
                 <button type="button" @click="showJoinClassModal = false" class="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-500">
                     <i class="ph ph-x"></i>

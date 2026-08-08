@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DisabledFeatureController;
+use App\Http\Controllers\Facilitator\ClassJoinRequestController;
 use App\Http\Controllers\Facilitator\DashboardController;
 use App\Http\Controllers\Facilitator\ResearchClassController;
 use Illuminate\Support\Facades\Route;
@@ -37,9 +38,9 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
                 ->whereNumber('joinRequest')
                 ->middleware(['permission:classes.manage-join-requests', 'throttle:class-join-decisions'])
                 ->group(function (): void {
-                    Route::patch('/approve', DisabledFeatureController::class)
+                    Route::patch('/approve', [ClassJoinRequestController::class, 'approve'])
                         ->name('classes.join-requests.approve');
-                    Route::patch('/reject', DisabledFeatureController::class)
+                    Route::patch('/reject', [ClassJoinRequestController::class, 'reject'])
                         ->name('classes.join-requests.reject');
                 });
         });

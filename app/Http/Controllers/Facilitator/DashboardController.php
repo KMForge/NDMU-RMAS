@@ -16,7 +16,11 @@ class DashboardController extends Controller
             'facilitator' => $request->user(),
             'officialFormPhases' => config('official-forms.phases', []),
             'officialForms' => config('official-forms.facilitator', []),
-            ...$classData->for($request->user()),
+            ...$classData->for(
+                $request->user(),
+                $request->query('request_q'),
+                $request->query('request_status'),
+            ),
         ]);
     }
 }

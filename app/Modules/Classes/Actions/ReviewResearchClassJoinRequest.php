@@ -50,6 +50,10 @@ class ReviewResearchClassJoinRequest
                     throw new ClassOperationException('This join request does not belong to your class.');
                 }
 
+                if (! $lockedClass->is_active) {
+                    throw new ClassOperationException('This class is no longer available.');
+                }
+
                 $lockedRequest = ResearchClassEnrollment::query()
                     ->whereKey($joinRequest->getKey())
                     ->where('research_class_id', $lockedClass->getKey())
@@ -65,6 +69,16 @@ class ReviewResearchClassJoinRequest
                 }
 
                 if ($decision === 'active') {
+                    $alreadyEnrolled = ResearchClassEnrollment::query()
+                        ->where('student_id', $lockedRequest->student_id)
+                        ->where('status', 'active')
+                        ->lockForUpdate()
+                        ->exists();
+
+                    if ($alreadyEnrolled) {
+                        throw new DuplicateClassOperation('This student is already enrolled in another research class.');
+                    }
+
                     $activeStudents = ResearchClassEnrollment::query()
                         ->where('research_class_id', $lockedClass->getKey())
                         ->where('status', 'active')

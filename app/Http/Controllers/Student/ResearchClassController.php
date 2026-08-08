@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Classes\JoinResearchClassRequest;
 use App\Models\ResearchClass;
 use App\Modules\Classes\Actions\RequestToJoinResearchClass;
+use App\Modules\Classes\Exceptions\ClassJoinRateLimited;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
 use Illuminate\Http\JsonResponse;
@@ -23,10 +24,6 @@ class ResearchClassController extends Controller
         $enrollment = $researchClass->enrollments()
             ->where('student_id', $request->user()->getKey())
             ->where('status', 'active')
-            ->with([
-                'groupMembership.group.adviser:id,name,email',
-                'groupMembership.group.members.student:id,name,email,student_id,program,year_level',
-            ])
             ->firstOrFail();
         $researchClass->load('facilitator:id,name,email');
 
@@ -34,7 +31,7 @@ class ResearchClassController extends Controller
             'student' => $request->user(),
             'researchClass' => $researchClass,
             'enrollment' => $enrollment,
-            'group' => $enrollment->groupMembership?->group,
+            'group' => null,
         ]);
     }
 
@@ -47,6 +44,10 @@ class ResearchClassController extends Controller
                 $request->user(),
                 $request->string('join_code')->toString(),
             );
+        } catch (ClassJoinRateLimited $exception) {
+            return $this->errorResponse($request, $exception->getMessage(), 429, [
+                'Retry-After' => (string) $exception->retryAfterSeconds,
+            ]);
         } catch (DuplicateClassOperation $exception) {
             return $this->errorResponse($request, $exception->getMessage(), 409);
         } catch (ClassOperationException $exception) {
@@ -77,9 +78,10 @@ class ResearchClassController extends Controller
         JoinResearchClassRequest $request,
         string $message,
         int $status,
+        array $headers = [],
     ): JsonResponse|RedirectResponse {
         if ($request->expectsJson()) {
-            return response()->json(['message' => $message], $status);
+            return response()->json(['message' => $message], $status, $headers);
         }
 
         return to_route('student.dashboard', ['tab' => 'classes'])

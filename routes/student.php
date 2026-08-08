@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DisabledFeatureController;
 use App\Http\Controllers\Student\DashboardController;
+use App\Http\Controllers\Student\ResearchClassController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('student')->name('student.')->middleware([
@@ -22,10 +23,10 @@ Route::prefix('student')->name('student.')->middleware([
         ->middleware('throttle:consultation-bookings')
         ->name('consultations.store');
 
-    Route::post('/classes/join', DisabledFeatureController::class)
-        ->middleware('throttle:class-joining')
+    Route::post('/classes/join', [ResearchClassController::class, 'store'])
+        ->middleware(['permission:classes.join', 'throttle:class-joining'])
         ->name('classes.join');
-    Route::get('/classes/{researchClass}', DisabledFeatureController::class)
+    Route::get('/classes/{researchClass}', [ResearchClassController::class, 'show'])
         ->middleware('permission:classes.view-enrolled')
         ->whereNumber('researchClass')
         ->name('classes.show');
