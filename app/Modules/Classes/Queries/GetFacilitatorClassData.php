@@ -2,10 +2,10 @@
 
 namespace App\Modules\Classes\Queries;
 
+use App\Enums\AccountStatus;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\User;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class GetFacilitatorClassData
@@ -17,6 +17,7 @@ class GetFacilitatorClassData
             ->where('facilitator_id', $facilitator->getKey())
             ->withCount([
                 'enrollments as active_students_count' => fn ($query) => $query->where('status', 'active'),
+                'groups as active_groups_count' => fn ($query) => $query->where('status', 'active'),
             ])
             ->latest()
             ->get();
@@ -63,6 +64,13 @@ class GetFacilitatorClassData
             ->limit(100)
             ->get();
 
+        $advisers = User::query()
+            ->permission('classes.serve-as-adviser')
+            ->where('status', AccountStatus::Active)
+            ->whereNotNull('approved_at')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'department']);
+
         return [
             'researchClasses' => $classes,
             'classJoinRequests' => $joinRequests,
@@ -70,7 +78,7 @@ class GetFacilitatorClassData
             'requestStats' => $classRequestStats,
             'requestSearch' => $requestSearch,
             'requestStatus' => $requestStatus,
-            'classAdviserOptions' => new Collection,
+            'classAdviserOptions' => $advisers,
         ];
     }
 }

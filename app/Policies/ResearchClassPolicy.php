@@ -14,7 +14,10 @@ class ResearchClassPolicy
         }
 
         return $user->can('classes.view-assigned')
-            && $researchClass->groups()->where('adviser_id', $user->getKey())->exists();
+            && $researchClass->groups()
+                ->where('status', 'active')
+                ->where('adviser_id', $user->getKey())
+                ->exists();
     }
 
     public function manageJoinRequests(User $user, ResearchClass $researchClass): bool

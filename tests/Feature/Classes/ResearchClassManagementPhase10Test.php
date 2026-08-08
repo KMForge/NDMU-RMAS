@@ -89,9 +89,7 @@ class ResearchClassManagementPhase10Test extends TestCase
             ->assertSee('Active Class Student')
             ->assertSee('STU-2026-0001')
             ->assertSee('BS Computer Science')
-            ->assertDontSee('Pending Class Student')
-            ->assertDontSee('Create Research Group')
-            ->assertDontSee('Assign Group');
+            ->assertDontSee('Pending Class Student');
     }
 
     public function test_facilitator_cannot_open_another_facilitators_class(): void

@@ -2,9 +2,14 @@
 
 namespace App\Http\Controllers\Facilitator;
 
+use App\Enums\AccountStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Classes\CreateResearchClassRequest;
 use App\Models\ResearchClass;
+use App\Models\ResearchClassEnrollment;
+use App\Models\ResearchClassGroup;
+use App\Models\ResearchClassGroupMember;
+use App\Models\User;
 use App\Modules\Classes\Actions\CreateResearchClass;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
@@ -57,6 +62,37 @@ class ResearchClassController extends Controller
         Gate::authorize('view', $researchClass);
         $search = Str::limit(trim((string) $request->query('q', '')), 100, '');
 
+        $activeGroups = ResearchClassGroup::query()
+            ->where('research_class_id', $researchClass->getKey())
+            ->where('status', 'active')
+            ->with([
+                'adviser:id,name,email,department',
+                'members' => fn ($query) => $query->with('student:id,name,email,student_id,program,year_level'),
+                'adviserRequests' => fn ($query) => $query->where('status', 'pending')->with('adviser:id,name,email'),
+            ])
+            ->latest()
+            ->get();
+
+        $groupedEnrollmentIds = ResearchClassGroupMember::query()
+            ->where('research_class_id', $researchClass->getKey())
+            ->whereHas('group', fn ($query) => $query->where('status', 'active'))
+            ->pluck('research_class_enrollment_id');
+
+        $unassignedStudents = ResearchClassEnrollment::query()
+            ->where('research_class_id', $researchClass->getKey())
+            ->where('status', 'active')
+            ->whereNotIn('id', $groupedEnrollmentIds)
+            ->with('student:id,name,email,student_id,program,year_level')
+            ->latest('joined_at')
+            ->get();
+
+        $advisers = User::query()
+            ->permission('classes.serve-as-adviser')
+            ->where('status', AccountStatus::Active)
+            ->whereNotNull('approved_at')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'department']);
+
         if (! $request->expectsJson()) {
             $enrollmentQuery = $researchClass->enrollments()
                 ->with(['student:id,name,email,student_id,program,year_level'])
@@ -81,6 +117,9 @@ class ResearchClassController extends Controller
                 'researchClass' => $researchClass,
                 'enrollments' => $enrollments,
                 'activeStudents' => $researchClass->enrollments()->where('status', 'active')->count(),
+                'groups' => $activeGroups,
+                'unassignedStudents' => $unassignedStudents,
+                'classAdviserOptions' => $advisers,
                 'search' => $search,
             ]);
         }
@@ -110,6 +149,8 @@ class ResearchClassController extends Controller
                     'joined_at' => $enrollment->joined_at?->toIso8601String(),
                     'student' => $enrollment->student,
                 ]),
+                'groups' => $activeGroups,
+                'unassigned_students' => $unassignedStudents,
             ],
         ]);
     }

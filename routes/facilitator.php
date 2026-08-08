@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\DisabledFeatureController;
 use App\Http\Controllers\Facilitator\ClassJoinRequestController;
 use App\Http\Controllers\Facilitator\DashboardController;
 use App\Http\Controllers\Facilitator\ResearchClassController;
+use App\Http\Controllers\Facilitator\ResearchClassGroupController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('facilitator')->name('facilitator.')->middleware([
@@ -22,17 +22,39 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
     Route::prefix('/classes/{researchClass}')
         ->whereNumber('researchClass')
         ->group(function (): void {
-            Route::post('/groups', DisabledFeatureController::class)
+            Route::post('/groups', [ResearchClassGroupController::class, 'store'])
                 ->middleware(['permission:classes.manage-groups', 'throttle:class-creation'])
                 ->name('classes.groups.store');
-            Route::put('/groups/{group}/students/{enrollment}', DisabledFeatureController::class)
+            Route::patch('/groups/{group}/rename', [ResearchClassGroupController::class, 'rename'])
+                ->middleware(['permission:classes.manage-groups', 'throttle:class-creation'])
+                ->whereNumber('group')
+                ->name('classes.groups.rename');
+            Route::delete('/groups/{group}', [ResearchClassGroupController::class, 'disband'])
+                ->middleware(['permission:classes.manage-groups', 'throttle:class-creation'])
+                ->whereNumber('group')
+                ->name('classes.groups.disband');
+
+            Route::put('/groups/{group}/students/{enrollment}', [ResearchClassGroupController::class, 'assignStudent'])
                 ->middleware(['permission:classes.manage-groups', 'throttle:class-join-decisions'])
                 ->whereNumber(['group', 'enrollment'])
                 ->name('classes.groups.students.assign');
-            Route::put('/groups/{group}/adviser', DisabledFeatureController::class)
+
+            Route::post('/groups/{group}/adviser-requests', [ResearchClassGroupController::class, 'requestAdviser'])
+                ->middleware(['permission:classes.assign-advisers', 'throttle:class-join-decisions'])
+                ->whereNumber('group')
+                ->name('classes.groups.adviser-requests.store');
+            Route::put('/groups/{group}/adviser', [ResearchClassGroupController::class, 'requestAdviser'])
                 ->middleware(['permission:classes.assign-advisers', 'throttle:class-join-decisions'])
                 ->whereNumber('group')
                 ->name('classes.groups.adviser.assign');
+            Route::delete('/groups/{group}/adviser-requests/{adviserRequest}', [ResearchClassGroupController::class, 'cancelAdviserRequest'])
+                ->middleware(['permission:classes.assign-advisers', 'throttle:class-join-decisions'])
+                ->whereNumber(['group', 'adviserRequest'])
+                ->name('classes.groups.adviser-requests.cancel');
+            Route::delete('/groups/{group}/adviser', [ResearchClassGroupController::class, 'removeAdviser'])
+                ->middleware(['permission:classes.assign-advisers', 'throttle:class-join-decisions'])
+                ->whereNumber('group')
+                ->name('classes.groups.adviser.remove');
 
             Route::prefix('/join-requests/{joinRequest}')
                 ->whereNumber('joinRequest')

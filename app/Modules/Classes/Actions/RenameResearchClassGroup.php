@@ -9,29 +9,33 @@ use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
-class CreateResearchClassGroup
+class RenameResearchClassGroup
 {
     public function handle(
         User $facilitator,
         ResearchClass $researchClass,
-        string $creationToken,
+        ResearchClassGroup $group,
         string $name,
     ): ResearchClassGroup {
-        $lock = Cache::lock("class-group:{$researchClass->getKey()}:{$creationToken}", 30);
-
-        if (! $lock->get()) {
-            throw new DuplicateClassOperation('This group creation request is already being processed.');
-        }
-
         try {
-            return DB::transaction(function () use ($facilitator, $researchClass, $creationToken, $name): ResearchClassGroup {
+            return DB::transaction(function () use ($facilitator, $researchClass, $group, $name): ResearchClassGroup {
                 $lockedClass = ResearchClass::query()->lockForUpdate()->findOrFail($researchClass->getKey());
 
                 if ($lockedClass->facilitator_id !== $facilitator->getKey()) {
                     throw new AuthorizationException('You cannot manage groups for this class.');
+                }
+
+                $lockedGroup = ResearchClassGroup::query()
+                    ->whereKey($group->getKey())
+                    ->where('research_class_id', $lockedClass->getKey())
+                    ->where('status', 'active')
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($lockedGroup === null) {
+                    throw new ClassOperationException('The active group was not found.');
                 }
 
                 $trimmedName = trim($name);
@@ -39,9 +43,8 @@ class CreateResearchClassGroup
                 $duplicate = ResearchClassGroup::query()
                     ->where('research_class_id', $lockedClass->getKey())
                     ->where('status', 'active')
-                    ->where(function ($query) use ($creationToken, $trimmedName): void {
-                        $query->where('creation_token', $creationToken)->orWhere('name', $trimmedName);
-                    })
+                    ->where('name', $trimmedName)
+                    ->where('id', '<>', $lockedGroup->getKey())
                     ->lockForUpdate()
                     ->exists();
 
@@ -49,20 +52,14 @@ class CreateResearchClassGroup
                     throw new DuplicateClassOperation('A group with this name already exists in this class.');
                 }
 
-                return ResearchClassGroup::query()->create([
-                    'research_class_id' => $lockedClass->getKey(),
-                    'creation_token' => $creationToken,
-                    'name' => $trimmedName,
-                    'created_by' => $facilitator->getKey(),
-                    'status' => 'active',
-                ]);
+                $lockedGroup->update(['name' => $trimmedName]);
+
+                return $lockedGroup->refresh();
             }, 3);
         } catch (QueryException $exception) {
             report($exception);
 
-            throw new ClassOperationException('The class group could not be created. Please try again.');
-        } finally {
-            $lock->release();
+            throw new ClassOperationException('The group could not be renamed. Please try again.');
         }
     }
 }

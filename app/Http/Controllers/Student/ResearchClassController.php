@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Classes\JoinResearchClassRequest;
 use App\Models\ResearchClass;
+use App\Models\ResearchClassGroupMember;
 use App\Modules\Classes\Actions\RequestToJoinResearchClass;
 use App\Modules\Classes\Exceptions\ClassJoinRateLimited;
 use App\Modules\Classes\Exceptions\ClassOperationException;
@@ -25,13 +26,26 @@ class ResearchClassController extends Controller
             ->where('student_id', $request->user()->getKey())
             ->where('status', 'active')
             ->firstOrFail();
+
         $researchClass->load('facilitator:id,name,email');
+
+        $groupMember = ResearchClassGroupMember::query()
+            ->where('research_class_id', $researchClass->getKey())
+            ->where('student_id', $request->user()->getKey())
+            ->whereHas('group', fn ($query) => $query->where('status', 'active'))
+            ->with([
+                'group' => fn ($query) => $query->with([
+                    'adviser:id,name,email,department',
+                    'members.student:id,name,email,student_id,program,year_level',
+                ]),
+            ])
+            ->first();
 
         return view('pages.student-class-details', [
             'student' => $request->user(),
             'researchClass' => $researchClass,
             'enrollment' => $enrollment,
-            'group' => null,
+            'group' => $groupMember?->group,
         ]);
     }
 

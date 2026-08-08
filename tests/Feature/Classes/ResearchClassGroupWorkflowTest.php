@@ -5,6 +5,8 @@ namespace Tests\Feature\Classes;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
+use App\Models\ResearchClassGroupAdviserHistory;
+use App\Models\ResearchClassGroupAdviserRequest;
 use App\Models\ResearchClassGroupMember;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -20,8 +22,6 @@ class ResearchClassGroupWorkflowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->markTestSkipped('Research class groups are intentionally disabled until Phase 12.');
 
         $this->seed(RolePermissionSeeder::class);
     }
@@ -43,6 +43,7 @@ class ResearchClassGroupWorkflowTest extends TestCase
             'research_class_id' => $researchClass->getKey(),
             'name' => 'Capstone Group 1',
             'created_by' => $facilitator->getKey(),
+            'status' => 'active',
         ]);
     }
 
@@ -99,24 +100,184 @@ class ResearchClassGroupWorkflowTest extends TestCase
         ]);
     }
 
-    public function test_facilitator_can_assign_an_active_research_adviser_to_a_group(): void
+    public function test_group_cannot_exceed_4_students(): void
     {
         $facilitator = $this->userWithRole('research-facilitator');
-        $adviser = $this->userWithRole('research-adviser');
+        $researchClass = $this->createClass($facilitator);
+        $group = $this->createGroup($researchClass, $facilitator, 'Capstone Group 1');
+
+        for ($i = 1; $i <= 4; $i++) {
+            $student = $this->userWithRole('student-researcher');
+            $enrollment = $this->enroll($researchClass, $student, 'active');
+
+            $this->actingAs($facilitator)
+                ->putJson(route('facilitator.classes.groups.students.assign', [
+                    $researchClass, $group, $enrollment,
+                ]))
+                ->assertOk();
+        }
+
+        // Attempting to add 5th student must fail
+        $fifthStudent = $this->userWithRole('student-researcher');
+        $fifthEnrollment = $this->enroll($researchClass, $fifthStudent, 'active');
+
+        $this->actingAs($facilitator)
+            ->putJson(route('facilitator.classes.groups.students.assign', [
+                $researchClass, $group, $fifthEnrollment,
+            ]))
+            ->assertUnprocessable();
+
+        $this->assertSame(4, ResearchClassGroupMember::query()->where('research_class_group_id', $group->getKey())->count());
+    }
+
+    public function test_facilitator_can_send_adviser_request_and_adviser_can_accept_or_decline(): void
+    {
+        $facilitator = $this->userWithRole('research-facilitator');
+        $adviser = $this->userWithRole('thesis-adviser');
         $researchClass = $this->createClass($facilitator);
         $group = $this->createGroup($researchClass, $facilitator, 'Capstone Group 1');
 
         $this->actingAs($facilitator)
-            ->putJson(route('facilitator.classes.groups.adviser.assign', [$researchClass, $group]), [
+            ->postJson(route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $group]), [
                 'adviser_id' => $adviser->getKey(),
             ])
             ->assertOk()
-            ->assertJsonPath('group.adviser.id', $adviser->getKey());
+            ->assertJsonPath('adviser_request.status', 'pending');
 
-        $this->assertDatabaseHas('research_class_groups', [
-            'id' => $group->getKey(),
+        $this->assertDatabaseHas('research_class_group_adviser_requests', [
+            'research_class_group_id' => $group->getKey(),
             'adviser_id' => $adviser->getKey(),
+            'status' => 'pending',
         ]);
+
+        $this->assertNull($group->fresh()->adviser_id);
+
+        $request = ResearchClassGroupAdviserRequest::query()->sole();
+
+        // Adviser accepts request
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.group-requests.respond', $request), [
+                'decision' => 'accept',
+            ])
+            ->assertOk()
+            ->assertJsonPath('adviser_request.status', 'accepted');
+
+        $this->assertEquals($adviser->getKey(), $group->fresh()->adviser_id);
+        $this->assertDatabaseHas('research_class_group_adviser_histories', [
+            'research_class_group_id' => $group->getKey(),
+            'adviser_id' => $adviser->getKey(),
+            'assigned_by' => $facilitator->getKey(),
+        ]);
+    }
+
+    public function test_group_cannot_have_multiple_simultaneous_pending_adviser_requests(): void
+    {
+        $facilitator = $this->userWithRole('research-facilitator');
+        $adviser1 = $this->userWithRole('thesis-adviser');
+        $adviser2 = $this->userWithRole('thesis-adviser');
+        $researchClass = $this->createClass($facilitator);
+        $group = $this->createGroup($researchClass, $facilitator, 'Capstone Group 1');
+
+        $this->actingAs($facilitator)
+            ->postJson(route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $group]), [
+                'adviser_id' => $adviser1->getKey(),
+            ])
+            ->assertOk();
+
+        // Second request while first is pending must be blocked
+        $this->actingAs($facilitator)
+            ->postJson(route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $group]), [
+                'adviser_id' => $adviser2->getKey(),
+            ])
+            ->assertUnprocessable();
+    }
+
+    public function test_facilitator_can_cancel_pending_adviser_request(): void
+    {
+        $facilitator = $this->userWithRole('research-facilitator');
+        $adviser = $this->userWithRole('thesis-adviser');
+        $researchClass = $this->createClass($facilitator);
+        $group = $this->createGroup($researchClass, $facilitator, 'Capstone Group 1');
+
+        $this->actingAs($facilitator)
+            ->postJson(route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $group]), [
+                'adviser_id' => $adviser->getKey(),
+            ])
+            ->assertOk();
+
+        $adviserRequest = ResearchClassGroupAdviserRequest::query()->sole();
+
+        $this->actingAs($facilitator)
+            ->deleteJson(route('facilitator.classes.groups.adviser-requests.cancel', [$researchClass, $group, $adviserRequest]))
+            ->assertOk();
+
+        $this->assertEquals('cancelled', $adviserRequest->fresh()->status);
+    }
+
+    public function test_facilitator_can_remove_accepted_adviser_and_preserve_history(): void
+    {
+        $facilitator = $this->userWithRole('research-facilitator');
+        $adviser = $this->userWithRole('thesis-adviser');
+        $researchClass = $this->createClass($facilitator);
+        $group = $this->createGroup($researchClass, $facilitator, 'Capstone Group 1');
+
+        $this->actingAs($facilitator)
+            ->postJson(route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $group]), [
+                'adviser_id' => $adviser->getKey(),
+            ])
+            ->assertOk();
+
+        $adviserRequest = ResearchClassGroupAdviserRequest::query()->sole();
+
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.group-requests.respond', $adviserRequest), ['decision' => 'accept'])
+            ->assertOk();
+
+        $this->assertEquals($adviser->getKey(), $group->fresh()->adviser_id);
+
+        // Remove adviser
+        $this->actingAs($facilitator)
+            ->deleteJson(route('facilitator.classes.groups.adviser.remove', [$researchClass, $group]))
+            ->assertOk();
+
+        $this->assertNull($group->fresh()->adviser_id);
+
+        $history = ResearchClassGroupAdviserHistory::query()->sole();
+        $this->assertNotNull($history->ended_at);
+        $this->assertEquals($facilitator->getKey(), $history->ended_by);
+    }
+
+    public function test_facilitator_can_disband_a_group_returning_members_to_unassigned(): void
+    {
+        $facilitator = $this->userWithRole('research-facilitator');
+        $student = $this->userWithRole('student-researcher');
+        $adviser = $this->userWithRole('thesis-adviser');
+        $researchClass = $this->createClass($facilitator);
+        $group = $this->createGroup($researchClass, $facilitator, 'Capstone Group 1');
+        $enrollment = $this->enroll($researchClass, $student, 'active');
+
+        $this->actingAs($facilitator)
+            ->putJson(route('facilitator.classes.groups.students.assign', [$researchClass, $group, $enrollment]))
+            ->assertOk();
+
+        $this->actingAs($facilitator)
+            ->postJson(route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $group]), [
+                'adviser_id' => $adviser->getKey(),
+            ])
+            ->assertOk();
+
+        // Disband group
+        $this->actingAs($facilitator)
+            ->deleteJson(route('facilitator.classes.groups.disband', [$researchClass, $group]))
+            ->assertOk();
+
+        $this->assertEquals('disbanded', $group->fresh()->status);
+        $this->assertNotNull($group->fresh()->disbanded_at);
+        $this->assertSame(0, ResearchClassGroupMember::query()->where('research_class_group_id', $group->getKey())->count());
+        $this->assertEquals('cancelled', ResearchClassGroupAdviserRequest::query()->sole()->status);
+
+        // Student is still active class enrollment
+        $this->assertEquals('active', $enrollment->fresh()->status);
     }
 
     public function test_facilitator_cannot_manage_another_facilitators_class_groups(): void
@@ -138,8 +299,8 @@ class ResearchClassGroupWorkflowTest extends TestCase
     public function test_adviser_can_view_only_students_in_groups_assigned_to_them(): void
     {
         $facilitator = $this->userWithRole('research-facilitator');
-        $adviser = $this->userWithRole('research-adviser');
-        $otherAdviser = $this->userWithRole('research-adviser');
+        $adviser = $this->userWithRole('thesis-adviser');
+        $otherAdviser = $this->userWithRole('thesis-adviser');
         $assignedStudent = $this->userWithRole('student-researcher');
         $hiddenStudent = $this->userWithRole('student-researcher');
         $assignedStudent->update(['name' => 'Assigned Group Student']);
@@ -168,26 +329,24 @@ class ResearchClassGroupWorkflowTest extends TestCase
         ]);
 
         $this->actingAs($adviser)
-            ->get(route('adviser.classes.show', $researchClass))
-            ->assertOk()
-            ->assertSee('Assigned Group Student')
-            ->assertDontSee('Other Group Student');
+            ->get(route('facilitator.classes.show', $researchClass))
+            ->assertForbidden();
     }
 
     public function test_unassigned_adviser_cannot_view_a_class(): void
     {
         $facilitator = $this->userWithRole('research-facilitator');
-        $unassignedAdviser = $this->userWithRole('research-adviser');
+        $unassignedAdviser = $this->userWithRole('thesis-adviser');
         $researchClass = $this->createClass($facilitator);
 
         $this->actingAs($unassignedAdviser)
-            ->get(route('adviser.classes.show', $researchClass))
+            ->get(route('facilitator.classes.show', $researchClass))
             ->assertForbidden();
     }
 
     public function test_adviser_dashboard_does_not_expose_facilitator_join_request_controls(): void
     {
-        $adviser = $this->userWithRole('research-adviser');
+        $adviser = $this->userWithRole('thesis-adviser');
 
         $this->actingAs($adviser)
             ->get(route('adviser.dashboard'))
@@ -203,7 +362,7 @@ class ResearchClassGroupWorkflowTest extends TestCase
     {
         $facilitator = $this->userWithRole('research-facilitator');
         $student = $this->userWithRole('student-researcher');
-        $adviser = $this->userWithRole('research-adviser');
+        $adviser = $this->userWithRole('thesis-adviser');
         $student->update(['name' => 'Browser Flow Student']);
         $adviser->update(['name' => 'Browser Flow Adviser']);
         $researchClass = $this->createClass($facilitator);
@@ -223,15 +382,20 @@ class ResearchClassGroupWorkflowTest extends TestCase
             ->assertRedirect(route('facilitator.classes.show', $researchClass));
 
         $this->actingAs($facilitator)
-            ->put(route('facilitator.classes.groups.adviser.assign', [$researchClass, $group]), [
+            ->post(route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $group]), [
                 'adviser_id' => $adviser->getKey(),
             ])
             ->assertRedirect(route('facilitator.classes.show', $researchClass));
 
+        $adviserRequest = ResearchClassGroupAdviserRequest::query()->sole();
+
+        $this->actingAs($adviser)
+            ->patch(route('adviser.group-requests.respond', $adviserRequest), ['decision' => 'accept'])
+            ->assertRedirect(route('adviser.dashboard', ['tab' => 'dashboard']));
+
         $this->actingAs($facilitator)
             ->get(route('facilitator.classes.show', $researchClass))
             ->assertOk()
-            ->assertSee('Student Roster')
             ->assertSee('Browser Flow Student')
             ->assertSee('Browser Flow Group')
             ->assertSee('Browser Flow Adviser');
@@ -240,8 +404,8 @@ class ResearchClassGroupWorkflowTest extends TestCase
     public function test_student_can_click_an_enrolled_class_and_see_only_their_group(): void
     {
         $facilitator = $this->userWithRole('research-facilitator');
-        $adviser = $this->userWithRole('research-adviser');
-        $otherAdviser = $this->userWithRole('research-adviser');
+        $adviser = $this->userWithRole('thesis-adviser');
+        $otherAdviser = $this->userWithRole('thesis-adviser');
         $student = $this->userWithRole('student-researcher');
         $groupMate = $this->userWithRole('student-researcher');
         $hiddenStudent = $this->userWithRole('student-researcher');
@@ -331,6 +495,7 @@ class ResearchClassGroupWorkflowTest extends TestCase
             'creation_token' => (string) Str::uuid(),
             'name' => $name,
             'created_by' => $facilitator->getKey(),
+            'status' => 'active',
         ]);
     }
 

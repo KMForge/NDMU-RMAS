@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Adviser\DashboardController;
+use App\Http\Controllers\Adviser\ResearchGroupAdviserRequestController;
 use App\Http\Controllers\DisabledFeatureController;
 use Illuminate\Support\Facades\Route;
 
@@ -8,6 +9,11 @@ Route::prefix('adviser')->name('adviser.')->middleware([
     'auth', 'verified', 'active', 'permission:dashboards.adviser.view',
 ])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    Route::patch('/group-requests/{adviserRequest}/respond', [ResearchGroupAdviserRequestController::class, 'respond'])
+        ->middleware(['permission:classes.serve-as-adviser', 'throttle:consultation-decisions'])
+        ->whereNumber('adviserRequest')
+        ->name('group-requests.respond');
 
     Route::post('/classes', DisabledFeatureController::class)
         ->middleware('permission:classes.create')

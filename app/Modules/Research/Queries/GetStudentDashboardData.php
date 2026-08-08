@@ -42,8 +42,8 @@ class GetStudentDashboardData
             'evaluations' => $empty,
             'documents' => $empty,
             'notifications' => $empty,
-            'classes' => $empty,
-            'classJoinRequests' => $empty,
+            'classes' => $this->classesFor($user),
+            'classJoinRequests' => $this->classJoinRequestsFor($user),
             'dashboardOverview' => $this->buildDashboardOverview(
                 null,
                 null,

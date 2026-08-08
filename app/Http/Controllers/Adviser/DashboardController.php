@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Adviser;
 
 use App\Http\Controllers\Controller;
+use App\Models\ResearchClassGroup;
+use App\Models\ResearchClassGroupAdviserRequest;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -26,14 +28,38 @@ class DashboardController extends Controller
         $activeTab = in_array($request->query('tab'), $allowedTabs, true)
             ? (string) $request->query('tab')
             : 'dashboard';
+
+        $user = $request->user();
         $viewData = $this->emptyViewData();
 
+        $pendingAdviserRequests = ResearchClassGroupAdviserRequest::query()
+            ->where('adviser_id', $user->getKey())
+            ->where('status', 'pending')
+            ->with([
+                'group' => fn ($query) => $query->where('status', 'active')->with('researchClass:id,name'),
+                'requester:id,name,email',
+            ])
+            ->latest()
+            ->get();
+
+        $assignedGroups = ResearchClassGroup::query()
+            ->where('adviser_id', $user->getKey())
+            ->where('status', 'active')
+            ->with([
+                'researchClass:id,name,facilitator_id',
+                'members' => fn ($query) => $query->with('student:id,name,email,student_id,program,year_level'),
+            ])
+            ->latest()
+            ->get();
+
+        $viewData['pendingAdviserRequests'] = $pendingAdviserRequests;
+        $viewData['assignedGroups'] = $assignedGroups;
         $viewData['officialFormPhases'] = config('official-forms.phases', []);
         $viewData['officialForms'] = config('official-forms.adviser', []);
 
         return view('pages.adviser-dashboard', [
             'area' => 'Research Adviser',
-            'adviser' => $request->user(),
+            'adviser' => $user,
             'activeDashboardTab' => $activeTab,
             ...$viewData,
         ]);

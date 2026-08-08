@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'name',
     'adviser_id',
     'created_by',
+    'status',
+    'disbanded_at',
 ])]
 class ResearchClassGroup extends Model
 {
@@ -40,5 +42,27 @@ class ResearchClassGroup extends Model
     public function members(): HasMany
     {
         return $this->hasMany(ResearchClassGroupMember::class);
+    }
+
+    public function adviserRequests(): HasMany
+    {
+        return $this->hasMany(ResearchClassGroupAdviserRequest::class);
+    }
+
+    public function adviserHistories(): HasMany
+    {
+        return $this->hasMany(ResearchClassGroupAdviserHistory::class);
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'active' && $this->disbanded_at === null;
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'disbanded_at' => 'immutable_datetime',
+        ];
     }
 }

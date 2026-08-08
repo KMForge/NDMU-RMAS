@@ -3,37 +3,42 @@
 namespace App\Http\Controllers\Facilitator;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Classes\AssignResearchClassGroupAdviserRequest;
-use App\Http\Requests\Classes\CreateResearchClassGroupRequest;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
+use App\Models\ResearchClassGroupAdviserRequest;
 use App\Models\User;
-use App\Modules\Classes\Actions\AssignAdviserToResearchClassGroup;
 use App\Modules\Classes\Actions\AssignStudentToResearchClassGroup;
+use App\Modules\Classes\Actions\CancelResearchClassGroupAdviserRequest;
 use App\Modules\Classes\Actions\CreateResearchClassGroup;
+use App\Modules\Classes\Actions\DisbandResearchClassGroup;
+use App\Modules\Classes\Actions\RemoveResearchClassGroupAdviser;
+use App\Modules\Classes\Actions\RenameResearchClassGroup;
+use App\Modules\Classes\Actions\RequestAdviserForResearchClassGroup;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 
 class ResearchClassGroupController extends Controller
 {
     public function store(
-        CreateResearchClassGroupRequest $request,
+        Request $request,
         ResearchClass $researchClass,
-        CreateResearchClassGroup $createGroup,
+        CreateResearchClassGroup $action,
     ): JsonResponse|RedirectResponse {
-        Gate::authorize('view', $researchClass);
+        $validated = $request->validate([
+            'creation_token' => ['required', 'uuid'],
+            'name' => ['required', 'string', 'min:2', 'max:120'],
+        ]);
 
         try {
-            $group = $createGroup->handle(
+            $group = $action->handle(
                 $request->user(),
                 $researchClass,
-                $request->string('creation_token')->toString(),
-                $request->string('name')->toString(),
+                $validated['creation_token'],
+                $validated['name'],
             );
         } catch (DuplicateClassOperation $exception) {
             return $this->errorResponse($request, $researchClass, $exception->getMessage(), 409);
@@ -41,15 +46,19 @@ class ResearchClassGroupController extends Controller
             return $this->errorResponse($request, $researchClass, $exception->getMessage(), 422);
         }
 
-        if (! $request->expectsJson()) {
-            return to_route('facilitator.classes.show', $researchClass)
-                ->with('group_success', 'Research group created successfully.');
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Group created successfully.',
+                'group' => [
+                    'id' => $group->getKey(),
+                    'name' => $group->name,
+                    'research_class_id' => $group->research_class_id,
+                ],
+            ], 201);
         }
 
-        return response()->json([
-            'message' => 'Research group created successfully.',
-            'group' => ['id' => $group->getKey(), 'name' => $group->name],
-        ], 201);
+        return to_route('facilitator.classes.show', $researchClass)
+            ->with('class_success', 'Research group created successfully.');
     }
 
     public function assignStudent(
@@ -57,77 +66,158 @@ class ResearchClassGroupController extends Controller
         ResearchClass $researchClass,
         ResearchClassGroup $group,
         ResearchClassEnrollment $enrollment,
-        AssignStudentToResearchClassGroup $assignStudent,
+        AssignStudentToResearchClassGroup $action,
     ): JsonResponse|RedirectResponse {
-        Gate::authorize('view', $researchClass);
-        abort_unless($request->user()->can('classes.manage-groups'), 403);
-
         try {
-            $member = $assignStudent->handle(
-                $request->user(),
-                $researchClass,
-                $group,
-                $enrollment,
-            );
+            $member = $action->handle($request->user(), $researchClass, $group, $enrollment);
         } catch (ClassOperationException $exception) {
             return $this->errorResponse($request, $researchClass, $exception->getMessage(), 422);
         }
 
-        if (! $request->expectsJson()) {
-            return to_route('facilitator.classes.show', $researchClass)
-                ->with('group_success', 'Student assigned to the research group successfully.');
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Student assigned to group successfully.',
+                'membership' => [
+                    'id' => $member->getKey(),
+                    'group_id' => $member->research_class_group_id,
+                    'student_id' => $member->student_id,
+                ],
+            ]);
         }
 
-        return response()->json([
-            'message' => 'Student assigned to the research group successfully.',
-            'membership' => [
-                'id' => $member->getKey(),
-                'group_id' => $member->research_class_group_id,
-                'student_id' => $member->student_id,
-            ],
-        ]);
+        return to_route('facilitator.classes.show', $researchClass)
+            ->with('class_success', 'Student assigned to group successfully.');
     }
 
-    public function assignAdviser(
-        AssignResearchClassGroupAdviserRequest $request,
-        ResearchClass $researchClass,
-        ResearchClassGroup $group,
-        AssignAdviserToResearchClassGroup $assignAdviser,
-    ): JsonResponse|RedirectResponse {
-        Gate::authorize('view', $researchClass);
-        $adviser = User::query()->findOrFail($request->integer('adviser_id'));
-
-        try {
-            $updatedGroup = $assignAdviser->handle(
-                $request->user(),
-                $researchClass,
-                $group,
-                $adviser,
-            );
-        } catch (ClassOperationException $exception) {
-            return $this->errorResponse($request, $researchClass, $exception->getMessage(), 422);
-        }
-
-        if (! $request->expectsJson()) {
-            return to_route('facilitator.classes.show', $researchClass)
-                ->with('group_success', 'Research adviser assigned successfully.');
-        }
-
-        return response()->json([
-            'message' => 'Research adviser assigned successfully.',
-            'group' => [
-                'id' => $updatedGroup->getKey(),
-                'adviser' => ['id' => $adviser->getKey(), 'name' => $adviser->name],
-            ],
-        ]);
-    }
-
-    private function errorResponse(
+    public function rename(
         Request $request,
         ResearchClass $researchClass,
-        string $message,
-        int $status,
+        ResearchClassGroup $group,
+        RenameResearchClassGroup $action,
     ): JsonResponse|RedirectResponse {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'min:2', 'max:120'],
+        ]);
+
+        try {
+            $group = $action->handle($request->user(), $researchClass, $group, $validated['name']);
+        } catch (DuplicateClassOperation $exception) {
+            return $this->errorResponse($request, $researchClass, $exception->getMessage(), 409);
+        } catch (ClassOperationException $exception) {
+            return $this->errorResponse($request, $researchClass, $exception->getMessage(), 422);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Group renamed successfully.',
+                'group' => ['id' => $group->getKey(), 'name' => $group->name],
+            ]);
+        }
+
+        return to_route('facilitator.classes.show', $researchClass)
+            ->with('class_success', 'Group renamed successfully.');
+    }
+
+    public function disband(
+        Request $request,
+        ResearchClass $researchClass,
+        ResearchClassGroup $group,
+        DisbandResearchClassGroup $action,
+    ): JsonResponse|RedirectResponse {
+        try {
+            $action->handle($request->user(), $researchClass, $group);
+        } catch (ClassOperationException $exception) {
+            return $this->errorResponse($request, $researchClass, $exception->getMessage(), 422);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Group disbanded successfully.']);
+        }
+
+        return to_route('facilitator.classes.show', $researchClass)
+            ->with('class_success', 'Group disbanded. Members returned to Unassigned Students list.');
+    }
+
+    public function requestAdviser(
+        Request $request,
+        ResearchClass $researchClass,
+        ResearchClassGroup $group,
+        RequestAdviserForResearchClassGroup $action,
+    ): JsonResponse|RedirectResponse {
+        $validated = $request->validate([
+            'adviser_id' => ['required', 'integer', 'exists:users,id'],
+        ]);
+
+        $adviser = User::query()->findOrFail($validated['adviser_id']);
+
+        try {
+            $adviserRequest = $action->handle($request->user(), $researchClass, $group, $adviser);
+        } catch (ClassOperationException $exception) {
+            return $this->errorResponse($request, $researchClass, $exception->getMessage(), 422);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Adviser request sent successfully.',
+                'adviser_request' => [
+                    'id' => $adviserRequest->getKey(),
+                    'adviser_id' => $adviserRequest->adviser_id,
+                    'status' => $adviserRequest->status,
+                ],
+                'group' => [
+                    'id' => $group->getKey(),
+                    'adviser' => null,
+                ],
+            ]);
+        }
+
+        return to_route('facilitator.classes.show', $researchClass)
+            ->with('class_success', 'Adviser request sent successfully.');
+    }
+
+    public function cancelAdviserRequest(
+        Request $request,
+        ResearchClass $researchClass,
+        ResearchClassGroup $group,
+        ResearchClassGroupAdviserRequest $adviserRequest,
+        CancelResearchClassGroupAdviserRequest $action,
+    ): JsonResponse|RedirectResponse {
+        try {
+            $action->handle($request->user(), $researchClass, $group, $adviserRequest);
+        } catch (ClassOperationException $exception) {
+            return $this->errorResponse($request, $researchClass, $exception->getMessage(), 422);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Adviser request cancelled successfully.']);
+        }
+
+        return to_route('facilitator.classes.show', $researchClass)
+            ->with('class_success', 'Adviser request cancelled successfully.');
+    }
+
+    public function removeAdviser(
+        Request $request,
+        ResearchClass $researchClass,
+        ResearchClassGroup $group,
+        RemoveResearchClassGroupAdviser $action,
+    ): JsonResponse|RedirectResponse {
+        try {
+            $action->handle($request->user(), $researchClass, $group);
+        } catch (ClassOperationException $exception) {
+            return $this->errorResponse($request, $researchClass, $exception->getMessage(), 422);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Adviser removed successfully.']);
+        }
+
+        return to_route('facilitator.classes.show', $researchClass)
+            ->with('class_success', 'Adviser removed from group successfully.');
+    }
+
+    private function errorResponse(Request $request, ResearchClass $researchClass, string $message, int $status): JsonResponse|RedirectResponse
+    {
         if ($request->expectsJson()) {
             return response()->json(['message' => $message], $status);
         }

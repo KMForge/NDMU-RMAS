@@ -8,6 +8,7 @@ use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupMember;
 use App\Models\User;
 use App\Modules\Classes\Exceptions\ClassOperationException;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -24,14 +25,16 @@ class AssignStudentToResearchClassGroup
                 $lockedClass = ResearchClass::query()->lockForUpdate()->findOrFail($researchClass->getKey());
 
                 if ($lockedClass->facilitator_id !== $facilitator->getKey()) {
-                    throw new ClassOperationException('You cannot manage groups for this class.');
+                    throw new AuthorizationException('You cannot manage groups for this class.');
                 }
 
                 $lockedGroup = ResearchClassGroup::query()
                     ->whereKey($group->getKey())
                     ->where('research_class_id', $lockedClass->getKey())
+                    ->where('status', 'active')
                     ->lockForUpdate()
                     ->first();
+
                 $lockedEnrollment = ResearchClassEnrollment::query()
                     ->whereKey($enrollment->getKey())
                     ->where('research_class_id', $lockedClass->getKey())
@@ -40,14 +43,29 @@ class AssignStudentToResearchClassGroup
                     ->first();
 
                 if ($lockedGroup === null || $lockedEnrollment === null) {
-                    throw new ClassOperationException('The group or active class enrollment was not found.');
+                    throw new ClassOperationException('The active group or active class enrollment was not found.');
                 }
 
-                $member = ResearchClassGroupMember::query()
+                $existingMember = ResearchClassGroupMember::query()
                     ->where('research_class_id', $lockedClass->getKey())
                     ->where('student_id', $lockedEnrollment->student_id)
                     ->lockForUpdate()
                     ->first();
+
+                // If student is already in this exact group, return idempotently
+                if ($existingMember !== null && $existingMember->research_class_group_id === $lockedGroup->getKey()) {
+                    return $existingMember;
+                }
+
+                // Check maximum 4 students limit for the target group
+                $currentMemberCount = ResearchClassGroupMember::query()
+                    ->where('research_class_group_id', $lockedGroup->getKey())
+                    ->lockForUpdate()
+                    ->count();
+
+                if ($currentMemberCount >= 4) {
+                    throw new ClassOperationException('A research group cannot exceed 4 members.');
+                }
 
                 $attributes = [
                     'research_class_group_id' => $lockedGroup->getKey(),
@@ -57,10 +75,10 @@ class AssignStudentToResearchClassGroup
                     'assigned_by' => $facilitator->getKey(),
                 ];
 
-                if ($member !== null) {
-                    $member->update($attributes);
+                if ($existingMember !== null) {
+                    $existingMember->update($attributes);
 
-                    return $member->refresh();
+                    return $existingMember->refresh();
                 }
 
                 return ResearchClassGroupMember::query()->create($attributes);
