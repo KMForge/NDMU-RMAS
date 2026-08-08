@@ -1,8 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\DocumentAccessController;
-use App\Http\Controllers\UserSignatureController;
+use App\Http\Controllers\DisabledFeatureController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -17,10 +16,10 @@ Route::middleware(['auth', 'verified', 'active'])
     ->prefix('documents')
     ->name('documents.')
     ->group(function (): void {
-        Route::get('/{document}/view', [DocumentAccessController::class, 'view'])
+        Route::get('/{document}/view', DisabledFeatureController::class)
             ->whereNumber('document')
             ->name('view');
-        Route::get('/{document}/download', [DocumentAccessController::class, 'download'])
+        Route::get('/{document}/download', DisabledFeatureController::class)
             ->whereNumber('document')
             ->name('download');
     });
@@ -29,13 +28,13 @@ Route::middleware(['auth', 'verified', 'active'])
     ->prefix('settings/signature')
     ->name('signature.')
     ->group(function (): void {
-        Route::get('/', [UserSignatureController::class, 'show'])
+        Route::get('/', DisabledFeatureController::class)
             ->middleware('throttle:60,1')
             ->name('show');
-        Route::put('/', [UserSignatureController::class, 'store'])
+        Route::put('/', DisabledFeatureController::class)
             ->middleware('throttle:signature-enrollment')
             ->name('store');
-        Route::delete('/', [UserSignatureController::class, 'destroy'])
+        Route::delete('/', DisabledFeatureController::class)
             ->middleware('throttle:signature-enrollment')
             ->name('destroy');
     });

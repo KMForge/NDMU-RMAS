@@ -1,11 +1,7 @@
 <?php
 
-use App\Http\Controllers\Adviser\ConsultationController;
 use App\Http\Controllers\Adviser\DashboardController;
-use App\Http\Controllers\Adviser\DocumentReviewController;
-use App\Http\Controllers\Adviser\RepositoryDocumentController;
-use App\Http\Controllers\Adviser\ResearchClassController;
-use App\Http\Controllers\Adviser\RevisionRequestController;
+use App\Http\Controllers\DisabledFeatureController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('adviser')->name('adviser.')->middleware([
@@ -13,13 +9,13 @@ Route::prefix('adviser')->name('adviser.')->middleware([
 ])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
-    Route::post('/classes', [ResearchClassController::class, 'store'])
+    Route::post('/classes', DisabledFeatureController::class)
         ->middleware('permission:classes.create')
         ->name('classes.store');
-    Route::get('/classes/{researchClass}', [ResearchClassController::class, 'show'])
+    Route::get('/classes/{researchClass}', DisabledFeatureController::class)
         ->whereNumber('researchClass')
         ->name('classes.show');
-    Route::post('/repository/documents', [RepositoryDocumentController::class, 'store'])
+    Route::post('/repository/documents', DisabledFeatureController::class)
         ->middleware(['permission:documents.upload', 'throttle:document-uploads'])
         ->name('repository.documents.store');
 
@@ -27,11 +23,11 @@ Route::prefix('adviser')->name('adviser.')->middleware([
         ->whereNumber('consultationRequest')
         ->middleware(['permission:consultations.manage-assigned', 'throttle:consultation-decisions'])
         ->group(function (): void {
-            Route::post('/complete', [ConsultationController::class, 'complete'])
+            Route::post('/complete', DisabledFeatureController::class)
                 ->name('consultations.complete');
-            Route::patch('/approve', [ConsultationController::class, 'approve'])
+            Route::patch('/approve', DisabledFeatureController::class)
                 ->name('consultations.approve');
-            Route::patch('/reject', [ConsultationController::class, 'reject'])
+            Route::patch('/reject', DisabledFeatureController::class)
                 ->name('consultations.reject');
         });
 
@@ -39,12 +35,12 @@ Route::prefix('adviser')->name('adviser.')->middleware([
         ->whereNumber('document')
         ->middleware(['permission:documents.review', 'throttle:document-reviews'])
         ->group(function (): void {
-            Route::post('/comments', [DocumentReviewController::class, 'comment'])
+            Route::post('/comments', DisabledFeatureController::class)
                 ->name('documents.comments.store');
-            Route::patch('/comments/{comment}/resolve', [DocumentReviewController::class, 'resolve'])
+            Route::patch('/comments/{comment}/resolve', DisabledFeatureController::class)
                 ->whereNumber('comment')
                 ->name('documents.comments.resolve');
-            Route::patch('/review', [DocumentReviewController::class, 'review'])
+            Route::patch('/review', DisabledFeatureController::class)
                 ->name('documents.review');
         });
 
@@ -52,9 +48,9 @@ Route::prefix('adviser')->name('adviser.')->middleware([
         ->whereNumber('revisionRequest')
         ->middleware(['permission:revisions.resolve', 'throttle:revision-actions'])
         ->group(function (): void {
-            Route::patch('/resolve', [RevisionRequestController::class, 'resolve'])
+            Route::patch('/resolve', DisabledFeatureController::class)
                 ->name('revisions.resolve');
-            Route::patch('/reopen', [RevisionRequestController::class, 'reopen'])
+            Route::patch('/reopen', DisabledFeatureController::class)
                 ->name('revisions.reopen');
         });
 });

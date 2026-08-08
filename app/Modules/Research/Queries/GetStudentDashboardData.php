@@ -20,6 +20,47 @@ class GetStudentDashboardData
     public function for(User $user, mixed $dashboardSearch = null, string $activeTab = 'dashboard'): array
     {
         $empty = collect();
+        $searchQuery = $activeTab === 'dashboard'
+            ? Str::limit(trim(is_string($dashboardSearch) ? $dashboardSearch : ''), 100, '')
+            : '';
+
+        return [
+            'area' => 'Student Researcher',
+            'student' => $user,
+            'studentProfile' => null,
+            'researchProject' => null,
+            'program' => null,
+            'teamMembers' => $empty,
+            'adviser' => null,
+            'proposals' => $empty,
+            'progressUpdates' => $empty,
+            'researchMilestones' => $empty,
+            'consultations' => $empty,
+            'consultationRequests' => $empty,
+            'revisions' => $empty,
+            'defenses' => $empty,
+            'evaluations' => $empty,
+            'documents' => $empty,
+            'notifications' => $empty,
+            'classes' => $empty,
+            'classJoinRequests' => $empty,
+            'dashboardOverview' => $this->buildDashboardOverview(
+                null,
+                null,
+                $empty,
+                $empty,
+                $empty,
+                $empty,
+                $empty,
+                $empty,
+                $empty,
+                0,
+                0,
+            ),
+            'dashboardSearchQuery' => $searchQuery,
+            'dashboardSearchResults' => $empty,
+        ];
+
         $studentProfile = null;
         $project = null;
         $program = null;
