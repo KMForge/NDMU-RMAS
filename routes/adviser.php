@@ -39,6 +39,8 @@ Route::prefix('adviser')->name('adviser.')->middleware([
                 ->name('consultations.reject');
             Route::post('/complete', [ConsultationController::class, 'complete'])
                 ->name('consultations.complete');
+            Route::patch('/meeting-details', [ConsultationController::class, 'updateMeetingDetails'])
+                ->name('consultations.meeting-details.update');
         });
 
     Route::post('/consultations/records/{record}/correct', [ConsultationController::class, 'correctRecord'])

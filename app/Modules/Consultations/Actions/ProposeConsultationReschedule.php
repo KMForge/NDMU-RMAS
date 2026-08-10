@@ -16,9 +16,7 @@ class ProposeConsultationReschedule
 {
     /**
      * @param  array{
-     *     proposed_start_at: CarbonImmutable,
-     *     duration_minutes?: ?int,
-     *     reason?: ?string
+     *     proposed_start_at: CarbonImmutable
      * }  $data
      */
     public function handle(User $adviser, ConsultationRequest $request, array $data): ConsultationScheduleProposal
@@ -49,7 +47,7 @@ class ProposeConsultationReschedule
                     throw new ConsultationException("Proposed schedule must be at least {$minAdvanceMinutes} minutes in advance.");
                 }
 
-                $durationMinutes = (int) ($data['duration_minutes'] ?? $lockedRequest->duration_minutes);
+                $durationMinutes = (int) $lockedRequest->duration_minutes;
                 $allowedDurations = (array) config('consultations.allowed_durations', [30, 45, 60]);
                 if (! in_array($durationMinutes, $allowedDurations, true)) {
                     throw new ConsultationException('Invalid duration selected for proposal.');
@@ -66,7 +64,7 @@ class ProposeConsultationReschedule
                     'proposed_by' => $adviser->id,
                     'proposed_start_at' => $proposedStart,
                     'duration_minutes' => $durationMinutes,
-                    'reason' => ! empty($data['reason']) ? trim($data['reason']) : null,
+                    'reason' => null,
                     'status' => 'pending_response',
                 ]);
 

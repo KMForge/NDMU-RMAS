@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Adviser;
 
 use App\Http\Controllers\Controller;
+use App\Models\ConsultationRequest;
+use App\Models\Document;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupAdviserRequest;
 use App\Modules\Consultations\Queries\GetAdviserConsultationData;
@@ -64,7 +66,20 @@ class DashboardController extends Controller
             ->latest()
             ->get();
 
+        $pendingConsultationsCount = ConsultationRequest::query()
+            ->whereHas('researchClassGroup', fn ($g) => $g->where('adviser_id', $user->getKey())->where('status', 'active')->whereNull('disbanded_at'))
+            ->whereIn('status', ['pending', 'reschedule_proposed'])
+            ->count();
+
+        $pendingDocReviewsCount = Document::query()
+            ->whereHas('researchClassGroup', fn ($g) => $g->where('adviser_id', $user->getKey())->where('status', 'active')->whereNull('disbanded_at'))
+            ->where('status', 'needs_attention')
+            ->count();
+
         $viewData['pendingAdviserRequests'] = $pendingAdviserRequests;
+        $viewData['pendingAdviserRequestsCount'] = $pendingAdviserRequests->count();
+        $viewData['pendingConsultationsCount'] = $pendingConsultationsCount;
+        $viewData['pendingDocReviewsCount'] = $pendingDocReviewsCount;
         $viewData['assignedGroups'] = $assignedGroups;
         $viewData['officialFormPhases'] = config('official-forms.phases', []);
         $viewData['officialForms'] = config('official-forms.adviser', []);
@@ -133,6 +148,9 @@ class DashboardController extends Controller
             'assignedGroupOptions' => new Collection,
             'adviserNotifications' => new Collection,
             'adviserOverviewAdvisees' => new Collection,
+            'pendingConsultationsCount' => 0,
+            'pendingDocReviewsCount' => 0,
+            'pendingAdviserRequestsCount' => 0,
         ];
     }
 }

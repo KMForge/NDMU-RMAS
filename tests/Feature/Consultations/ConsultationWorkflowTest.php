@@ -312,6 +312,50 @@ class ConsultationWorkflowTest extends TestCase
         ]);
     }
 
+    public function test_adviser_can_publish_online_meeting_details_after_approval_without_changing_agenda(): void
+    {
+        $agenda = 'Review the group data gathering plan.';
+        $request = ConsultationRequest::query()->create([
+            'research_class_group_id' => $this->group->id,
+            'assigned_adviser_id' => $this->adviser->id,
+            'requested_by' => $this->studentRequester->id,
+            'request_token' => (string) Str::uuid(),
+            'preferred_at' => now()->addDays(2),
+            'confirmed_start_at' => now()->addDays(2),
+            'confirmed_end_at' => now()->addDays(2)->addHour(),
+            'duration_minutes' => 60,
+            'consultation_mode' => ConsultationMode::InPerson,
+            'agenda' => $agenda,
+            'status' => ConsultationStatus::Approved,
+        ]);
+
+        $meetingUrl = 'https://meet.example.edu/group-alpha';
+
+        $this->actingAs($this->adviser)
+            ->patch(route('adviser.consultations.meeting-details.update', $request), [
+                'consultation_mode' => ConsultationMode::Online->value,
+                'meeting_url' => $meetingUrl,
+            ])
+            ->assertRedirect(route('adviser.dashboard', [
+                'tab' => 'consultation',
+                'consultation_status' => 'approved',
+            ]));
+
+        $this->assertDatabaseHas('consultation_requests', [
+            'id' => $request->id,
+            'consultation_mode' => ConsultationMode::Online->value,
+            'meeting_url' => $meetingUrl,
+            'agenda' => $agenda,
+        ]);
+
+        $this->actingAs($this->studentRequester)
+            ->get(route('student.dashboard', ['tab' => 'consultation']))
+            ->assertOk()
+            ->assertSee($agenda)
+            ->assertSee($meetingUrl)
+            ->assertDontSee('Reply');
+    }
+
     public function test_adviser_cannot_approve_overlapping_schedule(): void
     {
         $existingStart = CarbonImmutable::parse(now()->addDays(2)->setHour(14)->setMinute(0)->setSecond(0));

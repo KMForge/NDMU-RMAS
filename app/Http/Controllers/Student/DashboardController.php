@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Models\ConsultationRequest;
 use App\Modules\Consultations\Queries\GetStudentConsultationData;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\Research\Queries\GetStudentDashboardData;
@@ -50,6 +51,12 @@ class DashboardController extends Controller
             $data = [...$data, ...$consultationData->for($request->user())];
         }
 
+        $pendingConsultationsCount = ConsultationRequest::query()
+            ->where('requested_by', $request->user()->getKey())
+            ->whereIn('status', ['pending', 'reschedule_proposed'])
+            ->count();
+
+        $data['pendingConsultationsCount'] = $pendingConsultationsCount;
         $data['officialFormPhases'] = config('official-forms.phases', []);
         $data['officialForms'] = collect(config('official-forms.student', []))
             ->map(function (array $form, string $code): array {
@@ -63,8 +70,10 @@ class DashboardController extends Controller
             ->all();
 
         return view('pages.student-dashboard', [
-            ...$data,
+            'area' => 'Student Portal',
+            'student' => $request->user(),
             'activeDashboardTab' => $activeTab,
+            ...$data,
         ]);
     }
 }

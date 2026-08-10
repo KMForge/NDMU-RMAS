@@ -169,7 +169,14 @@
                         <i class="ph ph-file-text text-lg"></i>
                         <span>Document Review</span>
                     </div>
-                    <span x-show="activeTab === 'docreview'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <div class="flex items-center gap-2">
+                        @if (($pendingDocReviewsCount ?? 0) > 0)
+                            <span class="px-2 py-0.5 text-[10px] font-black rounded-full bg-amber-400 text-amber-950 shadow-xs">
+                                {{ $pendingDocReviewsCount }}
+                            </span>
+                        @endif
+                        <span x-show="activeTab === 'docreview'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    </div>
                 </a>
 
                 <!-- Consultations -->
@@ -182,7 +189,14 @@
                         <i class="ph ph-chats-teardrop text-lg"></i>
                         <span>Consultations</span>
                     </div>
-                    <span x-show="activeTab === 'consultation'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <div class="flex items-center gap-2">
+                        @if (($pendingConsultationsCount ?? 0) > 0)
+                            <span class="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[9px] font-bold text-white">
+                                {{ $pendingConsultationsCount }}
+                            </span>
+                        @endif
+                        <span x-show="activeTab === 'consultation'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    </div>
                 </a>
 
                 <!-- Revisions -->

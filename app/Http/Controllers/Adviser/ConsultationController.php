@@ -8,6 +8,7 @@ use App\Http\Requests\Consultations\CorrectConsultationRecordRequest;
 use App\Http\Requests\Consultations\ProposeConsultationRescheduleRequest;
 use App\Http\Requests\Consultations\RecordCompletedConsultationRequest;
 use App\Http\Requests\Consultations\RejectConsultationRequest as RejectFormRequest;
+use App\Http\Requests\Consultations\UpdateConsultationMeetingDetailsRequest;
 use App\Models\ConsultationRecord;
 use App\Models\ConsultationRequest;
 use App\Modules\Consultations\Actions\ApproveConsultation;
@@ -15,6 +16,7 @@ use App\Modules\Consultations\Actions\CorrectConsultationRecord;
 use App\Modules\Consultations\Actions\ProposeConsultationReschedule;
 use App\Modules\Consultations\Actions\RecordCompletedConsultation;
 use App\Modules\Consultations\Actions\RejectConsultationRequest;
+use App\Modules\Consultations\Actions\UpdateConsultationMeetingDetails;
 use App\Modules\Consultations\Exceptions\ConsultationException;
 use Illuminate\Http\RedirectResponse;
 
@@ -80,6 +82,22 @@ class ConsultationController extends Controller
                 ->with('consultation_success', 'Official consultation record saved successfully.');
         } catch (ConsultationException $exception) {
             return to_route('adviser.dashboard', ['tab' => 'consultation'])
+                ->withErrors(['consultation' => $exception->getMessage()]);
+        }
+    }
+
+    public function updateMeetingDetails(
+        UpdateConsultationMeetingDetailsRequest $request,
+        ConsultationRequest $consultationRequest,
+        UpdateConsultationMeetingDetails $action,
+    ): RedirectResponse {
+        try {
+            $action->handle($request->user(), $consultationRequest, $request->validatedData());
+
+            return to_route('adviser.dashboard', ['tab' => 'consultation', 'consultation_status' => 'approved'])
+                ->with('consultation_success', 'Meeting details updated successfully.');
+        } catch (ConsultationException $exception) {
+            return to_route('adviser.dashboard', ['tab' => 'consultation', 'consultation_status' => 'approved'])
                 ->withErrors(['consultation' => $exception->getMessage()]);
         }
     }

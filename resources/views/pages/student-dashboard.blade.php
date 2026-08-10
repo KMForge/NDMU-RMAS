@@ -118,10 +118,20 @@
                         href="{{ route('student.dashboard', ['tab' => $tab]) }}"
                         wire:navigate
                         :class="activeTab === '{{ $tab }}' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
                     >
-                        <i class="ph {{ $icon }} text-lg"></i>
-                        <span>{{ $label }}</span>
+                        <div class="flex items-center gap-3">
+                            <i class="ph {{ $icon }} text-lg"></i>
+                            <span>{{ $label }}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            @if ($tab === 'consultation' && ($pendingConsultationsCount ?? 0) > 0)
+                                <span class="px-2 py-0.5 text-[10px] font-black rounded-full bg-amber-400 text-amber-950 shadow-xs">
+                                    {{ $pendingConsultationsCount }}
+                                </span>
+                            @endif
+                            <span x-show="activeTab === '{{ $tab }}'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                        </div>
                     </a>
                 @endforeach
             </div>
@@ -1058,12 +1068,50 @@
                     <h2 class="font-bold text-gray-850 text-lg mb-5">Consultation Requests</h2>
                     <div class="space-y-4">
                         @forelse ($consultationRequests as $consultationRequest)
-                            <x-student-record-card
-                                :title="$consultationRequest->assignedAdviser?->name ?? 'Thesis Adviser'"
-                                :status="is_string($consultationRequest->status) ? $consultationRequest->status : $consultationRequest->status?->value"
-                                :date="\Illuminate\Support\Carbon::parse($consultationRequest->preferred_at)->timezone(config('ndmu-rmas.timezone'))"
-                                :description="\Illuminate\Support\Str::headline(is_string($consultationRequest->consultation_mode) ? $consultationRequest->consultation_mode : $consultationRequest->consultation_mode?->value).' — '.$consultationRequest->agenda"
-                            />
+                            @php
+                                $studentRequestStatus = is_string($consultationRequest->status) ? $consultationRequest->status : $consultationRequest->status?->value;
+                                $studentRequestMode = is_string($consultationRequest->consultation_mode) ? $consultationRequest->consultation_mode : $consultationRequest->consultation_mode?->value;
+                                $pendingScheduleProposal = $studentRequestStatus === 'reschedule_proposed'
+                                    ? $consultationRequest->proposals->firstWhere('status', 'pending_response')
+                                    : null;
+                                $displaySchedule = $pendingScheduleProposal?->proposed_start_at
+                                    ?? (in_array($studentRequestStatus, ['approved', 'completed'], true) && $consultationRequest->confirmed_start_at
+                                        ? $consultationRequest->confirmed_start_at
+                                        : $consultationRequest->preferred_at);
+                            @endphp
+                            <article class="rounded-2xl border border-gray-200/80 bg-white p-6 shadow-sm transition-all hover:shadow-md">
+                                <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                                    <div class="min-w-0 space-y-1">
+                                        <h3 class="text-base font-bold text-gray-900 leading-snug">{{ $consultationRequest->assignedAdviser?->name ?? 'Thesis Adviser' }}</h3>
+                                        <p class="text-xs font-medium text-gray-500 flex items-center gap-1.5">
+                                            <i class="ph ph-calendar-blank text-gray-400 text-sm"></i>
+                                            <span>{{ $displaySchedule?->timezone(config('ndmu-rmas.timezone'))->format('M j, Y g:i A') }}</span>
+                                        </p>
+                                    </div>
+                                    <span class="shrink-0 rounded-full bg-slate-100 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-800 border border-slate-200/80">{{ \Illuminate\Support\Str::headline($studentRequestStatus) }}</span>
+                                </div>
+                                <div class="mt-4 space-y-3 pt-4 border-t border-gray-100 text-sm text-gray-700 leading-relaxed">
+                                    <p><span class="font-bold text-gray-900">Agenda:</span> {{ $consultationRequest->agenda }}</p>
+                                    <p><span class="font-bold text-gray-900">Mode:</span> {{ \Illuminate\Support\Str::headline($studentRequestMode) }}</p>
+                                    @if ($pendingScheduleProposal)
+                                        <p class="text-sm font-semibold text-violet-700 bg-violet-50 p-3 rounded-xl border border-violet-100">Your adviser proposed this new date and time. The agenda remains unchanged.</p>
+                                    @endif
+                                    @if (in_array($studentRequestStatus, ['approved', 'completed'], true))
+                                        @if ($studentRequestMode === 'online' && $consultationRequest->meeting_url)
+                                            <div class="pt-2">
+                                                <a href="{{ $consultationRequest->meeting_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition-colors">
+                                                    <i class="ph ph-video-camera text-base"></i>
+                                                    <span>Open Meeting Link</span>
+                                                </a>
+                                            </div>
+                                        @elseif ($studentRequestMode === 'online')
+                                            <p class="text-sm font-semibold text-amber-700 bg-amber-50 p-3 rounded-xl border border-amber-100">The adviser has not posted the meeting link yet.</p>
+                                        @elseif ($consultationRequest->location)
+                                            <p><span class="font-bold text-gray-900">Location:</span> {{ $consultationRequest->location }}</p>
+                                        @endif
+                                    @endif
+                                </div>
+                            </article>
                         @empty
                             <x-student-empty-state message="No consultation requests have been submitted." />
                         @endforelse
