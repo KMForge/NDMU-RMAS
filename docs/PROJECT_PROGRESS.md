@@ -9,88 +9,86 @@ This tracker records the backend rebuild progress after the baseline reset. GitH
 | Item | Status |
 | --- | --- |
 | Active repository | `KMForge/NDMU-RMAS` |
-| Backup repositories | `KMForge/NDMU-RMAS-Legacy`, `KMForge/NDMU-RMAS-Rebuild` |
+| Protected repositories | `KMForge/NDMU-RMAS-Legacy`, `KMForge/NDMU-RMAS-Rebuild` |
 | Rebuild baseline commit | `f701324 chore: disable feature backends for rebuild baseline` |
-| Latest reviewed implementation/UI commit | `ede6384 style: standardize global dashboard sidebars and feature hero banners` |
+| Latest user implementation commit reviewed | `ab529a5 feat: implement research class group workflow including group management, student assignments, and adviser request system` |
+| Phase 14 foundation commit | `a8320f9 feat: implement document group access and update policies for research class group ownership` |
 | Latest completed feature phase | `Phase 13 — Document Upload and Secure Storage` |
+| Current active feature phase | `Phase 14 — Research Repository` |
 | Backend strategy | Rebuild feature modules one at a time |
-| UI strategy | Keep existing UI while reconnecting backend modules |
+| UI strategy | Keep existing UI while reconnecting verified backend modules |
 
-> **Baseline note:** Commit `f701324` remains the functional rebuild baseline. Feature modules are being reconnected one phase at a time. Phases 10, 11, 12, and 13 are now complete. Commit `dccec86` refined the completed Phase 12 Adviser My Classes workflow, `ede6384` standardized dashboard sidebar/feature-banner presentation, and Phase 13 implemented group-owned document submission with Group Leader authorization and CURRENT/VOID versioning.
+> **Baseline note:** Commit `f701324` remains the functional rebuild baseline. Phases 10, 11, 12, and 13 are complete. Phase 14 is in progress. The Phase 14 group-ownership/access correction was committed as `a8320f9`; the later `ab529a5` commit refines Research Class Group/Group Leader presentation and moves the student document-submission UX back to the Research Proposal tab without completing the full repository.
 
 ## Phase Tracker
 
 | Phase | Module | Status | Notes |
 | --- | --- | --- | --- |
 | Phase 1 | Authentication & Account Access | Completed | Login, logout, session handling, account status checks, and dashboard redirects are active. |
-| Phase 2 | Registration Foundation | In Progress | Registration UI exists; backend flow should be verified and completed before feature rebuilds. |
+| Phase 2 | Registration Foundation | In Progress | Registration UI exists; backend flow still requires completion/verification before this phase can be marked complete. |
 | Phase 3 | User Management | Completed | Admin user management is active. |
 | Phase 4 | Dynamic RBAC with Spatie | Completed | Roles, permissions, role assignment, and permission-based access are active. |
 | Phase 5 | Admin Dashboard & System Settings | Completed | Admin dashboard shell, user metrics, and system settings are active. |
-| Phase 6 | Student Dashboard UI Shell | Completed | UI shell is available. Latest UI refinement standardized dashboard sidebar grouping and feature banners. |
-| Phase 7 | Adviser Dashboard UI Shell | Completed | UI shell is available. My Classes now integrates the verified Phase 12 adviser-request/assigned-group workflow. |
-| Phase 8 | Facilitator Dashboard UI Shell | Completed | UI shell is available and supports the independently rebuilt Phase 10–12 class/group workflows. |
-| Phase 9 | Panelist and Dean Dashboard UI Shell | Completed | UI shells remain available; later panelist/dean feature workflows are still tracked separately. |
+| Phase 6 | Student Dashboard UI Shell | Completed | UI shell is available with standardized sidebar grouping and feature banners. |
+| Phase 7 | Adviser Dashboard UI Shell | Completed | UI shell is available. My Classes integrates the completed Phase 12 adviser-request and assigned-group workflow. |
+| Phase 8 | Facilitator Dashboard UI Shell | Completed | UI shell is available and supports the rebuilt Phase 10–12 class/group workflows. |
+| Phase 9 | Panelist and Dean Dashboard UI Shell | Completed | UI shells remain available; later panelist/dean backend workflows remain separate planned phases. |
 | Phase 10 | Research Class Management | Completed | Rebuilt facilitator-owned class creation, class cards, class details, and active student roster. Commit: `8be86fb`; tracker completion: `3e45d23`. |
 | Phase 11 | Student Join Class Requests | Completed | Rebuilt join-code requests, facilitator approval/rejection, one-active-class enforcement, pending request limits, rejection cooldown/history, and failed-code throttling. Commit: `faa805d`; tracker completion: `c7a1c02`. |
-| Phase 12 | Research Groups and Adviser Assignment | Completed | Rebuilt facilitator group creation, active student assignment (max 4), student move logic, unassigned-student roster, group disbanding, adviser invitation workflow (pending/accept/decline/cancel), adviser removal/history, and scoped visibility. Adviser My Classes was refined with pending-request badge, Accept/Decline confirmations, assigned groups, and member names. Implementation: `c83399c`; refinement: `dccec86`. |
-| Phase 13 | Document Upload and Secure Storage | Completed | Rebuilt research group document ownership, Group Leader upload authorization, PDF/DOCX magic-byte validation, private UUID storage, SHA-256 duplicate rejection, CURRENT/VOID document versioning, upload auditing, facilitator leader assignment UI, and student submission UI with version history. |
-| Phase 14 | Research Repository | In Progress | Corrected the Phase 14 foundation to use Research Class Group ownership for policy checks, adviser scope, student document counts/search/repository data, and IDOR protection. Full listing/search/filter/view/download implementation remains pending. |
+| Phase 12 | Research Groups and Adviser Assignment | Completed | Rebuilt facilitator group creation, active student assignment (maximum 4), move logic, unassigned-student roster, disbanding, adviser request/accept/decline/cancel workflow, adviser removal/history, and scoped student/adviser visibility. Later refinements improve My Classes, member display, Group Leader visibility, and class-detail presentation without changing the completed phase boundary. |
+| Phase 13 | Document Upload and Secure Storage | Completed | Research-group ownership, designated Group Leader-only submission, PDF/DOCX validation up to 10 MB, private UUID storage, SHA-256 duplicate protection, CURRENT/VOID version history, upload auditing, and Group Leader management are implemented. Latest UI refinement keeps submission in the Research Proposal area rather than exposing an upload shortcut in the Repository. |
+| Phase 14 | Research Repository | In Progress | Ownership/access foundation is committed and group-scoped. Student repository queries no longer rely on uploader ownership. Full Phase 14 requirements such as final stage-aware repository behavior, secure global view/download, complete search/filter/pagination, historical disbanded-group read access, and access auditing are not verified complete by the latest reviewed user commit. |
 | Phase 15 | Adviser Document Review | Planned | Rebuild review queue, comments, approve/request revision/reject actions, and audit trail. |
 | Phase 16 | Consultation Records | Planned | Rebuild student booking and adviser/facilitator consultation management. |
 | Phase 17 | Revision Tracker | Planned | Rebuild revision requests, revision status transitions, and revision document uploads. |
-| Phase 18 | Research Progress Milestones | Planned | Rebuild milestone configuration, progress updates, and dashboard progress cards. |
+| Phase 18 | Research Progress Milestones | Planned | Rebuild milestone configuration, progress updates, and dashboard progress cards. Research monitoring milestones are separate from Phase 14 document-submission stages. |
 | Phase 19 | Official Research Forms | Planned | Rebuild form data saving, per-role form access, print/export, and approval routing. |
 | Phase 20 | Digital Signature Verification | Planned | Rebuild user signature enrollment, approval routing, signature metadata, and QR verification. |
 | Phase 21 | Defense Scheduling | Planned | Rebuild defense requests, schedules, rooms, and calendar integration. |
 | Phase 22 | Evaluation Records | Planned | Rebuild panelist evaluation forms, summaries, and student-visible results. |
 | Phase 23 | Notifications | Planned | Rebuild system notifications for requests, reviews, revisions, consultations, and approvals. Sidebar presence does not mean the notification backend is complete. |
-| Phase 24 | Audit Logs | Planned | Rebuild feature-level audit logs beyond the admin/auth baseline. |
+| Phase 24 | Audit Logs | Planned | Rebuild feature-level audit logs beyond the admin/auth and feature-specific audit foundations already present. |
 | Phase 25 | Reports and Analytics | Planned | Rebuild dashboard metrics, exports, and reporting queries. |
-| Phase 26 | Security Review and Hardening | Planned | Validate authorization, rate limits, file handling, SQL injection protection, XSS handling, and error safety. |
-| Phase 27 | Testing and Final Documentation | Planned | Complete feature tests, integration tests, user guide, technical documentation, and capstone evidence. |
+| Phase 26 | Security Review and Hardening | Planned | Validate authorization, rate limits, file handling, SQL injection protection, XSS handling, error safety, and cross-feature security. |
+| Phase 27 | Testing and Final Documentation | Planned | Complete integration/system tests, user guide, technical documentation, and final capstone evidence. |
 
 ## Latest Verified Development Review
 
-### `ede6384` — `style: standardize global dashboard sidebars and feature hero banners`
+### `ab529a5` — Research Class Group / Group Leader UX refinement
 
-**Change type:** UI/presentation refinement  
-**Verified impact:** Standardizes dashboard sidebar grouping, separates bottom Notifications/Settings/Logout actions, separates Official Forms/Research Forms navigation where applicable, and introduces consistent green feature hero banners for applicable feature views.  
-**Backend phase impact:** No new backend phase completed.  
-**Important boundary:** Visible Notifications, Official Forms, and other later-phase navigation do not prove those later backend workflows are implemented.
+**Change type:** Completed Phase 12/13 workflow and presentation refinement.  
+**Verified impact:** Student document submission redirects to the Research Proposal tab; the Student Repository no longer presents a document-upload shortcut; student class details load the Group Leader; adviser assigned-group cards identify the Student Leader; facilitator leader controls distinguish assign/change behavior; regression tests were adjusted around these behaviors.  
+**Phase impact:** Phase 12 and Phase 13 remain Completed. This commit does not prove Phase 14 is complete.
 
-### `dccec86` — `feat: refine adviser my classes workflow`
+### `a8320f9` — Phase 14 ownership/access foundation
 
-**Change type:** Phase 12 functional/UI refinement  
-**Verified impact:** Adviser My Classes now surfaces pending adviser requests, pending count badge, Accept/Decline confirmation flow, assigned research groups, and accepted-group member names. Adviser response redirects return to the classes tab.  
-**Recorded repository verification:** Phase 12 documentation records 32 Phase 10–12 class tests passed with 0 failures, including 17 focused Phase 12/group-adviser workspace tests; `vendor/bin/pint --test` passed and `npm run build` completed successfully.  
-**Phase impact:** Phase 12 remains Completed.
+**Change type:** Authorization/query foundation correction.  
+**Verified impact:** Group-linked documents use Research Class Group ownership for policy/access checks; `documents.user_id` remains uploader/accountability metadata. Adviser scope follows the owning group. Student document counts/search/repository data use the active group. Narrow null-group compatibility remains isolated from modern group-owned documents.  
+**Phase impact:** Phase 14 is In Progress.
 
-### Phase 14 foundation correction — uncommitted working tree
+### `db7775b0` — Phase 13 secure group document submission
 
-**Change type:** Authorization/query foundation correction
-
-**Verified impact:** Group-linked documents are authorized through active Research Class Group membership or current assigned adviser scope; `user_id` remains uploader metadata. Student document counts, search, and repository data now use the active group. Narrow null-group compatibility remains isolated from modern group-owned documents.
-
-**Boundary:** Global view/download routes, adviser upload, repository search/filter/pagination UI, and Phase 15 review actions remain disabled.
-
-**Phase impact:** Phase 13 remains Completed. Phase 14 is In Progress, not Completed.
+**Change type:** Phase 13 feature implementation.  
+**Verified impact:** Introduced Research Group document ownership, Group Leader-only uploads, secure PDF/DOCX storage, SHA-256 duplicate rejection, CURRENT/VOID versioning, upload audit records, and Group Leader management.  
+**Recorded verification:** Phase 13 documentation records 17 focused document-submission tests with 101 assertions, plus successful Pint formatting and frontend build.  
+**Phase impact:** Phase 13 Completed.
 
 ## Documentation Workflow
 
 For each backend feature:
 
-1. Create or update the relevant feature documentation.
-2. Explain the complete user and backend flow, including routes, middleware/permissions, validation, controllers, services/actions, models, database changes, and responses.
-3. Identify every important file added or modified and explain why it changed.
-4. Document database tables, relationships, migrations, seeders, status transitions, and business rules where applicable.
-5. Document authentication, authorization/RBAC, ownership checks, validation, rate limiting, file security, and other security controls where applicable.
-6. Add or update tests for validation, authorization, success paths, failure paths, and important edge cases.
-7. Record the evidence needed for capstone documentation, such as test output, screenshots, Postman results, UI evidence, and database evidence.
-8. Update this progress tracker with the resulting phase status and remaining work.
-9. Push the focused commit to `KMForge/NDMU-RMAS`.
+1. Read the current active repository and identify the actual implementation baseline.
+2. Create or update the relevant feature documentation.
+3. Explain the complete user and backend flow, including routes, middleware/permissions, validation, controllers, services/actions, models, database changes, and responses.
+4. Identify every important file added or modified and explain why it changed.
+5. Document database tables, relationships, migrations, seeders, status transitions, and business rules where applicable.
+6. Document authentication, authorization/RBAC, ownership checks, validation, rate limiting, file security, audit behavior, and other security controls where applicable.
+7. Add or update tests for validation, authorization, success paths, failure paths, IDOR boundaries, concurrency where applicable, and important edge cases.
+8. Record only test/build evidence that was actually executed and available; do not invent counts or results.
+9. Update this tracker based on verified implementation evidence.
+10. Push focused commits only to `KMForge/NDMU-RMAS`.
 
-Documentation should be detailed enough that the capstone manuscript/documentation writer can understand the feature without first reverse-engineering the Laravel source code. Clearly distinguish implemented behavior from planned behavior.
+Documentation must be detailed enough that the capstone manuscript/documentation writer can understand the feature without reverse-engineering the Laravel source code. Implemented behavior must be clearly separated from planned or unverified behavior.
 
 ## Protected Repositories
 
