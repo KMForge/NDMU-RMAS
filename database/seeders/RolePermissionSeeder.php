@@ -70,11 +70,9 @@ class RolePermissionSeeder extends Seeder
                 'is_assignable' => true,
             ])->save();
 
-            // Defaults are installed once. Future seeding must not overwrite
-            // permission changes deliberately made by an administrator.
-            if ($role->wasRecentlyCreated) {
-                $role->syncPermissions($definition['permissions']);
-            }
+            // Keep system roles usable after reseeding without removing any
+            // custom permissions deliberately added by an administrator.
+            $role->givePermissionTo($definition['permissions']);
         }
     }
 
