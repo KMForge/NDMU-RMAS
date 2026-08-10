@@ -4,6 +4,7 @@ namespace App\Modules\Documents\Actions;
 
 use App\Models\Document;
 use App\Models\DocumentUploadAudit;
+use App\Models\ResearchClassGroup;
 use App\Models\User;
 use App\Modules\Documents\Support\DocumentFilenameSanitizer;
 use Illuminate\Http\UploadedFile;
@@ -17,11 +18,17 @@ class RecordDocumentUploadAttempt
         private readonly DocumentFilenameSanitizer $filenameSanitizer,
     ) {}
 
-    public function success(Document $document, User $user, UploadedFile $file, string $ipAddress): void
-    {
+    public function success(
+        Document $document,
+        User $user,
+        UploadedFile $file,
+        string $ipAddress,
+        ?ResearchClassGroup $group = null,
+    ): void {
         DocumentUploadAudit::query()->create([
             'document_id' => $document->getKey(),
             'user_id' => $user->getKey(),
+            'research_class_group_id' => $group?->getKey() ?? $document->research_class_group_id,
             'original_filename' => $this->filenameSanitizer->sanitize($file->getClientOriginalName()),
             'ip_address' => $this->safeIpAddress($ipAddress),
             'attempted_at' => now(),
@@ -35,11 +42,13 @@ class RecordDocumentUploadAttempt
         ?UploadedFile $file,
         string $ipAddress,
         string $reason,
+        ?ResearchClassGroup $group = null,
     ): void {
         try {
             DocumentUploadAudit::query()->create([
                 'document_id' => null,
                 'user_id' => $user?->getKey(),
+                'research_class_group_id' => $group?->getKey(),
                 'original_filename' => $this->filenameSanitizer->sanitize(
                     $file?->getClientOriginalName(),
                 ),
@@ -51,6 +60,7 @@ class RecordDocumentUploadAttempt
         } catch (Throwable $exception) {
             Log::warning('Unable to persist a failed document upload audit.', [
                 'user_id' => $user?->getKey(),
+                'group_id' => $group?->getKey(),
                 'exception' => $exception::class,
             ]);
         }

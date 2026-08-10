@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'document_id',
     'user_id',
+    'research_class_group_id',
     'original_filename',
     'ip_address',
     'attempted_at',
@@ -25,6 +26,11 @@ class DocumentUploadAudit extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function researchClassGroup(): BelongsTo
+    {
+        return $this->belongsTo(ResearchClassGroup::class);
     }
 
     protected function casts(): array

@@ -76,6 +76,14 @@ class AssignStudentToResearchClassGroup
                 ];
 
                 if ($existingMember !== null) {
+                    if ($existingMember->research_class_group_id !== $lockedGroup->getKey()) {
+                        $oldGroup = ResearchClassGroup::query()->find($existingMember->research_class_group_id);
+                        if ($oldGroup !== null && $oldGroup->leader_student_id === $lockedEnrollment->student_id) {
+                            $oldGroup->leader_student_id = null;
+                            $oldGroup->save();
+                        }
+                    }
+
                     $existingMember->update($attributes);
 
                     return $existingMember->refresh();

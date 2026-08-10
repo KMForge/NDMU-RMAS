@@ -3,6 +3,7 @@
 namespace App\Modules\Research\Queries;
 
 use App\Models\Document;
+use App\Models\ResearchClassGroupMember;
 use App\Models\User;
 use App\Support\CachesDatabaseSchema;
 use Illuminate\Support\Carbon;
@@ -23,43 +24,6 @@ class GetStudentDashboardData
         $searchQuery = $activeTab === 'dashboard'
             ? Str::limit(trim(is_string($dashboardSearch) ? $dashboardSearch : ''), 100, '')
             : '';
-
-        return [
-            'area' => 'Student Researcher',
-            'student' => $user,
-            'studentProfile' => null,
-            'researchProject' => null,
-            'program' => null,
-            'teamMembers' => $empty,
-            'adviser' => null,
-            'proposals' => $empty,
-            'progressUpdates' => $empty,
-            'researchMilestones' => $empty,
-            'consultations' => $empty,
-            'consultationRequests' => $empty,
-            'revisions' => $empty,
-            'defenses' => $empty,
-            'evaluations' => $empty,
-            'documents' => $empty,
-            'notifications' => $empty,
-            'classes' => $this->classesFor($user),
-            'classJoinRequests' => $this->classJoinRequestsFor($user),
-            'dashboardOverview' => $this->buildDashboardOverview(
-                null,
-                null,
-                $empty,
-                $empty,
-                $empty,
-                $empty,
-                $empty,
-                $empty,
-                $empty,
-                0,
-                0,
-            ),
-            'dashboardSearchQuery' => $searchQuery,
-            'dashboardSearchResults' => $empty,
-        ];
 
         $studentProfile = null;
         $project = null;
@@ -228,6 +192,21 @@ class GetStudentDashboardData
             $classes,
         );
 
+        $activeGroupMember = ResearchClassGroupMember::query()
+            ->where('student_id', $user->getKey())
+            ->whereHas('researchClassGroup', fn ($q) => $q->where('status', 'active'))
+            ->whereHas('researchClassEnrollment', fn ($q) => $q->where('status', 'active'))
+            ->with(['researchClassGroup.leader', 'researchClassGroup.researchClass'])
+            ->first();
+
+        $activeGroup = $activeGroupMember?->researchClassGroup;
+        $groupDocuments = $activeGroup !== null
+            ? Document::query()
+                ->where('research_class_group_id', $activeGroup->getKey())
+                ->orderByDesc('version_number')
+                ->get()
+            : collect();
+
         return [
             'area' => 'Student Researcher',
             'student' => $user,
@@ -245,6 +224,8 @@ class GetStudentDashboardData
             'defenses' => $defenses,
             'evaluations' => $evaluations,
             'documents' => $documents,
+            'activeGroup' => $activeGroup,
+            'groupDocuments' => $groupDocuments,
             'notifications' => $notifications,
             'classes' => $classes,
             'classJoinRequests' => $classJoinRequests,

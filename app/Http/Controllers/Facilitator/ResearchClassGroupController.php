@@ -8,6 +8,7 @@ use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupAdviserRequest;
 use App\Models\User;
+use App\Modules\Classes\Actions\AssignResearchClassGroupLeader;
 use App\Modules\Classes\Actions\AssignStudentToResearchClassGroup;
 use App\Modules\Classes\Actions\CancelResearchClassGroupAdviserRequest;
 use App\Modules\Classes\Actions\CreateResearchClassGroup;
@@ -214,6 +215,38 @@ class ResearchClassGroupController extends Controller
 
         return to_route('facilitator.classes.show', $researchClass)
             ->with('class_success', 'Adviser removed from group successfully.');
+    }
+
+    public function assignLeader(
+        Request $request,
+        ResearchClass $researchClass,
+        ResearchClassGroup $group,
+        AssignResearchClassGroupLeader $action,
+    ): JsonResponse|RedirectResponse {
+        $validated = $request->validate([
+            'student_id' => ['required', 'integer', 'exists:users,id'],
+        ]);
+
+        $student = User::query()->findOrFail($validated['student_id']);
+
+        try {
+            $group = $action->handle($request->user(), $researchClass, $group, $student);
+        } catch (ClassOperationException $exception) {
+            return $this->errorResponse($request, $researchClass, $exception->getMessage(), 422);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Group Leader assigned successfully.',
+                'group' => [
+                    'id' => $group->getKey(),
+                    'leader_student_id' => $group->leader_student_id,
+                ],
+            ]);
+        }
+
+        return to_route('facilitator.classes.show', $researchClass)
+            ->with('class_success', 'Group Leader assigned successfully.');
     }
 
     private function errorResponse(Request $request, ResearchClass $researchClass, string $message, int $status): JsonResponse|RedirectResponse

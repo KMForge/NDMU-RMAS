@@ -11,12 +11,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'user_id',
+    'research_class_group_id',
     'revision_request_id',
     'submission_token',
     'original_filename',
     'stored_filename',
     'file_type',
     'mime_type',
+    'version_number',
+    'is_current',
     'file_size',
     'storage_disk',
     'storage_path',
@@ -49,6 +52,11 @@ class Document extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function researchClassGroup(): BelongsTo
+    {
+        return $this->belongsTo(ResearchClassGroup::class);
     }
 
     public function revisionRequest(): BelongsTo
@@ -90,6 +98,8 @@ class Document extends Model
     {
         return [
             'file_size' => 'integer',
+            'version_number' => 'integer',
+            'is_current' => 'boolean',
             'submitted_at' => 'immutable_datetime',
             'status' => DocumentStatus::class,
         ];

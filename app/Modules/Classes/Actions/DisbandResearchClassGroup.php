@@ -70,7 +70,8 @@ class DisbandResearchClassGroup
                     ->where('research_class_group_id', $lockedGroup->getKey())
                     ->delete();
 
-                // 4. Mark group as disbanded
+                // 4. Mark group as disbanded and clear active leader
+                $lockedGroup->leader_student_id = null;
                 $lockedGroup->status = 'disbanded';
                 $lockedGroup->disbanded_at = $now;
                 $lockedGroup->save();

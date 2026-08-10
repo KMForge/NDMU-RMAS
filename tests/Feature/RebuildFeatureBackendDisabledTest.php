@@ -24,7 +24,7 @@ class RebuildFeatureBackendDisabledTest extends TestCase
         $user->assignRole('student-researcher');
 
         $this->actingAs($user)
-            ->postJson(route('student.documents.store'))
+            ->postJson(route('student.consultations.store'))
             ->assertGone()
             ->assertJsonPath('message', 'This backend feature is disabled in the rebuild baseline.');
     }

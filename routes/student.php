@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DisabledFeatureController;
 use App\Http\Controllers\Student\DashboardController;
+use App\Http\Controllers\Student\DocumentController;
 use App\Http\Controllers\Student\ResearchClassController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,8 +16,8 @@ Route::prefix('student')->name('student.')->middleware([
         ->middleware('throttle:60,1')
         ->name('official-forms.source');
 
-    Route::post('/documents', DisabledFeatureController::class)
-        ->middleware('throttle:document-uploads')
+    Route::post('/documents', [DocumentController::class, 'store'])
+        ->middleware(['permission:documents.upload', 'throttle:document-uploads'])
         ->name('documents.store');
 
     Route::post('/consultations', DisabledFeatureController::class)

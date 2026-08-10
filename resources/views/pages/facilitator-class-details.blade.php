@@ -194,9 +194,25 @@
                                     @endif
                                 </div>
 
-                                <!-- Members List -->
+                                <!-- Members List & Leader Selector -->
                                 <div>
-                                    <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Group Members</p>
+                                    <div class="flex items-center justify-between mb-2">
+                                        <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Group Members</p>
+                                        @if ($members->isNotEmpty())
+                                            <form method="POST" action="{{ route('facilitator.classes.groups.leader.assign', [$researchClass, $grp]) }}" class="flex items-center gap-1">
+                                                @csrf
+                                                @method('PUT')
+                                                <select name="student_id" required onchange="this.form.submit()" class="rounded-lg border border-gray-200 px-2 py-1 text-[10px] font-bold text-gray-700 bg-white focus:border-[#0e5c3a] focus:outline-none cursor-pointer">
+                                                    <option value="">Assign Leader...</option>
+                                                    @foreach ($members as $mbOpt)
+                                                        <option value="{{ $mbOpt->student_id }}" {{ $grp->leader_student_id === $mbOpt->student_id ? 'selected' : '' }}>
+                                                            ★ {{ $mbOpt->student?->name }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </form>
+                                        @endif
+                                    </div>
                                     @if ($members->isEmpty())
                                         <p class="text-xs text-gray-400 italic">No members assigned yet.</p>
                                     @else
@@ -204,8 +220,15 @@
                                             @foreach ($members as $mb)
                                                 <li class="flex items-center justify-between p-3 bg-white">
                                                     <div>
-                                                        <p class="text-xs font-bold text-gray-800">{{ $mb->student?->name }}</p>
-                                                        <p class="text-[10px] text-gray-400">{{ $mb->student?->email }}</p>
+                                                        <div class="flex items-center gap-2">
+                                                            <p class="text-xs font-bold text-gray-800">{{ $mb->student?->name }}</p>
+                                                            @if ($grp->leader_student_id === $mb->student_id)
+                                                                <span class="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                                                    ★ Group Leader
+                                                                </span>
+                                                            @endif
+                                                        </div>
+                                                        <p class="text-[10px] text-gray-500">{{ $mb->student?->email }}</p>
                                                     </div>
                                                 </li>
                                             @endforeach

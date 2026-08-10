@@ -39,6 +39,11 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
                 ->whereNumber(['group', 'enrollment'])
                 ->name('classes.groups.students.assign');
 
+            Route::put('/groups/{group}/leader', [ResearchClassGroupController::class, 'assignLeader'])
+                ->middleware(['permission:classes.manage-groups', 'throttle:class-creation'])
+                ->whereNumber('group')
+                ->name('classes.groups.leader.assign');
+
             Route::post('/groups/{group}/adviser-requests', [ResearchClassGroupController::class, 'requestAdviser'])
                 ->middleware(['permission:classes.assign-advisers', 'throttle:class-join-decisions'])
                 ->whereNumber('group')

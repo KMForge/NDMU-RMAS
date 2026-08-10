@@ -20,12 +20,22 @@ class ResearchClassGroupMember extends Model
         return $this->belongsTo(ResearchClassGroup::class, 'research_class_group_id');
     }
 
+    public function researchClassGroup(): BelongsTo
+    {
+        return $this->belongsTo(ResearchClassGroup::class, 'research_class_group_id');
+    }
+
     public function researchClass(): BelongsTo
     {
         return $this->belongsTo(ResearchClass::class);
     }
 
     public function enrollment(): BelongsTo
+    {
+        return $this->belongsTo(ResearchClassEnrollment::class, 'research_class_enrollment_id');
+    }
+
+    public function researchClassEnrollment(): BelongsTo
     {
         return $this->belongsTo(ResearchClassEnrollment::class, 'research_class_enrollment_id');
     }

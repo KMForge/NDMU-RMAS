@@ -731,19 +731,137 @@
             </section>
 
             <section x-show="activeTab === 'proposal'" x-cloak class="space-y-8">
-                <x-student-section-heading title="Proposal Management" description="Submitted proposal versions for your research." />
-                <div class="space-y-4">
-                    @forelse ($proposals as $proposal)
-                        <x-student-record-card
-                            :title="'Proposal version '.$proposal->version"
-                            :status="$proposal->status"
-                            :date="$proposal->submitted_at"
-                            :description="$researchProject?->title"
-                        />
-                    @empty
-                        <x-student-empty-state message="No research proposals have been submitted." />
-                    @endforelse
-                </div>
+                <x-student-section-heading title="Proposal & Document Submission" description="Upload and manage research documents owned by your Research Group." />
+
+                @if (session('document_success'))
+                    <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-800 flex items-center gap-3">
+                        <i class="ph ph-check-circle text-xl text-emerald-600"></i>
+                        <span>{{ session('document_success') }}</span>
+                    </div>
+                @endif
+                @if ($errors->has('document') || session('document_error'))
+                    <div class="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-800 flex items-center gap-3">
+                        <i class="ph ph-warning-circle text-xl text-rose-600"></i>
+                        <span>{{ $errors->first('document') ?: session('document_error') }}</span>
+                    </div>
+                @endif
+
+                @if (isset($activeGroup) && $activeGroup !== null)
+                    <!-- Research Group Info Header -->
+                    <div class="bg-white rounded-2xl p-6 border border-gray-150 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                            <span class="text-[10px] font-black uppercase tracking-wider text-[#0e5c3a]">Active Research Group</span>
+                            <h2 class="text-xl font-bold text-gray-850 mt-0.5">{{ $activeGroup->name }}</h2>
+                            <p class="text-xs text-gray-500 mt-1">{{ $activeGroup->researchClass?->name ?? 'Research Class' }}</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="px-4 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-2">
+                                <i class="ph ph-star-fill text-amber-500"></i>
+                                <span>Group Leader: {{ $activeGroup->leader?->name ?? 'Not Assigned' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upload Card: Group Leader vs Non-Leader -->
+                    @if ($activeGroup->isLeader(auth()->user()))
+                        <div class="bg-white rounded-2xl p-6 border border-gray-150 shadow-sm space-y-4">
+                            <div>
+                                <h3 class="text-base font-bold text-gray-850 flex items-center gap-2">
+                                    <i class="ph ph-upload-simple text-xl text-[#0e5c3a]"></i>
+                                    <span>Submit Research Document</span>
+                                </h3>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    Only PDF and DOCX formats are accepted (max 10 MB). Submitting a new file will automatically mark the prior submission as VOID.
+                                </p>
+                            </div>
+
+                            @if ($groupDocuments->where('is_current', true)->isNotEmpty())
+                                <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium flex items-center gap-3">
+                                    <i class="ph ph-info text-lg shrink-0"></i>
+                                    <span>A current document already exists for your group. Uploading a new file will set the previous version to <strong>VOID</strong> and make the new file <strong>CURRENT</strong>.</span>
+                                </div>
+                            @endif
+
+                            <form method="POST" action="{{ route('student.documents.store') }}" enctype="multipart/form-data" class="space-y-4 pt-2">
+                                @csrf
+                                <input type="hidden" name="submission_token" value="{{ Illuminate\Support\Str::uuid() }}">
+
+                                <div class="flex flex-col md:flex-row items-stretch md:items-center gap-4">
+                                    <div class="flex-1">
+                                        <input
+                                            type="file"
+                                            name="document"
+                                            required
+                                            accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                            class="w-full rounded-xl border border-gray-200 p-3 text-xs focus:border-[#0e5c3a] focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#0e5c3a]/10 file:text-[#0e5c3a] hover:file:bg-[#0e5c3a]/20 cursor-pointer"
+                                        >
+                                    </div>
+                                    <button type="submit" class="px-6 py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer">
+                                        <i class="ph ph-paper-plane-tilt text-base"></i>
+                                        <span>Upload Document</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    @else
+                        <div class="bg-amber-50/80 rounded-2xl p-6 border border-amber-200 text-amber-900 space-y-2">
+                            <div class="flex items-center gap-2 font-bold text-sm">
+                                <i class="ph ph-shield-warning text-xl text-amber-600"></i>
+                                <span>Group Leader Only Action</span>
+                            </div>
+                            <p class="text-xs text-amber-800 leading-relaxed">
+                                Only your designated Group Leader (<strong>{{ $activeGroup->leader?->name ?? 'Not assigned' }}</strong>) can submit research documents for your group. Contact your Research Facilitator if leadership needs to be assigned or updated.
+                            </p>
+                        </div>
+                    @endif
+
+                    <!-- Document History -->
+                    <div class="space-y-4 pt-2">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-base font-bold text-gray-850">Group Submission History</h3>
+                            <span class="text-xs text-gray-500">Version history for {{ $activeGroup->name }}</span>
+                        </div>
+
+                        @if ($groupDocuments->isEmpty())
+                            <x-student-empty-state message="No research documents have been submitted for your group yet." />
+                        @else
+                            <div class="space-y-3">
+                                @foreach ($groupDocuments as $doc)
+                                    <div class="bg-white rounded-2xl p-5 border border-gray-150 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div class="flex items-start gap-3">
+                                            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-[#0e5c3a] flex items-center justify-center font-bold shrink-0">
+                                                <i class="ph {{ $doc->file_type === 'pdf' ? 'ph-file-pdf' : 'ph-file-docx' }} text-xl"></i>
+                                            </div>
+                                            <div>
+                                                <div class="flex items-center gap-2">
+                                                    <h4 class="font-bold text-gray-850 text-sm">{{ $doc->original_filename }}</h4>
+                                                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-gray-100 text-gray-600">v{{ $doc->version_number }}</span>
+                                                </div>
+                                                <p class="text-xs text-gray-500 mt-1">
+                                                    Submitted {{ $doc->submitted_at?->format('M j, Y g:i A') }} · {{ $doc->formattedFileSize() }}
+                                                    · Submitted by {{ $doc->user?->name ?? 'Student' }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            @if ($doc->is_current)
+                                                <span class="px-3 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-full uppercase tracking-wider border border-emerald-200">
+                                                    CURRENT
+                                                </span>
+                                            @else
+                                                <span class="px-3 py-1 bg-gray-100 text-gray-500 text-[10px] font-bold rounded-full uppercase tracking-wider border border-gray-200">
+                                                    VOID
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                @else
+                    <x-student-empty-state message="You do not belong to an active research group yet. Join a class and get assigned to a research group to submit documents." />
+                @endif
             </section>
 
             <section x-show="activeTab === 'progress'" x-cloak class="space-y-8 animate-fade-in">
