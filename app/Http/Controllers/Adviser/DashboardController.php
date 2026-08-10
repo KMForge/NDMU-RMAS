@@ -14,6 +14,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class DashboardController extends Controller
 {
@@ -66,10 +67,12 @@ class DashboardController extends Controller
             ->latest()
             ->get();
 
-        $pendingConsultationsCount = ConsultationRequest::query()
-            ->whereHas('researchClassGroup', fn ($g) => $g->where('adviser_id', $user->getKey())->where('status', 'active')->whereNull('disbanded_at'))
-            ->whereIn('status', ['pending', 'reschedule_proposed'])
-            ->count();
+        $pendingConsultationsCount = Schema::hasTable('consultation_requests')
+            ? ConsultationRequest::query()
+                ->whereHas('researchClassGroup', fn ($g) => $g->where('adviser_id', $user->getKey())->where('status', 'active')->whereNull('disbanded_at'))
+                ->whereIn('status', ['pending', 'reschedule_proposed'])
+                ->count()
+            : 0;
 
         $pendingDocReviewsCount = Document::query()
             ->whereHas('researchClassGroup', fn ($g) => $g->where('adviser_id', $user->getKey())->where('status', 'active')->whereNull('disbanded_at'))

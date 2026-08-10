@@ -15,7 +15,6 @@ use App\Modules\Documents\Exceptions\DocumentUploadFailed;
 use App\Modules\Documents\Exceptions\DuplicateDocumentSubmission;
 use App\Modules\Documents\Support\DocumentFilenameSanitizer;
 use App\Modules\Revisions\Exceptions\RevisionWorkflowException;
-use App\Notifications\RevisionStatusChanged;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
@@ -191,9 +190,10 @@ class SubmitDocument
                         ->lockForUpdate()
                         ->firstOrFail();
 
-                    if ($lockedRevision->assigned_to !== $user->getKey()) {
+                    if ($lockedRevision->research_class_group_id !== null
+                        && $lockedRevision->research_class_group_id !== $lockedGroup->getKey()) {
                         throw new RevisionWorkflowException(
-                            'This revision request is not assigned to your account.',
+                            'This revision request does not belong to your research group.',
                         );
                     }
 
@@ -203,6 +203,12 @@ class SubmitDocument
                     ], true)) {
                         throw new RevisionWorkflowException(
                             'This revision request is not accepting another document.',
+                        );
+                    }
+
+                    if ($lockedRevision->submitted_document_id !== null) {
+                        throw new RevisionWorkflowException(
+                            'A corrected document response has already been submitted for this revision cycle.',
                         );
                     }
                 }
@@ -247,6 +253,7 @@ class SubmitDocument
                 if ($lockedRevision !== null) {
                     $from = $lockedRevision->status;
                     $lockedRevision->update([
+                        'submitted_document_id' => $document->getKey(),
                         'status' => RevisionStatus::Submitted,
                         'resolved_at' => null,
                     ]);
@@ -265,14 +272,10 @@ class SubmitDocument
                             'original_filename' => $document->original_filename,
                             'file_type' => $document->file_type,
                             'file_size' => $document->file_size,
+                            'submitted_document_id' => $document->getKey(),
                         ],
                         'occurred_at' => now(),
                     ]);
-
-                    $requester = User::query()->find($lockedRevision->requested_by);
-                    $requester?->notify(
-                        new RevisionStatusChanged($lockedRevision, $user, 'submitted'),
-                    );
                 }
 
                 return $document;

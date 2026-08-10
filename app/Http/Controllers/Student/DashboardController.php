@@ -9,6 +9,7 @@ use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\Research\Queries\GetStudentDashboardData;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class DashboardController extends Controller
 {
@@ -51,10 +52,12 @@ class DashboardController extends Controller
             $data = [...$data, ...$consultationData->for($request->user())];
         }
 
-        $pendingConsultationsCount = ConsultationRequest::query()
-            ->where('requested_by', $request->user()->getKey())
-            ->whereIn('status', ['pending', 'reschedule_proposed'])
-            ->count();
+        $pendingConsultationsCount = Schema::hasTable('consultation_requests')
+            ? ConsultationRequest::query()
+                ->where('requested_by', $request->user()->getKey())
+                ->whereIn('status', ['pending', 'reschedule_proposed'])
+                ->count()
+            : 0;
 
         $data['pendingConsultationsCount'] = $pendingConsultationsCount;
         $data['officialFormPhases'] = config('official-forms.phases', []);

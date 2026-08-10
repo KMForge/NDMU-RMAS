@@ -7,6 +7,7 @@ use App\Models\ConsultationRequest;
 use App\Models\ResearchClassGroupMember;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class GetStudentConsultationData
 {
@@ -30,10 +31,10 @@ class GetStudentConsultationData
         $group = $groupMember?->researchClassGroup;
         $adviser = $group?->adviser;
 
-        if (! $group) {
+        if (! $group || ! Schema::hasTable('consultation_requests')) {
             return [
-                'assignedGroup' => null,
-                'assignedAdviser' => null,
+                'assignedGroup' => $group,
+                'assignedAdviser' => $adviser,
                 'consultationRequests' => collect(),
                 'consultationRecords' => collect(),
             ];

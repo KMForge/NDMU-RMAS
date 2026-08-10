@@ -16,7 +16,7 @@ class GetAdviserRevisionData
      */
     public function for(User $adviser, mixed $searchInput = null, mixed $statusInput = null): array
     {
-        if (! Schema::hasColumns('revision_requests', ['assigned_to', 'document_id'])) {
+        if (! Schema::hasTable('revision_requests')) {
             return [
                 'revisionRequests' => new LengthAwarePaginator([], 0, 10),
                 'revisionStats' => [
@@ -32,33 +32,31 @@ class GetAdviserRevisionData
         }
 
         $scope = RevisionRequest::query()
-            ->where('requested_by', $adviser->getKey());
+            ->where(function (Builder $query) use ($adviser): void {
+                $query->whereHas('researchClassGroup', fn ($g) => $g->where('adviser_id', $adviser->getKey()))
+                    ->orWhere('requested_by', $adviser->getKey());
+            });
+
         $counts = (clone $scope)
             ->selectRaw('status, COUNT(*) as aggregate')
             ->groupBy('status')
             ->pluck('aggregate', 'status');
+
         $search = Str::limit(trim(is_string($searchInput) ? $searchInput : ''), 100, '');
-        $allowedStatuses = ['open', 'in_progress', 'submitted', 'resolved', 'all'];
+        $allowedStatuses = ['open', 'in_progress', 'submitted', 'resolved', 'cancelled', 'all'];
         $status = in_array($statusInput, $allowedStatuses, true)
             ? (string) $statusInput
             : 'submitted';
 
         $revisions = (clone $scope)
             ->with([
-                'assignee:id,name,email,student_id,program,year_level',
-                'document:id,user_id,original_filename,file_type,file_size,submitted_at,status',
-                'submittedDocuments' => fn ($query) => $query
-                    ->select([
-                        'id',
-                        'user_id',
-                        'revision_request_id',
-                        'original_filename',
-                        'file_type',
-                        'file_size',
-                        'submitted_at',
-                        'status',
-                    ])
-                    ->latest('submitted_at'),
+                'researchClassGroup:id,name,research_title,adviser_id,status',
+                'researchClassGroup.leader:id,name,email',
+                'sourceDocument:id,user_id,original_filename,file_type,file_size,document_stage,version_number,submitted_at,status',
+                'sourceReview:id,reviewer_id,decision,review_notes,reviewed_at',
+                'submittedDocument:id,user_id,original_filename,file_type,file_size,document_stage,version_number,submitted_at,status',
+                'requester:id,name,email',
+                'events' => fn ($query) => $query->with('actor:id,name')->latest('occurred_at'),
             ])
             ->when(
                 $status !== 'all',
@@ -70,13 +68,12 @@ class GetAdviserRevisionData
                 $query->where(function (Builder $searchQuery) use ($pattern): void {
                     $searchQuery
                         ->whereRaw('LOWER(title) LIKE ?', [$pattern])
-                        ->orWhereHas('assignee', function (Builder $studentQuery) use ($pattern): void {
-                            $studentQuery->where(function (Builder $identityQuery) use ($pattern): void {
-                                $identityQuery
-                                    ->whereRaw('LOWER(name) LIKE ?', [$pattern])
-                                    ->orWhereRaw('LOWER(email) LIKE ?', [$pattern])
-                                    ->orWhereRaw('LOWER(student_id) LIKE ?', [$pattern]);
-                            });
+                        ->orWhereHas('researchClassGroup', function (Builder $groupQuery) use ($pattern): void {
+                            $groupQuery->whereRaw('LOWER(name) LIKE ?', [$pattern])
+                                ->orWhereRaw('LOWER(research_title) LIKE ?', [$pattern]);
+                        })
+                        ->orWhereHas('sourceDocument', function (Builder $docQuery) use ($pattern): void {
+                            $docQuery->whereRaw('LOWER(original_filename) LIKE ?', [$pattern]);
                         });
                 });
             })

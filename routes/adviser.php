@@ -4,6 +4,7 @@ use App\Http\Controllers\Adviser\ConsultationController;
 use App\Http\Controllers\Adviser\DashboardController;
 use App\Http\Controllers\Adviser\DocumentReviewController;
 use App\Http\Controllers\Adviser\ResearchGroupAdviserRequestController;
+use App\Http\Controllers\Adviser\RevisionRequestController;
 use App\Http\Controllers\DisabledFeatureController;
 use Illuminate\Support\Facades\Route;
 
@@ -67,7 +68,11 @@ Route::prefix('adviser')->name('adviser.')->middleware([
         ->whereNumber('revisionRequest')
         ->middleware(['permission:revisions.resolve', 'throttle:revision-actions'])
         ->group(function (): void {
-            Route::patch('/resolve', DisabledFeatureController::class)
+            Route::patch('/resolve', [RevisionRequestController::class, 'resolve'])
                 ->name('revisions.resolve');
+            Route::patch('/due-date', [RevisionRequestController::class, 'updateDueDate'])
+                ->name('revisions.due-date');
+            Route::patch('/reopen', [RevisionRequestController::class, 'reopen'])
+                ->name('revisions.reopen');
         });
 });

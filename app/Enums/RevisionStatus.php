@@ -8,4 +8,5 @@ enum RevisionStatus: string
     case InProgress = 'in_progress';
     case Submitted = 'submitted';
     case Resolved = 'resolved';
+    case Cancelled = 'cancelled';
 }

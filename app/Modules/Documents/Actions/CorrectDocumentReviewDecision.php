@@ -3,13 +3,17 @@
 namespace App\Modules\Documents\Actions;
 
 use App\Enums\DocumentStatus;
+use App\Enums\RevisionStatus;
 use App\Models\Document;
 use App\Models\DocumentReview;
 use App\Models\DocumentReviewAudit;
 use App\Models\DocumentReviewComment;
+use App\Models\RevisionRequest;
+use App\Models\RevisionRequestEvent;
 use App\Models\User;
 use App\Modules\Documents\Exceptions\DocumentReviewException;
 use App\Modules\Documents\Support\DocumentReviewerAccess;
+use App\Modules\Revisions\Actions\CreateRevisionCycleFromReview;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -130,6 +134,56 @@ class CorrectDocumentReviewDecision
                         'version_number' => $lockedDocument->version_number,
                     ],
                 ]);
+
+                // Reconciliation Direction A: Original review was RevisionRequested, now corrected to Accepted/Rejected
+                if ($originalReview->decision === DocumentStatus::RevisionRequested->value
+                    && $decision !== DocumentStatus::RevisionRequested->value) {
+                    $activeCycles = RevisionRequest::query()
+                        ->where(function ($q) use ($originalReview, $lockedDocument) {
+                            $q->where('source_document_review_id', $originalReview->getKey())
+                                ->orWhere('document_id', $lockedDocument->getKey());
+                        })
+                        ->whereIn('status', [
+                            RevisionStatus::Open,
+                            RevisionStatus::InProgress,
+                            RevisionStatus::Submitted,
+                        ])
+                        ->get();
+
+                    foreach ($activeCycles as $cycle) {
+                        $fromStatus = $cycle->status;
+                        $cycle->update([
+                            'status' => RevisionStatus::Cancelled,
+                            'invalidated_at' => now(),
+                            'invalidated_reason' => trim($reason),
+                        ]);
+
+                        RevisionRequestEvent::query()->create([
+                            'revision_request_id' => $cycle->getKey(),
+                            'actor_id' => $reviewer->getKey(),
+                            'document_id' => $cycle->submitted_document_id ?? $lockedDocument->getKey(),
+                            'action' => 'invalidated_by_review_correction',
+                            'from_status' => $fromStatus->value,
+                            'to_status' => RevisionStatus::Cancelled->value,
+                            'notes' => "Revision cycle invalidated because review decision was corrected from Revision Requested to {$decision}. Reason: ".trim($reason),
+                            'occurred_at' => now(),
+                            'metadata' => [
+                                'original_review_id' => $originalReview->getKey(),
+                                'corrected_review_id' => $correctedReview->getKey(),
+                                'original_decision' => $originalReview->decision,
+                                'new_decision' => $decision,
+                                'correction_reason' => trim($reason),
+                                'has_submitted_response' => $cycle->submitted_document_id !== null,
+                            ],
+                        ]);
+                    }
+                }
+
+                // Reconciliation Direction B: Original review was Accepted/Rejected, now corrected to RevisionRequested
+                if ($decision === DocumentStatus::RevisionRequested->value) {
+                    app(CreateRevisionCycleFromReview::class)
+                        ->handle($lockedDocument, $correctedReview);
+                }
 
                 return $correctedReview->load(['reviewer:id,name', 'supersedes']);
             }, 3);

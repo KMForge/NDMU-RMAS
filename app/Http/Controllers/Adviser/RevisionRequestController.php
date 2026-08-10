@@ -3,90 +3,51 @@
 namespace App\Http\Controllers\Adviser;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Revisions\ManageRevisionRequest;
 use App\Models\RevisionRequest;
-use App\Modules\Revisions\Actions\TransitionRevisionRequest;
-use App\Modules\Revisions\Exceptions\RevisionWorkflowException;
-use Illuminate\Http\JsonResponse;
+use App\Modules\Revisions\Actions\ReopenRevisionCycle;
+use App\Modules\Revisions\Actions\ResolveRevisionCycle;
+use App\Modules\Revisions\Actions\UpdateRevisionDueDate;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 class RevisionRequestController extends Controller
 {
-    public function resolve(
-        ManageRevisionRequest $request,
-        RevisionRequest $revisionRequest,
-        TransitionRevisionRequest $transition,
-    ): JsonResponse|RedirectResponse {
-        try {
-            $revisionRequest = $transition->resolve(
-                $request->user(),
-                $revisionRequest,
-                $request->validated('notes'),
-                $request->ip(),
-            );
-        } catch (RevisionWorkflowException $exception) {
-            return $this->errorResponse($request, $exception->getMessage());
-        }
+    public function resolve(Request $request, RevisionRequest $revisionRequest, ResolveRevisionCycle $resolveAction): RedirectResponse
+    {
+        $this->authorize('resolve', $revisionRequest);
 
-        return $this->successResponse(
-            $request,
-            $revisionRequest,
-            'Revision request resolved.',
-        );
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $resolveAction->handle($request->user(), $revisionRequest, $validated['notes'] ?? null);
+
+        return back()->with('status', 'Revision cycle resolved successfully.');
     }
 
-    public function reopen(
-        ManageRevisionRequest $request,
-        RevisionRequest $revisionRequest,
-        TransitionRevisionRequest $transition,
-    ): JsonResponse|RedirectResponse {
-        try {
-            $revisionRequest = $transition->reopen(
-                $request->user(),
-                $revisionRequest,
-                $request->validated('notes'),
-                $request->ip(),
-            );
-        } catch (RevisionWorkflowException $exception) {
-            return $this->errorResponse($request, $exception->getMessage());
-        }
+    public function updateDueDate(Request $request, RevisionRequest $revisionRequest, UpdateRevisionDueDate $updateDueDateAction): RedirectResponse
+    {
+        $this->authorize('updateDueDate', $revisionRequest);
 
-        return $this->successResponse(
-            $request,
-            $revisionRequest,
-            'Revision request reopened.',
-        );
+        $validated = $request->validate([
+            'due_at' => ['nullable', 'date', 'after_or_equal:today'],
+        ]);
+
+        $updateDueDateAction->handle($request->user(), $revisionRequest, $validated['due_at'] ?? null);
+
+        return back()->with('status', 'Revision due date updated successfully.');
     }
 
-    private function successResponse(
-        ManageRevisionRequest $request,
-        RevisionRequest $revisionRequest,
-        string $message,
-    ): JsonResponse|RedirectResponse {
-        if ($request->expectsJson()) {
-            return response()->json([
-                'message' => $message,
-                'revision' => [
-                    'id' => $revisionRequest->getKey(),
-                    'status' => $revisionRequest->status->value,
-                    'resolved_at' => $revisionRequest->resolved_at?->toIso8601String(),
-                ],
-            ]);
-        }
+    public function reopen(Request $request, RevisionRequest $revisionRequest, ReopenRevisionCycle $reopenAction): RedirectResponse
+    {
+        $this->authorize('reopen', $revisionRequest);
 
-        return to_route('adviser.dashboard', ['tab' => 'revisions'])
-            ->with('revision_success', $message);
-    }
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:5', 'max:1000'],
+        ]);
 
-    private function errorResponse(
-        ManageRevisionRequest $request,
-        string $message,
-    ): JsonResponse|RedirectResponse {
-        if ($request->expectsJson()) {
-            return response()->json(['message' => $message], 409);
-        }
+        $reopenAction->handle($request->user(), $revisionRequest, $validated['reason']);
 
-        return to_route('adviser.dashboard', ['tab' => 'revisions'])
-            ->withErrors(['revision' => $message]);
+        return back()->with('status', 'Controlled reopening completed successfully.');
     }
 }

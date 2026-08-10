@@ -262,6 +262,16 @@ class StudentDashboardDataTest extends TestCase
             });
         }
 
+        if (! Schema::hasTable('consultation_requests')) {
+            Schema::create('consultation_requests', function (Blueprint $table): void {
+                $table->id();
+                $table->foreignId('research_class_group_id')->nullable();
+                $table->foreignId('requested_by')->nullable();
+                $table->string('status')->default('pending');
+                $table->timestamps();
+            });
+        }
+
         $facilitator = User::factory()->create();
         $facilitator->assignRole('research-facilitator');
 

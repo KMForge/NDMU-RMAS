@@ -10,6 +10,7 @@ use App\Models\DocumentReviewComment;
 use App\Models\User;
 use App\Modules\Documents\Exceptions\DocumentReviewException;
 use App\Modules\Documents\Support\DocumentReviewerAccess;
+use App\Modules\Revisions\Actions\CreateRevisionCycleFromReview;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -101,6 +102,11 @@ class ReviewDocument
                         'version_number' => $lockedDocument->version_number,
                     ],
                 ]);
+
+                if ($decision === DocumentStatus::RevisionRequested->value) {
+                    app(CreateRevisionCycleFromReview::class)
+                        ->handle($lockedDocument, $review);
+                }
 
                 return $review->load('reviewer:id,name');
             }, 3);

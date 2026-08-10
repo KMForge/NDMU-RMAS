@@ -21,10 +21,10 @@ class RebuildFeatureBackendDisabledTest extends TestCase
     public function test_feature_backend_routes_return_a_rebuild_baseline_response(): void
     {
         $user = User::factory()->create();
-        $user->assignRole('student-researcher');
+        $user->assignRole('faculty-member');
 
         $this->actingAs($user)
-            ->postJson(route('student.consultations.store'))
+            ->postJson(route('adviser.classes.store'))
             ->assertGone()
             ->assertJsonPath('message', 'This backend feature is disabled in the rebuild baseline.');
     }
