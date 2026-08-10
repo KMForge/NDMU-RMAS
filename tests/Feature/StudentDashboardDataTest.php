@@ -3,6 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Document;
+use App\Models\ResearchClass;
+use App\Models\ResearchClassEnrollment;
+use App\Models\ResearchClassGroup;
+use App\Models\ResearchClassGroupMember;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Database\Schema\Blueprint;
@@ -103,9 +107,11 @@ class StudentDashboardDataTest extends TestCase
     public function test_dashboard_renders_uploaded_file_size_and_restored_sidebar_items(): void
     {
         $student = $this->student('Student With Document');
+        $group = $this->activeClassGroupFor($student);
 
         Document::query()->create([
             'user_id' => $student->getKey(),
+            'research_class_group_id' => $group->getKey(),
             'submission_token' => (string) Str::uuid(),
             'original_filename' => 'research-paper.pdf',
             'stored_filename' => Str::uuid().'.pdf',
@@ -145,9 +151,11 @@ class StudentDashboardDataTest extends TestCase
     public function test_student_feature_tabs_only_load_their_required_document_data(): void
     {
         $student = $this->student('Tab Scoped Student');
+        $group = $this->activeClassGroupFor($student);
 
         Document::query()->create([
             'user_id' => $student->getKey(),
+            'research_class_group_id' => $group->getKey(),
             'submission_token' => (string) Str::uuid(),
             'original_filename' => 'tab-scoped-paper.pdf',
             'stored_filename' => Str::uuid().'.pdf',
@@ -240,6 +248,57 @@ class StudentDashboardDataTest extends TestCase
         $student->assignRole('student-researcher');
 
         return $student;
+    }
+
+    private function activeClassGroupFor(User $student): ResearchClassGroup
+    {
+        if (! Schema::hasTable('research_groups')) {
+            Schema::create('research_groups', function (Blueprint $table): void {
+                $table->id();
+            });
+        }
+
+        $facilitator = User::factory()->create();
+        $facilitator->assignRole('research-facilitator');
+
+        $researchClass = new ResearchClass([
+            'facilitator_id' => $facilitator->getKey(),
+            'creation_token' => (string) Str::uuid(),
+            'name' => 'Dashboard Class '.Str::random(8),
+            'max_students' => 50,
+            'is_active' => true,
+        ]);
+        $researchClass->setJoinCode(Str::upper(Str::random(8)));
+        $researchClass->save();
+
+        $enrollment = ResearchClassEnrollment::query()->create([
+            'research_class_id' => $researchClass->getKey(),
+            'student_id' => $student->getKey(),
+            'status' => 'active',
+            'requested_at' => now()->subDay(),
+            'joined_at' => now(),
+            'reviewed_by' => $facilitator->getKey(),
+            'reviewed_at' => now(),
+        ]);
+
+        $group = ResearchClassGroup::query()->create([
+            'research_class_id' => $researchClass->getKey(),
+            'leader_student_id' => $student->getKey(),
+            'creation_token' => (string) Str::uuid(),
+            'name' => 'Dashboard Group '.Str::random(8),
+            'created_by' => $facilitator->getKey(),
+            'status' => 'active',
+        ]);
+
+        ResearchClassGroupMember::query()->create([
+            'research_class_group_id' => $group->getKey(),
+            'research_class_id' => $researchClass->getKey(),
+            'research_class_enrollment_id' => $enrollment->getKey(),
+            'student_id' => $student->getKey(),
+            'assigned_by' => $facilitator->getKey(),
+        ]);
+
+        return $group;
     }
 
     private function attachProject(User $student, int $groupId, string $title, string $abstract): int

@@ -35,7 +35,7 @@ This tracker records the backend rebuild progress after the baseline reset. GitH
 | Phase 11 | Student Join Class Requests | Completed | Rebuilt join-code requests, facilitator approval/rejection, one-active-class enforcement, pending request limits, rejection cooldown/history, and failed-code throttling. Commit: `faa805d`; tracker completion: `c7a1c02`. |
 | Phase 12 | Research Groups and Adviser Assignment | Completed | Rebuilt facilitator group creation, active student assignment (max 4), student move logic, unassigned-student roster, group disbanding, adviser invitation workflow (pending/accept/decline/cancel), adviser removal/history, and scoped visibility. Adviser My Classes was refined with pending-request badge, Accept/Decline confirmations, assigned groups, and member names. Implementation: `c83399c`; refinement: `dccec86`. |
 | Phase 13 | Document Upload and Secure Storage | Completed | Rebuilt research group document ownership, Group Leader upload authorization, PDF/DOCX magic-byte validation, private UUID storage, SHA-256 duplicate rejection, CURRENT/VOID document versioning, upload auditing, facilitator leader assignment UI, and student submission UI with version history. |
-| Phase 14 | Research Repository | Planned | Rebuild document listing, search, status filters, secure view, and download. |
+| Phase 14 | Research Repository | In Progress | Corrected the Phase 14 foundation to use Research Class Group ownership for policy checks, adviser scope, student document counts/search/repository data, and IDOR protection. Full listing/search/filter/view/download implementation remains pending. |
 | Phase 15 | Adviser Document Review | Planned | Rebuild review queue, comments, approve/request revision/reject actions, and audit trail. |
 | Phase 16 | Consultation Records | Planned | Rebuild student booking and adviser/facilitator consultation management. |
 | Phase 17 | Revision Tracker | Planned | Rebuild revision requests, revision status transitions, and revision document uploads. |
@@ -65,6 +65,16 @@ This tracker records the backend rebuild progress after the baseline reset. GitH
 **Verified impact:** Adviser My Classes now surfaces pending adviser requests, pending count badge, Accept/Decline confirmation flow, assigned research groups, and accepted-group member names. Adviser response redirects return to the classes tab.  
 **Recorded repository verification:** Phase 12 documentation records 32 Phase 10–12 class tests passed with 0 failures, including 17 focused Phase 12/group-adviser workspace tests; `vendor/bin/pint --test` passed and `npm run build` completed successfully.  
 **Phase impact:** Phase 12 remains Completed.
+
+### Phase 14 foundation correction — uncommitted working tree
+
+**Change type:** Authorization/query foundation correction
+
+**Verified impact:** Group-linked documents are authorized through active Research Class Group membership or current assigned adviser scope; `user_id` remains uploader metadata. Student document counts, search, and repository data now use the active group. Narrow null-group compatibility remains isolated from modern group-owned documents.
+
+**Boundary:** Global view/download routes, adviser upload, repository search/filter/pagination UI, and Phase 15 review actions remain disabled.
+
+**Phase impact:** Phase 13 remains Completed. Phase 14 is In Progress, not Completed.
 
 ## Documentation Workflow
 

@@ -3,8 +3,8 @@
 namespace App\Modules\Research\Queries;
 
 use App\Models\Document;
-use App\Models\ResearchClassGroupMember;
 use App\Models\User;
+use App\Modules\Documents\Support\DocumentGroupAccess;
 use App\Support\CachesDatabaseSchema;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -14,6 +14,10 @@ use Illuminate\Support\Str;
 class GetStudentDashboardData
 {
     use CachesDatabaseSchema;
+
+    public function __construct(
+        private readonly DocumentGroupAccess $documentGroupAccess,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -125,9 +129,14 @@ class GetStudentDashboardData
         $pendingDocumentCount = 0;
         $documents = $empty;
         $documentsForSearch = $empty;
+        $activeGroupMember = $this->documentGroupAccess->activeMembershipFor($user);
+        $activeGroup = $activeGroupMember?->researchClassGroup;
+        $groupDocumentQuery = $activeGroup === null
+            ? null
+            : Document::query()->where('research_class_group_id', $activeGroup->getKey());
 
-        if ($isDashboard) {
-            $documentQuery = Document::query()->whereBelongsTo($user);
+        if ($isDashboard && $groupDocumentQuery !== null) {
+            $documentQuery = clone $groupDocumentQuery;
             $documentCount = (clone $documentQuery)->count();
             $pendingDocumentCount = (clone $documentQuery)
                 ->whereIn('status', ['pending', 'submitted', 'under_review'])
@@ -138,16 +147,14 @@ class GetStudentDashboardData
                 ->get();
 
             if ($searchQuery !== '') {
-                $documentsForSearch = Document::query()
-                    ->whereBelongsTo($user)
+                $documentsForSearch = (clone $groupDocumentQuery)
                     ->whereRaw('LOWER(original_filename) LIKE ?', ['%'.Str::lower($searchQuery).'%'])
                     ->latest('submitted_at')
                     ->limit(25)
                     ->get();
             }
-        } elseif ($activeTab === 'repository') {
-            $documents = Document::query()
-                ->whereBelongsTo($user)
+        } elseif ($activeTab === 'repository' && $groupDocumentQuery !== null) {
+            $documents = (clone $groupDocumentQuery)
                 ->latest('submitted_at')
                 ->get();
             $documentCount = $documents->count();
@@ -192,17 +199,8 @@ class GetStudentDashboardData
             $classes,
         );
 
-        $activeGroupMember = ResearchClassGroupMember::query()
-            ->where('student_id', $user->getKey())
-            ->whereHas('researchClassGroup', fn ($q) => $q->where('status', 'active'))
-            ->whereHas('researchClassEnrollment', fn ($q) => $q->where('status', 'active'))
-            ->with(['researchClassGroup.leader', 'researchClassGroup.researchClass'])
-            ->first();
-
-        $activeGroup = $activeGroupMember?->researchClassGroup;
-        $groupDocuments = $activeGroup !== null
-            ? Document::query()
-                ->where('research_class_group_id', $activeGroup->getKey())
+        $groupDocuments = $groupDocumentQuery !== null
+            ? (clone $groupDocumentQuery)
                 ->orderByDesc('version_number')
                 ->get()
             : collect();

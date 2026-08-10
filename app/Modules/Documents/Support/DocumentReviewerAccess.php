@@ -21,8 +21,11 @@ class DocumentReviewerAccess
             return true;
         }
 
-        return $this->hasClassAccess($reviewer, $document)
-            || $this->hasAssignmentAccess($reviewer, $document);
+        if ($document->research_class_group_id !== null) {
+            return $this->hasCurrentGroupAccess($reviewer, $document);
+        }
+
+        return $this->hasLegacyAssignmentAccess($reviewer, $document);
     }
 
     /**
@@ -39,67 +42,68 @@ class DocumentReviewerAccess
             $accessQuery->whereExists(function ($classQuery) use ($reviewer): void {
                 $classQuery
                     ->selectRaw('1')
-                    ->from('research_class_group_members as review_group_members')
-                    ->join(
-                        'research_class_groups as review_groups',
-                        'review_groups.id',
-                        '=',
-                        'review_group_members.research_class_group_id',
-                    )
-                    ->whereColumn('review_group_members.student_id', 'documents.user_id')
-                    ->where('review_groups.adviser_id', $reviewer->getKey());
+                    ->from('research_class_groups as review_groups')
+                    ->whereColumn('review_groups.id', 'documents.research_class_group_id')
+                    ->where('review_groups.adviser_id', $reviewer->getKey())
+                    ->where('review_groups.status', 'active')
+                    ->whereNull('review_groups.disbanded_at');
             });
 
             if ($this->assignmentTablesExist()) {
-                $accessQuery->orWhereExists(function ($assignmentQuery) use ($reviewer): void {
-                    $assignmentQuery
-                        ->selectRaw('1')
-                        ->from('student_profiles as review_students')
-                        ->join(
-                            'research_group_members as review_members',
-                            'review_members.student_profile_id',
-                            '=',
-                            'review_students.id',
-                        )
-                        ->join(
-                            'research_projects as review_projects',
-                            'review_projects.research_group_id',
-                            '=',
-                            'review_members.research_group_id',
-                        )
-                        ->join(
-                            'adviser_assignments as review_assignments',
-                            'review_assignments.research_project_id',
-                            '=',
-                            'review_projects.id',
-                        )
-                        ->join(
-                            'faculty_profiles as review_faculty',
-                            'review_faculty.id',
-                            '=',
-                            'review_assignments.adviser_id',
-                        )
-                        ->whereColumn('review_students.user_id', 'documents.user_id')
-                        ->where('review_faculty.user_id', $reviewer->getKey())
-                        ->where('review_assignments.status', 'active')
-                        ->whereNull('review_assignments.ended_at')
-                        ->whereNull('review_members.left_at')
-                        ->whereNull('review_projects.archived_at');
+                $accessQuery->orWhere(function (Builder $legacyQuery) use ($reviewer): void {
+                    $legacyQuery
+                        ->whereNull('documents.research_class_group_id')
+                        ->whereExists(function ($assignmentQuery) use ($reviewer): void {
+                            $assignmentQuery
+                                ->selectRaw('1')
+                                ->from('student_profiles as review_students')
+                                ->join(
+                                    'research_group_members as review_members',
+                                    'review_members.student_profile_id',
+                                    '=',
+                                    'review_students.id',
+                                )
+                                ->join(
+                                    'research_projects as review_projects',
+                                    'review_projects.research_group_id',
+                                    '=',
+                                    'review_members.research_group_id',
+                                )
+                                ->join(
+                                    'adviser_assignments as review_assignments',
+                                    'review_assignments.research_project_id',
+                                    '=',
+                                    'review_projects.id',
+                                )
+                                ->join(
+                                    'faculty_profiles as review_faculty',
+                                    'review_faculty.id',
+                                    '=',
+                                    'review_assignments.adviser_id',
+                                )
+                                ->whereColumn('review_students.user_id', 'documents.user_id')
+                                ->where('review_faculty.user_id', $reviewer->getKey())
+                                ->where('review_assignments.status', 'active')
+                                ->whereNull('review_assignments.ended_at')
+                                ->whereNull('review_members.left_at')
+                                ->whereNull('review_projects.archived_at');
+                        });
                 });
             }
         });
     }
 
-    private function hasClassAccess(User $reviewer, Document $document): bool
+    private function hasCurrentGroupAccess(User $reviewer, Document $document): bool
     {
-        return DB::table('research_class_group_members as members')
-            ->join('research_class_groups as groups', 'groups.id', '=', 'members.research_class_group_id')
-            ->where('members.student_id', $document->user_id)
-            ->where('groups.adviser_id', $reviewer->getKey())
+        return DB::table('research_class_groups')
+            ->where('id', $document->research_class_group_id)
+            ->where('adviser_id', $reviewer->getKey())
+            ->where('status', 'active')
+            ->whereNull('disbanded_at')
             ->exists();
     }
 
-    private function hasAssignmentAccess(User $reviewer, Document $document): bool
+    private function hasLegacyAssignmentAccess(User $reviewer, Document $document): bool
     {
         if (! $this->assignmentTablesExist()) {
             return false;

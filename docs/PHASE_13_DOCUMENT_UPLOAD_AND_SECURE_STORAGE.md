@@ -13,6 +13,8 @@ Phase 13 establishes a secure, auditable, research-group-owned document submissi
    - Added `research_class_group_id`, `version_number` (default 1), and `is_current` (default `true`) to `documents`.
    - Replaced individual student document ownership with group-level ownership while retaining uploader identity (`user_id`).
    - Only the designated active Group Leader can submit research documents. Non-leaders, unassigned students, or members of disbanded groups are blocked server-side with a safe error message ("Only your assigned Group Leader can submit research documents.").
+   - `research_class_group_id` is the authoritative ownership link. `user_id` records the individual uploader for accountability and does not make that user the sole owner.
+   - Active members of the owning group can be recognized independently of which member uploaded the file. Changing the Group Leader does not transfer or invalidate document ownership.
 
 2. **Group Leader Management**:
    - `AssignResearchClassGroupLeader` action enables Research Facilitators to assign or update the Group Leader for any active research group (validating active class group membership).
@@ -35,3 +37,7 @@ Phase 13 establishes a secure, auditable, research-group-owned document submissi
 - Feature test suite in `tests/Feature/Documents/DocumentSubmissionTest.php` passing 100% with 17 tests and 101 assertions.
 - Code style formatted with `vendor/bin/pint`.
 - Frontend assets compiled with `npm run build`.
+
+## Legacy Compatibility
+
+Documents created before Phase 13 may have a null `research_class_group_id`. Access for those rows uses a deliberately narrow compatibility path based on the original uploader or a verified active legacy adviser assignment. Group-linked Phase 13 documents never fall back to uploader ownership.

@@ -4,11 +4,13 @@ namespace App\Policies;
 
 use App\Models\Document;
 use App\Models\User;
+use App\Modules\Documents\Support\DocumentGroupAccess;
 use App\Modules\Documents\Support\DocumentReviewerAccess;
 
 class DocumentPolicy
 {
     public function __construct(
+        private readonly DocumentGroupAccess $groupAccess,
         private readonly DocumentReviewerAccess $reviewerAccess,
     ) {}
 
@@ -29,11 +31,20 @@ class DocumentPolicy
 
     private function mayAccess(User $user, Document $document): bool
     {
-        return $user->can('documents.download')
-            && (
-                $user->getKey() === $document->user_id
-                || $user->can('documents.download-any')
-                || $this->reviewerAccess->canReview($user, $document)
-            );
+        if (! $user->can('documents.download')) {
+            return false;
+        }
+
+        if ($user->can('documents.download-any')) {
+            return true;
+        }
+
+        if ($document->research_class_group_id !== null) {
+            return $this->groupAccess->isActiveMember($user, $document)
+                || $this->reviewerAccess->canReview($user, $document);
+        }
+
+        return $user->getKey() === $document->user_id
+            || $this->reviewerAccess->canReview($user, $document);
     }
 }
