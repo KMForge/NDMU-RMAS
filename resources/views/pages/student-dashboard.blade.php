@@ -256,6 +256,7 @@
 
         <main class="flex-1 p-8">
             <x-portal-feature-banner class="mb-8" :sections="[
+                'dashboard' => ['eyebrow' => 'Student Research Portal', 'title' => 'Student Dashboard', 'description' => 'Track your research journey, pending work, submissions, consultations, and recent updates.', 'icon' => 'ph-squares-four'],
                 'classes' => ['eyebrow' => 'Student Research Portal', 'title' => 'My Classes', 'description' => 'Join your Capstone class and view your approved class membership.', 'icon' => 'ph-users-three'],
                 'research' => ['eyebrow' => 'Student Research Portal', 'title' => 'My Research', 'description' => 'View your research profile, team, adviser, and project information.', 'icon' => 'ph-book-open'],
                 'proposal' => ['eyebrow' => 'Student Research Portal', 'title' => 'Research Proposal', 'description' => 'Prepare, submit, and track your research proposal documents.', 'icon' => 'ph-file-text'],

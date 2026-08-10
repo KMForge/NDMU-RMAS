@@ -638,6 +638,7 @@
         <!-- Main Body Content -->
         <main class="flex-grow p-8">
             <x-portal-feature-banner class="mb-8" :sections="[
+                'dashboard' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Panelist Dashboard', 'description' => 'Review assigned papers, upcoming defenses, evaluation work, and panel responsibilities.', 'icon' => 'ph-squares-four'],
                 'assigned-papers' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Assigned Papers', 'description' => 'Access the research papers assigned to you for review.', 'icon' => 'ph-files'],
                 'proposal-eval' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Proposal Evaluation', 'description' => 'Evaluate assigned proposal defenses using the approved criteria.', 'icon' => 'ph-clipboard-text'],
                 'final-eval' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Final Evaluation', 'description' => 'Record final-defense scores and evidence-based feedback.', 'icon' => 'ph-medal'],

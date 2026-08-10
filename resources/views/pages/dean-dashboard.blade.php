@@ -512,6 +512,7 @@
         <!-- Main Body Content -->
         <main class="flex-grow p-8 space-y-8">
             <x-portal-feature-banner :sections="[
+                'dashboard' => ['eyebrow' => 'College Dean Portal', 'title' => 'Dean Dashboard', 'description' => 'Oversee college-level approvals, research compliance, defense activity, and CEAC research reporting.', 'icon' => 'ph-squares-four'],
                 'pending' => ['eyebrow' => 'College Dean Portal', 'title' => 'Pending Approvals', 'description' => 'Review research matters that require college-level approval.', 'icon' => 'ph-hourglass-medium'],
                 'manuscript' => ['eyebrow' => 'College Dean Portal', 'title' => 'Manuscript Review', 'description' => 'Review authorized manuscripts and associated recommendations.', 'icon' => 'ph-file-search'],
                 'schedule' => ['eyebrow' => 'College Dean Portal', 'title' => 'Defense Schedule', 'description' => 'View and oversee scheduled research defenses.', 'icon' => 'ph-calendar-check'],

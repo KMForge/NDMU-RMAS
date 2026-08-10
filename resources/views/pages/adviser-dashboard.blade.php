@@ -327,6 +327,7 @@
         <div class="p-8 space-y-8 flex-1">
             <!-- Green Hero Banner Component -->
             <x-portal-feature-banner class="mb-8" :sections="[
+                'dashboard' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Adviser Dashboard', 'description' => 'Review adviser requests, assigned groups, account status, and research-advising activity.', 'icon' => 'ph-squares-four'],
                 'classes' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'My Classes Workspace', 'description' => 'Review pending adviser invitations and manage your assigned research groups.', 'icon' => 'ph-chalkboard-teacher'],
                 'researchers' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Assigned Researchers', 'description' => 'View students and groups assigned to you for research advising.', 'icon' => 'ph-users-three'],
                 'proposal' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Proposal Review', 'description' => 'Review proposal submissions and prepare feedback for assigned researchers.', 'icon' => 'ph-file-magnifying-glass'],

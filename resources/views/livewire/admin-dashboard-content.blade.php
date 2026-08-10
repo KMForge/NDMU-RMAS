@@ -281,6 +281,7 @@
         <!-- Dynamic Content Body -->
         <main class="flex-grow px-10 py-8 w-full">
             <x-portal-feature-banner class="mb-8" :sections="[
+                'dashboard' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'System Dashboard', 'description' => 'Monitor platform health, account activity, access control, and research-system operations.', 'icon' => 'ph-squares-four'],
                 'users' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'User Management', 'description' => 'Manage accounts, approve registrations, and assign reusable roles.', 'icon' => 'ph-users-three'],
                 'research' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Research Management', 'description' => 'Oversee research records, assignments, and approval activity.', 'icon' => 'ph-book-open'],
                 'defenses' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Defense Scheduling', 'description' => 'Coordinate defense requests, schedules, rooms, and panels.', 'icon' => 'ph-calendar-check'],
