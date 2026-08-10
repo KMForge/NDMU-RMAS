@@ -120,6 +120,45 @@
                     </div>
                 </a>
 
+                <!-- Assigned Researchers -->
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'researchers']) }}"
+                   wire:navigate
+                   :class="activeTab === 'researchers' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-users-three text-lg"></i>
+                        <span>Assigned Researchers</span>
+                    </div>
+                    <span x-show="activeTab === 'researchers'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                </a>
+
+                <!-- Proposal Review -->
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'proposal']) }}"
+                   wire:navigate
+                   :class="activeTab === 'proposal' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-file-magnifying-glass text-lg"></i>
+                        <span>Proposal Review</span>
+                    </div>
+                    <span x-show="activeTab === 'proposal'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                </a>
+
+                <!-- Research Monitoring -->
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'monitoring']) }}"
+                   wire:navigate
+                   :class="activeTab === 'monitoring' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-chart-line-up text-lg"></i>
+                        <span>Research Monitoring</span>
+                    </div>
+                    <span x-show="activeTab === 'monitoring'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                </a>
+
                 <!-- Document Review -->
                 <a
                    href="{{ route('adviser.dashboard', ['tab' => 'docreview']) }}"
@@ -157,6 +196,32 @@
                         <span>Revision Tracker</span>
                     </div>
                     <span x-show="activeTab === 'revisions'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                </a>
+
+                <!-- Defense Endorsement -->
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'endorsement']) }}"
+                   wire:navigate
+                   :class="activeTab === 'endorsement' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-seal-check text-lg"></i>
+                        <span>Defense Endorsement</span>
+                    </div>
+                    <span x-show="activeTab === 'endorsement'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                </a>
+
+                <!-- Evaluation Records -->
+                <a
+                   href="{{ route('adviser.dashboard', ['tab' => 'evaluations']) }}"
+                   wire:navigate
+                   :class="activeTab === 'evaluations' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-clipboard-text text-lg"></i>
+                        <span>Evaluation Records</span>
+                    </div>
+                    <span x-show="activeTab === 'evaluations'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </a>
 
                 <!-- Research Repository -->
@@ -263,9 +328,14 @@
             <!-- Green Hero Banner Component -->
             <x-portal-feature-banner class="mb-8" :sections="[
                 'classes' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'My Classes Workspace', 'description' => 'Review pending adviser invitations and manage your assigned research groups.', 'icon' => 'ph-chalkboard-teacher'],
+                'researchers' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Assigned Researchers', 'description' => 'View students and groups assigned to you for research advising.', 'icon' => 'ph-users-three'],
+                'proposal' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Proposal Review', 'description' => 'Review proposal submissions and prepare feedback for assigned researchers.', 'icon' => 'ph-file-magnifying-glass'],
+                'monitoring' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Research Monitoring', 'description' => 'Track advisee progress, milestones, and research activity.', 'icon' => 'ph-chart-line-up'],
                 'docreview' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Document Review System', 'description' => 'Review and annotate documents submitted by your assigned researchers.', 'icon' => 'ph-file-text'],
                 'consultation' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Consultation Records', 'description' => 'Manage student consultation bookings and record consultation outcomes.', 'icon' => 'ph-chats-teardrop'],
                 'revisions' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Revision Tracker', 'description' => 'Monitor requested manuscript revisions and resubmissions.', 'icon' => 'ph-arrows-counter-clockwise'],
+                'endorsement' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Defense Endorsement', 'description' => 'Prepare and monitor defense endorsement requests for your advisees.', 'icon' => 'ph-seal-check'],
+                'evaluations' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Evaluation Records', 'description' => 'Review defense and research evaluation records for assigned groups.', 'icon' => 'ph-clipboard-text'],
                 'repository' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Research Repository', 'description' => 'Browse approved research documents, manuscripts, and archives.', 'icon' => 'ph-archive'],
                 'notifications' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Notifications', 'description' => 'Stay updated with real-time research activity alerts and reminders.', 'icon' => 'ph-bell'],
             ]" />
@@ -547,6 +617,71 @@
                 <div>
                     <h1 class="text-2xl font-bold font-heading text-gray-850">Document Review System</h1>
                     <p class="text-sm text-gray-500 mt-1">Review and annotate documents submitted by your assigned researchers</p>
+                </div>
+            </div>
+
+            <!-- TAB: Assigned Researchers -->
+            <div x-show="activeTab === 'researchers'" x-cloak class="space-y-6">
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-850">Assigned Researchers</h1>
+                    <p class="text-sm text-gray-500 mt-1">View students and research groups assigned to your advisership.</p>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+                    <i class="ph ph-users-three text-4xl text-gray-300"></i>
+                    <p class="mt-3 text-sm text-gray-500">Assigned researcher backend will be rebuilt in the upcoming adviser workflow phase.</p>
+                </div>
+            </div>
+
+            <!-- TAB: Proposal Review -->
+            <div x-show="activeTab === 'proposal'" x-cloak class="space-y-6">
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-850">Proposal Review</h1>
+                    <p class="text-sm text-gray-500 mt-1">Review research proposals submitted by your assigned researchers.</p>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+                    <i class="ph ph-file-magnifying-glass text-4xl text-gray-300"></i>
+                    <p class="mt-3 text-sm text-gray-500">Proposal review backend is not connected yet.</p>
+                </div>
+            </div>
+
+            <!-- TAB: Research Monitoring -->
+            <div x-show="activeTab === 'monitoring'" x-cloak class="space-y-6">
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-850">Research Monitoring</h1>
+                    <p class="text-sm text-gray-500 mt-1">Track progress and milestone movement for assigned research groups.</p>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+                    <i class="ph ph-chart-line-up text-4xl text-gray-300"></i>
+                    <p class="mt-3 text-sm text-gray-500">Research monitoring backend is scheduled for the milestone rebuild phase.</p>
+                </div>
+            </div>
+
+            <!-- TAB: Defense Endorsement -->
+            <div x-show="activeTab === 'endorsement'" x-cloak class="space-y-6">
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-850">Defense Endorsement</h1>
+                    <p class="text-sm text-gray-500 mt-1">Prepare and track endorsement records for proposal or final defense.</p>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+                    <i class="ph ph-seal-check text-4xl text-gray-300"></i>
+                    <p class="mt-3 text-sm text-gray-500">Defense endorsement backend will be implemented during the defense workflow phase.</p>
+                </div>
+            </div>
+
+            <!-- TAB: Evaluation Records -->
+            <div x-show="activeTab === 'evaluations'" x-cloak class="space-y-6">
+                <div>
+                    <h1 class="text-2xl font-bold font-heading text-gray-850">Evaluation Records</h1>
+                    <p class="text-sm text-gray-500 mt-1">View evaluation outcomes related to your assigned research groups.</p>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+                    <i class="ph ph-clipboard-text text-4xl text-gray-300"></i>
+                    <p class="mt-3 text-sm text-gray-500">Evaluation records backend will be rebuilt in the evaluation phase.</p>
                 </div>
             </div>
         </div>

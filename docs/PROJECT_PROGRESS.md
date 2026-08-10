@@ -11,12 +11,11 @@ This tracker records the backend rebuild progress after the baseline reset. GitH
 | Active repository | `KMForge/NDMU-RMAS` |
 | Backup repositories | `KMForge/NDMU-RMAS-Legacy`, `KMForge/NDMU-RMAS-Rebuild` |
 | Rebuild baseline commit | `f701324 chore: disable feature backends for rebuild baseline` |
-| Latest reviewed implementation/UI commit | `ede6384 style: standardize global dashboard sidebars and feature hero banners` |
-| Latest completed feature phase | `Phase 12 — Research Groups and Adviser Assignment` |
+| Latest reviewed commit | `faa805d feat: rebuild student class join requests` |
 | Backend strategy | Rebuild feature modules one at a time |
 | UI strategy | Keep existing UI while reconnecting backend modules |
 
-> **Baseline note:** Commit `f701324` remains the functional rebuild baseline. Feature modules are being reconnected one phase at a time. Phases 10, 11, and 12 are now complete. Commit `dccec86` refined the completed Phase 12 Adviser My Classes workflow, and `ede6384` standardized dashboard sidebar/feature-banner presentation without completing a new backend phase.
+> **Baseline note:** Commit `f701324` remains the functional rebuild baseline. Feature modules are being reconnected one phase at a time; Phase 10 and Phase 11 are now complete.
 
 ## Phase Tracker
 
@@ -27,13 +26,13 @@ This tracker records the backend rebuild progress after the baseline reset. GitH
 | Phase 3 | User Management | Completed | Admin user management is active. |
 | Phase 4 | Dynamic RBAC with Spatie | Completed | Roles, permissions, role assignment, and permission-based access are active. |
 | Phase 5 | Admin Dashboard & System Settings | Completed | Admin dashboard shell, user metrics, and system settings are active. |
-| Phase 6 | Student Dashboard UI Shell | Completed | UI shell is available. Latest UI refinement standardized dashboard sidebar grouping and feature banners. |
-| Phase 7 | Adviser Dashboard UI Shell | Completed | UI shell is available. My Classes now integrates the verified Phase 12 adviser-request/assigned-group workflow. |
-| Phase 8 | Facilitator Dashboard UI Shell | Completed | UI shell is available and supports the independently rebuilt Phase 10–12 class/group workflows. |
-| Phase 9 | Panelist and Dean Dashboard UI Shell | Completed | UI shells remain available; later panelist/dean feature workflows are still tracked separately. |
-| Phase 10 | Research Class Management | Completed | Rebuilt facilitator-owned class creation, class cards, class details, and active student roster. Commit: `8be86fb`; tracker completion: `3e45d23`. |
-| Phase 11 | Student Join Class Requests | Completed | Rebuilt join-code requests, facilitator approval/rejection, one-active-class enforcement, pending request limits, rejection cooldown/history, and failed-code throttling. Commit: `faa805d`; tracker completion: `c7a1c02`. |
-| Phase 12 | Research Groups and Adviser Assignment | Completed | Rebuilt facilitator group creation, active student assignment (max 4), student move logic, unassigned-student roster, group disbanding, adviser invitation workflow (pending/accept/decline/cancel), adviser removal/history, and scoped visibility. Adviser My Classes was refined with pending-request badge, Accept/Decline confirmations, assigned groups, and member names. Implementation: `c83399c`; refinement: `dccec86`. |
+| Phase 6 | Student Dashboard UI Shell | Completed | UI remains available; feature data sources are disabled for rebuild. |
+| Phase 7 | Adviser Dashboard UI Shell | Completed | UI remains available; feature data sources are disabled for rebuild. |
+| Phase 8 | Facilitator Dashboard UI Shell | Completed | UI remains available; class/group/join request backend is disabled for rebuild. |
+| Phase 9 | Panelist and Dean Dashboard UI Shell | Completed | UI remains available; feature workflows are not rebuilt yet. |
+| Phase 10 | Research Class Management | Completed | Rebuilt facilitator-owned class creation, class cards, class details, and active student roster. Groups, adviser assignment, and join request approval remain reserved for later phases. Commit: `8be86fb`. |
+| Phase 11 | Student Join Class Requests | Completed | Rebuilt join-code requests, facilitator approval/rejection, one-active-class enforcement, pending request limits, rejection cooldown/history, and failed-code throttling. Groups and adviser assignment remain Phase 12. Commit: `faa805d`. |
+| Phase 12 | Research Groups and Adviser Assignment | Completed | Rebuilt facilitator group creation, active student assignment (max 4 members per group), student move logic, unassigned students roster, group disbanding, adviser invitation workflow (pending, accept, decline, cancel), adviser removal with history, and scoped role visibility. Refined Adviser My Classes workspace to surface pending adviser request badge, Accept/Decline modals, assigned research groups, and group member names. |
 | Phase 13 | Document Upload and Secure Storage | Planned | Rebuild PDF/DOCX validation, private storage, audit attempts, and metadata saving. |
 | Phase 14 | Research Repository | Planned | Rebuild document listing, search, status filters, secure view, and download. |
 | Phase 15 | Adviser Document Review | Planned | Rebuild review queue, comments, approve/request revision/reject actions, and audit trail. |
@@ -44,27 +43,23 @@ This tracker records the backend rebuild progress after the baseline reset. GitH
 | Phase 20 | Digital Signature Verification | Planned | Rebuild user signature enrollment, approval routing, signature metadata, and QR verification. |
 | Phase 21 | Defense Scheduling | Planned | Rebuild defense requests, schedules, rooms, and calendar integration. |
 | Phase 22 | Evaluation Records | Planned | Rebuild panelist evaluation forms, summaries, and student-visible results. |
-| Phase 23 | Notifications | Planned | Rebuild system notifications for requests, reviews, revisions, consultations, and approvals. Sidebar presence does not mean the notification backend is complete. |
+| Phase 23 | Notifications | Planned | Rebuild system notifications for requests, reviews, revisions, consultations, and approvals. |
 | Phase 24 | Audit Logs | Planned | Rebuild feature-level audit logs beyond the admin/auth baseline. |
 | Phase 25 | Reports and Analytics | Planned | Rebuild dashboard metrics, exports, and reporting queries. |
 | Phase 26 | Security Review and Hardening | Planned | Validate authorization, rate limits, file handling, SQL injection protection, XSS handling, and error safety. |
 | Phase 27 | Testing and Final Documentation | Planned | Complete feature tests, integration tests, user guide, technical documentation, and capstone evidence. |
 
-## Latest Verified Development Review
+## Latest Commit Review
 
-### `ede6384` — `style: standardize global dashboard sidebars and feature hero banners`
+### `45ff3f0` — `docs: add project progress tracker`
 
-**Change type:** UI/presentation refinement  
-**Verified impact:** Standardizes dashboard sidebar grouping, separates bottom Notifications/Settings/Logout actions, separates Official Forms/Research Forms navigation where applicable, and introduces consistent green feature hero banners for applicable feature views.  
-**Backend phase impact:** No new backend phase completed.  
-**Important boundary:** Visible Notifications, Official Forms, and other later-phase navigation do not prove those later backend workflows are implemented.
-
-### `dccec86` — `feat: refine adviser my classes workflow`
-
-**Change type:** Phase 12 functional/UI refinement  
-**Verified impact:** Adviser My Classes now surfaces pending adviser requests, pending count badge, Accept/Decline confirmation flow, assigned research groups, and accepted-group member names. Adviser response redirects return to the classes tab.  
-**Recorded repository verification:** Phase 12 documentation records 32 Phase 10–12 class tests passed with 0 failures, including 17 focused Phase 12/group-adviser workspace tests; `vendor/bin/pint --test` passed and `npm run build` completed successfully.  
-**Phase impact:** Phase 12 remains Completed.
+**Change type:** Documentation only  
+**Files changed:** `docs/PROJECT_PROGRESS.md`  
+**Backend impact:** None  
+**Database impact:** None  
+**Security/RBAC impact:** None  
+**Testing impact:** No application tests are required for the documentation-only change.  
+**Phase impact:** No phase status changes. The commit establishes the 27-phase tracker used to document the rebuild.
 
 ## Documentation Workflow
 
