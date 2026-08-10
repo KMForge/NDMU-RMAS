@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Adviser;
 use App\Http\Controllers\Controller;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupAdviserRequest;
+use App\Modules\Consultations\Queries\GetAdviserConsultationData;
 use App\Modules\Documents\Queries\GetAdviserDocumentReviewData;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use Illuminate\Contracts\View\View;
@@ -18,6 +19,7 @@ class DashboardController extends Controller
         Request $request,
         GetDocumentRepositoryData $repositoryData,
         GetAdviserDocumentReviewData $reviewData,
+        GetAdviserConsultationData $consultationData,
     ): View {
         $allowedTabs = [
             'dashboard',
@@ -81,6 +83,14 @@ class DashboardController extends Controller
                 $request->query('document_file_type') ? (string) $request->query('document_file_type') : null,
                 (string) $request->query('document_sort', 'newest'),
                 $request->query('document_id') ? (int) $request->query('document_id') : null,
+            )];
+        }
+
+        if ($activeTab === 'consultation') {
+            $viewData = [...$viewData, ...$consultationData->for(
+                $user,
+                (string) $request->query('consultation_search', ''),
+                (string) $request->query('consultation_status', 'pending'),
             )];
         }
 

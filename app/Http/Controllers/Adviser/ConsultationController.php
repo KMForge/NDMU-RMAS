@@ -3,129 +3,100 @@
 namespace App\Http\Controllers\Adviser;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Consultations\CompleteConsultationRequest;
-use App\Http\Requests\Consultations\ReviewConsultationRequest as ReviewRequest;
+use App\Http\Requests\Consultations\ApproveConsultationRequest;
+use App\Http\Requests\Consultations\CorrectConsultationRecordRequest;
+use App\Http\Requests\Consultations\ProposeConsultationRescheduleRequest;
+use App\Http\Requests\Consultations\RecordCompletedConsultationRequest;
+use App\Http\Requests\Consultations\RejectConsultationRequest as RejectFormRequest;
+use App\Models\ConsultationRecord;
 use App\Models\ConsultationRequest;
+use App\Modules\Consultations\Actions\ApproveConsultation;
+use App\Modules\Consultations\Actions\CorrectConsultationRecord;
+use App\Modules\Consultations\Actions\ProposeConsultationReschedule;
 use App\Modules\Consultations\Actions\RecordCompletedConsultation;
-use App\Modules\Consultations\Actions\ReviewConsultationRequest;
-use App\Modules\Consultations\Exceptions\ConsultationReviewException;
-use Illuminate\Http\JsonResponse;
+use App\Modules\Consultations\Actions\RejectConsultationRequest;
+use App\Modules\Consultations\Exceptions\ConsultationException;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Gate;
 
 class ConsultationController extends Controller
 {
-    public function complete(
-        CompleteConsultationRequest $request,
+    public function approve(
+        ApproveConsultationRequest $request,
         ConsultationRequest $consultationRequest,
-        RecordCompletedConsultation $recordConsultation,
-    ): JsonResponse|RedirectResponse {
-        Gate::authorize('manage', $consultationRequest);
-
+        ApproveConsultation $action,
+    ): RedirectResponse {
         try {
-            $recordId = $recordConsultation->handle(
-                $request->user(),
-                $consultationRequest,
-                $request->validated(),
-            );
-        } catch (ConsultationReviewException $exception) {
-            return $this->errorResponse($request, $exception->getMessage());
-        }
+            $action->handle($request->user(), $consultationRequest, $request->validatedData());
 
-        if ($request->expectsJson()) {
-            return response()->json([
-                'message' => 'Consultation completed and recorded successfully.',
-                'consultation_record' => [
-                    'id' => $recordId,
-                    'status' => 'completed',
-                ],
-            ]);
+            return to_route('adviser.dashboard', ['tab' => 'consultation'])
+                ->with('consultation_success', 'Consultation request approved successfully.');
+        } catch (ConsultationException $exception) {
+            return to_route('adviser.dashboard', ['tab' => 'consultation'])
+                ->withErrors(['consultation' => $exception->getMessage()]);
         }
-
-        return to_route('adviser.dashboard', [
-            'tab' => 'consultation',
-            'consultation_status' => 'completed',
-        ])->with('consultation_success', 'Consultation completed and recorded successfully.');
     }
 
-    public function approve(
-        ReviewRequest $request,
+    public function proposeReschedule(
+        ProposeConsultationRescheduleRequest $request,
         ConsultationRequest $consultationRequest,
-        ReviewConsultationRequest $reviewConsultation,
-    ): JsonResponse|RedirectResponse {
-        Gate::authorize('manage', $consultationRequest);
-
+        ProposeConsultationReschedule $action,
+    ): RedirectResponse {
         try {
-            $consultation = $reviewConsultation->approve(
-                $request->user(),
-                $consultationRequest,
-                $request->validated('review_notes'),
-            );
-        } catch (ConsultationReviewException $exception) {
-            return $this->errorResponse($request, $exception->getMessage());
-        }
+            $action->handle($request->user(), $consultationRequest, $request->validatedData());
 
-        return $this->successResponse(
-            $request,
-            $consultation,
-            'Consultation request approved and scheduled.',
-        );
+            return to_route('adviser.dashboard', ['tab' => 'consultation'])
+                ->with('consultation_success', 'Schedule proposal sent to student successfully.');
+        } catch (ConsultationException $exception) {
+            return to_route('adviser.dashboard', ['tab' => 'consultation'])
+                ->withErrors(['consultation' => $exception->getMessage()]);
+        }
     }
 
     public function reject(
-        ReviewRequest $request,
+        RejectFormRequest $request,
         ConsultationRequest $consultationRequest,
-        ReviewConsultationRequest $reviewConsultation,
-    ): JsonResponse|RedirectResponse {
-        Gate::authorize('manage', $consultationRequest);
-
+        RejectConsultationRequest $action,
+    ): RedirectResponse {
         try {
-            $consultation = $reviewConsultation->reject(
-                $request->user(),
-                $consultationRequest,
-                $request->validated('review_notes'),
-            );
-        } catch (ConsultationReviewException $exception) {
-            return $this->errorResponse($request, $exception->getMessage());
-        }
+            $action->handle($request->user(), $consultationRequest, $request->reason());
 
-        return $this->successResponse(
-            $request,
-            $consultation,
-            'Consultation request rejected.',
-        );
+            return to_route('adviser.dashboard', ['tab' => 'consultation'])
+                ->with('consultation_success', 'Consultation request rejected.');
+        } catch (ConsultationException $exception) {
+            return to_route('adviser.dashboard', ['tab' => 'consultation'])
+                ->withErrors(['consultation' => $exception->getMessage()]);
+        }
     }
 
-    private function successResponse(
-        ReviewRequest $request,
-        ConsultationRequest $consultation,
-        string $message,
-    ): JsonResponse|RedirectResponse {
-        if ($request->expectsJson()) {
-            return response()->json([
-                'message' => $message,
-                'consultation' => [
-                    'id' => $consultation->getKey(),
-                    'status' => $consultation->status,
-                    'preferred_at' => $consultation->preferred_at->toIso8601String(),
-                    'reviewed_at' => $consultation->reviewed_at?->toIso8601String(),
-                ],
-            ]);
-        }
+    public function complete(
+        RecordCompletedConsultationRequest $request,
+        ConsultationRequest $consultationRequest,
+        RecordCompletedConsultation $action,
+    ): RedirectResponse {
+        try {
+            $action->handle($request->user(), $consultationRequest, $request->validatedData());
 
-        return to_route('adviser.dashboard', ['tab' => 'consultation'])
-            ->with('consultation_success', $message);
+            return to_route('adviser.dashboard', ['tab' => 'consultation'])
+                ->with('consultation_success', 'Official consultation record saved successfully.');
+        } catch (ConsultationException $exception) {
+            return to_route('adviser.dashboard', ['tab' => 'consultation'])
+                ->withErrors(['consultation' => $exception->getMessage()]);
+        }
     }
 
-    private function errorResponse(
-        ReviewRequest|CompleteConsultationRequest $request,
-        string $message,
-    ): JsonResponse|RedirectResponse {
-        if ($request->expectsJson()) {
-            return response()->json(['message' => $message], 409);
-        }
+    public function correctRecord(
+        CorrectConsultationRecordRequest $request,
+        ConsultationRecord $record,
+        CorrectConsultationRecord $action,
+    ): RedirectResponse {
+        try {
+            $action->handle($request->user(), $record, $request->validatedData());
 
-        return to_route('adviser.dashboard', ['tab' => 'consultation'])
-            ->withErrors(['consultation' => $message]);
+            return to_route('adviser.dashboard', ['tab' => 'consultation'])
+                ->with('consultation_success', 'Consultation record corrected successfully.');
+        } catch (ConsultationException $exception) {
+            return to_route('adviser.dashboard', ['tab' => 'consultation'])
+                ->withErrors(['consultation' => $exception->getMessage()]);
+        }
     }
 }

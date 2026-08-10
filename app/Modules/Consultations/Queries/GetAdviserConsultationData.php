@@ -2,14 +2,12 @@
 
 namespace App\Modules\Consultations\Queries;
 
+use App\Models\ConsultationRecord;
 use App\Models\ConsultationRequest;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class GetAdviserConsultationData
@@ -17,162 +15,82 @@ class GetAdviserConsultationData
     /**
      * @return array{
      *     consultationRequests: LengthAwarePaginator,
-     *     consultationRecords: Collection<int, object>,
+     *     consultationRecords: Collection<int, ConsultationRecord>,
      *     consultationStats: array{pending: int, approved: int, completed: int, rejected: int, total: int},
      *     consultationSearch: string,
      *     consultationStatus: string
      * }
      */
-    public function for(User $adviser, string $search = '', string $status = 'pending'): array
-    {
+    public function for(
+        User $adviser,
+        string $search = '',
+        string $status = 'pending',
+    ): array {
         $search = Str::limit(trim($search), 100, '');
-        $status = in_array($status, ['pending', 'approved', 'completed', 'rejected', 'all'], true)
-            ? $status
-            : 'pending';
+        $allowedStatuses = ['pending', 'reschedule_proposed', 'approved', 'rejected', 'cancelled', 'completed', 'all'];
+        $status = in_array($status, $allowedStatuses, true) ? $status : 'pending';
 
-        if (! $this->tablesExist([
-            'consultation_requests',
-            'adviser_assignments',
-            'faculty_profiles',
-            'users',
-            'research_projects',
-        ])) {
-            return $this->emptyResult($search, $status);
-        }
-
-        $scope = $this->assignedRequests($adviser);
-        $statusCounts = (clone $scope)
-            ->selectRaw('consultation_requests.status, COUNT(*) as aggregate')
-            ->groupBy('consultation_requests.status')
-            ->pluck('aggregate', 'status');
-
-        $requests = (clone $scope)
-            ->leftJoin('users as students', 'students.id', '=', 'consultation_requests.requested_by')
-            ->leftJoin('research_projects as projects', 'projects.id', '=', 'consultation_requests.research_project_id')
-            ->when(
-                $status !== 'all',
-                fn (Builder $query) => $query->where('consultation_requests.status', $status),
-            )
-            ->when($search !== '', function (Builder $query) use ($search): void {
+        $query = ConsultationRequest::query()
+            ->with([
+                'researchClassGroup:id,name,leader_student_id',
+                'researchClassGroup.leader:id,name',
+                'researchClassGroup.members.student:id,name,email',
+                'requester:id,name,email,student_id',
+                'assignedAdviser:id,name,email',
+                'reviewer:id,name,email',
+                'relatedDocument:id,original_filename,document_stage,version_number',
+                'proposals' => fn ($q) => $q->with(['proposer:id,name', 'responder:id,name'])->latest(),
+            ])
+            ->whereHas('researchClassGroup', fn (Builder $g) => $g->where('adviser_id', $adviser->id)->where('status', 'active')->whereNull('disbanded_at'))
+            ->when($status !== 'all', fn (Builder $q) => $q->where('status', $status))
+            ->when($search !== '', function (Builder $q) use ($search): void {
                 $pattern = '%'.Str::lower($search).'%';
-
-                $query->where(function (Builder $searchQuery) use ($pattern): void {
-                    $searchQuery
-                        ->whereRaw('LOWER(students.name) LIKE ?', [$pattern])
-                        ->orWhereRaw('LOWER(students.email) LIKE ?', [$pattern])
-                        ->orWhereRaw('LOWER(projects.title) LIKE ?', [$pattern])
-                        ->orWhereRaw('LOWER(consultation_requests.agenda) LIKE ?', [$pattern]);
+                $q->where(function (Builder $sq) use ($pattern): void {
+                    $sq->whereRaw('LOWER(agenda) LIKE ?', [$pattern])
+                        ->orWhereHas('requester', fn ($u) => $u->whereRaw('LOWER(name) LIKE ?', [$pattern]))
+                        ->orWhereHas('researchClassGroup', fn ($g) => $g->whereRaw('LOWER(name) LIKE ?', [$pattern]));
                 });
             })
-            ->select([
-                'consultation_requests.*',
-                'students.name as student_name',
-                'students.email as student_email',
-                'projects.title as research_title',
+            ->latest('created_at');
+
+        $paginatedRequests = $query->paginate(10, ['*'], 'consultations_page')->withQueryString();
+
+        $records = ConsultationRecord::query()
+            ->with([
+                'researchClassGroup:id,name',
+                'conductedBy:id,name,email',
+                'attendances.student:id,name,email',
+                'supersedes',
             ])
-            ->orderByRaw("CASE WHEN consultation_requests.status = 'pending' THEN 0 ELSE 1 END")
-            ->orderBy('consultation_requests.preferred_at')
-            ->paginate(10, ['*'], 'consultations_page')
-            ->withQueryString();
-
-        return [
-            'consultationRequests' => $requests,
-            'consultationRecords' => $this->recordsFor($adviser),
-            'consultationStats' => [
-                'pending' => (int) $statusCounts->get('pending', 0),
-                'approved' => (int) $statusCounts->get('approved', 0),
-                'completed' => (int) $statusCounts->get('completed', 0),
-                'rejected' => (int) $statusCounts->get('rejected', 0),
-                'total' => (int) $statusCounts->sum(),
-            ],
-            'consultationSearch' => $search,
-            'consultationStatus' => $status,
-        ];
-    }
-
-    private function assignedRequests(User $adviser): Builder
-    {
-        return ConsultationRequest::query()
-            ->join(
-                'adviser_assignments as consultation_assignments',
-                'consultation_assignments.id',
-                '=',
-                'consultation_requests.adviser_assignment_id',
-            )
-            ->join(
-                'faculty_profiles as consultation_faculty',
-                'consultation_faculty.id',
-                '=',
-                'consultation_assignments.adviser_id',
-            )
-            ->where('consultation_faculty.user_id', $adviser->getKey())
-            ->where('consultation_assignments.status', 'active')
-            ->whereNull('consultation_assignments.ended_at');
-    }
-
-    /**
-     * @return Collection<int, object>
-     */
-    private function recordsFor(User $adviser): Collection
-    {
-        if (! $this->tablesExist(['consultation_records'])) {
-            return collect();
-        }
-
-        return DB::table('consultation_records as records')
-            ->join('adviser_assignments as assignments', 'assignments.id', '=', 'records.adviser_assignment_id')
-            ->join('faculty_profiles as faculty', 'faculty.id', '=', 'assignments.adviser_id')
-            ->leftJoin('research_projects as projects', 'projects.id', '=', 'records.research_project_id')
-            ->where('faculty.user_id', $adviser->getKey())
-            ->select([
-                'records.id',
-                'records.consulted_at',
-                'records.consultation_mode',
-                'records.location',
-                'records.agenda',
-                'records.discussion',
-                'records.recommendations',
-                'records.next_consultation_at',
-                'projects.title as research_title',
-            ])
-            ->latest('records.consulted_at')
-            ->limit(20)
+            ->whereHas('researchClassGroup', fn (Builder $g) => $g->where('adviser_id', $adviser->id))
+            ->latest('consulted_at')
             ->get();
-    }
 
-    /**
-     * @return array{
-     *     consultationRequests: LengthAwarePaginator,
-     *     consultationRecords: Collection<int, object>,
-     *     consultationStats: array{pending: int, approved: int, completed: int, rejected: int, total: int},
-     *     consultationSearch: string,
-     *     consultationStatus: string
-     * }
-     */
-    private function emptyResult(string $search, string $status): array
-    {
+        $statsQuery = ConsultationRequest::query()
+            ->whereHas('researchClassGroup', fn (Builder $g) => $g->where('adviser_id', $adviser->id)->where('status', 'active')->whereNull('disbanded_at'));
+
+        $counts = (clone $statsQuery)
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
+        $completedCount = ConsultationRecord::query()
+            ->whereHas('researchClassGroup', fn (Builder $g) => $g->where('adviser_id', $adviser->id))
+            ->where('is_superseded', false)
+            ->count();
+
         return [
-            'consultationRequests' => new Paginator([], 0, 10),
-            'consultationRecords' => collect(),
+            'consultationRequests' => $paginatedRequests,
+            'consultationRecords' => $records,
             'consultationStats' => [
-                'pending' => 0,
-                'approved' => 0,
-                'completed' => 0,
-                'rejected' => 0,
-                'total' => 0,
+                'pending' => (int) $counts->get('pending', 0),
+                'approved' => (int) $counts->get('approved', 0),
+                'completed' => $completedCount,
+                'rejected' => (int) $counts->get('rejected', 0),
+                'total' => (int) $counts->sum(),
             ],
             'consultationSearch' => $search,
             'consultationStatus' => $status,
         ];
-    }
-
-    /**
-     * @param  array<int, string>  $tables
-     */
-    private function tablesExist(array $tables): bool
-    {
-        return collect($tables)->every(
-            fn (string $table): bool => Schema::hasTable($table),
-        );
     }
 }

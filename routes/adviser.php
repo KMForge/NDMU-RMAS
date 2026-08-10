@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Adviser\ConsultationController;
 use App\Http\Controllers\Adviser\DashboardController;
 use App\Http\Controllers\Adviser\DocumentReviewController;
 use App\Http\Controllers\Adviser\ResearchGroupAdviserRequestController;
@@ -30,13 +31,20 @@ Route::prefix('adviser')->name('adviser.')->middleware([
         ->whereNumber('consultationRequest')
         ->middleware(['permission:consultations.manage-assigned', 'throttle:consultation-decisions'])
         ->group(function (): void {
-            Route::post('/complete', DisabledFeatureController::class)
-                ->name('consultations.complete');
-            Route::patch('/approve', DisabledFeatureController::class)
+            Route::post('/approve', [ConsultationController::class, 'approve'])
                 ->name('consultations.approve');
-            Route::patch('/reject', DisabledFeatureController::class)
+            Route::post('/propose-reschedule', [ConsultationController::class, 'proposeReschedule'])
+                ->name('consultations.propose-reschedule');
+            Route::post('/reject', [ConsultationController::class, 'reject'])
                 ->name('consultations.reject');
+            Route::post('/complete', [ConsultationController::class, 'complete'])
+                ->name('consultations.complete');
         });
+
+    Route::post('/consultations/records/{record}/correct', [ConsultationController::class, 'correctRecord'])
+        ->whereNumber('record')
+        ->middleware(['permission:consultations.manage-assigned', 'throttle:consultation-decisions'])
+        ->name('consultations.records.correct');
 
     Route::prefix('/documents/{document}')
         ->whereNumber('document')
@@ -59,7 +67,5 @@ Route::prefix('adviser')->name('adviser.')->middleware([
         ->group(function (): void {
             Route::patch('/resolve', DisabledFeatureController::class)
                 ->name('revisions.resolve');
-            Route::patch('/reopen', DisabledFeatureController::class)
-                ->name('revisions.reopen');
         });
 });

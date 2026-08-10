@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DisabledFeatureController;
+use App\Http\Controllers\Student\ConsultationController;
 use App\Http\Controllers\Student\DashboardController;
 use App\Http\Controllers\Student\DocumentController;
 use App\Http\Controllers\Student\ResearchClassController;
@@ -20,9 +21,17 @@ Route::prefix('student')->name('student.')->middleware([
         ->middleware(['permission:documents.upload', 'throttle:document-uploads'])
         ->name('documents.store');
 
-    Route::post('/consultations', DisabledFeatureController::class)
-        ->middleware('throttle:consultation-bookings')
+    Route::post('/consultations', [ConsultationController::class, 'store'])
+        ->middleware(['permission:consultations.request', 'throttle:consultation-bookings'])
         ->name('consultations.store');
+
+    Route::post('/consultations/{consultationRequest}/cancel', [ConsultationController::class, 'cancel'])
+        ->whereNumber('consultationRequest')
+        ->name('consultations.cancel');
+
+    Route::post('/consultations/{consultationRequest}/respond', [ConsultationController::class, 'respondToReschedule'])
+        ->whereNumber('consultationRequest')
+        ->name('consultations.respond');
 
     Route::post('/classes/join', [ResearchClassController::class, 'store'])
         ->middleware(['permission:classes.join', 'throttle:class-joining'])

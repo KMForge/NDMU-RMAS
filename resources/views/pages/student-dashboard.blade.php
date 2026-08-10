@@ -18,6 +18,8 @@
     $initialTab = $activeDashboardTab ?? (in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard');
     $showConsultationModal = request()->boolean('book') || $errors->hasAny(['consultation', 'request_token', 'preferred_at', 'consultation_mode', 'agenda']);
     $showJoinClassModal = $errors->hasAny(['class', 'join_code']);
+    $consultationRequests = $consultationRequests ?? collect();
+    $consultationRecords = $consultationRecords ?? collect();
     $officialFormPhases = $officialFormPhases ?? [];
     $officialForms = $officialForms ?? [];
     $officialFormsByPhase = collect($officialForms)->groupBy('phase', preserveKeys: true);
@@ -1057,10 +1059,10 @@
                     <div class="space-y-4">
                         @forelse ($consultationRequests as $consultationRequest)
                             <x-student-record-card
-                                :title="$consultationRequest->adviser_name"
-                                :status="$consultationRequest->status"
+                                :title="$consultationRequest->assignedAdviser?->name ?? 'Thesis Adviser'"
+                                :status="is_string($consultationRequest->status) ? $consultationRequest->status : $consultationRequest->status?->value"
                                 :date="\Illuminate\Support\Carbon::parse($consultationRequest->preferred_at)->timezone(config('ndmu-rmas.timezone'))"
-                                :description="\Illuminate\Support\Str::headline($consultationRequest->consultation_mode).' — '.$consultationRequest->agenda"
+                                :description="\Illuminate\Support\Str::headline(is_string($consultationRequest->consultation_mode) ? $consultationRequest->consultation_mode : $consultationRequest->consultation_mode?->value).' — '.$consultationRequest->agenda"
                             />
                         @empty
                             <x-student-empty-state message="No consultation requests have been submitted." />
@@ -1070,10 +1072,10 @@
 
                 <h2 class="font-bold text-gray-850 text-lg">Consultation Records</h2>
                 <div class="space-y-4">
-                    @forelse ($consultations as $consultation)
+                    @forelse ($consultationRecords as $consultation)
                         <x-student-record-card
-                            :title="$consultation->facilitator_name ?: 'Research consultation'"
-                            :status="$consultation->consultation_mode"
+                            :title="$consultation->conductedBy?->name ?: 'Thesis Adviser'"
+                            :status="is_string($consultation->consultation_mode) ? $consultation->consultation_mode : $consultation->consultation_mode?->value"
                             :date="$consultation->consulted_at"
                             :description="$consultation->agenda"
                         />

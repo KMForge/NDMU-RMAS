@@ -2,118 +2,130 @@
 
 namespace App\Modules\Consultations\Actions;
 
+use App\Enums\ConsultationStatus;
+use App\Models\ConsultationAudit;
 use App\Models\ConsultationRequest;
+use App\Models\Document;
+use App\Models\ResearchClassGroup;
+use App\Models\ResearchClassGroupMember;
 use App\Models\User;
-use App\Modules\Consultations\Exceptions\ConsultationBookingUnavailable;
-use App\Modules\Consultations\Exceptions\DuplicateConsultationRequest;
+use App\Modules\Consultations\Exceptions\ConsultationException;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class BookConsultation
 {
-    public function handle(
-        User $student,
-        string $requestToken,
-        CarbonImmutable $preferredAt,
-        string $mode,
-        string $agenda,
-    ): ConsultationRequest {
-        $lock = Cache::lock("consultation-booking:{$student->getKey()}:{$requestToken}", 30);
-
-        if (! $lock->get()) {
-            throw new DuplicateConsultationRequest;
+    /**
+     * @param  array{
+     *     preferred_at: CarbonImmutable,
+     *     consultation_mode: string,
+     *     duration_minutes?: int,
+     *     agenda: string,
+     *     document_stage?: ?string,
+     *     document_id?: ?int,
+     *     request_token?: ?string
+     * }  $data
+     */
+    public function handle(User $requester, array $data): ConsultationRequest
+    {
+        if (! $requester->can('consultations.request')) {
+            throw new ConsultationException('You do not have permission to request consultations.');
         }
+
+        $groupMember = ResearchClassGroupMember::query()
+            ->with('researchClassGroup')
+            ->where('student_id', $requester->id)
+            ->whereHas('researchClassGroup', fn ($g) => $g->where('status', 'active')->whereNull('disbanded_at'))
+            ->latest()
+            ->first();
+
+        if (! $groupMember || ! $groupMember->researchClassGroup) {
+            throw new ConsultationException('You must be an active member of an active Research Group to book a consultation.');
+        }
+
+        /** @var ResearchClassGroup $group */
+        $group = $groupMember->researchClassGroup;
+
+        if (! $group->adviser_id) {
+            throw new ConsultationException('No adviser is currently assigned to your Research Group.');
+        }
+
+        $preferredAt = $data['preferred_at'];
+        $minAdvanceMinutes = (int) config('consultations.minimum_advance_minutes', 360);
+        $maxAdvanceDays = (int) config('consultations.maximum_advance_days', 90);
+
+        if ($preferredAt->isBefore(now()->addMinutes($minAdvanceMinutes))) {
+            throw new ConsultationException("Consultations must be booked at least {$minAdvanceMinutes} minutes in advance.");
+        }
+
+        if ($preferredAt->isAfter(now()->addDays($maxAdvanceDays))) {
+            throw new ConsultationException("Consultations cannot be booked more than {$maxAdvanceDays} days in advance.");
+        }
+
+        $durationMinutes = (int) ($data['duration_minutes'] ?? config('consultations.default_duration', 60));
+        $allowedDurations = (array) config('consultations.allowed_durations', [30, 45, 60]);
+        if (! in_array($durationMinutes, $allowedDurations, true)) {
+            throw new ConsultationException('Invalid consultation duration selected.');
+        }
+
+        $hasUnresolvedRequest = ConsultationRequest::query()
+            ->where('research_class_group_id', $group->id)
+            ->whereIn('status', [ConsultationStatus::Pending->value, ConsultationStatus::RescheduleProposed->value])
+            ->exists();
+
+        if ($hasUnresolvedRequest) {
+            throw new ConsultationException('Your Research Group already has an active unresolved consultation request.');
+        }
+
+        if (! empty($data['document_id'])) {
+            $document = Document::query()->find($data['document_id']);
+            if (! $document || (int) $document->research_class_group_id !== (int) $group->id) {
+                throw new ConsultationException('The selected related document does not belong to your Research Group.');
+            }
+        }
+
+        $requestToken = ! empty($data['request_token']) && Str::isUuid($data['request_token'])
+            ? $data['request_token']
+            : (string) Str::uuid();
 
         try {
-            $existing = ConsultationRequest::query()
-                ->where('requested_by', $student->getKey())
-                ->where('request_token', $requestToken)
-                ->exists();
+            return DB::transaction(function () use ($requester, $group, $preferredAt, $durationMinutes, $data, $requestToken): ConsultationRequest {
+                $request = ConsultationRequest::query()->create([
+                    'research_class_group_id' => $group->id,
+                    'assigned_adviser_id' => $group->adviser_id,
+                    'requested_by' => $requester->id,
+                    'request_token' => $requestToken,
+                    'preferred_at' => $preferredAt,
+                    'duration_minutes' => $durationMinutes,
+                    'consultation_mode' => $data['consultation_mode'],
+                    'agenda' => trim($data['agenda']),
+                    'document_stage' => $data['document_stage'] ?? null,
+                    'document_id' => $data['document_id'] ?? null,
+                    'status' => ConsultationStatus::Pending,
+                ]);
 
-            if ($existing) {
-                throw new DuplicateConsultationRequest;
-            }
+                ConsultationAudit::query()->create([
+                    'consultation_request_id' => $request->id,
+                    'research_class_group_id' => $group->id,
+                    'actor_id' => $requester->id,
+                    'action' => 'consultation_requested',
+                    'status' => ConsultationStatus::Pending->value,
+                    'occurred_at' => now(),
+                    'metadata' => [
+                        'preferred_at' => $preferredAt->toIso8601String(),
+                        'duration_minutes' => $durationMinutes,
+                        'mode' => $data['consultation_mode'],
+                    ],
+                ]);
 
-            $project = $this->studentProject($student);
+                return $request->load(['researchClassGroup', 'assignedAdviser', 'requester']);
+            }, 3);
+        } catch (QueryException $exception) {
+            report($exception);
 
-            if ($project === null) {
-                throw new ConsultationBookingUnavailable(
-                    'You need an active research project before booking a consultation.',
-                );
-            }
-
-            $adviserAssignment = DB::table('adviser_assignments')
-                ->where('research_project_id', $project->id)
-                ->where('status', 'active')
-                ->whereNull('ended_at')
-                ->latest('assigned_at')
-                ->first();
-
-            if ($adviserAssignment === null) {
-                throw new ConsultationBookingUnavailable(
-                    'No active adviser is assigned to your research project.',
-                );
-            }
-
-            return DB::transaction(fn (): ConsultationRequest => ConsultationRequest::query()->create([
-                'research_project_id' => $project->id,
-                'adviser_assignment_id' => $adviserAssignment->id,
-                'requested_by' => $student->getKey(),
-                'request_token' => $requestToken,
-                'preferred_at' => $preferredAt,
-                'consultation_mode' => $mode,
-                'agenda' => $agenda,
-                'status' => 'pending',
-            ]), 3);
-        } finally {
-            $lock->release();
+            throw new ConsultationException('The consultation request could not be saved. Please try again.');
         }
-    }
-
-    private function studentProject(User $student): ?object
-    {
-        if (! $this->tablesExist([
-            'student_profiles',
-            'research_group_members',
-            'research_projects',
-            'adviser_assignments',
-        ])) {
-            return null;
-        }
-
-        $studentProfile = DB::table('student_profiles')
-            ->where('user_id', $student->getKey())
-            ->first();
-
-        $groupIds = $studentProfile === null
-            ? collect()
-            : DB::table('research_group_members')
-                ->where('student_profile_id', $studentProfile->id)
-                ->whereNull('left_at')
-                ->pluck('research_group_id');
-
-        return DB::table('research_projects')
-            ->whereNull('archived_at')
-            ->where(function ($query) use ($groupIds, $student): void {
-                $query->where('created_by', $student->getKey());
-
-                if ($groupIds->isNotEmpty()) {
-                    $query->orWhereIn('research_group_id', $groupIds);
-                }
-            })
-            ->latest('updated_at')
-            ->first();
-    }
-
-    /**
-     * @param  array<int, string>  $tables
-     */
-    private function tablesExist(array $tables): bool
-    {
-        return collect($tables)->every(
-            fn (string $table): bool => Schema::hasTable($table),
-        );
     }
 }

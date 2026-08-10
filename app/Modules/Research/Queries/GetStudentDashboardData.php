@@ -389,10 +389,16 @@ class GetStudentDashboardData
             return collect();
         }
 
-        return DB::table('consultation_records as consultations')
-            ->leftJoin('users as facilitators', 'facilitators.id', '=', 'consultations.conducted_by')
-            ->where('consultations.research_project_id', $researchProjectId)
-            ->latest('consultations.consulted_at')
+        $query = DB::table('consultation_records as consultations')
+            ->leftJoin('users as facilitators', 'facilitators.id', '=', 'consultations.conducted_by');
+
+        if (Schema::hasColumn('consultation_records', 'research_project_id')) {
+            $query->where('consultations.research_project_id', $researchProjectId);
+        } else {
+            $query->where('consultations.is_superseded', false);
+        }
+
+        return $query->latest('consultations.consulted_at')
             ->select(['consultations.*', 'facilitators.name as facilitator_name'])
             ->get();
     }
@@ -402,21 +408,18 @@ class GetStudentDashboardData
      */
     private function consultationRequestsFor(int $researchProjectId, User $user): Collection
     {
-        if (! $this->tablesExist([
-            'consultation_requests',
-            'adviser_assignments',
-            'faculty_profiles',
-            'users',
-        ])) {
+        if (! $this->tablesExist(['consultation_requests', 'users'])) {
             return collect();
         }
 
-        return DB::table('consultation_requests as requests')
-            ->join('adviser_assignments as assignments', 'assignments.id', '=', 'requests.adviser_assignment_id')
-            ->join('faculty_profiles as faculty', 'faculty.id', '=', 'assignments.adviser_id')
-            ->join('users as advisers', 'advisers.id', '=', 'faculty.user_id')
-            ->where('requests.research_project_id', $researchProjectId)
-            ->where('requests.requested_by', $user->getKey())
+        $query = DB::table('consultation_requests as requests')
+            ->leftJoin('users as advisers', 'advisers.id', '=', 'requests.assigned_adviser_id');
+
+        if (Schema::hasColumn('consultation_requests', 'research_project_id')) {
+            $query->where('requests.research_project_id', $researchProjectId);
+        }
+
+        return $query->where('requests.requested_by', $user->getKey())
             ->latest('requests.preferred_at')
             ->select([
                 'requests.id',

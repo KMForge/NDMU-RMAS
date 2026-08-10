@@ -2,107 +2,119 @@
 
 namespace App\Modules\Consultations\Actions;
 
+use App\Enums\ConsultationStatus;
+use App\Models\ConsultationAttendance;
+use App\Models\ConsultationAudit;
+use App\Models\ConsultationRecord;
 use App\Models\ConsultationRequest;
+use App\Models\ResearchClassGroupMember;
 use App\Models\User;
-use App\Modules\Consultations\Exceptions\ConsultationReviewException;
+use App\Modules\Consultations\Exceptions\ConsultationException;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class RecordCompletedConsultation
 {
     /**
      * @param  array{
-     *     consulted_at: string,
-     *     location: ?string,
-     *     meeting_url: ?string,
+     *     consulted_at?: ?CarbonImmutable,
+     *     duration_minutes?: ?int,
      *     discussion: string,
-     *     recommendations: ?string,
-     *     next_consultation_at: ?string
+     *     recommendations?: ?string,
+     *     next_consultation_at?: ?CarbonImmutable,
+     *     attendees?: array<int, int>
      * }  $data
      */
-    public function handle(
-        User $adviser,
-        ConsultationRequest $consultationRequest,
-        array $data,
-    ): int {
-        if (! Schema::hasTable('consultation_records')) {
-            throw new ConsultationReviewException(
-                'Consultation records are not available. Please contact the system administrator.',
-            );
+    public function handle(User $adviser, ConsultationRequest $request, array $data): ConsultationRecord
+    {
+        if (! $adviser->can('consultations.manage-assigned')) {
+            throw new ConsultationException('You do not have permission to manage consultations.');
+        }
+
+        $discussion = trim($data['discussion'] ?? '');
+        if ($discussion === '') {
+            throw new ConsultationException('Consultation discussion notes are required.');
         }
 
         try {
-            return DB::transaction(function () use (
-                $adviser,
-                $consultationRequest,
-                $data,
-            ): int {
+            return DB::transaction(function () use ($adviser, $request, $data, $discussion): ConsultationRecord {
                 $lockedRequest = ConsultationRequest::query()
-                    ->whereKey($consultationRequest->getKey())
+                    ->with('researchClassGroup')
+                    ->whereKey($request->getKey())
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                $isAssignedAdviser = DB::table('adviser_assignments as assignments')
-                    ->join('faculty_profiles as faculty', 'faculty.id', '=', 'assignments.adviser_id')
-                    ->where('assignments.id', $lockedRequest->adviser_assignment_id)
-                    ->where('faculty.user_id', $adviser->getKey())
-                    ->where('assignments.status', 'active')
-                    ->whereNull('assignments.ended_at')
-                    ->exists();
-
-                if (! $isAssignedAdviser) {
-                    throw new ConsultationReviewException(
-                        'This consultation request is not assigned to you.',
-                    );
+                if ($lockedRequest->status !== ConsultationStatus::Approved) {
+                    throw new ConsultationException('Only approved consultations can be marked as completed.');
                 }
 
-                if ($lockedRequest->status !== 'approved') {
-                    throw new ConsultationReviewException(
-                        'Only an approved consultation can be marked as completed.',
-                    );
+                if (! $lockedRequest->researchClassGroup || (int) $lockedRequest->researchClassGroup->adviser_id !== (int) $adviser->id) {
+                    throw new ConsultationException('You are not the currently assigned adviser for this Research Group.');
                 }
 
-                $timezone = config('ndmu-rmas.timezone');
-                $recordId = DB::table('consultation_records')->insertGetId([
-                    'research_project_id' => $lockedRequest->research_project_id,
-                    'adviser_assignment_id' => $lockedRequest->adviser_assignment_id,
-                    'conducted_by' => $adviser->getKey(),
-                    'consulted_at' => CarbonImmutable::createFromFormat(
-                        'Y-m-d\TH:i',
-                        $data['consulted_at'],
-                        $timezone,
-                    ),
-                    'consultation_mode' => $lockedRequest->consultation_mode,
-                    'location' => $data['location'],
-                    'meeting_url' => $data['meeting_url'],
+                $consultedAt = $data['consulted_at'] ?? now();
+                $durationMinutes = (int) ($data['duration_minutes'] ?? $lockedRequest->duration_minutes);
+                $groupMemberUserIds = ResearchClassGroupMember::query()
+                    ->where('research_class_group_id', $lockedRequest->research_class_group_id)
+                    ->pluck('student_id')
+                    ->all();
+
+                $submittedAttendeeIds = (array) ($data['attendees'] ?? []);
+                foreach ($submittedAttendeeIds as $attId) {
+                    if (! in_array((int) $attId, $groupMemberUserIds, true)) {
+                        throw new ConsultationException('One or more selected attendees do not belong to this Research Group.');
+                    }
+                }
+
+                $record = ConsultationRecord::query()->create([
+                    'consultation_request_id' => $lockedRequest->id,
+                    'research_class_group_id' => $lockedRequest->research_class_group_id,
+                    'conducted_by' => $adviser->id,
+                    'consulted_at' => $consultedAt,
+                    'duration_minutes' => $durationMinutes,
+                    'consultation_mode' => $lockedRequest->consultation_mode->value,
+                    'location' => $lockedRequest->location,
+                    'meeting_url' => $lockedRequest->meeting_url,
                     'agenda' => $lockedRequest->agenda,
-                    'discussion' => $data['discussion'],
-                    'recommendations' => $data['recommendations'],
-                    'next_consultation_at' => $data['next_consultation_at'] === null
-                        ? null
-                        : CarbonImmutable::createFromFormat(
-                            'Y-m-d\TH:i',
-                            $data['next_consultation_at'],
-                            $timezone,
-                        ),
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'discussion' => $discussion,
+                    'recommendations' => ! empty($data['recommendations']) ? trim($data['recommendations']) : null,
+                    'next_consultation_at' => $data['next_consultation_at'] ?? null,
                 ]);
 
-                $lockedRequest->update(['status' => 'completed']);
+                foreach ($groupMemberUserIds as $studentUserId) {
+                    ConsultationAttendance::query()->create([
+                        'consultation_record_id' => $record->id,
+                        'student_id' => $studentUserId,
+                        'attended' => in_array((int) $studentUserId, array_map('intval', $submittedAttendeeIds), true),
+                    ]);
+                }
 
-                return $recordId;
+                $lockedRequest->update([
+                    'status' => ConsultationStatus::Completed,
+                ]);
+
+                ConsultationAudit::query()->create([
+                    'consultation_request_id' => $lockedRequest->id,
+                    'research_class_group_id' => $lockedRequest->research_class_group_id,
+                    'actor_id' => $adviser->id,
+                    'action' => 'consultation_completed',
+                    'status' => ConsultationStatus::Completed->value,
+                    'occurred_at' => now(),
+                    'metadata' => [
+                        'record_id' => $record->id,
+                        'attendees_count' => count($submittedAttendeeIds),
+                    ],
+                ]);
+
+                return $record->fresh(['request', 'researchClassGroup', 'conductedBy', 'attendances.student']);
             }, 3);
-        } catch (ConsultationReviewException $exception) {
+        } catch (ConsultationException $exception) {
             throw $exception;
         } catch (QueryException $exception) {
             report($exception);
 
-            throw new ConsultationReviewException(
-                'The consultation record could not be saved. Please try again.',
-            );
+            throw new ConsultationException('The consultation record could not be saved. Please try again.');
         }
     }
 }
