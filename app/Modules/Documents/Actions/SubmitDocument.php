@@ -2,6 +2,7 @@
 
 namespace App\Modules\Documents\Actions;
 
+use App\Enums\DocumentStage;
 use App\Enums\DocumentStatus;
 use App\Enums\RevisionStatus;
 use App\Models\Document;
@@ -36,6 +37,7 @@ class SubmitDocument
         string $submissionToken,
         string $ipAddress,
         ?RevisionRequest $revisionRequest = null,
+        ?DocumentStage $documentStage = null,
     ): Document {
         $lock = Cache::lock("document-upload:{$user->getKey()}:{$submissionToken}", 30);
 
@@ -61,6 +63,7 @@ class SubmitDocument
                 $submissionToken,
                 $ipAddress,
                 $revisionRequest,
+                $documentStage,
             );
         } finally {
             $lock->release();
@@ -73,6 +76,7 @@ class SubmitDocument
         string $submissionToken,
         string $ipAddress,
         ?RevisionRequest $revisionRequest,
+        ?DocumentStage $documentStage,
     ): Document {
         $groupMember = ResearchClassGroupMember::query()
             ->where('student_id', $user->getKey())
@@ -88,6 +92,10 @@ class SubmitDocument
         }
 
         $group = $groupMember->researchClassGroup;
+
+        if ($documentStage === null) {
+            throw new DocumentUploadFailed('A valid document submission stage is required.');
+        }
 
         if (! $group->isLeader($user)) {
             $this->audit->failure($user, $file, $ipAddress, 'Only your assigned Group Leader can submit research documents.', $group);
@@ -152,6 +160,7 @@ class SubmitDocument
                 $size,
                 $mimeType,
                 $revisionRequest,
+                $documentStage,
             ): Document {
                 $lockedGroup = ResearchClassGroup::query()
                     ->whereKey($group->getKey())
@@ -200,12 +209,14 @@ class SubmitDocument
 
                 $latestVersion = (int) Document::query()
                     ->where('research_class_group_id', $lockedGroup->getKey())
+                    ->where('document_stage', $documentStage->value)
                     ->lockForUpdate()
                     ->max('version_number');
                 $nextVersion = max(1, $latestVersion + 1);
 
                 Document::query()
                     ->where('research_class_group_id', $lockedGroup->getKey())
+                    ->where('document_stage', $documentStage->value)
                     ->where('is_current', true)
                     ->update(['is_current' => false]);
 
@@ -220,6 +231,7 @@ class SubmitDocument
                     'stored_filename' => $storedFilename,
                     'file_type' => $extension,
                     'mime_type' => $mimeType,
+                    'document_stage' => $documentStage,
                     'version_number' => $nextVersion,
                     'is_current' => true,
                     'file_size' => $size,

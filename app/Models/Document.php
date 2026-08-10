@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DocumentStage;
 use App\Enums\DocumentStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'stored_filename',
     'file_type',
     'mime_type',
+    'document_stage',
     'version_number',
     'is_current',
     'file_size',
@@ -94,6 +96,11 @@ class Document extends Model
         return $this->hasMany(ResearchProgressUpdate::class, 'evidence_document_id');
     }
 
+    public function stageLabel(): string
+    {
+        return $this->document_stage?->label() ?? 'Unclassified';
+    }
+
     protected function casts(): array
     {
         return [
@@ -101,6 +108,7 @@ class Document extends Model
             'version_number' => 'integer',
             'is_current' => 'boolean',
             'submitted_at' => 'immutable_datetime',
+            'document_stage' => DocumentStage::class,
             'status' => DocumentStatus::class,
         ];
     }

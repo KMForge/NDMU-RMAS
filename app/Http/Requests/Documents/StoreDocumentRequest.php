@@ -2,12 +2,14 @@
 
 namespace App\Http\Requests\Documents;
 
+use App\Enums\DocumentStage;
 use App\Modules\Documents\Actions\RecordDocumentUploadAttempt;
 use App\Modules\Documents\Rules\SecureDocumentFile;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\Rule;
 
 class StoreDocumentRequest extends FormRequest
 {
@@ -25,6 +27,7 @@ class StoreDocumentRequest extends FormRequest
     {
         return [
             'submission_token' => ['bail', 'required', 'uuid'],
+            'document_stage' => ['bail', 'required', Rule::enum(DocumentStage::class)],
             'document' => [
                 'bail',
                 'required',
@@ -43,6 +46,8 @@ class StoreDocumentRequest extends FormRequest
         return [
             'submission_token.required' => 'The upload session is missing. Please select the document again.',
             'submission_token.uuid' => 'The upload session is invalid. Please select the document again.',
+            'document_stage.required' => 'Please select the document submission stage.',
+            'document_stage.enum' => 'The selected document stage is invalid.',
             'document.required' => 'Please choose a PDF or DOCX document.',
             'document.file' => 'The selected upload is not a valid file.',
             'document.max' => 'The document must not be larger than 10 MB.',
@@ -63,7 +68,7 @@ class StoreDocumentRequest extends FormRequest
             : 'student.dashboard';
         $parameters = $route === 'adviser.dashboard'
             ? ['tab' => 'repository']
-            : [];
+            : ['tab' => 'proposal'];
 
         throw new HttpResponseException(
             to_route($route, $parameters)

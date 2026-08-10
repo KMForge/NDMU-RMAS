@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Student;
 
+use App\Enums\DocumentStage;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Documents\StoreDocumentRequest;
 use App\Models\Document;
@@ -31,6 +32,7 @@ class DocumentController extends Controller
                 $file,
                 $request->string('submission_token')->toString(),
                 $request->ip(),
+                documentStage: DocumentStage::from($request->string('document_stage')->toString()),
             );
         } catch (AuthorizationException $exception) {
             return $this->errorResponse($request, $exception->getMessage(), 403);
@@ -69,6 +71,7 @@ class DocumentController extends Controller
             'research_class_group_id' => $document->research_class_group_id,
             'original_filename' => $document->original_filename,
             'file_type' => $document->file_type,
+            'document_stage' => $document->document_stage?->value,
             'file_size' => $document->file_size,
             'version_number' => $document->version_number,
             'is_current' => $document->is_current,

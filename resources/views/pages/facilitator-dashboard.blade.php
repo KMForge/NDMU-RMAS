@@ -780,98 +780,7 @@
     repositorySearchQuery: '',
     repositoryStatusFilter: 'All',
     selectedRepositoryFile: null,
-    repositoryFilesList: [
-        {
-            id: 1,
-            type: 'PDF',
-            typeClass: 'bg-pink-50 text-pink-600 border-pink-100',
-            status: 'Reviewed',
-            statusClass: 'bg-blue-50 text-blue-650 border border-blue-100',
-            statusIcon: 'ph ph-check-circle',
-            subtitle: 'CHAPTER 1',
-            title: 'Chapter 1 – Introduction',
-            description: 'Background of the study, research objectives, and significance.',
-            size: '2.4 MB',
-            date: 'May 10, 2026',
-            author: 'Maria Santos',
-            abstract: 'This chapter introduces the fundamental concepts, outline, and aims of agricultural disease prevention through computer vision systems. By defining boundaries and expectations, it lays the groundwork for the rest of the research.'
-        },
-        {
-            id: 2,
-            type: 'PDF',
-            typeClass: 'bg-pink-50 text-pink-600 border-pink-100',
-            status: 'Pending Review',
-            statusClass: 'bg-amber-50 text-amber-650 border border-amber-100',
-            statusIcon: 'ph ph-clock',
-            subtitle: 'CHAPTER 2',
-            title: 'Chapter 2 – Literature Review',
-            description: 'Synthesis of related studies and theoretical framework.',
-            size: '3.8 MB',
-            date: 'May 12, 2026',
-            author: 'Maria Santos',
-            abstract: 'A comprehensive exploration of existing methodologies in convolutional neural network models applied to plant pathologies. The literature analyzes top papers from 2018-2025, validating key gaps in processing lightweight networks.'
-        },
-        {
-            id: 3,
-            type: 'PDF',
-            typeClass: 'bg-pink-50 text-pink-600 border-pink-100',
-            status: 'For Evaluation',
-            statusClass: 'bg-purple-50 text-purple-650 border border-purple-100',
-            statusIcon: 'ph ph-file-text',
-            subtitle: 'CHAPTER 3',
-            title: 'Chapter 3 – Methodology',
-            description: 'Research design, sampling, data gathering procedures.',
-            size: '2.1 MB',
-            date: 'May 15, 2026',
-            author: 'Maria Santos',
-            abstract: 'An operational breakdown of target neural systems, hardware configs, mobile application interface parameters, testing pipelines, and data verification guidelines scheduled for deployment in South Cotabato agricultural sites.'
-        },
-        {
-            id: 4,
-            type: 'DOCX',
-            typeClass: 'bg-blue-50 text-blue-600 border-blue-100',
-            status: 'Approved',
-            statusClass: 'bg-emerald-50 text-emerald-650 border border-emerald-100',
-            statusIcon: 'ph ph-check-circle',
-            subtitle: 'APPENDIX A',
-            title: 'Survey Questionnaire',
-            description: 'Validated questionnaire used for primary data collection.',
-            size: '856 KB',
-            date: 'Apr 20, 2026',
-            author: 'Maria Santos',
-            abstract: 'The detailed survey questionnaires used to collect feedback from local farmers, detailing usage rates of pesticides, awareness of plant diseases, and willingness to adopt mobile software helpers.'
-        },
-        {
-            id: 5,
-            type: 'PDF',
-            typeClass: 'bg-pink-50 text-pink-600 border-pink-100',
-            status: 'Approved',
-            statusClass: 'bg-emerald-50 text-emerald-650 border border-emerald-100',
-            statusIcon: 'ph ph-check-circle',
-            subtitle: 'PROPOSAL',
-            title: 'Research Proposal – Final Draft',
-            description: 'Full research proposal approved for continuation.',
-            size: '1.5 MB',
-            date: 'Mar 5, 2026',
-            author: 'Maria Santos',
-            abstract: 'The early-stage conceptual layout, feasibility studies, objectives outline, and timeline mappings for the entire machine learning crop assessment research program.'
-        },
-        {
-            id: 6,
-            type: 'DOCX',
-            typeClass: 'bg-blue-50 text-blue-600 border-blue-100',
-            status: 'Pending Review',
-            statusClass: 'bg-amber-50 text-amber-650 border border-amber-100',
-            statusIcon: 'ph ph-clock',
-            subtitle: 'APPENDIX B',
-            title: 'Instrument Validation Form',
-            description: 'Expert validation results for research instruments.',
-            size: '620 KB',
-            date: 'Apr 28, 2026',
-            author: 'Maria Santos',
-            abstract: 'Validation sheets and rubric markings signed by computer vision professors and experts verifying that the methodologies, survey rubrics, and software metrics align with academic standards.'
-        }
-    ],
+    repositoryFilesList: [],
 
     get repositoryStats() {
         let total = this.repositoryFilesList.length;
@@ -2957,6 +2866,12 @@
             </div>
 
             <!-- TAB: Research Repository -->
+            @isset($repositoryDocuments)
+            <div x-show="activeTab === 'repository'" x-cloak class="space-y-8 animate-fade-in">
+                <x-student-section-heading title="Research Repository" description="Browse documents from research groups in the classes you manage." />
+                <x-document-repository :documents="$repositoryDocuments" :filters="$repositoryFilters" :stats="$repositoryStats" :stage-options="$repositoryStageOptions" :status-options="$repositoryStatusOptions" />
+            </div>
+            @else
             <div x-show="activeTab === 'repository'" x-cloak class="space-y-8 animate-fade-in">
                 <!-- Breadcrumbs & Header -->
                 <div class="flex flex-col gap-2">
@@ -3124,6 +3039,8 @@
                     </template>
                 </div>
             </div>
+
+            @endisset
 
             <!-- TAB: Settings -->
             <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">

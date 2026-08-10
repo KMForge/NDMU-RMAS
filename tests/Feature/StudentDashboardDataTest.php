@@ -100,8 +100,12 @@ class StudentDashboardDataTest extends TestCase
         $this->actingAs($student)
             ->get(route('student.dashboard'))
             ->assertOk()
-            ->assertSee('No research project is associated with your account yet.')
-            ->assertSee('No documents have been uploaded.');
+            ->assertSee('No research project is associated with your account yet.');
+
+        $this->actingAs($student)
+            ->get(route('student.dashboard', ['tab' => 'repository']))
+            ->assertOk()
+            ->assertSee('No documents match your current repository view.');
     }
 
     public function test_dashboard_renders_uploaded_file_size_and_restored_sidebar_items(): void

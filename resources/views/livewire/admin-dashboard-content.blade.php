@@ -2,7 +2,7 @@
 <div
     class="min-h-screen flex font-sans bg-[#f4f7f6]"
     x-data="{
-    activeTab: 'dashboard',
+    activeTab: @js(request()->query('tab') === 'repository' ? 'repository' : 'dashboard'),
     userManagementTab: 'all-users',
     showPassword: false,
     selectedDefense: null,
@@ -1980,6 +1980,9 @@
 
             <!-- TAB 6: RESEARCH REPOSITORY VIEW -->
             <div x-show="activeTab === 'repository'" x-cloak class="space-y-8 animate-fade-in">
+                <x-student-section-heading title="Research Repository" description="Browse documents according to your explicit repository permissions." />
+                <x-document-repository :documents="$repositoryDocuments" :filters="$repositoryFilters" :stats="$repositoryStats" :stage-options="$repositoryStageOptions" :status-options="$repositoryStatusOptions" />
+                @if (false)
                 <!-- Breadcrumbs & Header -->
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
@@ -2117,6 +2120,7 @@
                         No research documents found.
                     </div>
                 </div>
+                @endif
             </div>
 
             <!-- TAB 7: PROPOSAL MANAGEMENT VIEW -->

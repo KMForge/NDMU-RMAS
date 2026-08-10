@@ -633,6 +633,13 @@
                 @endif
             </div>
 
+            <div x-show="activeTab === 'repository'" x-cloak class="space-y-6">
+                <x-student-section-heading title="Research Repository" description="Browse documents owned by your currently assigned research groups." />
+                @isset($repositoryDocuments)
+                    <x-document-repository :documents="$repositoryDocuments" :filters="$repositoryFilters" :stats="$repositoryStats" :stage-options="$repositoryStageOptions" :status-options="$repositoryStatusOptions" />
+                @endisset
+            </div>
+
             <!-- TAB: Document Review -->
             <div x-show="activeTab === 'docreview'" x-cloak class="space-y-6">
                 <div>

@@ -137,7 +137,7 @@ class AdminDashboardTest extends TestCase
         Livewire::test(AdminDashboard::class)
             ->assertOk()
             ->assertSee('Current Administrator')
-            ->assertSee('No research documents found.')
+            ->assertSee('No documents match your current repository view.')
             ->assertSee('No research proposals found.')
             ->assertSee('No revision records found.')
             ->assertDontSee('AI-Powered Traffic Management System')

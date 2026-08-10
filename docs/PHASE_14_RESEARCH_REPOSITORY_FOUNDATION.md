@@ -1,8 +1,10 @@
 # Phase 14 — Research Repository Foundation
 
+> **Completion note:** This foundation record has been superseded by the verified full implementation in [PHASE_14_RESEARCH_REPOSITORY.md](PHASE_14_RESEARCH_REPOSITORY.md). Secure view/download/history routes, validated search and filters, pagination, stage-specific versioning, access audits, and historical disbanded-group access are now active. Adviser upload and Phase 15 review actions remain disabled.
+
 ## Status
 
-In Progress — ownership and access foundation corrected; full repository functionality remains disabled.
+Completed — the ownership foundation is retained and the full repository is documented separately.
 
 ## Purpose
 
@@ -12,7 +14,7 @@ This correction aligns document authorization and repository queries with the Ph
 - `documents.user_id` identifies the individual uploader for history and accountability.
 - Upload authorization remains limited to the active Group Leader.
 
-This work does not activate repository view/download routes, adviser uploads, document search, status filters, or pagination.
+The later full Phase 14 implementation activates protected repository view/download/history, search, filters, and pagination. Adviser uploads remain disabled.
 
 ## Authorization Foundation
 
@@ -68,14 +70,11 @@ For a null-group document:
 - Generic adviser repository upload is stale under the confirmed Phase 13 rules. It was replaced with a test proving the endpoint remains disabled.
 - Adviser comments, review decisions, and related UI queue behavior belong to Phase 15 and are not activated here.
 
-## Routes Intentionally Disabled
+## Route Status
 
-- `GET /documents/{document}/view`
-- `GET /documents/{document}/download`
-- `POST /adviser/repository/documents`
-- adviser document comments and review decisions
-
-These routes continue to use `DisabledFeatureController` until their corresponding phase is implemented.
+- `GET /documents/{document}/view`, `/download`, and `/history` are active and policy protected.
+- `POST /adviser/repository/documents` remains disabled under the Group Leader-only upload rule.
+- Adviser comments and review decisions remain disabled for Phase 15.
 
 ## Security Verification
 
@@ -91,9 +90,9 @@ The foundation tests cover:
 
 All queries use Eloquent or Laravel's query builder with bound parameters.
 
-## Remaining Business Decisions
+## Resolved Decisions
 
-- **NEEDS USER CONFIRMATION:** whether students retain repository access to documents after a group is disbanded.
-- **NEEDS USER CONFIRMATION:** whether the default repository view shows only CURRENT documents or includes VOID version history.
-- **NEEDS USER CONFIRMATION:** exact student-facing visibility, search, filter, and pagination behavior for the full repository.
-- **NEEDS VERIFICATION:** whether legacy null-group records will be migrated to Research Class Groups or retained indefinitely.
+- Verified former members retain read-only historical access after group disbanding.
+- The default repository shows CURRENT documents; All Versions exposes VOID history.
+- The full document defines student visibility, search, filters, sorting, and pagination.
+- Legacy null-group records remain narrowly compatible and are not silently relabeled.

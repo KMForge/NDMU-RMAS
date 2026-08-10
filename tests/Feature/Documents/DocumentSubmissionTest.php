@@ -37,6 +37,10 @@ class DocumentSubmissionTest extends TestCase
     {
         $this->post(route('student.documents.store'), [
             'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'proposal_defense',
+            'document_stage' => 'proposal_defense',
+            'document_stage' => 'proposal_defense',
+            'document_stage' => 'proposal_defense',
             'document' => $this->pdf(),
         ])->assertRedirect(route('login'));
 
@@ -49,6 +53,7 @@ class DocumentSubmissionTest extends TestCase
 
         $response = $this->actingAs($user)->postJson(route('student.documents.store'), [
             'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'proposal_defense',
             'document' => $this->pdf('Research Paper.pdf'),
         ]);
 
@@ -90,6 +95,7 @@ class DocumentSubmissionTest extends TestCase
 
         $this->actingAs($user)->postJson(route('student.documents.store'), [
             'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'proposal_defense',
             'document' => $this->docx(),
         ])->assertCreated()
             ->assertJsonPath('document.file_type', 'docx')
@@ -127,6 +133,7 @@ class DocumentSubmissionTest extends TestCase
 
         $this->actingAs($nonLeader)->postJson(route('student.documents.store'), [
             'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'proposal_defense',
             'document' => $this->pdf(),
         ])->assertForbidden()
             ->assertJsonPath('message', 'Only your assigned Group Leader can submit research documents.');
@@ -175,6 +182,7 @@ class DocumentSubmissionTest extends TestCase
         $this->actingAs($leader)
             ->post(route('student.documents.store'), [
                 'submission_token' => (string) Str::uuid(),
+                'document_stage' => 'proposal_defense',
                 'document' => $this->pdf('Research Proposal.pdf'),
             ])
             ->assertRedirect(route('student.dashboard', ['tab' => 'proposal']))
@@ -187,6 +195,7 @@ class DocumentSubmissionTest extends TestCase
 
         $this->actingAs($user)->postJson(route('student.documents.store'), [
             'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'proposal_defense',
             'document' => $this->pdf(),
         ])->assertForbidden()
             ->assertJsonPath('message', 'You do not belong to an active research group.');
@@ -201,11 +210,13 @@ class DocumentSubmissionTest extends TestCase
 
         $this->actingAs($leader)->postJson(route('student.documents.store'), [
             'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'proposal_defense',
             'document' => $pdfFile,
         ])->assertCreated();
 
         $this->actingAs($leader)->postJson(route('student.documents.store'), [
             'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'proposal_defense',
             'document' => $this->pdf('paper_copy.pdf'),
         ])->assertStatus(409)
             ->assertJsonPath('message', 'This exact file has already been submitted for your research group.');
@@ -220,6 +231,7 @@ class DocumentSubmissionTest extends TestCase
         $firstDoc = $this->pdf('Draft_v1.pdf');
         $this->actingAs($leader)->postJson(route('student.documents.store'), [
             'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'proposal_defense',
             'document' => $firstDoc,
         ])->assertCreated()
             ->assertJsonPath('document.version_number', 1)
@@ -232,6 +244,7 @@ class DocumentSubmissionTest extends TestCase
 
         $this->actingAs($leader)->postJson(route('student.documents.store'), [
             'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'proposal_defense',
             'document' => $secondDoc,
         ])->assertCreated()
             ->assertJsonPath('document.version_number', 2)
@@ -248,6 +261,51 @@ class DocumentSubmissionTest extends TestCase
         $this->assertSame($group->id, $doc2->research_class_group_id);
         Storage::disk('local')->assertExists($doc1->storage_path);
         Storage::disk('local')->assertExists($doc2->storage_path);
+
+        $finalDefense = UploadedFile::fake()->createWithContent(
+            'Final_Defense_v1.pdf',
+            "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Title (Final Defense) >>\nendobj\n%%EOF\n",
+        );
+
+        $this->actingAs($leader)->postJson(route('student.documents.store'), [
+            'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'final_defense',
+            'document' => $finalDefense,
+        ])->assertCreated()
+            ->assertJsonPath('document.document_stage', 'final_defense')
+            ->assertJsonPath('document.version_number', 1);
+
+        $this->assertDatabaseHas('documents', [
+            'id' => $doc2->getKey(),
+            'document_stage' => 'proposal_defense',
+            'version_number' => 2,
+            'is_current' => true,
+        ]);
+        $this->assertDatabaseHas('documents', [
+            'document_stage' => 'final_defense',
+            'version_number' => 1,
+            'is_current' => true,
+        ]);
+    }
+
+    public function test_document_submission_rejects_a_missing_or_invalid_stage(): void
+    {
+        ['user' => $leader] = $this->studentGroupLeader();
+
+        $this->actingAs($leader)->postJson(route('student.documents.store'), [
+            'submission_token' => (string) Str::uuid(),
+            'document' => $this->pdf(),
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('document_stage');
+
+        $this->actingAs($leader)->postJson(route('student.documents.store'), [
+            'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'chapter_three',
+            'document' => $this->pdf(),
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('document_stage');
+
+        $this->assertDatabaseCount('documents', 0);
     }
 
     public function test_facilitator_can_assign_group_leader(): void
@@ -325,6 +383,7 @@ class DocumentSubmissionTest extends TestCase
         foreach (['payload.exe', 'payload.php.pdf', 'payload.js.docx'] as $filename) {
             $this->actingAs($user)->postJson(route('student.documents.store'), [
                 'submission_token' => (string) Str::uuid(),
+                'document_stage' => 'proposal_defense',
                 'document' => UploadedFile::fake()->createWithContent($filename, 'malicious'),
             ])->assertUnprocessable()
                 ->assertJsonValidationErrors('document');
@@ -343,12 +402,14 @@ class DocumentSubmissionTest extends TestCase
 
         $this->actingAs($user)->postJson(route('student.documents.store'), [
             'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'proposal_defense',
             'document' => UploadedFile::fake()->createWithContent('corrupt.pdf', '%PDF-1.7 broken'),
         ])->assertUnprocessable()
             ->assertJsonValidationErrors('document');
 
         $this->actingAs($user)->postJson(route('student.documents.store'), [
             'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'proposal_defense',
             'document' => UploadedFile::fake()->createWithContent('empty.pdf', ''),
         ])->assertUnprocessable()
             ->assertJsonValidationErrors('document');
@@ -363,6 +424,7 @@ class DocumentSubmissionTest extends TestCase
 
         $this->actingAs($user)->postJson(route('student.documents.store'), [
             'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'proposal_defense',
             'document' => UploadedFile::fake()->create('large.pdf', 10241, 'application/pdf'),
         ])->assertUnprocessable()
             ->assertJsonValidationErrors('document');
@@ -382,6 +444,7 @@ class DocumentSubmissionTest extends TestCase
 
         $this->actingAs($user)->postJson(route('student.documents.store'), [
             'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'proposal_defense',
             'document' => $this->pdf(),
         ])->assertForbidden();
 
@@ -395,11 +458,13 @@ class DocumentSubmissionTest extends TestCase
 
         $this->actingAs($user)->postJson(route('student.documents.store'), [
             'submission_token' => $token,
+            'document_stage' => 'proposal_defense',
             'document' => $this->pdf(),
         ])->assertCreated();
 
         $this->actingAs($user)->postJson(route('student.documents.store'), [
             'submission_token' => $token,
+            'document_stage' => 'proposal_defense',
             'document' => $this->pdf(),
         ])->assertConflict();
 
@@ -420,6 +485,7 @@ class DocumentSubmissionTest extends TestCase
 
         $this->actingAs($user)->postJson(route('student.documents.store'), [
             'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'proposal_defense',
             'document' => $this->pdf(),
         ])->assertInternalServerError()
             ->assertExactJson([
@@ -436,6 +502,7 @@ class DocumentSubmissionTest extends TestCase
 
         $this->actingAs($owner)->postJson(route('student.documents.store'), [
             'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'proposal_defense',
             'document' => $this->pdf(),
         ])->assertCreated();
 
@@ -443,19 +510,31 @@ class DocumentSubmissionTest extends TestCase
 
         $this->actingAs($owner)
             ->get(route('documents.view', $document))
-            ->assertStatus(410);
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
 
         $otherStudent = $this->student();
         $this->actingAs($otherStudent)
             ->get(route('documents.download', $document))
-            ->assertStatus(410);
+            ->assertForbidden();
 
         $administrator = User::factory()->create();
         $administrator->assignRole('system-administrator');
 
         $this->actingAs($administrator)
             ->get(route('documents.download', $document))
-            ->assertStatus(410);
+            ->assertOk();
+
+        $this->assertDatabaseHas('document_access_audits', [
+            'document_id' => $document->getKey(),
+            'user_id' => $owner->getKey(),
+            'action' => 'viewed',
+        ]);
+        $this->assertDatabaseHas('document_access_audits', [
+            'document_id' => $document->getKey(),
+            'user_id' => $administrator->getKey(),
+            'action' => 'downloaded',
+        ]);
     }
 
     private function studentGroupLeader(?User $user = null): array

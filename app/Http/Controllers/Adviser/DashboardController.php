@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Adviser;
 use App\Http\Controllers\Controller;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupAdviserRequest;
+use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -12,7 +13,7 @@ use Illuminate\Support\Collection;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request): View
+    public function __invoke(Request $request, GetDocumentRepositoryData $repositoryData): View
     {
         $allowedTabs = [
             'dashboard',
@@ -62,6 +63,10 @@ class DashboardController extends Controller
         $viewData['officialFormPhases'] = config('official-forms.phases', []);
         $viewData['officialForms'] = config('official-forms.adviser', []);
 
+        if ($activeTab === 'repository') {
+            $viewData = [...$viewData, ...$repositoryData->for($user, $request->query())];
+        }
+
         return view('pages.adviser-dashboard', [
             'area' => 'Research Adviser',
             'adviser' => $user,
@@ -104,10 +109,6 @@ class DashboardController extends Controller
             ],
             'revisionSearch' => '',
             'revisionStatus' => 'submitted',
-            'repositoryDocuments' => new LengthAwarePaginator([], 0, 9),
-            'repositoryStats' => ['total' => 0, 'approved' => 0, 'pending' => 0, 'evaluation' => 0],
-            'repositorySearch' => '',
-            'repositoryStatus' => 'all',
             'adviserOverviewStats' => [
                 'active_advisees' => 0,
                 'nearing_defense' => 0,

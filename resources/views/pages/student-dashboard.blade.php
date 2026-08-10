@@ -795,6 +795,16 @@
                                 @csrf
                                 <input type="hidden" name="submission_token" value="{{ Illuminate\Support\Str::uuid() }}">
 
+                                <div>
+                                    <label for="document-stage" class="mb-2 block text-xs font-bold text-gray-700">Document Submission Stage</label>
+                                    <select id="document-stage" name="document_stage" required class="w-full rounded-xl border border-gray-200 px-4 py-3 text-xs focus:border-[#0e5c3a] focus:outline-none">
+                                        <option value="">Select stage...</option>
+                                        @foreach (\App\Enums\DocumentStage::cases() as $stage)
+                                            <option value="{{ $stage->value }}" @selected(old('document_stage') === $stage->value)>{{ $stage->label() }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
                                 <div class="flex flex-col md:flex-row items-stretch md:items-center gap-4">
                                     <div class="flex-1">
                                         <input
@@ -845,6 +855,7 @@
                                                 <div class="flex items-center gap-2">
                                                     <h4 class="font-bold text-gray-850 text-sm">{{ $doc->original_filename }}</h4>
                                                     <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-gray-100 text-gray-600">v{{ $doc->version_number }}</span>
+                                                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700">{{ $doc->stageLabel() }}</span>
                                                 </div>
                                                 <p class="text-xs text-gray-500 mt-1">
                                                     Submitted {{ $doc->submitted_at?->format('M j, Y g:i A') }} · {{ $doc->formattedFileSize() }}
@@ -1168,26 +1179,9 @@
 
             <section x-show="activeTab === 'repository'" x-cloak class="space-y-8">
                 <x-student-section-heading title="Research Repository" description="Securely view and download your group's submitted documents." />
-                <div class="space-y-4">
-                    @forelse ($documents as $document)
-                        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between gap-4">
-                            <div class="min-w-0">
-                                <p class="font-bold text-sm text-gray-800 truncate">{{ $document->original_filename }}</p>
-                                <p class="text-[10px] text-gray-500 mt-1">
-                                    {{ $document->formattedFileSize() }}
-                                    · {{ $document->submitted_at?->format('M j, Y g:i A') }}
-                                    · {{ \Illuminate\Support\Str::headline($document->status->value) }}
-                                </p>
-                            </div>
-                            <div class="flex gap-2">
-                                <a href="{{ route('documents.view', $document) }}" class="px-3 py-2 text-xs font-bold rounded-lg border border-gray-200 text-gray-700">View</a>
-                                <a href="{{ route('documents.download', $document) }}" class="px-3 py-2 text-xs font-bold rounded-lg bg-[#0e5c3a] text-white">Download</a>
-                            </div>
-                        </div>
-                    @empty
-                        <x-student-empty-state message="No documents have been uploaded." />
-                    @endforelse
-                </div>
+                @isset($repositoryDocuments)
+                    <x-document-repository :documents="$repositoryDocuments" :filters="$repositoryFilters" :stats="$repositoryStats" :stage-options="$repositoryStageOptions" :status-options="$repositoryStatusOptions" />
+                @endisset
             </section>
 
             <section x-show="activeTab === 'forms'" x-cloak class="space-y-8">

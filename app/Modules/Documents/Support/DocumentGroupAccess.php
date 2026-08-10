@@ -4,6 +4,7 @@ namespace App\Modules\Documents\Support;
 
 use App\Models\Document;
 use App\Models\ResearchClassGroupMember;
+use App\Models\ResearchClassGroupMemberHistory;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -25,6 +26,21 @@ class DocumentGroupAccess
         return $this->activeMembershipQuery($user)
             ->with(['researchClassGroup.leader', 'researchClassGroup.researchClass'])
             ->first();
+    }
+
+    public function isHistoricalMember(User $user, Document $document): bool
+    {
+        if ($document->research_class_group_id === null) {
+            return false;
+        }
+
+        return ResearchClassGroupMemberHistory::query()
+            ->where('student_id', $user->getKey())
+            ->where('research_class_group_id', $document->research_class_group_id)
+            ->whereHas('group', fn ($query) => $query
+                ->where('status', 'disbanded')
+                ->whereNotNull('disbanded_at'))
+            ->exists();
     }
 
     /**

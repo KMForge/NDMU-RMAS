@@ -7,6 +7,7 @@ use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupAdviserHistory;
 use App\Models\ResearchClassGroupAdviserRequest;
 use App\Models\ResearchClassGroupMember;
+use App\Models\ResearchClassGroupMemberHistory;
 use App\Models\User;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -65,7 +66,29 @@ class DisbandResearchClassGroup
                     $lockedGroup->adviser_id = null;
                 }
 
-                // 3. Detach active members so students return to Unassigned Students
+                // 3. Preserve authoritative membership history before detaching members.
+                $members = ResearchClassGroupMember::query()
+                    ->where('research_class_group_id', $lockedGroup->getKey())
+                    ->lockForUpdate()
+                    ->get();
+
+                foreach ($members as $member) {
+                    ResearchClassGroupMemberHistory::query()->updateOrCreate(
+                        [
+                            'research_class_group_id' => $lockedGroup->getKey(),
+                            'student_id' => $member->student_id,
+                        ],
+                        [
+                            'research_class_id' => $member->research_class_id,
+                            'research_class_enrollment_id' => $member->research_class_enrollment_id,
+                            'assigned_by' => $member->assigned_by,
+                            'joined_at' => $member->created_at,
+                            'archived_at' => $now,
+                            'archive_reason' => 'group_disbanded',
+                        ],
+                    );
+                }
+
                 ResearchClassGroupMember::query()
                     ->where('research_class_group_id', $lockedGroup->getKey())
                     ->delete();

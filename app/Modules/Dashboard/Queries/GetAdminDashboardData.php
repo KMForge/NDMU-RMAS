@@ -32,7 +32,7 @@ class GetAdminDashboardData
             ...$revisions,
             'staffList' => $this->staffList(),
             'defensesList' => $this->defensesList(),
-            'repositoryList' => $this->repositoryList(),
+            'repositoryList' => [],
             'proposalsList' => $this->proposalsList(),
             'adviserOptions' => $this->staffOptions('classes.serve-as-adviser'),
             'panelistOptions' => $this->staffOptions('evaluations.create'),

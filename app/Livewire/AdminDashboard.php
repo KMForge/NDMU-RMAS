@@ -10,6 +10,7 @@ use App\Models\SystemSetting;
 use App\Models\User;
 use App\Modules\Administration\Actions\UpdateSystemSettings;
 use App\Modules\Dashboard\Queries\GetAdminDashboardData;
+use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\UserManagement\Actions\ManageRoleAccess;
 use App\Modules\UserManagement\Actions\ManageUserAccount;
 use Illuminate\Support\Facades\Auth;
@@ -397,7 +398,7 @@ class AdminDashboard extends Component
         $this->resetValidation();
     }
 
-    public function render(GetAdminDashboardData $getAdminDashboardData)
+    public function render(GetAdminDashboardData $getAdminDashboardData, GetDocumentRepositoryData $repositoryData)
     {
         $data = [
             'totalUsersCount' => 0,
@@ -420,6 +421,7 @@ class AdminDashboard extends Component
             $getAdminDashboardData->get(),
             $this->roleManagementData(),
             $this->systemSettingsData(),
+            $repositoryData->for($this->administrator(), request()->query()),
         );
 
         return view('livewire.admin-dashboard-content', $data);
