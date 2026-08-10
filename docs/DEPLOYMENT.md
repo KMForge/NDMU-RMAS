@@ -8,14 +8,10 @@ The example workflow does not deploy automatically. Configure environment protec
 
 ---
 
-## Temporary Local Tunneling vs Permanent Production
+## Environment and Production Standard
 
 > [!IMPORTANT]
-> **Temporary Local Tunneling (Ngrok)**:
-> - Used **ONLY for temporary live demonstrations**, professor reviews, classroom testing, and local pair debugging.
-> - Command: `ngrok http 8000` (Free plan mode).
-> - HTTPS proxy header support is automatically enabled in `AppServiceProvider.php` via `URL::forceScheme('https')`.
-> - **Permanent Deployment Standard**: Permanent deployment requires a dedicated 24/7 cloud host (e.g., Render, Railway, Fly.io, or VPS) connected to **Supabase PostgreSQL**.
+> **Production Deployment Standard**: Production deployment requires a dedicated host (e.g., Cloudflare Tunnel, custom domain server, or cloud host) connected to **Supabase PostgreSQL**.
 
 ---
 

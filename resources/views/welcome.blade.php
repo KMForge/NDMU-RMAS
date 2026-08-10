@@ -5,9 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>NDMU Research Management System</title>
 
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
+        [x-cloak] { display: none !important; }
         body { font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; }
         h1, h2, h3, h4, h5, h6, .font-heading { font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; }
         
@@ -153,72 +157,83 @@
     </nav>
 
     <!-- Hero Section -->
-    <section id="home" data-scroll-section class="hero-bg min-h-screen flex flex-col justify-center relative pt-20">
-        <div class="max-w-7xl mx-auto px-6 lg:px-8 w-full z-10 text-center flex flex-col items-center">
+    <section id="home" data-scroll-section class="hero-bg min-h-screen flex flex-col justify-center relative pt-20 overflow-hidden">
+        <!-- Ambient Glowing Background Spheres -->
+        <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[32rem] h-[32rem] bg-[#f8b803]/15 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
+        <div class="absolute bottom-10 right-10 w-96 h-96 bg-[#0e5c3a]/30 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="max-w-7xl mx-auto px-6 lg:px-8 w-full z-10 text-center flex flex-col items-center relative">
             
-            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#f8b803] mb-8 mt-12 bg-white/5 backdrop-blur-sm">
-                <span class="w-2 h-2 rounded-full bg-[#f8b803]"></span>
-                <span class="text-sm font-medium text-[#f8b803]">Notre Dame of Marbel University</span>
+            <!-- Institution Tag Badge -->
+            <div class="inline-flex items-center gap-2.5 px-5 py-2 rounded-full border border-[#f8b803]/40 mb-8 mt-10 bg-white/10 backdrop-blur-md shadow-lg shadow-black/10">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#f8b803] animate-ping"></span>
+                <span class="text-xs md:text-sm font-extrabold text-[#f8b803] tracking-wide uppercase">Notre Dame of Marbel University</span>
             </div>
 
-            <h1 class="text-5xl md:text-7xl font-heading font-extrabold text-white mb-6 tracking-tight leading-[1.15]">
+            <!-- Main Heading with Gold Gradient -->
+            <h1 class="text-5xl md:text-7xl lg:text-8xl font-heading font-black text-white mb-6 tracking-tight leading-[1.1] drop-shadow-lg">
                 NDMU Research <br/>
-                <span class="text-[#f8b803]">Management System</span>
+                <span class="bg-gradient-to-r from-[#f8b803] via-[#ffe066] to-[#eebc3f] bg-clip-text text-transparent drop-shadow-xl">Management System</span>
             </h1>
             
-            <p class="text-lg md:text-xl text-gray-200 mb-10 max-w-2xl mx-auto font-light leading-relaxed">
-                Empowering Research Through Digital Innovation
+            <!-- Subtitle -->
+            <p class="text-lg md:text-2xl text-gray-100 mb-10 max-w-3xl mx-auto font-light leading-relaxed drop-shadow-sm">
+                Empowering Scholarly Research & Institutional Archiving Through Modern Digital Innovation
             </p>
 
-            <div class="flex flex-col sm:flex-row items-center gap-4 mb-24">
+            <!-- Call-to-action Buttons -->
+            <div class="flex flex-col sm:flex-row items-center gap-5 mb-20">
                 @if (Route::has('register'))
-                    <a href="{{ route('register') }}" class="group px-8 py-3.5 text-base font-bold text-[#0f3d24] bg-[#eebc3f] rounded-md hover:bg-[#d69f24] transition-all duration-300 flex items-center gap-2 shadow-lg shadow-[#eebc3f]/20">
-                        Get Started 
-                        <i class="ph ph-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    <a href="{{ route('register') }}" class="group px-9 py-4 text-base font-black text-[#0f3d24] bg-gradient-to-r from-[#eebc3f] via-[#f8b803] to-[#d69f24] rounded-2xl hover:scale-105 transition-all duration-300 flex items-center gap-3 shadow-xl shadow-[#f8b803]/25 hover:shadow-2xl hover:shadow-[#f8b803]/40">
+                        <span>Get Started Now</span> 
+                        <i class="ph ph-arrow-right font-bold text-lg group-hover:translate-x-1.5 transition-transform"></i>
                     </a>
                 @elseif (Route::has('login'))
-                    <a href="{{ route('login') }}" class="group px-8 py-3.5 text-base font-bold text-[#0f3d24] bg-[#eebc3f] rounded-md hover:bg-[#d69f24] transition-all duration-300 flex items-center gap-2 shadow-lg shadow-[#eebc3f]/20">
-                        Login to Continue
-                        <i class="ph ph-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    <a href="{{ route('login') }}" class="group px-9 py-4 text-base font-black text-[#0f3d24] bg-gradient-to-r from-[#eebc3f] via-[#f8b803] to-[#d69f24] rounded-2xl hover:scale-105 transition-all duration-300 flex items-center gap-3 shadow-xl shadow-[#f8b803]/25 hover:shadow-2xl hover:shadow-[#f8b803]/40">
+                        <span>Access Portal</span>
+                        <i class="ph ph-arrow-right font-bold text-lg group-hover:translate-x-1.5 transition-transform"></i>
                     </a>
                 @endif
-                <a href="#achievements" class="px-8 py-3.5 text-base font-semibold text-white border border-white/20 bg-white/5 rounded-md hover:bg-white/10 hover:border-white/40 transition-all duration-300">
-                    Explore Research
+                <a href="#achievements" class="px-9 py-4 text-base font-bold text-white border border-white/30 bg-white/10 backdrop-blur-md rounded-2xl hover:bg-white/20 hover:border-white/50 hover:scale-105 transition-all duration-300 shadow-lg">
+                    Explore Research Papers
                 </a>
             </div>
 
-            <!-- Stats Row -->
+            <!-- Stats Row (High-End Glassmorphism Cards) -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-4xl mx-auto pb-12">
-                <div class="glass-card rounded-2xl p-6 text-center transform hover:-translate-y-1 transition-transform duration-300">
-                    <div class="w-12 h-12 mx-auto rounded-full bg-white/10 flex items-center justify-center mb-4">
-                        <i class="ph ph-users text-2xl text-[#f8b803]"></i>
+                <div class="glass-card rounded-3xl p-7 text-center transform hover:-translate-y-2 transition-all duration-300 border border-white/20 hover:border-[#f8b803]/60 group relative overflow-hidden shadow-xl">
+                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#f8b803] to-amber-300"></div>
+                    <div class="w-16 h-16 mx-auto rounded-2xl bg-[#f8b803]/20 border border-[#f8b803]/40 flex items-center justify-center mb-5 text-[#f8b803] group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-[#f8b803]/20">
+                        <i class="ph ph-users text-3xl font-bold"></i>
                     </div>
-                    <h3 class="text-3xl font-heading font-bold text-white mb-1">500+</h3>
-                    <p class="text-sm text-gray-300 font-medium">Active Researchers</p>
+                    <h3 class="text-4xl font-heading font-black text-white mb-1 tracking-tight">500+</h3>
+                    <p class="text-sm text-gray-200 font-extrabold tracking-wide">Active Researchers</p>
                 </div>
                 
-                <div class="glass-card rounded-2xl p-6 text-center transform hover:-translate-y-1 transition-transform duration-300">
-                    <div class="w-12 h-12 mx-auto rounded-full bg-white/10 flex items-center justify-center mb-4">
-                        <i class="ph ph-book-open-text text-2xl text-[#f8b803]"></i>
+                <div class="glass-card rounded-3xl p-7 text-center transform hover:-translate-y-2 transition-all duration-300 border border-white/20 hover:border-[#f8b803]/60 group relative overflow-hidden shadow-xl">
+                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#f8b803] to-amber-300"></div>
+                    <div class="w-16 h-16 mx-auto rounded-2xl bg-[#f8b803]/20 border border-[#f8b803]/40 flex items-center justify-center mb-5 text-[#f8b803] group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-[#f8b803]/20">
+                        <i class="ph ph-book-open-text text-3xl font-bold"></i>
                     </div>
-                    <h3 class="text-3xl font-heading font-bold text-white mb-1">1,200+</h3>
-                    <p class="text-sm text-gray-300 font-medium">Published Papers</p>
+                    <h3 class="text-4xl font-heading font-black text-white mb-1 tracking-tight">1,200+</h3>
+                    <p class="text-sm text-gray-200 font-extrabold tracking-wide">Published Papers</p>
                 </div>
                 
-                <div class="glass-card rounded-2xl p-6 text-center transform hover:-translate-y-1 transition-transform duration-300">
-                    <div class="w-12 h-12 mx-auto rounded-full bg-white/10 flex items-center justify-center mb-4">
-                        <i class="ph ph-medal text-2xl text-[#f8b803]"></i>
+                <div class="glass-card rounded-3xl p-7 text-center transform hover:-translate-y-2 transition-all duration-300 border border-white/20 hover:border-[#f8b803]/60 group relative overflow-hidden shadow-xl">
+                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#f8b803] to-amber-300"></div>
+                    <div class="w-16 h-16 mx-auto rounded-2xl bg-[#f8b803]/20 border border-[#f8b803]/40 flex items-center justify-center mb-5 text-[#f8b803] group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-[#f8b803]/20">
+                        <i class="ph ph-medal text-3xl font-bold"></i>
                     </div>
-                    <h3 class="text-3xl font-heading font-bold text-white mb-1">150+</h3>
-                    <p class="text-sm text-gray-300 font-medium">International Awards</p>
+                    <h3 class="text-4xl font-heading font-black text-white mb-1 tracking-tight">150+</h3>
+                    <p class="text-sm text-gray-200 font-extrabold tracking-wide">International Awards</p>
                 </div>
             </div>
         </div>
 
-        <!-- Scroll down indicator -->
-        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 animate-bounce">
-            <a href="#about" class="text-white/60 hover:text-white transition-colors">
-                <i class="ph ph-caret-down text-2xl"></i>
+        <!-- Animated Bouncing Scroll Down Caret Arrow -->
+        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 animate-bounce z-20">
+            <a href="#about" class="w-11 h-11 rounded-full bg-white/15 hover:bg-[#f8b803] text-white hover:text-[#0e5c3a] border border-white/30 hover:border-[#f8b803] flex items-center justify-center transition-all duration-300 shadow-xl backdrop-blur-md">
+                <i class="ph ph-caret-down text-2xl font-bold"></i>
             </a>
         </div>
     </section>
@@ -232,18 +247,107 @@
                 <p class="text-gray-500 text-lg max-w-3xl mx-auto font-light">A premier Catholic educational institution founded by the Marist Brothers in 1946</p>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                <!-- Left Image with 360 Badge -->
-                <div class="relative rounded-3xl overflow-hidden shadow-xl group">
-                    <img src="{{ asset('images/ndmu-optimized.jpg') }}" alt="NDMU Campus" loading="lazy" decoding="async" class="w-full h-[500px] object-cover group-hover:scale-105 transition-transform duration-700">
-                    <div class="absolute top-4 right-4 bg-[#eebc3f] text-[#0f3d24] text-xs font-extrabold px-4 py-2 rounded-full shadow-lg flex items-center gap-1.5">
-                        <span class="w-1.5 h-1.5 rounded-full bg-[#0f3d24]"></span>
-                        360° Tour
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                <!-- Left 360 Interactive Panorama Container (Crisp NDMU Campus Photo: h-[650px]) -->
+                <div class="lg:col-span-7 relative" x-data="{
+                    showModal: false,
+                    zoom: false
+                }">
+                    <div class="relative rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white h-[650px] bg-slate-900 group select-none cursor-pointer" @click="showModal = true">
+                        <!-- High Definition NDMU Campus Image -->
+                        <img 
+                            src="{{ asset('images/ndmu-optimized.jpg') }}" 
+                            alt="NDMU Main Campus" 
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        >
+
+                        <!-- Gradient Overlay -->
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/40 flex flex-col justify-between p-6">
+                            <!-- Top HUD Badge -->
+                            <div class="flex items-center justify-between">
+                                <div class="bg-[#eebc3f] text-[#0f3d24] text-xs font-black px-4 py-2 rounded-full shadow-xl flex items-center gap-2 border border-[#0f3d24]/20 backdrop-blur-md">
+                                    <span class="w-2 h-2 rounded-full bg-[#0f3d24] animate-ping"></span>
+                                    <i class="ph ph-camera text-base font-bold"></i>
+                                    <span>NDMU Main Campus 360° Showcase</span>
+                                </div>
+                                <span class="px-3.5 py-1.5 rounded-full bg-black/60 text-white text-xs font-extrabold backdrop-blur-md border border-white/20">
+                                    Koronadal City, South Cotabato
+                                </span>
+                            </div>
+
+                            <!-- Center Interactive Compass HUD -->
+                            <div class="flex flex-col items-center justify-center text-center opacity-90 group-hover:opacity-100 transition-opacity">
+                                <div class="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md border-2 border-white/50 text-[#eebc3f] flex items-center justify-center mb-3 animate-pulse shadow-2xl">
+                                    <i class="ph ph-arrows-out-cardinal text-4xl font-bold"></i>
+                                </div>
+                                <span class="px-6 py-2.5 rounded-full bg-black/75 backdrop-blur-md border border-white/30 text-white font-black text-xs tracking-wider uppercase shadow-2xl">
+                                    Click to Explore Full Screen 360° View
+                                </span>
+                            </div>
+
+                            <!-- Bottom Control Row -->
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-black text-white/90 drop-shadow-md">Notre Dame of Marbel University • Founded 1946</span>
+                                <button 
+                                    type="button" 
+                                    @click.stop="showModal = true"
+                                    class="px-5 py-2.5 bg-gradient-to-r from-[#0e5c3a] to-[#0a4a2e] text-white font-black text-xs rounded-2xl shadow-xl hover:scale-105 transition-all flex items-center gap-2 border border-emerald-400/40"
+                                >
+                                    <i class="ph ph-arrows-out text-base font-bold"></i>
+                                    <span>Expand Fullscreen</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fullscreen Campus Modal -->
+                    <div 
+                        x-show="showModal" 
+                        x-cloak 
+                        style="display: none;"
+                        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-2xl"
+                        @keydown.escape.window="showModal = false"
+                    >
+                        <div class="relative w-full max-w-7xl h-[90vh] rounded-3xl overflow-hidden border-2 border-white/20 shadow-2xl flex flex-col justify-between bg-black">
+                            <!-- High-Res Image inside Modal -->
+                            <img 
+                                src="{{ asset('images/ndmu-optimized.jpg') }}" 
+                                alt="NDMU Main Campus Fullscreen" 
+                                class="absolute inset-0 w-full h-full object-contain"
+                            >
+
+                            <!-- Modal Top Bar -->
+                            <div class="relative z-10 p-6 flex items-center justify-between bg-gradient-to-b from-black/90 to-transparent">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-3 h-3 rounded-full bg-[#eebc3f] animate-ping"></span>
+                                    <h3 class="text-white font-black text-xl font-heading">Notre Dame of Marbel University — Main Campus</h3>
+                                </div>
+                                <button 
+                                    type="button" 
+                                    @click="showModal = false" 
+                                    class="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors cursor-pointer"
+                                >
+                                    <i class="ph ph-x text-2xl font-bold"></i>
+                                </button>
+                            </div>
+
+                            <!-- Modal Bottom Bar -->
+                            <div class="relative z-10 p-6 flex items-center justify-between bg-gradient-to-t from-black/90 to-transparent">
+                                <span class="text-xs text-white/80 font-bold">Official Campus Photograph • NDMU Research Management Portal</span>
+                                <button 
+                                    type="button" 
+                                    @click="showModal = false" 
+                                    class="px-7 py-3 bg-[#eebc3f] text-[#0f3d24] font-black text-xs rounded-xl hover:bg-[#d69f24] transition-colors cursor-pointer shadow-lg"
+                                >
+                                    Close Viewer
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Right Content (Cards) -->
-                <div class="space-y-6">
+                <!-- Right Content (Cards Column - lg:col-span-5) -->
+                <div class="lg:col-span-5 space-y-6">
                     <!-- Vision Card -->
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex gap-5 hover:shadow-md transition-shadow">
                         <div class="flex-shrink-0 w-12 h-12 rounded-full bg-[#f2f8f4] flex items-center justify-center text-[#1a7042]">
@@ -420,55 +524,87 @@
         </div>
     </section>
 
-    <!-- Research Journey Section -->
-    <section id="process" data-scroll-section class="py-24 bg-[#f2f6f4]">
+    <!-- Research Journey Section (Connected Flow Circle Component) -->
+    <section id="process" data-scroll-section class="py-24 bg-gradient-to-b from-[#f2f6f4] via-white to-[#f2f6f4] overflow-hidden">
         <div class="max-w-7xl mx-auto px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <span class="text-sm font-bold tracking-widest text-[#d69f24] uppercase mb-2 block">How It Works</span>
-                <h2 class="text-4xl md:text-5xl font-heading font-bold text-[#0e5c3a] mb-4">Research Journey</h2>
-                <p class="text-gray-500 text-lg">Step-by-step process from proposal to publication</p>
+            <div class="text-center mb-16 space-y-2">
+                <span class="text-xs font-black tracking-widest text-[#d69f24] uppercase px-4 py-1.5 rounded-full bg-[#d69f24]/10 border border-[#d69f24]/20 inline-block">Workflow Pipeline</span>
+                <h2 class="text-4xl md:text-5xl font-heading font-black text-[#0e5c3a]">Research Lifecycle Flow</h2>
+                <p class="text-gray-500 text-base md:text-lg max-w-2xl mx-auto font-light">From initial title proposal to institutional archiving</p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16 relative">
+            <!-- Connected Flow Stepper (Circle -> Line -> Circle -> Line -> Circle) -->
+            <div class="relative max-w-6xl mx-auto my-12">
                 <!-- Connecting Line for Desktop -->
-                <div class="hidden lg:block absolute top-14 left-[12%] right-[12%] h-[1.5px] bg-[#dce8e0] -z-0"></div>
+                <div class="hidden lg:block absolute top-16 left-[8%] right-[8%] h-1 bg-gradient-to-r from-[#0e5c3a] via-[#eebc3f] to-[#0e5c3a] rounded-full -z-0 opacity-40 shadow-xs"></div>
 
-                <!-- Step 1 -->
-                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 relative group hover:shadow-md transition-shadow z-10">
-                    <div class="w-12 h-12 bg-[#0e5c3a] text-white rounded-xl flex items-center justify-center font-heading font-bold text-xl mb-6 shadow-lg shadow-[#0e5c3a]/25 group-hover:scale-105 transition-transform">1</div>
-                    <i class="ph ph-file-text text-3xl text-[#0e5c3a] mb-4 block"></i>
-                    <h4 class="text-lg font-heading font-bold text-[#0e5c3a] mb-3">Proposal Submission</h4>
-                    <p class="text-gray-500 text-sm leading-relaxed">Submit your research proposal with complete documentation for initial review.</p>
-                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-4 relative z-10">
+                    <!-- Step 1: Title Proposal -->
+                    <div class="flex flex-col items-center text-center group">
+                        <div class="relative mb-6">
+                            <div class="w-28 h-28 rounded-full bg-gradient-to-br from-[#0e5c3a] to-[#0a4a2e] border-4 border-white text-white flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:shadow-2xl transition-all duration-300">
+                                <i class="ph ph-file-text text-4xl text-[#eebc3f]"></i>
+                            </div>
+                            <span class="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#eebc3f] text-[#0e5c3a] font-black text-xs flex items-center justify-center shadow-md border-2 border-white">01</span>
+                        </div>
+                        <h4 class="text-base font-black text-[#0e5c3a] font-heading mb-2">Title Proposal</h4>
+                        <p class="text-xs text-gray-500 leading-relaxed max-w-[180px]">Submit initial topic proposal and register research team</p>
+                    </div>
 
-                <!-- Step 2 -->
-                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 relative group hover:shadow-md transition-shadow z-10">
-                    <div class="w-12 h-12 bg-[#0e5c3a] text-white rounded-xl flex items-center justify-center font-heading font-bold text-xl mb-6 shadow-lg shadow-[#0e5c3a]/25 group-hover:scale-105 transition-transform">2</div>
-                    <i class="ph ph-users text-3xl text-[#0e5c3a] mb-4 block"></i>
-                    <h4 class="text-lg font-heading font-bold text-[#0e5c3a] mb-3">Adviser Review</h4>
-                    <p class="text-gray-500 text-sm leading-relaxed">Get expert feedback and guidance from your assigned research adviser.</p>
-                </div>
+                    <!-- Step 2: Adviser Review -->
+                    <div class="flex flex-col items-center text-center group">
+                        <div class="relative mb-6">
+                            <div class="w-28 h-28 rounded-full bg-gradient-to-br from-[#0e5c3a] to-[#0a4a2e] border-4 border-white text-white flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:shadow-2xl transition-all duration-300">
+                                <i class="ph ph-user-gear text-4xl text-[#eebc3f]"></i>
+                            </div>
+                            <span class="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#eebc3f] text-[#0e5c3a] font-black text-xs flex items-center justify-center shadow-md border-2 border-white">02</span>
+                        </div>
+                        <h4 class="text-base font-black text-[#0e5c3a] font-heading mb-2">Adviser Review</h4>
+                        <p class="text-xs text-gray-500 leading-relaxed max-w-[180px]">Consultation sessions and document revision approvals</p>
+                    </div>
 
-                <!-- Step 3 -->
-                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 relative group hover:shadow-md transition-shadow z-10">
-                    <div class="w-12 h-12 bg-[#0e5c3a] text-white rounded-xl flex items-center justify-center font-heading font-bold text-xl mb-6 shadow-lg shadow-[#0e5c3a]/25 group-hover:scale-105 transition-transform">3</div>
-                    <i class="ph ph-calendar text-3xl text-[#0e5c3a] mb-4 block"></i>
-                    <h4 class="text-lg font-heading font-bold text-[#0e5c3a] mb-3">Defense Scheduling</h4>
-                    <p class="text-gray-500 text-sm leading-relaxed">Schedule and conduct proposal or final oral defense with the panel.</p>
-                </div>
+                    <!-- Step 3: Proposal Defense -->
+                    <div class="flex flex-col items-center text-center group">
+                        <div class="relative mb-6">
+                            <div class="w-28 h-28 rounded-full bg-gradient-to-br from-[#0e5c3a] to-[#0a4a2e] border-4 border-white text-white flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:shadow-2xl transition-all duration-300">
+                                <i class="ph ph-gavel text-4xl text-[#eebc3f]"></i>
+                            </div>
+                            <span class="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#eebc3f] text-[#0e5c3a] font-black text-xs flex items-center justify-center shadow-md border-2 border-white">03</span>
+                        </div>
+                        <h4 class="text-base font-black text-[#0e5c3a] font-heading mb-2">Proposal Defense</h4>
+                        <p class="text-xs text-gray-500 leading-relaxed max-w-[180px]">Schedule oral defense and submit chapter revisions</p>
+                    </div>
 
-                <!-- Step 4 -->
-                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 relative group hover:shadow-md transition-shadow z-10">
-                    <div class="w-12 h-12 bg-[#0e5c3a] text-white rounded-xl flex items-center justify-center font-heading font-bold text-xl mb-6 shadow-lg shadow-[#0e5c3a]/25 group-hover:scale-105 transition-transform">4</div>
-                    <i class="ph ph-trophy text-3xl text-[#0e5c3a] mb-4 block"></i>
-                    <h4 class="text-lg font-heading font-bold text-[#0e5c3a] mb-3">Publication</h4>
-                    <p class="text-gray-500 text-sm leading-relaxed">Publish your research and earn national or international recognition.</p>
+                    <!-- Step 4: Final Defense -->
+                    <div class="flex flex-col items-center text-center group">
+                        <div class="relative mb-6">
+                            <div class="w-28 h-28 rounded-full bg-gradient-to-br from-[#0e5c3a] to-[#0a4a2e] border-4 border-white text-white flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:shadow-2xl transition-all duration-300">
+                                <i class="ph ph-seal-check text-4xl text-[#eebc3f]"></i>
+                            </div>
+                            <span class="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#eebc3f] text-[#0e5c3a] font-black text-xs flex items-center justify-center shadow-md border-2 border-white">04</span>
+                        </div>
+                        <h4 class="text-base font-black text-[#0e5c3a] font-heading mb-2">Final Defense</h4>
+                        <p class="text-xs text-gray-500 leading-relaxed max-w-[180px]">Panel evaluation, scoring rubrics, and final signoff</p>
+                    </div>
+
+                    <!-- Step 5: Archiving -->
+                    <div class="flex flex-col items-center text-center group">
+                        <div class="relative mb-6">
+                            <div class="w-28 h-28 rounded-full bg-gradient-to-br from-[#0e5c3a] to-[#0a4a2e] border-4 border-white text-white flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:shadow-2xl transition-all duration-300">
+                                <i class="ph ph-book-bookmark text-4xl text-[#eebc3f]"></i>
+                            </div>
+                            <span class="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#eebc3f] text-[#0e5c3a] font-black text-xs flex items-center justify-center shadow-md border-2 border-white">05</span>
+                        </div>
+                        <h4 class="text-base font-black text-[#0e5c3a] font-heading mb-2">Archiving</h4>
+                        <p class="text-xs text-gray-500 leading-relaxed max-w-[180px]">Published in official NDMU institutional repository</p>
+                    </div>
                 </div>
             </div>
 
-            <div class="text-center">
-                <a href="#" class="inline-block px-6 py-3 bg-[#0e5c3a] text-white font-bold rounded-xl hover:bg-[#0a4a2e] transition-colors shadow-md shadow-[#0e5c3a]/15">
-                    Learn More About The Process
+            <div class="text-center pt-8">
+                <a href="{{ route('register') }}" class="inline-flex items-center gap-2 px-8 py-3.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white font-extrabold rounded-2xl transition-all shadow-lg hover:shadow-xl hover:scale-105">
+                    <span>Start Your Research Journey</span>
+                    <i class="ph ph-arrow-right font-bold"></i>
                 </a>
             </div>
         </div>
@@ -874,7 +1010,74 @@
                 </div>
             </div>
         </div>
-    </footer>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const header = document.querySelector('[data-site-header]');
+            const progress = document.querySelector('[data-scroll-progress]');
+            const navLinks = Array.from(document.querySelectorAll('[data-section-link]'));
+            const sections = navLinks.map(link => document.getElementById(link.dataset.sectionLink)).filter(Boolean);
 
+            function onScroll() {
+                const scrollY = window.scrollY;
+                const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                const progressRatio = docHeight > 0 ? Math.min(Math.max(scrollY / docHeight, 0), 1) : 0;
+
+                if (progress) {
+                    progress.style.transform = `scaleX(${progressRatio})`;
+                }
+
+                if (header) {
+                    if (scrollY > 15) {
+                        header.classList.add('is-scrolled');
+                    } else {
+                        header.classList.remove('is-scrolled');
+                    }
+                }
+
+                let currentId = sections[0]?.id || 'home';
+                const marker = scrollY + (header ? header.offsetHeight : 80) + 120;
+
+                sections.forEach(section => {
+                    if (section.offsetTop <= marker) {
+                        currentId = section.id;
+                    }
+                });
+
+                if (window.innerHeight + scrollY >= document.documentElement.scrollHeight - 5) {
+                    currentId = sections[sections.length - 1]?.id || currentId;
+                }
+
+                navLinks.forEach(link => {
+                    if (link.dataset.sectionLink === currentId) {
+                        link.classList.add('is-active');
+                    } else {
+                        link.classList.remove('is-active');
+                    }
+                });
+            }
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    const target = document.getElementById(link.dataset.sectionLink);
+                    if (target) {
+                        e.preventDefault();
+                        const headerOffset = header ? header.offsetHeight : 80;
+                        const elementPosition = target.getBoundingClientRect().top;
+                        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+                        window.scrollTo({
+                            top: offsetPosition,
+                            behavior: 'smooth'
+                        });
+
+                        window.history.replaceState(null, '', `#${target.id}`);
+                    }
+                });
+            });
+
+            window.addEventListener('scroll', onScroll, { passive: true });
+            onScroll();
+        });
+    </script>
 </body>
 </html>
