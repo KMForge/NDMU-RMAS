@@ -2,9 +2,11 @@
 
 namespace App\Modules\Documents\Queries;
 
+use App\Enums\DocumentStage;
 use App\Enums\DocumentStatus;
 use App\Models\Document;
 use App\Models\DocumentReviewComment;
+use App\Models\ResearchClassGroup;
 use App\Models\User;
 use App\Modules\Documents\Support\DocumentReviewerAccess;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -25,13 +27,22 @@ class GetAdviserDocumentReviewData
      *     documentReviewComments: Collection<int, DocumentReviewComment>,
      *     documentReviewStats: array{approved: int, revisions: int, comments: int, critical: int},
      *     documentReviewSearch: string,
-     *     documentReviewStatus: string
+     *     documentReviewStatus: string,
+     *     documentReviewStage: ?string,
+     *     documentReviewGroup: ?int,
+     *     documentReviewFileType: ?string,
+     *     documentReviewSort: string,
+     *     assignedGroupOptions: Collection<int, array{id: int, name: string}>
      * }
      */
     public function for(
         User $reviewer,
         string $search = '',
         string $status = 'needs_attention',
+        ?string $stage = null,
+        ?int $groupId = null,
+        ?string $fileType = null,
+        string $sort = 'newest',
         ?int $selectedDocumentId = null,
     ): array {
         $search = Str::limit(trim($search), 100, '');
@@ -45,7 +56,24 @@ class GetAdviserDocumentReviewData
             'all',
         ], true) ? $status : 'needs_attention';
 
-        $scope = $this->reviewerAccess->scopeFor(Document::query(), $reviewer);
+        $validStageValues = array_column(DocumentStage::cases(), 'value');
+        $stage = in_array($stage, $validStageValues, true) ? $stage : null;
+        $fileType = in_array(strtolower((string) $fileType), ['pdf', 'docx'], true) ? strtolower((string) $fileType) : null;
+        $sort = in_array(strtolower($sort), ['oldest', 'newest'], true) ? strtolower($sort) : 'newest';
+
+        $assignedGroupOptions = ResearchClassGroup::query()
+            ->where('adviser_id', $reviewer->getKey())
+            ->where('status', 'active')
+            ->whereNull('disbanded_at')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (ResearchClassGroup $g): array => ['id' => $g->id, 'name' => $g->name]);
+
+        $assignedGroupIds = $assignedGroupOptions->pluck('id')->all();
+        $groupId = in_array($groupId, $assignedGroupIds, true) ? $groupId : null;
+
+        $scope = $this->reviewerAccess->scopeForReviewQueue(Document::query(), $reviewer);
+
         $documents = (clone $scope)
             ->with([
                 'user:id,name,email,student_id,program',
@@ -72,6 +100,9 @@ class GetAdviserDocumentReviewData
                     }
                 },
             )
+            ->when($stage !== null, fn (Builder $query) => $query->where('document_stage', $stage))
+            ->when($groupId !== null, fn (Builder $query) => $query->where('research_class_group_id', $groupId))
+            ->when($fileType !== null, fn (Builder $query) => $query->where('file_type', $fileType))
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $pattern = '%'.Str::lower($search).'%';
 
@@ -89,7 +120,7 @@ class GetAdviserDocumentReviewData
                         });
                 });
             })
-            ->latest('submitted_at')
+            ->orderBy('submitted_at', $sort === 'oldest' ? 'asc' : 'desc')
             ->paginate(10, ['*'], 'documents_page')
             ->withQueryString();
 
@@ -147,6 +178,11 @@ class GetAdviserDocumentReviewData
             ],
             'documentReviewSearch' => $search,
             'documentReviewStatus' => $status,
+            'documentReviewStage' => $stage,
+            'documentReviewGroup' => $groupId,
+            'documentReviewFileType' => $fileType,
+            'documentReviewSort' => $sort,
+            'assignedGroupOptions' => $assignedGroupOptions,
         ];
     }
 }

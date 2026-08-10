@@ -14,8 +14,10 @@ use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class AdviserDocumentReviewTest extends TestCase
@@ -52,6 +54,70 @@ class AdviserDocumentReviewTest extends TestCase
             ->assertDontSee('Beta Group')
             ->assertSee(route('documents.view', $visibleDoc))
             ->assertSee(route('documents.download', $visibleDoc));
+    }
+
+    public function test_user_with_research_view_all_cannot_see_unrelated_groups_in_review_queue(): void
+    {
+        $adviser = $this->adviser();
+        $adviser->givePermissionTo('research.view-all');
+        $otherAdviser = $this->adviser();
+
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Adviser Alpha Group');
+        [$otherGroup, $otherLeader] = $this->createGroupWithAdviser($otherAdviser, 'Adviser Beta Group');
+
+        $visibleDoc = $this->document($leader, $group, 'alpha-paper.pdf');
+        $hiddenDoc = $this->document($otherLeader, $otherGroup, 'beta-paper.pdf');
+
+        $this->actingAs($adviser)
+            ->get(route('adviser.dashboard', [
+                'tab' => 'docreview',
+                'document_status' => 'all',
+            ]))
+            ->assertOk()
+            ->assertSee('alpha-paper.pdf')
+            ->assertDontSee('beta-paper.pdf');
+    }
+
+    public function test_user_with_research_view_all_cannot_mutate_unassigned_group_document(): void
+    {
+        $adviser = $this->adviser();
+        $adviser->givePermissionTo('research.view-all');
+        $otherAdviser = $this->adviser();
+
+        [$otherGroup, $otherLeader] = $this->createGroupWithAdviser($otherAdviser, 'Unassigned Group');
+        $unassignedDoc = $this->document($otherLeader, $otherGroup, 'unassigned.pdf');
+
+        $this->actingAs($adviser)
+            ->postJson(route('adviser.documents.comments.store', $unassignedDoc), [
+                'comment' => 'Unauthorized comment',
+                'severity' => 'comment',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.documents.review', $unassignedDoc), [
+                'decision' => 'accepted',
+                'review_notes' => 'Unauthorized decision',
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_assigned_adviser_without_documents_review_permission_cannot_review(): void
+    {
+        $adviser = $this->adviser();
+        $adviser->roles()->detach();
+        $adviser->permissions()->detach();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Permission Group');
+        $document = $this->document($leader, $group, 'permission.pdf');
+
+        $this->actingAs($adviser)
+            ->postJson(route('adviser.documents.comments.store', $document), [
+                'comment' => 'No permission comment',
+                'severity' => 'comment',
+            ])
+            ->assertForbidden();
     }
 
     public function test_assigned_adviser_can_securely_view_document_stream(): void
@@ -103,6 +169,57 @@ class AdviserDocumentReviewTest extends TestCase
             'action' => 'comment_added',
         ]);
         $this->assertSame(DocumentStatus::UnderReview, $document->fresh()->status);
+    }
+
+    public function test_docx_comment_with_page_number_returns_422(): void
+    {
+        $adviser = $this->adviser();
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Docx Group');
+        $docxDoc = $this->document($leader, $group, 'manuscript.docx', 'docx');
+
+        $this->actingAs($adviser)
+            ->postJson(route('adviser.documents.comments.store', $docxDoc), [
+                'comment' => 'Comment on docx file',
+                'severity' => 'revision',
+                'page_number' => 5,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('page_number');
+    }
+
+    public function test_docx_comment_without_page_number_succeeds(): void
+    {
+        $adviser = $this->adviser();
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Docx Group 2');
+        $docxDoc = $this->document($leader, $group, 'manuscript2.docx', 'docx');
+
+        $this->actingAs($adviser)
+            ->postJson(route('adviser.documents.comments.store', $docxDoc), [
+                'comment' => 'Valid comment on docx file',
+                'severity' => 'revision',
+            ])
+            ->assertCreated();
+
+        $this->assertDatabaseHas('document_review_comments', [
+            'document_id' => $docxDoc->getKey(),
+            'page_number' => null,
+        ]);
+    }
+
+    public function test_pdf_comment_with_invalid_page_number_returns_422(): void
+    {
+        $adviser = $this->adviser();
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Pdf Group');
+        $pdfDoc = $this->document($leader, $group, 'paper.pdf', 'pdf');
+
+        $this->actingAs($adviser)
+            ->postJson(route('adviser.documents.comments.store', $pdfDoc), [
+                'comment' => 'Invalid page number test',
+                'severity' => 'comment',
+                'page_number' => 0,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('page_number');
     }
 
     public function test_unresolved_critical_or_revision_comment_blocks_accepted_decision(): void
@@ -249,6 +366,213 @@ class AdviserDocumentReviewTest extends TestCase
             'action' => 'review_decision_corrected',
             'decision' => 'rejected',
         ]);
+    }
+
+    public function test_adviser_reassignment_transfers_review_authority_and_preserves_resolution_attribution(): void
+    {
+        $oldAdviser = $this->adviser();
+        $newAdviser = $this->adviser();
+
+        [$group, $leader] = $this->createGroupWithAdviser($oldAdviser, 'Reassigned Group');
+        $document = $this->document($leader, $group, 'reassigned.pdf');
+
+        $comment = DocumentReviewComment::query()->create([
+            'document_id' => $document->getKey(),
+            'author_id' => $oldAdviser->getKey(),
+            'comment' => 'Old adviser comment',
+            'severity' => 'revision',
+        ]);
+
+        $group->update(['adviser_id' => $newAdviser->id]);
+
+        $this->actingAs($oldAdviser)
+            ->patchJson(route('adviser.documents.comments.resolve', [$document, $comment]))
+            ->assertForbidden();
+
+        $this->actingAs($newAdviser)
+            ->patchJson(route('adviser.documents.comments.resolve', [$document, $comment]))
+            ->assertOk();
+
+        $this->assertSame($oldAdviser->getKey(), $comment->fresh()->author_id);
+        $this->assertSame($newAdviser->getKey(), $comment->fresh()->resolved_by);
+    }
+
+    public function test_new_adviser_can_correct_old_advisers_decision(): void
+    {
+        $oldAdviser = $this->adviser();
+        $newAdviser = $this->adviser();
+
+        [$group, $leader] = $this->createGroupWithAdviser($oldAdviser, 'Reassigned Decision Group');
+        $document = $this->document($leader, $group, 'reassigned-decision.pdf');
+
+        $this->actingAs($oldAdviser)
+            ->patchJson(route('adviser.documents.review', $document), [
+                'decision' => 'revision_requested',
+                'review_notes' => 'Old adviser requested revision.',
+            ])
+            ->assertOk();
+
+        $originalReview = DocumentReview::query()->where('document_id', $document->getKey())->firstOrFail();
+
+        $group->update(['adviser_id' => $newAdviser->id]);
+
+        $this->actingAs($newAdviser)
+            ->patchJson(route('adviser.documents.review.correct', $document), [
+                'decision' => 'accepted',
+                'correction_reason' => 'New adviser verified revisions were completed.',
+                'review_notes' => 'Accepted by new adviser.',
+            ])
+            ->assertOk();
+
+        $this->assertSame($oldAdviser->getKey(), $originalReview->fresh()->reviewer_id);
+        $this->assertTrue($originalReview->fresh()->is_superseded);
+
+        $newReview = DocumentReview::query()
+            ->where('document_id', $document->getKey())
+            ->where('is_superseded', false)
+            ->firstOrFail();
+
+        $this->assertSame($newAdviser->getKey(), $newReview->reviewer_id);
+        $this->assertSame($originalReview->getKey(), $newReview->supersedes_review_id);
+        $this->assertSame(DocumentStatus::Accepted, $document->fresh()->status);
+    }
+
+    public function test_cannot_correct_decision_when_newer_version_exists(): void
+    {
+        $adviser = $this->adviser();
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Version Group');
+        $v1 = $this->document($leader, $group, 'paper-v1.pdf');
+
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.documents.review', $v1), [
+                'decision' => 'revision_requested',
+                'review_notes' => 'Revise for v2',
+            ])
+            ->assertOk();
+
+        $v1->update(['is_current' => false]);
+        $v2 = Document::query()->create([
+            'user_id' => $leader->id,
+            'research_class_group_id' => $group->id,
+            'submission_token' => (string) Str::uuid(),
+            'original_filename' => 'paper-v2.pdf',
+            'stored_filename' => Str::random(40).'.pdf',
+            'file_type' => 'pdf',
+            'mime_type' => 'application/pdf',
+            'document_stage' => DocumentStage::ProposalDefense->value,
+            'version_number' => 2,
+            'is_current' => true,
+            'file_size' => 1024,
+            'storage_disk' => 'private',
+            'storage_path' => 'documents/'.Str::random(40).'.pdf',
+            'content_sha256' => hash('sha256', 'v2'),
+            'submitted_at' => now(),
+            'status' => DocumentStatus::Pending,
+        ]);
+
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.documents.review.correct', $v1), [
+                'decision' => 'accepted',
+                'correction_reason' => 'Attempting correction on v1',
+            ])
+            ->assertStatus(409);
+    }
+
+    public function test_multiple_decision_corrections_chain_properly(): void
+    {
+        $adviser = $this->adviser();
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Multi Correction Group');
+        $document = $this->document($leader, $group, 'chain.pdf');
+
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.documents.review', $document), [
+                'decision' => 'accepted',
+                'review_notes' => 'Accepted initially',
+            ])
+            ->assertOk();
+
+        $review1 = DocumentReview::query()->where('document_id', $document->getKey())->firstOrFail();
+
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.documents.review.correct', $document), [
+                'decision' => 'revision_requested',
+                'correction_reason' => 'First correction reason',
+                'review_notes' => 'Found issues',
+            ])
+            ->assertOk();
+
+        $review2 = DocumentReview::query()
+            ->where('document_id', $document->getKey())
+            ->where('supersedes_review_id', $review1->getKey())
+            ->firstOrFail();
+
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.documents.review.correct', $document), [
+                'decision' => 'rejected',
+                'correction_reason' => 'Second correction reason',
+                'review_notes' => 'Final rejection',
+            ])
+            ->assertOk();
+
+        $review3 = DocumentReview::query()
+            ->where('document_id', $document->getKey())
+            ->where('supersedes_review_id', $review2->getKey())
+            ->firstOrFail();
+
+        $this->assertTrue($review1->fresh()->is_superseded);
+        $this->assertTrue($review2->fresh()->is_superseded);
+        $this->assertFalse($review3->fresh()->is_superseded);
+        $this->assertSame(DocumentStatus::Rejected, $document->fresh()->status);
+    }
+
+    public function test_cannot_add_new_comments_after_final_decision_until_corrected(): void
+    {
+        $adviser = $this->adviser();
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Post Decision Group');
+        $document = $this->document($leader, $group, 'post-decision.pdf');
+
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.documents.review', $document), [
+                'decision' => 'accepted',
+                'review_notes' => 'Accepted',
+            ])
+            ->assertOk();
+
+        $this->actingAs($adviser)
+            ->postJson(route('adviser.documents.comments.store', $document), [
+                'comment' => 'Late comment',
+                'severity' => 'comment',
+            ])
+            ->assertStatus(409);
+    }
+
+    public function test_no_side_effects_on_other_domain_tables(): void
+    {
+        $adviser = $this->adviser();
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Side Effect Group');
+        $document = $this->document($leader, $group, 'side-effect.pdf');
+
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.documents.review', $document), [
+                'decision' => 'accepted',
+                'review_notes' => 'Approved',
+            ])
+            ->assertOk();
+
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.documents.review.correct', $document), [
+                'decision' => 'rejected',
+                'correction_reason' => 'Reason',
+                'review_notes' => 'Rejected',
+            ])
+            ->assertOk();
+
+        if (Schema::hasTable('revision_requests')) {
+            $this->assertDatabaseCount('revision_requests', 0);
+        }
+        if (Schema::hasTable('research_progress_updates')) {
+            $this->assertDatabaseCount('research_progress_updates', 0);
+        }
     }
 
     public function test_cannot_review_or_correct_void_document_version(): void
@@ -417,22 +741,22 @@ class AdviserDocumentReviewTest extends TestCase
         ]);
     }
 
-    private function document(User $uploader, ResearchClassGroup $group, string $filename): Document
+    private function document(User $uploader, ResearchClassGroup $group, string $filename, string $fileType = 'pdf'): Document
     {
         return Document::query()->create([
             'user_id' => $uploader->id,
             'research_class_group_id' => $group->id,
             'submission_token' => (string) Str::uuid(),
             'original_filename' => $filename,
-            'stored_filename' => Str::random(40).'.pdf',
-            'file_type' => 'pdf',
-            'mime_type' => 'application/pdf',
+            'stored_filename' => Str::random(40).'.'.$fileType,
+            'file_type' => $fileType,
+            'mime_type' => $fileType === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'document_stage' => DocumentStage::ProposalDefense->value,
             'version_number' => 1,
             'is_current' => true,
             'file_size' => 1024,
             'storage_disk' => 'private',
-            'storage_path' => 'documents/'.Str::random(40).'.pdf',
+            'storage_path' => 'documents/'.Str::random(40).'.'.$fileType,
             'content_sha256' => hash('sha256', $filename.Str::random(10)),
             'submitted_at' => now(),
             'status' => DocumentStatus::Pending,

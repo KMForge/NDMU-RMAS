@@ -25,6 +25,33 @@ class DocumentReviewerAccess
     }
 
     /**
+     * Scopes documents specifically for the Adviser Document Review Queue.
+     * Requires documents.review permission and active assigned adviser relationship.
+     * Broad permissions (research.view-all, admin, facilitator) do NOT broaden this queue.
+     *
+     * @param  Builder<Document>  $query
+     * @return Builder<Document>
+     */
+    public function scopeForReviewQueue(Builder $query, User $reviewer): Builder
+    {
+        if (! $reviewer->can('documents.review')) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereExists(function ($classQuery) use ($reviewer): void {
+            $classQuery
+                ->selectRaw('1')
+                ->from('research_class_groups as review_groups')
+                ->whereColumn('review_groups.id', 'documents.research_class_group_id')
+                ->where('review_groups.adviser_id', $reviewer->getKey())
+                ->where('review_groups.status', 'active')
+                ->whereNull('review_groups.disbanded_at');
+        });
+    }
+
+    /**
+     * General reviewer access query scope (used by Phase 14 repository access for legacy compatibility).
+     *
      * @param  Builder<Document>  $query
      * @return Builder<Document>
      */
@@ -96,26 +123,6 @@ class DocumentReviewerAccess
             ->where('adviser_id', $reviewer->getKey())
             ->where('status', 'active')
             ->whereNull('disbanded_at')
-            ->exists();
-    }
-
-    private function hasLegacyAssignmentAccess(User $reviewer, Document $document): bool
-    {
-        if (! $this->assignmentTablesExist()) {
-            return false;
-        }
-
-        return DB::table('student_profiles as students')
-            ->join('research_group_members as members', 'members.student_profile_id', '=', 'students.id')
-            ->join('research_projects as projects', 'projects.research_group_id', '=', 'members.research_group_id')
-            ->join('adviser_assignments as assignments', 'assignments.research_project_id', '=', 'projects.id')
-            ->join('faculty_profiles as faculty', 'faculty.id', '=', 'assignments.adviser_id')
-            ->where('students.user_id', $document->user_id)
-            ->where('faculty.user_id', $reviewer->getKey())
-            ->where('assignments.status', 'active')
-            ->whereNull('assignments.ended_at')
-            ->whereNull('members.left_at')
-            ->whereNull('projects.archived_at')
             ->exists();
     }
 

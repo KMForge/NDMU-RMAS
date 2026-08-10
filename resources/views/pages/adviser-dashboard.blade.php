@@ -693,6 +693,8 @@
                             class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-xs focus:border-[#0e5c3a] focus:outline-none"
                         >
                     </div>
+
+                    <!-- Status Filter -->
                     <select
                         name="document_status"
                         class="rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs font-semibold focus:border-[#0e5c3a] focus:outline-none"
@@ -705,6 +707,50 @@
                         <option value="rejected" @selected(($documentReviewStatus ?? '') === 'rejected')>Rejected</option>
                         <option value="all" @selected(($documentReviewStatus ?? '') === 'all')>All Statuses</option>
                     </select>
+
+                    <!-- Stage Filter -->
+                    <select
+                        name="document_stage"
+                        class="rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs font-semibold focus:border-[#0e5c3a] focus:outline-none"
+                    >
+                        <option value="">All Stages</option>
+                        @foreach (\App\Enums\DocumentStage::cases() as $stg)
+                            <option value="{{ $stg->value }}" @selected(($documentReviewStage ?? '') === $stg->value)>{{ $stg->label() }}</option>
+                        @endforeach
+                    </select>
+
+                    <!-- Group Filter -->
+                    @if (isset($assignedGroupOptions) && $assignedGroupOptions->isNotEmpty())
+                        <select
+                            name="document_group_id"
+                            class="rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs font-semibold focus:border-[#0e5c3a] focus:outline-none"
+                        >
+                            <option value="">All Assigned Groups</option>
+                            @foreach ($assignedGroupOptions as $grpOpt)
+                                <option value="{{ $grpOpt['id'] }}" @selected(($documentReviewGroup ?? null) === $grpOpt['id'])>{{ $grpOpt['name'] }}</option>
+                            @endforeach
+                        </select>
+                    @endif
+
+                    <!-- File Type Filter -->
+                    <select
+                        name="document_file_type"
+                        class="rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs font-semibold focus:border-[#0e5c3a] focus:outline-none"
+                    >
+                        <option value="">All File Types</option>
+                        <option value="pdf" @selected(($documentReviewFileType ?? '') === 'pdf')>PDF</option>
+                        <option value="docx" @selected(($documentReviewFileType ?? '') === 'docx')>DOCX</option>
+                    </select>
+
+                    <!-- Sort Filter -->
+                    <select
+                        name="document_sort"
+                        class="rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs font-semibold focus:border-[#0e5c3a] focus:outline-none"
+                    >
+                        <option value="newest" @selected(($documentReviewSort ?? 'newest') === 'newest')>Newest First</option>
+                        <option value="oldest" @selected(($documentReviewSort ?? '') === 'oldest')>Oldest First</option>
+                    </select>
+
                     <button type="submit" class="rounded-xl bg-[#0e5c3a] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#0a4a2e]">
                         Filter Queue
                     </button>
@@ -724,7 +770,7 @@
                                 @foreach ($reviewDocuments as $qDoc)
                                     @php($isSelected = isset($selectedReviewDocument) && $selectedReviewDocument->id === $qDoc->id)
                                     <a
-                                        href="{{ route('adviser.dashboard', ['tab' => 'docreview', 'document_search' => $documentReviewSearch ?? '', 'document_status' => $documentReviewStatus ?? '', 'document_id' => $qDoc->id]) }}"
+                                        href="{{ route('adviser.dashboard', ['tab' => 'docreview', 'document_search' => $documentReviewSearch ?? '', 'document_status' => $documentReviewStatus ?? '', 'document_stage' => $documentReviewStage ?? '', 'document_group_id' => $documentReviewGroup ?? '', 'document_file_type' => $documentReviewFileType ?? '', 'document_sort' => $documentReviewSort ?? 'newest', 'document_id' => $qDoc->id]) }}"
                                         class="block rounded-2xl border transition-all p-4 {{ $isSelected ? 'border-[#0e5c3a] bg-emerald-50/50 shadow-sm ring-1 ring-[#0e5c3a]' : 'border-gray-150 bg-white hover:border-gray-300' }}"
                                     >
                                         <div class="flex items-start justify-between gap-3">
@@ -808,10 +854,12 @@
                                                         <option value="critical">Critical Blocker</option>
                                                     </select>
                                                 </div>
-                                                <div>
-                                                    <label class="text-[10px] font-bold text-gray-500 uppercase block mb-1">Page (PDF Optional)</label>
-                                                    <input type="number" name="page_number" min="1" max="1000" placeholder="Page #" class="w-24 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs focus:border-[#0e5c3a] focus:outline-none bg-white">
-                                                </div>
+                                                @if (strtolower((string) $selDoc->file_type) === 'pdf')
+                                                    <div>
+                                                        <label class="text-[10px] font-bold text-gray-500 uppercase block mb-1">Page (PDF Optional)</label>
+                                                        <input type="number" name="page_number" min="1" max="1000" placeholder="Page #" class="w-24 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs focus:border-[#0e5c3a] focus:outline-none bg-white">
+                                                    </div>
+                                                @endif
                                             </div>
                                             <button type="submit" class="rounded-xl bg-[#0e5c3a] px-4 py-2 text-xs font-bold text-white hover:bg-[#0a4a2e] self-end">
                                                 Post Finding

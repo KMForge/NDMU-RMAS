@@ -70,6 +70,7 @@ class CorrectDocumentReviewDecision
                     ->where('document_id', $lockedDocument->getKey())
                     ->where('is_superseded', false)
                     ->latest('reviewed_at')
+                    ->lockForUpdate()
                     ->first();
 
                 if ($originalReview === null) {

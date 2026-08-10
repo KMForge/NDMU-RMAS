@@ -22,8 +22,7 @@ class AddDocumentReviewComment
      * @param  array{
      *     comment: string,
      *     page_number: ?int,
-     *     severity: string,
-     *     parent_id: ?int
+     *     severity: string
      * }  $data
      */
     public function handle(User $reviewer, Document $document, array $data): DocumentReviewComment
@@ -47,23 +46,28 @@ class AddDocumentReviewComment
                     );
                 }
 
-                if ($data['parent_id'] !== null) {
-                    $parentExists = DocumentReviewComment::query()
-                        ->whereKey($data['parent_id'])
-                        ->where('document_id', $lockedDocument->getKey())
-                        ->exists();
+                if (in_array($lockedDocument->status, [
+                    DocumentStatus::Accepted,
+                    DocumentStatus::Rejected,
+                    DocumentStatus::RevisionRequested,
+                ], true)) {
+                    throw new DocumentReviewException(
+                        'Cannot add new findings to a document that has already received a final review decision. Use decision correction first.',
+                    );
+                }
 
-                    if (! $parentExists) {
-                        throw new DocumentReviewException(
-                            'The comment you are replying to was not found.',
-                        );
-                    }
+                if (strtolower((string) $lockedDocument->file_type) === 'docx' && ($data['page_number'] ?? null) !== null) {
+                    throw new DocumentReviewException(
+                        'Page numbers are not supported for DOCX files.',
+                    );
                 }
 
                 $comment = DocumentReviewComment::query()->create([
                     'document_id' => $lockedDocument->getKey(),
                     'author_id' => $reviewer->getKey(),
-                    ...$data,
+                    'comment' => $data['comment'],
+                    'severity' => $data['severity'],
+                    'page_number' => strtolower((string) $lockedDocument->file_type) === 'pdf' ? ($data['page_number'] ?? null) : null,
                 ]);
 
                 if ($lockedDocument->status === DocumentStatus::Pending) {
