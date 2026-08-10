@@ -943,15 +943,15 @@
                 <div class="bg-white rounded-2xl border border-gray-100/50 shadow-sm overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50 border-b border-gray-100">
-                                    <th class="px-6 py-4 text-left text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Research Title</th>
-                                    <th class="px-6 py-4 text-left text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Researchers</th>
-                                    <th class="px-6 py-4 text-left text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Adviser</th>
-                                    <th class="px-6 py-4 text-left text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-4 text-left text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Defense Type</th>
-                                    <th class="px-6 py-4 text-left text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Submitted</th>
-                                    <th class="px-6 py-4 text-center text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Actions</th>
+                            <thead class="bg-gradient-to-r from-[#0e5c3a] to-[#0a4a2e] text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
+                                <tr>
+                                    <th class="px-6 py-4 text-left">Research Title</th>
+                                    <th class="px-6 py-4 text-left">Researchers</th>
+                                    <th class="px-6 py-4 text-left">Adviser</th>
+                                    <th class="px-6 py-4 text-left">Status</th>
+                                    <th class="px-6 py-4 text-left">Defense Type</th>
+                                    <th class="px-6 py-4 text-left">Submitted</th>
+                                    <th class="px-6 py-4 text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-50">

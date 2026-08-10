@@ -713,7 +713,7 @@
                                     <!-- Table Container -->
                                     <div class="overflow-x-auto rounded-2xl border border-gray-100">
                                         <table class="w-full border-collapse text-left text-sm text-gray-500">
-                                            <thead class="bg-gray-50/75 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-150">
+                                            <thead class="bg-gradient-to-r from-[#0e5c3a] to-[#0a4a2e] text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
                                                 <tr>
                                                     <th scope="col" class="px-6 py-4">Name</th>
                                                     <th scope="col" class="px-6 py-4">Email</th>
@@ -1147,7 +1147,7 @@
                     <!-- Table of Users -->
                     <div class="overflow-x-auto rounded-2xl border border-gray-100">
                         <table class="w-full border-collapse text-left text-sm text-gray-500">
-                            <thead class="bg-gray-50/75 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-150">
+                            <thead class="bg-gradient-to-r from-[#0e5c3a] to-[#0a4a2e] text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
                                 <tr>
                                     <th scope="col" class="px-6 py-4">User</th>
                                     <th scope="col" class="px-6 py-4">Email</th>

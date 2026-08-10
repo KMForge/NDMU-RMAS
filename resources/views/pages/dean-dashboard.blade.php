@@ -688,8 +688,8 @@
 
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs border-collapse">
-                            <thead>
-                                <tr class="bg-slate-50/80 text-slate-400 font-bold uppercase text-[10px] tracking-wider border-b border-slate-100">
+                            <thead class="bg-gradient-to-r from-[#0e5c3a] to-[#0a4a2e] text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
+                                <tr>
                                     <th class="px-6 py-4">Name</th>
                                     <th class="px-6 py-4">Role</th>
                                     <th class="px-6 py-4">Department</th>
@@ -1268,8 +1268,8 @@
                         <div class="bg-white rounded-2xl border border-gray-100/50 shadow-sm overflow-hidden">
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left text-xs border-collapse">
-                                    <thead>
-                                        <tr class="bg-gray-50 text-gray-400 font-bold uppercase text-[10px] tracking-wider border-b border-gray-100">
+                                    <thead class="bg-gradient-to-r from-[#0e5c3a] to-[#0a4a2e] text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
+                                        <tr>
                                             <th class="px-6 py-4">Name</th>
                                             <th class="px-6 py-4">Email</th>
                                             <th class="px-6 py-4">Role</th>

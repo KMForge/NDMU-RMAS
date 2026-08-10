@@ -68,44 +68,50 @@
         </header>
 
         <main class="p-8 space-y-8">
-            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-                <div>
-                    <div class="flex items-center gap-3">
-                        <h1 class="text-2xl font-bold text-gray-850">{{ $researchClass->name }}</h1>
-                        <span class="px-3 py-1 rounded-full text-[9px] font-bold uppercase {{ $researchClass->is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600' }}">
-                            {{ $researchClass->is_active ? 'Active' : 'Inactive' }}
-                        </span>
+            <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0e5c3a] via-[#0a4a2e] to-[#083a24] p-8 text-white shadow-xl border border-emerald-800/40">
+                <div class="absolute -right-12 -top-12 h-64 w-64 rounded-full bg-white/5 blur-2xl pointer-events-none"></div>
+                <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-center relative z-10">
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h1 class="text-3xl font-black tracking-tight text-white">{{ $researchClass->name }}</h1>
+                            <span class="rounded-full px-3.5 py-1 text-[10px] font-black uppercase tracking-wider shadow-xs {{ $researchClass->is_active ? 'bg-[#eebc3f] text-[#0e5c3a]' : 'bg-gray-700 text-gray-200' }}">
+                                {{ $researchClass->is_active ? 'Active Class' : 'Inactive' }}
+                            </span>
+                        </div>
+                        @if ($researchClass->description)
+                            <p class="mt-2 text-sm text-emerald-100/90 max-w-2xl leading-relaxed">{{ $researchClass->description }}</p>
+                        @endif
                     </div>
-                    @if ($researchClass->description)
-                        <p class="text-sm text-gray-500 mt-2">{{ $researchClass->description }}</p>
-                    @endif
-                </div>
 
-                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 min-w-64">
-                    <p class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Student Join Code</p>
-                    <div class="flex items-center justify-between gap-4 mt-2">
-                        <code class="text-lg font-extrabold tracking-widest text-[#0e5c3a]">{{ $joinCode ?? 'Unavailable' }}</code>
-                        <button
-                            type="button"
-                            @if ($joinCode)
-                                @click="navigator.clipboard?.writeText(@js($joinCode)).then(() => { copied = true; setTimeout(() => copied = false, 1800) })"
-                            @endif
-                            class="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
-                            aria-label="Copy class join code"
-                            @disabled(! $joinCode)
-                        >
-                            <i class="ph" :class="copied ? 'ph-check text-emerald-600' : 'ph-copy'"></i>
-                        </button>
+                    <div class="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-5 min-w-64 shadow-inner">
+                        <p class="text-[9px] font-extrabold uppercase tracking-widest text-[#eebc3f]">Student Join Code</p>
+                        <div class="flex items-center justify-between gap-4 mt-1">
+                            <code class="text-xl font-black tracking-widest text-white font-mono">{{ $joinCode ?? 'Unavailable' }}</code>
+                            <button
+                                type="button"
+                                @if ($joinCode)
+                                    @click="navigator.clipboard?.writeText(@js($joinCode)).then(() => { copied = true; setTimeout(() => copied = false, 1800) })"
+                                @endif
+                                class="w-9 h-9 rounded-xl bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                                aria-label="Copy class join code"
+                                @disabled(! $joinCode)
+                            >
+                                <i class="ph" :class="copied ? 'ph-check text-[#eebc3f]' : 'ph-copy'"></i>
+                            </button>
+                        </div>
+                        <p x-show="copied" x-cloak class="text-[10px] text-[#eebc3f] font-bold mt-1">Code copied to clipboard!</p>
                     </div>
-                    <p x-show="copied" x-cloak class="text-[10px] text-emerald-600 font-bold mt-2">Code copied.</p>
                 </div>
-            </div>
+            </section>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                    <p class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Class Adviser</p>
-                    <div class="flex items-center gap-3 mt-4">
-                        <div class="w-11 h-11 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center">
+                <div class="bg-white rounded-2xl p-6 border border-gray-150 shadow-sm border-t-4 border-t-[#0e5c3a]">
+                    <div class="flex items-center justify-between">
+                        <p class="text-[10px] font-black uppercase tracking-wider text-[#0e5c3a]">Class Adviser</p>
+                        <span class="w-8 h-8 rounded-xl bg-emerald-50 text-[#0e5c3a] flex items-center justify-center font-bold"><i class="ph ph-user-check text-base"></i></span>
+                    </div>
+                    <div class="flex items-center gap-3 mt-3">
+                        <div class="w-10 h-10 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-sm border border-emerald-700">
                             {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($adviser->name, 0, 1)) }}
                         </div>
                         <div>
@@ -115,67 +121,83 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                    <p class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Enrollment</p>
-                    <p class="text-2xl font-bold text-gray-850 mt-3">{{ $activeStudents }} / {{ $researchClass->max_students }}</p>
-                    <div class="h-2 rounded-full bg-gray-100 mt-4 overflow-hidden">
+                <div class="bg-white rounded-2xl p-6 border border-gray-150 shadow-sm border-t-4 border-t-[#0e5c3a]">
+                    <div class="flex items-center justify-between">
+                        <p class="text-[10px] font-black uppercase tracking-wider text-[#0e5c3a]">Enrollment Capacity</p>
+                        <span class="w-8 h-8 rounded-xl bg-emerald-50 text-[#0e5c3a] flex items-center justify-center font-bold"><i class="ph ph-users text-base"></i></span>
+                    </div>
+                    <p class="text-2xl font-black text-gray-850 mt-3">{{ $activeStudents }} <span class="text-sm font-medium text-gray-400">/ {{ $researchClass->max_students }} Enrolled</span></p>
+                    <div class="h-2.5 rounded-full bg-gray-100 mt-4 overflow-hidden">
                         <div
-                            class="h-full bg-[#0e5c3a] rounded-full"
+                            class="h-full bg-gradient-to-r from-[#0e5c3a] to-[#009b67] rounded-full"
                             x-data="{ capacityPercentage: @js($capacityPercentage) }"
                             x-bind:style="{ width: capacityPercentage + '%' }"
                         ></div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                    <p class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Created</p>
+                <div class="bg-white rounded-2xl p-6 border border-gray-150 shadow-sm border-t-4 border-t-[#0e5c3a]">
+                    <div class="flex items-center justify-between">
+                        <p class="text-[10px] font-black uppercase tracking-wider text-[#0e5c3a]">Class Creation</p>
+                        <span class="w-8 h-8 rounded-xl bg-emerald-50 text-[#0e5c3a] flex items-center justify-center font-bold"><i class="ph ph-calendar text-base"></i></span>
+                    </div>
                     <p class="text-sm font-bold text-gray-850 mt-3">{{ $researchClass->created_at?->format('M j, Y') ?? 'Not available' }}</p>
                     <p class="text-[10px] text-gray-500 mt-1">{{ $researchClass->created_at?->diffForHumans() ?? 'Timestamp unavailable' }}</p>
                 </div>
             </div>
 
-            <section class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
-                        <h2 class="font-bold text-lg text-gray-850">Student Roster</h2>
-                        <p class="text-xs text-gray-500 mt-1">Students currently associated with this research class.</p>
+            <section class="bg-white rounded-2xl border border-gray-150 shadow-sm overflow-hidden">
+                <div class="p-6 border-b border-gray-150 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-r from-gray-50 to-white">
+                    <div class="flex items-center gap-3">
+                        <div class="w-2.5 h-8 rounded-full bg-[#0e5c3a]"></div>
+                        <div>
+                            <h2 class="font-extrabold text-xl text-[#0e5c3a]">Student Roster</h2>
+                            <p class="text-xs text-gray-500 mt-0.5">Students currently enrolled in this research class.</p>
+                        </div>
                     </div>
 
                     <form method="GET" action="{{ route('adviser.classes.show', $researchClass) }}" class="relative w-full md:w-80">
-                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
                         <input
                             type="search"
                             name="q"
                             value="{{ $search }}"
                             maxlength="100"
-                            placeholder="Search name or email"
-                            class="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 text-xs focus:border-[#0e5c3a] focus:outline-none"
+                            placeholder="Search name or email..."
+                            class="w-full rounded-xl border border-gray-200 pl-10 pr-4 py-2.5 text-xs focus:border-[#0e5c3a] focus:outline-none shadow-2xs"
                         >
                     </form>
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead class="bg-gray-50 text-[9px] uppercase tracking-wider text-gray-400">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-gradient-to-r from-[#0e5c3a] to-[#0a4a2e] text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
                             <tr>
-                                <th class="px-6 py-3 font-bold">Student</th>
-                                <th class="px-6 py-3 font-bold">Student Number</th>
-                                <th class="px-6 py-3 font-bold">Joined</th>
-                                <th class="px-6 py-3 font-bold">Status</th>
+                                <th class="px-6 py-4 font-bold">Student Details</th>
+                                <th class="px-6 py-4 font-bold">Student ID</th>
+                                <th class="px-6 py-4 font-bold">Date Joined</th>
+                                <th class="px-6 py-4 font-bold">Status</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100">
+                        <tbody class="divide-y divide-gray-100 bg-white">
                             @forelse ($enrollments as $enrollment)
                                 @php($student = $enrollment->student)
-                                <tr>
+                                <tr class="hover:bg-emerald-50/40 transition-colors duration-150">
                                     <td class="px-6 py-4">
-                                        <p class="text-sm font-bold text-gray-800">{{ $student?->name ?? 'Deleted student account' }}</p>
-                                        <p class="text-[10px] text-gray-500 mt-0.5">{{ $student?->email ?? 'Email unavailable' }}</p>
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-9 h-9 rounded-full bg-emerald-100 text-[#0e5c3a] flex items-center justify-center font-bold text-xs shrink-0 border border-emerald-200">
+                                                {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($student?->name ?? 'S', 0, 1)) }}
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-bold text-gray-850">{{ $student?->name ?? 'Deleted student account' }}</p>
+                                                <p class="text-[10px] text-gray-500 mt-0.5">{{ $student?->email ?? 'Email unavailable' }}</p>
+                                            </div>
+                                        </div>
                                     </td>
-                                    <td class="px-6 py-4 text-xs text-gray-600">
+                                    <td class="px-6 py-4 text-xs font-semibold text-gray-700">
                                         {{ $student?->student_id ?: 'Not available' }}
                                     </td>
-                                    <td class="px-6 py-4 text-xs text-gray-600">
+                                    <td class="px-6 py-4 text-xs text-gray-500">
                                         {{ $enrollment->joined_at?->format('M j, Y g:i A') ?? 'Not available' }}
                                     </td>
                                     <td class="px-6 py-4">

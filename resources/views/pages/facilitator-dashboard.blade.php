@@ -1857,30 +1857,30 @@
                 <!-- Main Card with Tabbed Navigation -->
                 <div class="bg-white rounded-[2.5rem] border border-gray-100/85 shadow-xl shadow-slate-200/30 p-6 md:p-8 space-y-6">
                     <!-- Inner Tabs (All Users, Pending Students, Create User) -->
-                    <div class="flex border-b border-gray-100 pb-px overflow-x-auto gap-8">
+                    <div class="flex items-center p-1.5 bg-gray-100/80 rounded-2xl gap-2 overflow-x-auto">
                         <button 
                             type="button"
                             @click="userManagementSubTab = 'all'"
-                            :class="userManagementSubTab === 'all' ? 'border-[#0e5c3a] text-[#0e5c3a] font-bold' : 'border-transparent text-gray-400 hover:text-gray-600 font-semibold'"
-                            class="pb-4 border-b-2 text-xs flex items-center gap-2 cursor-pointer transition-all duration-200"
+                            :class="userManagementSubTab === 'all' ? 'bg-[#0e5c3a] text-white shadow-sm font-bold' : 'text-gray-600 hover:text-gray-900 hover:bg-white/60 font-semibold'"
+                            class="px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 cursor-pointer transition-all duration-200"
                         >
                             <span>All Users</span>
-                            <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold" :class="userManagementSubTab === 'all' ? 'bg-[#0e5c3a] text-white' : 'bg-gray-100 text-gray-500'" x-text="totalUsersCount">26</span>
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold" :class="userManagementSubTab === 'all' ? 'bg-[#eebc3f] text-[#0e5c3a]' : 'bg-gray-200 text-gray-600'" x-text="totalUsersCount">26</span>
                         </button>
                         <button 
                             type="button"
                             @click="userManagementSubTab = 'pending'"
-                            :class="userManagementSubTab === 'pending' ? 'border-[#0e5c3a] text-[#0e5c3a] font-bold' : 'border-transparent text-gray-400 hover:text-gray-600 font-semibold'"
-                            class="pb-4 border-b-2 text-xs flex items-center gap-2 cursor-pointer transition-all duration-200"
+                            :class="userManagementSubTab === 'pending' ? 'bg-[#0e5c3a] text-white shadow-sm font-bold' : 'text-gray-600 hover:text-gray-900 hover:bg-white/60 font-semibold'"
+                            class="px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 cursor-pointer transition-all duration-200"
                         >
                             <span>Pending Students</span>
-                            <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold" :class="userManagementSubTab === 'pending' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-500'" x-text="pendingUsersCount">5</span>
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold" :class="userManagementSubTab === 'pending' ? 'bg-amber-400 text-amber-950' : 'bg-gray-200 text-gray-600'" x-text="pendingUsersCount">5</span>
                         </button>
                         <button 
                             type="button"
                             @click="userManagementSubTab = 'create'"
-                            :class="userManagementSubTab === 'create' ? 'border-[#0e5c3a] text-[#0e5c3a] font-bold' : 'border-transparent text-gray-400 hover:text-gray-600 font-semibold'"
-                            class="pb-4 border-b-2 text-xs flex items-center gap-2 cursor-pointer transition-all duration-200"
+                            :class="userManagementSubTab === 'create' ? 'bg-[#0e5c3a] text-white shadow-sm font-bold' : 'text-gray-600 hover:text-gray-900 hover:bg-white/60 font-semibold'"
+                            class="px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 cursor-pointer transition-all duration-200"
                         >
                             <i class="ph ph-user-plus text-sm"></i>
                             <span>Create User</span>
@@ -1935,8 +1935,8 @@
                         <!-- Sub-tab view: All Users & Pending Students Table -->
                         <div x-show="userManagementSubTab !== 'create'" class="overflow-x-auto">
                             <table class="w-full text-left text-xs border-collapse">
-                                <thead>
-                                    <tr class="border-b border-gray-100 text-gray-400 font-extrabold uppercase tracking-wider text-[9px]">
+                                <thead class="bg-gradient-to-r from-[#0e5c3a] to-[#0a4a2e] text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
+                                    <tr class="border-b border-emerald-900">
                                         <th class="py-4 px-4">Name</th>
                                         <th class="py-4 px-4">Email</th>
                                         <th class="py-4 px-4">Role</th>

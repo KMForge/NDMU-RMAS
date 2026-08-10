@@ -65,7 +65,7 @@
 
             <div class="overflow-x-auto">
                 <table class="w-full min-w-[820px] text-left">
-                    <thead class="border-b border-gray-100 bg-gray-50/80 text-[10px] font-extrabold uppercase tracking-wider text-gray-500">
+                    <thead class="bg-gradient-to-r from-[#0e5c3a] to-[#0a4a2e] text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
                         <tr>
                             <th class="px-6 py-4">Role</th>
                             <th class="px-6 py-4">Permissions</th>
