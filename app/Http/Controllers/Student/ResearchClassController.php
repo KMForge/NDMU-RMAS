@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Classes\JoinResearchClassRequest;
+use App\Models\Document;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassGroupMember;
 use App\Modules\Classes\Actions\RequestToJoinResearchClass;
@@ -42,11 +43,24 @@ class ResearchClassController extends Controller
             ])
             ->first();
 
+        $group = $groupMember?->group;
+        $groupDocuments = $group === null
+            ? collect()
+            : Document::query()
+                ->where('research_class_group_id', $group->id)
+                ->with([
+                    'comments' => fn ($q) => $q->with(['author:id,name', 'resolver:id,name'])->oldest(),
+                    'reviews' => fn ($q) => $q->with(['reviewer:id,name', 'supersedes'])->latest('reviewed_at'),
+                ])
+                ->latest('submitted_at')
+                ->get();
+
         return view('pages.student-class-details', [
             'student' => $request->user(),
             'researchClass' => $researchClass,
             'enrollment' => $enrollment,
-            'group' => $groupMember?->group,
+            'group' => $group,
+            'groupDocuments' => $groupDocuments,
         ]);
     }
 

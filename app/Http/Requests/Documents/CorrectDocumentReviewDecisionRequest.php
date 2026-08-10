@@ -7,7 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\Rule;
 
-class ReviewDocumentRequest extends FormRequest
+class CorrectDocumentReviewDecisionRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -28,6 +28,13 @@ class ReviewDocumentRequest extends FormRequest
                 'required',
                 Rule::in(['accepted', 'revision_requested', 'rejected']),
             ],
+            'correction_reason' => [
+                'bail',
+                'required',
+                'string',
+                'min:5',
+                'max:5000',
+            ],
             'review_notes' => [
                 'bail',
                 Rule::requiredIf(
@@ -47,17 +54,19 @@ class ReviewDocumentRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $reason = trim(strip_tags((string) $this->input('correction_reason')));
         $notes = trim(strip_tags((string) $this->input('review_notes')));
 
         $this->merge([
             'decision' => strtolower(trim((string) $this->input('decision'))),
+            'correction_reason' => $reason,
             'review_notes' => $notes === '' ? null : $notes,
         ]);
     }
 
     protected function failedAuthorization(): void
     {
-        $message = 'You do not have permission to review this document.';
+        $message = 'You do not have permission to correct decisions for this document.';
 
         if ($this->expectsJson()) {
             throw new HttpResponseException(response()->json(['message' => $message], 403));

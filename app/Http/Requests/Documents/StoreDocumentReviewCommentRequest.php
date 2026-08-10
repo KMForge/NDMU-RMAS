@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Documents;
 
+use App\Models\Document;
 use App\Models\DocumentReviewComment;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -11,7 +12,10 @@ class StoreDocumentReviewCommentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('documents.review') === true;
+        $document = $this->route('document');
+
+        return $document instanceof Document
+            && $this->user()?->can('review', $document) === true;
     }
 
     /**

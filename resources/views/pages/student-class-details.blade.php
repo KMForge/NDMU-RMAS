@@ -157,6 +157,119 @@
                     @endif
                 </div>
             </section>
+
+            <!-- Group Submissions & Adviser Review Feedback Section -->
+            @if ($group && isset($groupDocuments) && $groupDocuments->isNotEmpty())
+                <section class="rounded-2xl border border-gray-150 bg-white shadow-sm overflow-hidden">
+                    <div class="p-6 border-b border-gray-150 bg-gradient-to-r from-gray-50 to-white">
+                        <div class="flex items-center gap-3">
+                            <div class="w-2.5 h-8 rounded-full bg-[#0e5c3a]"></div>
+                            <div>
+                                <p class="text-[10px] font-black uppercase tracking-wider text-[#0e5c3a]">Group Submissions & Adviser Feedback</p>
+                                <h2 class="text-xl font-extrabold text-gray-850 mt-0.5">Adviser Findings & Review Status</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-6 space-y-6">
+                        @foreach ($groupDocuments as $doc)
+                            <div class="rounded-2xl border border-gray-150 bg-gray-50/50 p-5 space-y-4">
+                                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200/80 pb-4">
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h3 class="font-bold text-gray-900 text-base">{{ $doc->original_filename }}</h3>
+                                            <span class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-black uppercase text-[#0e5c3a]">
+                                                V{{ $doc->version_number }} · {{ $doc->is_current ? 'CURRENT' : 'VOID' }}
+                                            </span>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            Stage: {{ $doc->stageLabel() }} · Submitted: {{ $doc->submitted_at?->format('M j, Y g:i A') }}
+                                        </p>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <span class="rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider
+                                            @if($doc->status->value === 'accepted') bg-emerald-100 text-emerald-800
+                                            @elseif($doc->status->value === 'revision_requested') bg-amber-100 text-amber-800
+                                            @elseif($doc->status->value === 'rejected') bg-rose-100 text-rose-800
+                                            @elseif($doc->status->value === 'under_review') bg-blue-100 text-blue-800
+                                            @else bg-gray-200 text-gray-700 @endif">
+                                            {{ \Illuminate\Support\Str::headline($doc->status->value) }}
+                                        </span>
+                                        <a href="{{ route('documents.view', $doc) }}" class="rounded-xl bg-[#0e5c3a] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#0a4a2e]">
+                                            View File
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <!-- Review Comments / Findings -->
+                                @if ($doc->comments->isNotEmpty())
+                                    <div class="space-y-3">
+                                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-gray-600">Adviser Findings & Comments</h4>
+                                        <div class="space-y-2">
+                                            @foreach ($doc->comments as $c)
+                                                <div class="rounded-xl border border-gray-200 bg-white p-3.5 text-xs shadow-2xs flex flex-col gap-1.5">
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center gap-2">
+                                                            <span class="rounded-md px-2 py-0.5 text-[9px] font-black uppercase
+                                                                @if($c->severity === 'critical') bg-rose-100 text-rose-700 border border-rose-200
+                                                                @elseif($c->severity === 'revision') bg-amber-100 text-amber-800 border border-amber-200
+                                                                @else bg-blue-50 text-blue-700 border border-blue-200 @endif">
+                                                                {{ strtoupper($c->severity) }}
+                                                            </span>
+                                                            @if($c->page_number)
+                                                                <span class="font-bold text-gray-500">Page {{ $c->page_number }}</span>
+                                                            @endif
+                                                            <span class="font-bold text-gray-700">{{ $c->author?->name ?? 'Adviser' }}</span>
+                                                        </div>
+                                                        @if($c->resolved_at)
+                                                            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 flex items-center gap-1">
+                                                                <i class="ph ph-check-circle-fill"></i> Resolved
+                                                            </span>
+                                                        @else
+                                                            <span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                                                Unresolved
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                    <p class="text-gray-800 font-medium leading-relaxed">{{ $c->comment }}</p>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+
+                                <!-- Decision History -->
+                                @if ($doc->reviews->isNotEmpty())
+                                    <div class="space-y-2 pt-2">
+                                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-gray-600">Decision History</h4>
+                                        <div class="space-y-2">
+                                            @foreach ($doc->reviews as $r)
+                                                <div class="rounded-xl border border-gray-200 bg-white p-3 text-xs flex flex-col gap-1 {{ $r->is_superseded ? 'opacity-60 bg-gray-50' : '' }}">
+                                                    <div class="flex items-center justify-between">
+                                                        <span class="font-bold text-gray-800">
+                                                            {{ \Illuminate\Support\Str::headline($r->decision) }}
+                                                            @if($r->is_superseded)
+                                                                <span class="text-[9px] font-black uppercase bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded ml-1">Superseded</span>
+                                                            @endif
+                                                        </span>
+                                                        <span class="text-[10px] text-gray-400">{{ $r->reviewed_at?->format('M j, Y g:i A') }}</span>
+                                                    </div>
+                                                    @if($r->review_notes)
+                                                        <p class="text-gray-600 italic">"{{ $r->review_notes }}"</p>
+                                                    @endif
+                                                    @if($r->correction_reason)
+                                                        <p class="text-amber-800 font-semibold text-[11px] mt-0.5">Correction Reason: {{ $r->correction_reason }}</p>
+                                                    @endif
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
         </main>
     </div>
 </div>

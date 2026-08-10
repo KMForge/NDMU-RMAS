@@ -31,30 +31,46 @@ class GetAdviserDocumentReviewData
     public function for(
         User $reviewer,
         string $search = '',
-        string $status = 'pending',
+        string $status = 'needs_attention',
         ?int $selectedDocumentId = null,
     ): array {
         $search = Str::limit(trim($search), 100, '');
         $status = in_array($status, [
+            'needs_attention',
             'pending',
             'under_review',
             'revision_requested',
             'accepted',
             'rejected',
             'all',
-        ], true) ? $status : 'pending';
+        ], true) ? $status : 'needs_attention';
 
         $scope = $this->reviewerAccess->scopeFor(Document::query(), $reviewer);
         $documents = (clone $scope)
-            ->with('user:id,name,email,student_id,program')
+            ->with([
+                'user:id,name,email,student_id,program',
+                'researchClassGroup:id,name,leader_student_id',
+                'researchClassGroup.leader:id,name',
+            ])
             ->when(
                 $status !== 'all',
-                fn (Builder $query) => $status === 'pending'
-                    ? $query->whereIn('status', [
-                        DocumentStatus::Pending->value,
-                        DocumentStatus::Submitted->value,
-                    ])
-                    : $query->where('status', $status),
+                function (Builder $query) use ($status): void {
+                    if ($status === 'needs_attention') {
+                        $query->where('is_current', true)
+                            ->whereIn('status', [
+                                DocumentStatus::Pending->value,
+                                DocumentStatus::Submitted->value,
+                                DocumentStatus::UnderReview->value,
+                            ]);
+                    } elseif ($status === 'pending') {
+                        $query->whereIn('status', [
+                            DocumentStatus::Pending->value,
+                            DocumentStatus::Submitted->value,
+                        ]);
+                    } else {
+                        $query->where('status', $status);
+                    }
+                },
             )
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $pattern = '%'.Str::lower($search).'%';
@@ -67,19 +83,33 @@ class GetAdviserDocumentReviewData
                                 ->whereRaw('LOWER(name) LIKE ?', [$pattern])
                                 ->orWhereRaw('LOWER(email) LIKE ?', [$pattern])
                                 ->orWhereRaw('LOWER(student_id) LIKE ?', [$pattern]);
+                        })
+                        ->orWhereHas('researchClassGroup', function (Builder $groupQuery) use ($pattern): void {
+                            $groupQuery->whereRaw('LOWER(name) LIKE ?', [$pattern]);
                         });
                 });
             })
             ->latest('submitted_at')
-            ->paginate(8, ['*'], 'documents_page')
+            ->paginate(10, ['*'], 'documents_page')
             ->withQueryString();
 
         $selectedDocument = $selectedDocumentId === null
             ? $documents->first()
             : (clone $scope)
-                ->with('user:id,name,email,student_id,program')
+                ->with([
+                    'user:id,name,email,student_id,program',
+                    'researchClassGroup:id,name,leader_student_id,adviser_id',
+                    'researchClassGroup.leader:id,name',
+                    'reviews' => fn ($query) => $query->with(['reviewer:id,name', 'supersedes'])->latest('reviewed_at'),
+                ])
                 ->whereKey($selectedDocumentId)
                 ->first();
+
+        if ($selectedDocument !== null && ! $selectedDocument->relationLoaded('reviews')) {
+            $selectedDocument->load([
+                'reviews' => fn ($query) => $query->with(['reviewer:id,name', 'supersedes'])->latest('reviewed_at'),
+            ]);
+        }
 
         $comments = $selectedDocument === null
             ? collect()

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Adviser;
 use App\Http\Controllers\Controller;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupAdviserRequest;
+use App\Modules\Documents\Queries\GetAdviserDocumentReviewData;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -13,8 +14,11 @@ use Illuminate\Support\Collection;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request, GetDocumentRepositoryData $repositoryData): View
-    {
+    public function __invoke(
+        Request $request,
+        GetDocumentRepositoryData $repositoryData,
+        GetAdviserDocumentReviewData $reviewData,
+    ): View {
         $allowedTabs = [
             'dashboard',
             'classes',
@@ -65,6 +69,15 @@ class DashboardController extends Controller
 
         if ($activeTab === 'repository') {
             $viewData = [...$viewData, ...$repositoryData->for($user, $request->query())];
+        }
+
+        if ($activeTab === 'docreview') {
+            $viewData = [...$viewData, ...$reviewData->for(
+                $user,
+                (string) $request->query('document_search', ''),
+                (string) $request->query('document_status', 'needs_attention'),
+                $request->query('document_id') ? (int) $request->query('document_id') : null,
+            )];
         }
 
         return view('pages.adviser-dashboard', [

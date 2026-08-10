@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Adviser;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Documents\CorrectDocumentReviewDecisionRequest;
 use App\Http\Requests\Documents\ReviewDocumentRequest;
 use App\Http\Requests\Documents\StoreDocumentReviewCommentRequest;
 use App\Models\Document;
 use App\Models\DocumentReviewComment;
 use App\Modules\Documents\Actions\AddDocumentReviewComment;
+use App\Modules\Documents\Actions\CorrectDocumentReviewDecision;
 use App\Modules\Documents\Actions\ResolveDocumentReviewComment;
 use App\Modules\Documents\Actions\ReviewDocument;
 use App\Modules\Documents\Exceptions\DocumentReviewException;
@@ -118,6 +120,43 @@ class DocumentReviewController extends Controller
 
         return $this->redirectToDocument($document)
             ->with('document_review_success', 'Document review decision saved successfully.');
+    }
+
+    public function correct(
+        CorrectDocumentReviewDecisionRequest $request,
+        Document $document,
+        CorrectDocumentReviewDecision $correctDecision,
+    ): JsonResponse|RedirectResponse {
+        Gate::authorize('review', $document);
+
+        try {
+            $review = $correctDecision->handle(
+                $request->user(),
+                $document,
+                $request->string('decision')->toString(),
+                $request->string('correction_reason')->toString(),
+                $request->validated('review_notes'),
+                $request->ip(),
+            );
+        } catch (DocumentReviewException $exception) {
+            return $this->errorResponse($request, $document, $exception->getMessage());
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Document review decision corrected successfully.',
+                'review' => [
+                    'id' => $review->getKey(),
+                    'document_id' => $document->getKey(),
+                    'decision' => $review->decision,
+                    'correction_reason' => $review->correction_reason,
+                    'reviewed_at' => $review->reviewed_at->toIso8601String(),
+                ],
+            ]);
+        }
+
+        return $this->redirectToDocument($document)
+            ->with('document_review_success', 'Document review decision corrected successfully.');
     }
 
     private function errorResponse(

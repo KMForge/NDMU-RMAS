@@ -641,10 +641,356 @@
             </div>
 
             <!-- TAB: Document Review -->
-            <div x-show="activeTab === 'docreview'" x-cloak class="space-y-6">
+            <div x-show="activeTab === 'docreview'" x-cloak class="space-y-6" x-data="{ showCorrectionModal: false }">
                 <div>
-                    <h1 class="text-2xl font-bold font-heading text-gray-850">Document Review System</h1>
-                    <p class="text-sm text-gray-500 mt-1">Review and annotate documents submitted by your assigned researchers</p>
+                    <h1 class="text-2xl font-bold font-heading text-gray-850">Document Review Workstation</h1>
+                    <p class="text-sm text-gray-500 mt-1">Annotate findings, resolve issues, and record authoritative review decisions for your assigned research groups.</p>
+                </div>
+
+                @if (session('document_review_success'))
+                    <div class="rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-emerald-800 text-sm font-bold flex items-center gap-3">
+                        <i class="ph ph-check-circle text-xl text-emerald-600"></i>
+                        <span>{{ session('document_review_success') }}</span>
+                    </div>
+                @endif
+
+                @if ($errors->has('document_review'))
+                    <div class="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-rose-800 text-sm font-bold flex items-center gap-3">
+                        <i class="ph ph-warning-circle text-xl text-rose-600"></i>
+                        <span>{{ $errors->first('document_review') }}</span>
+                    </div>
+                @endif
+
+                <!-- Stats Bar -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div class="bg-white rounded-2xl p-4 border border-gray-150 shadow-2xs">
+                        <p class="text-[10px] font-black uppercase tracking-wider text-gray-400">Accepted</p>
+                        <p class="text-2xl font-extrabold text-emerald-700 mt-1">{{ $documentReviewStats['approved'] ?? 0 }}</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 border border-gray-150 shadow-2xs">
+                        <p class="text-[10px] font-black uppercase tracking-wider text-gray-400">Revision Requested</p>
+                        <p class="text-2xl font-extrabold text-amber-700 mt-1">{{ $documentReviewStats['revisions'] ?? 0 }}</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 border border-gray-150 shadow-2xs">
+                        <p class="text-[10px] font-black uppercase tracking-wider text-gray-400">Total Findings</p>
+                        <p class="text-2xl font-extrabold text-blue-700 mt-1">{{ $documentReviewStats['comments'] ?? 0 }}</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 border border-gray-150 shadow-2xs">
+                        <p class="text-[10px] font-black uppercase tracking-wider text-gray-400">Unresolved Critical</p>
+                        <p class="text-2xl font-extrabold text-rose-700 mt-1">{{ $documentReviewStats['critical'] ?? 0 }}</p>
+                    </div>
+                </div>
+
+                <!-- Search & Filters -->
+                <form method="GET" action="{{ route('adviser.dashboard') }}" class="bg-white rounded-2xl border border-gray-150 p-4 shadow-2xs flex flex-wrap items-center gap-3">
+                    <input type="hidden" name="tab" value="docreview">
+                    <div class="flex-1 min-w-[200px]">
+                        <input
+                            type="text"
+                            name="document_search"
+                            value="{{ $documentReviewSearch ?? '' }}"
+                            placeholder="Search document filename, group, or student..."
+                            class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-xs focus:border-[#0e5c3a] focus:outline-none"
+                        >
+                    </div>
+                    <select
+                        name="document_status"
+                        class="rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs font-semibold focus:border-[#0e5c3a] focus:outline-none"
+                    >
+                        <option value="needs_attention" @selected(($documentReviewStatus ?? '') === 'needs_attention')>Needs Attention</option>
+                        <option value="pending" @selected(($documentReviewStatus ?? '') === 'pending')>Pending</option>
+                        <option value="under_review" @selected(($documentReviewStatus ?? '') === 'under_review')>Under Review</option>
+                        <option value="revision_requested" @selected(($documentReviewStatus ?? '') === 'revision_requested')>Revision Requested</option>
+                        <option value="accepted" @selected(($documentReviewStatus ?? '') === 'accepted')>Accepted</option>
+                        <option value="rejected" @selected(($documentReviewStatus ?? '') === 'rejected')>Rejected</option>
+                        <option value="all" @selected(($documentReviewStatus ?? '') === 'all')>All Statuses</option>
+                    </select>
+                    <button type="submit" class="rounded-xl bg-[#0e5c3a] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#0a4a2e]">
+                        Filter Queue
+                    </button>
+                </form>
+
+                <!-- Queue Split View -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Left: Submissions Queue List -->
+                    <div class="lg:col-span-5 space-y-3">
+                        <h2 class="text-xs font-extrabold uppercase tracking-wider text-gray-500">Document Queue</h2>
+                        @if (!isset($reviewDocuments) || $reviewDocuments->isEmpty())
+                            <div class="bg-white rounded-2xl p-8 border border-gray-150 shadow-2xs text-center text-xs text-gray-500">
+                                No documents match the current queue filters.
+                            </div>
+                        @else
+                            <div class="space-y-2.5">
+                                @foreach ($reviewDocuments as $qDoc)
+                                    @php($isSelected = isset($selectedReviewDocument) && $selectedReviewDocument->id === $qDoc->id)
+                                    <a
+                                        href="{{ route('adviser.dashboard', ['tab' => 'docreview', 'document_search' => $documentReviewSearch ?? '', 'document_status' => $documentReviewStatus ?? '', 'document_id' => $qDoc->id]) }}"
+                                        class="block rounded-2xl border transition-all p-4 {{ $isSelected ? 'border-[#0e5c3a] bg-emerald-50/50 shadow-sm ring-1 ring-[#0e5c3a]' : 'border-gray-150 bg-white hover:border-gray-300' }}"
+                                    >
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div class="min-w-0">
+                                                <h3 class="font-bold text-xs text-gray-850 truncate">{{ $qDoc->original_filename }}</h3>
+                                                <p class="text-[11px] font-semibold text-[#0e5c3a] mt-0.5">{{ $qDoc->researchClassGroup?->name ?? 'Group Submission' }}</p>
+                                                <p class="text-[10px] text-gray-400 mt-1">Uploader: {{ $qDoc->user?->name ?? 'Student' }}</p>
+                                            </div>
+                                            <span class="shrink-0 rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase
+                                                @if($qDoc->status->value === 'accepted') bg-emerald-100 text-emerald-800
+                                                @elseif($qDoc->status->value === 'revision_requested') bg-amber-100 text-amber-800
+                                                @elseif($qDoc->status->value === 'rejected') bg-rose-100 text-rose-800
+                                                @elseif($qDoc->status->value === 'under_review') bg-blue-100 text-blue-800
+                                                @else bg-gray-200 text-gray-700 @endif">
+                                                {{ \Illuminate\Support\Str::headline($qDoc->status->value) }}
+                                            </span>
+                                        </div>
+                                    </a>
+                                @endforeach
+                            </div>
+                            <div class="pt-2">
+                                {{ $reviewDocuments->links() }}
+                            </div>
+                        @endif
+                    </div>
+
+                    <!-- Right: Workstation Details & Action Panel -->
+                    <div class="lg:col-span-7 space-y-6">
+                        @if (!isset($selectedReviewDocument) || $selectedReviewDocument === null)
+                            <div class="bg-white rounded-2xl p-12 border border-gray-150 shadow-2xs text-center text-gray-500">
+                                <i class="ph ph-file-text text-5xl text-gray-300"></i>
+                                <p class="mt-3 text-sm font-semibold">Select a document submission from the left queue to begin reviewing.</p>
+                            </div>
+                        @else
+                            @php($selDoc = $selectedReviewDocument)
+                            @php($unresolvedBlocking = isset($documentReviewComments) && $documentReviewComments->whereNull('resolved_at')->whereIn('severity', ['revision', 'critical'])->count() > 0)
+
+                            <!-- Selected Document Overview Card -->
+                            <div class="bg-white rounded-2xl border border-gray-150 p-6 shadow-2xs space-y-4">
+                                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-150 pb-4">
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h2 class="font-extrabold text-lg text-gray-850">{{ $selDoc->original_filename }}</h2>
+                                            <span class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-black uppercase text-[#0e5c3a]">
+                                                V{{ $selDoc->version_number }} · {{ $selDoc->is_current ? 'CURRENT' : 'VOID' }}
+                                            </span>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            Group: <strong>{{ $selDoc->researchClassGroup?->name ?? 'N/A' }}</strong> · Stage: <strong>{{ $selDoc->stageLabel() }}</strong>
+                                        </p>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <a href="{{ route('documents.view', $selDoc) }}" class="rounded-xl bg-[#0e5c3a] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#0a4a2e]">
+                                            Inspect / View
+                                        </a>
+                                        <a href="{{ route('documents.download', $selDoc) }}" class="rounded-xl border border-gray-200 px-3.5 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50">
+                                            Download
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <!-- Add Finding Comment Form -->
+                                @if ($selDoc->is_current)
+                                    <form method="POST" action="{{ route('adviser.documents.comments.store', $selDoc) }}" class="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                        @csrf
+                                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-gray-700">Add Finding / Annotate Comment</h4>
+                                        <textarea
+                                            name="comment"
+                                            rows="3"
+                                            required
+                                            placeholder="Write detailed adviser feedback or revision finding..."
+                                            class="w-full rounded-xl border border-gray-200 p-3 text-xs focus:border-[#0e5c3a] focus:outline-none bg-white"
+                                        ></textarea>
+                                        <div class="flex flex-wrap items-center justify-between gap-3">
+                                            <div class="flex items-center gap-3">
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-gray-500 uppercase block mb-1">Severity</label>
+                                                    <select name="severity" class="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold focus:border-[#0e5c3a] focus:outline-none bg-white">
+                                                        <option value="comment">Comment (Informational)</option>
+                                                        <option value="revision">Revision Required</option>
+                                                        <option value="critical">Critical Blocker</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-gray-500 uppercase block mb-1">Page (PDF Optional)</label>
+                                                    <input type="number" name="page_number" min="1" max="1000" placeholder="Page #" class="w-24 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs focus:border-[#0e5c3a] focus:outline-none bg-white">
+                                                </div>
+                                            </div>
+                                            <button type="submit" class="rounded-xl bg-[#0e5c3a] px-4 py-2 text-xs font-bold text-white hover:bg-[#0a4a2e] self-end">
+                                                Post Finding
+                                            </button>
+                                        </div>
+                                    </form>
+                                @else
+                                    <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs font-semibold">
+                                        This document version is VOID (superseded). New comments and review decisions are disabled.
+                                    </div>
+                                @endif
+
+                                <!-- Findings List -->
+                                @if (isset($documentReviewComments) && $documentReviewComments->isNotEmpty())
+                                    <div class="space-y-3 pt-2">
+                                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-gray-700">Findings & Annotations</h4>
+                                        <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                                            @foreach ($documentReviewComments as $comm)
+                                                <div class="rounded-xl border border-gray-200 bg-white p-3.5 text-xs flex flex-col gap-1.5 shadow-2xs">
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center gap-2">
+                                                            <span class="rounded-md px-2 py-0.5 text-[9px] font-black uppercase
+                                                                @if($comm->severity === 'critical') bg-rose-100 text-rose-700 border border-rose-200
+                                                                @elseif($comm->severity === 'revision') bg-amber-100 text-amber-800 border border-amber-200
+                                                                @else bg-blue-50 text-blue-700 border border-blue-200 @endif">
+                                                                {{ strtoupper($comm->severity) }}
+                                                            </span>
+                                                            @if($comm->page_number)
+                                                                <span class="font-bold text-gray-500">Page {{ $comm->page_number }}</span>
+                                                            @endif
+                                                            <span class="font-bold text-gray-700">{{ $comm->author?->name ?? 'Adviser' }}</span>
+                                                        </div>
+                                                        @if ($comm->resolved_at)
+                                                            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                                                Resolved by {{ $comm->resolver?->name ?? 'Adviser' }}
+                                                            </span>
+                                                        @elseif ($selDoc->is_current)
+                                                            <form method="POST" action="{{ route('adviser.documents.comments.resolve', [$selDoc, $comm]) }}">
+                                                                @csrf
+                                                                @method('PATCH')
+                                                                <button type="submit" class="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 border border-emerald-300 rounded px-2 py-0.5 hover:bg-emerald-50">
+                                                                    Mark Resolved
+                                                                </button>
+                                                            </form>
+                                                        @endif
+                                                    </div>
+                                                    <p class="text-gray-800 font-medium leading-relaxed">{{ $comm->comment }}</p>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+
+                                <!-- Record Final Review Decision Form -->
+                                @if ($selDoc->is_current && !in_array($selDoc->status->value, ['accepted', 'rejected', 'revision_requested'], true))
+                                    <div class="space-y-3 pt-3 border-t border-gray-200">
+                                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-gray-800">Record Final Review Decision</h4>
+
+                                        @if ($unresolvedBlocking)
+                                            <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-bold flex items-center gap-2">
+                                                <i class="ph ph-warning"></i>
+                                                <span>Document has unresolved revision or critical findings. Accepting this document is blocked server-side until findings are resolved.</span>
+                                            </div>
+                                        @endif
+
+                                        <form method="POST" action="{{ route('adviser.documents.review', $selDoc) }}" class="space-y-3">
+                                            @csrf
+                                            @method('PATCH')
+                                            <div>
+                                                <label class="text-[10px] font-bold text-gray-500 uppercase block mb-1">Decision</label>
+                                                <select name="decision" class="w-full rounded-xl border border-gray-200 p-2.5 text-xs font-semibold focus:border-[#0e5c3a] focus:outline-none bg-white">
+                                                    <option value="accepted" @disabled($unresolvedBlocking)>Accept Document @if($unresolvedBlocking) (Blocked: Unresolved Findings) @endif</option>
+                                                    <option value="revision_requested">Revision Requested (Notes Required)</option>
+                                                    <option value="rejected">Reject Document (Notes Required)</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="text-[10px] font-bold text-gray-500 uppercase block mb-1">Review Notes / Adviser Directive</label>
+                                                <textarea name="review_notes" rows="3" placeholder="Provide notes or directives for the research group..." class="w-full rounded-xl border border-gray-200 p-3 text-xs focus:border-[#0e5c3a] focus:outline-none bg-white"></textarea>
+                                            </div>
+                                            <button type="submit" class="w-full rounded-xl bg-[#0e5c3a] py-3 text-xs font-bold text-white hover:bg-[#0a4a2e]">
+                                                Submit Authoritative Decision
+                                            </button>
+                                        </form>
+                                    </div>
+                                @elseif ($selDoc->is_current && in_array($selDoc->status->value, ['accepted', 'rejected', 'revision_requested'], true))
+                                    <!-- Decision Banner & Correction Button -->
+                                    <div class="space-y-3 pt-3 border-t border-gray-200">
+                                        <div class="p-4 rounded-xl border flex items-center justify-between gap-3
+                                            @if($selDoc->status->value === 'accepted') bg-emerald-50 border-emerald-200 text-emerald-900
+                                            @elseif($selDoc->status->value === 'rejected') bg-rose-50 border-rose-200 text-rose-900
+                                            @else bg-amber-50 border-amber-200 text-amber-900 @endif">
+                                            <div>
+                                                <p class="text-[10px] font-black uppercase tracking-wider">Current Final Decision</p>
+                                                <p class="text-sm font-extrabold mt-0.5">{{ \Illuminate\Support\Str::headline($selDoc->status->value) }}</p>
+                                            </div>
+                                            <button type="button" @click="showCorrectionModal = true" class="rounded-xl border border-gray-400 bg-white px-3.5 py-2 text-xs font-bold text-gray-800 shadow-2xs hover:bg-gray-50">
+                                                Correct Decision
+                                            </button>
+                                        </div>
+                                    </div>
+                                @endif
+
+                                <!-- Decision History Timeline -->
+                                @if (isset($selDoc->reviews) && $selDoc->reviews->isNotEmpty())
+                                    <div class="space-y-2 pt-3 border-t border-gray-200">
+                                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-gray-700">Audit Review History</h4>
+                                        <div class="space-y-2">
+                                            @foreach ($selDoc->reviews as $rev)
+                                                <div class="rounded-xl border border-gray-200 bg-white p-3 text-xs flex flex-col gap-1 {{ $rev->is_superseded ? 'opacity-60 bg-gray-50' : '' }}">
+                                                    <div class="flex items-center justify-between">
+                                                        <span class="font-bold text-gray-800">
+                                                            {{ \Illuminate\Support\Str::headline($rev->decision) }}
+                                                            @if($rev->is_superseded)
+                                                                <span class="text-[9px] font-black uppercase bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded ml-1">Superseded</span>
+                                                            @endif
+                                                        </span>
+                                                        <span class="text-[10px] text-gray-400">{{ $rev->reviewed_at?->format('M j, Y g:i A') }}</span>
+                                                    </div>
+                                                    <p class="text-[10px] text-gray-500">Reviewer: {{ $rev->reviewer?->name ?? 'Adviser' }}</p>
+                                                    @if($rev->review_notes)
+                                                        <p class="text-gray-600 italic">"{{ $rev->review_notes }}"</p>
+                                                    @endif
+                                                    @if($rev->correction_reason)
+                                                        <p class="text-amber-800 font-semibold text-[11px] mt-0.5">Correction Reason: {{ $rev->correction_reason }}</p>
+                                                    @endif
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+
+                            <!-- Decision Correction Modal -->
+                            <div x-show="showCorrectionModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                                <div class="absolute inset-0 bg-black/50" @click="showCorrectionModal = false"></div>
+                                <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 space-y-5 text-left" @click.stop>
+                                    <div class="flex items-center justify-between border-b border-gray-150 pb-4">
+                                        <div>
+                                            <h3 class="font-bold text-lg text-gray-850">Correct Review Decision</h3>
+                                            <p class="text-xs text-gray-500 mt-0.5">Amend an accidental decision. Original evidence is preserved in audit history.</p>
+                                        </div>
+                                        <button type="button" @click="showCorrectionModal = false" class="text-gray-400 hover:text-gray-600">
+                                            <i class="ph ph-x text-xl"></i>
+                                        </button>
+                                    </div>
+
+                                    <form method="POST" action="{{ route('adviser.documents.review.correct', $selDoc) }}" class="space-y-4">
+                                        @csrf
+                                        @method('PATCH')
+                                        <div>
+                                            <label class="text-[10px] font-bold text-gray-500 uppercase block mb-1">New Corrected Decision</label>
+                                            <select name="decision" class="w-full rounded-xl border border-gray-200 p-2.5 text-xs font-semibold focus:border-[#0e5c3a] focus:outline-none bg-white">
+                                                <option value="accepted" @disabled($unresolvedBlocking)>Accept Document @if($unresolvedBlocking) (Blocked: Unresolved Findings) @endif</option>
+                                                <option value="revision_requested">Revision Requested</option>
+                                                <option value="rejected">Reject Document</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] font-bold text-gray-500 uppercase block mb-1">Mandatory Correction Reason</label>
+                                            <textarea name="correction_reason" rows="3" required placeholder="Explain why the prior review decision is being corrected..." class="w-full rounded-xl border border-gray-200 p-3 text-xs focus:border-[#0e5c3a] focus:outline-none bg-white"></textarea>
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] font-bold text-gray-500 uppercase block mb-1">New Review Notes (Optional)</label>
+                                            <textarea name="review_notes" rows="2" placeholder="Updated notes for research group..." class="w-full rounded-xl border border-gray-200 p-3 text-xs focus:border-[#0e5c3a] focus:outline-none bg-white"></textarea>
+                                        </div>
+                                        <div class="flex justify-end gap-3 pt-2">
+                                            <button type="button" @click="showCorrectionModal = false" class="px-4 py-2.5 border border-gray-200 text-gray-700 text-xs font-bold rounded-xl hover:bg-gray-50">
+                                                Cancel
+                                            </button>
+                                            <button type="submit" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl">
+                                                Save Correction
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
                 </div>
             </div>
 

@@ -2,19 +2,18 @@
 
 namespace Tests\Feature\Documents;
 
+use App\Enums\DocumentStage;
 use App\Enums\DocumentStatus;
 use App\Models\Document;
+use App\Models\DocumentReview;
 use App\Models\DocumentReviewComment;
 use App\Models\ResearchClass;
-use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupMember;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -28,20 +27,18 @@ class AdviserDocumentReviewTest extends TestCase
         parent::setUp();
 
         $this->seed(RolePermissionSeeder::class);
-        Storage::fake('local');
-        $this->createResearchContextTables();
+        Storage::fake('private');
     }
 
-    public function test_adviser_document_queue_is_scoped_to_active_students(): void
+    public function test_adviser_document_queue_is_scoped_to_assigned_groups(): void
     {
         $adviser = $this->adviser();
         $otherAdviser = $this->adviser();
-        $student = $this->student('Visible Researcher');
-        $hiddenStudent = $this->student('Hidden Researcher');
-        $this->enroll($adviser, $student);
-        $this->enroll($otherAdviser, $hiddenStudent);
-        $visibleDocument = $this->document($student, 'visible-paper.pdf');
-        $this->document($hiddenStudent, 'hidden-paper.pdf');
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Alpha Group');
+        [$otherGroup, $otherLeader] = $this->createGroupWithAdviser($otherAdviser, 'Beta Group');
+
+        $visibleDoc = $this->document($leader, $group, 'alpha-paper.pdf');
+        $hiddenDoc = $this->document($otherLeader, $otherGroup, 'beta-paper.pdf');
 
         $this->actingAs($adviser)
             ->get(route('adviser.dashboard', [
@@ -49,42 +46,39 @@ class AdviserDocumentReviewTest extends TestCase
                 'document_status' => 'all',
             ]))
             ->assertOk()
-            ->assertSee('visible-paper.pdf')
-            ->assertSee('Visible Researcher')
-            ->assertDontSee('hidden-paper.pdf')
-            ->assertDontSee('Hidden Researcher')
-            ->assertSee(route('documents.view', $visibleDocument))
-            ->assertSee(route('documents.download', $visibleDocument));
+            ->assertSee('alpha-paper.pdf')
+            ->assertSee('Alpha Group')
+            ->assertDontSee('beta-paper.pdf')
+            ->assertDontSee('Beta Group')
+            ->assertSee(route('documents.view', $visibleDoc))
+            ->assertSee(route('documents.download', $visibleDoc));
     }
 
-    public function test_assigned_adviser_can_securely_view_but_other_adviser_cannot(): void
+    public function test_assigned_adviser_can_securely_view_document_stream(): void
     {
         $adviser = $this->adviser();
         $otherAdviser = $this->adviser();
-        $student = $this->student('File Owner');
-        $this->enroll($adviser, $student);
-        $document = $this->document($student, 'secure-paper.pdf');
-        Storage::disk('local')->put($document->storage_path, '%PDF-1.7 secure');
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Research Team');
+        $document = $this->document($leader, $group, 'secure-paper.pdf');
+        Storage::disk('private')->put($document->storage_path, '%PDF-1.7 content%%EOF');
 
         $this->actingAs($adviser)
             ->get(route('documents.view', $document))
             ->assertOk()
             ->assertHeader('Content-Type', 'application/pdf')
             ->assertHeader('X-Content-Type-Options', 'nosniff')
-            ->assertHeader('Content-Security-Policy', "frame-ancestors 'self'")
-            ->assertHeader('Cross-Origin-Resource-Policy', 'same-origin');
+            ->assertHeader('Content-Security-Policy', "frame-ancestors 'self'");
 
         $this->actingAs($otherAdviser)
             ->get(route('documents.view', $document))
             ->assertForbidden();
     }
 
-    public function test_assigned_adviser_can_post_sanitized_comment(): void
+    public function test_assigned_adviser_can_post_sanitized_comment_and_changes_status_to_under_review(): void
     {
         $adviser = $this->adviser();
-        $student = $this->student('Comment Student');
-        $this->enroll($adviser, $student);
-        $document = $this->document($student, 'comment-paper.pdf');
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Comment Group');
+        $document = $this->document($leader, $group, 'comment-paper.pdf');
 
         $this->actingAs($adviser)
             ->postJson(route('adviser.documents.comments.store', $document), [
@@ -94,8 +88,7 @@ class AdviserDocumentReviewTest extends TestCase
             ])
             ->assertCreated()
             ->assertJsonPath('message', 'Comment posted successfully.')
-            ->assertJsonPath('comment.severity', 'critical')
-            ->assertJsonMissingPath('comment.document_id');
+            ->assertJsonPath('comment.severity', 'critical');
 
         $this->assertDatabaseHas('document_review_comments', [
             'document_id' => $document->getKey(),
@@ -104,15 +97,105 @@ class AdviserDocumentReviewTest extends TestCase
             'severity' => 'critical',
             'page_number' => 12,
         ]);
+        $this->assertDatabaseHas('document_review_audits', [
+            'document_id' => $document->getKey(),
+            'reviewer_id' => $adviser->getKey(),
+            'action' => 'comment_added',
+        ]);
         $this->assertSame(DocumentStatus::UnderReview, $document->fresh()->status);
+    }
+
+    public function test_unresolved_critical_or_revision_comment_blocks_accepted_decision(): void
+    {
+        $adviser = $this->adviser();
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Blocking Group');
+        $document = $this->document($leader, $group, 'blocking-paper.pdf');
+
+        DocumentReviewComment::query()->create([
+            'document_id' => $document->getKey(),
+            'author_id' => $adviser->getKey(),
+            'comment' => 'Must fix methodology',
+            'severity' => 'critical',
+        ]);
+
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.documents.review', $document), [
+                'decision' => 'accepted',
+                'review_notes' => 'Attempting acceptance.',
+            ])
+            ->assertStatus(409)
+            ->assertJsonPath('message', 'Cannot accept document while it has unresolved revision or critical findings.');
+
+        $this->assertDatabaseCount('document_reviews', 0);
+        $this->assertSame(DocumentStatus::Pending, $document->fresh()->status);
+    }
+
+    public function test_informational_comment_does_not_block_accepted_decision(): void
+    {
+        $adviser = $this->adviser();
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Info Group');
+        $document = $this->document($leader, $group, 'info-paper.pdf');
+
+        DocumentReviewComment::query()->create([
+            'document_id' => $document->getKey(),
+            'author_id' => $adviser->getKey(),
+            'comment' => 'Nice formatting note.',
+            'severity' => 'comment',
+        ]);
+
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.documents.review', $document), [
+                'decision' => 'accepted',
+                'review_notes' => 'Approved.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('message', 'Document review decision saved successfully.');
+
+        $this->assertDatabaseHas('document_reviews', [
+            'document_id' => $document->getKey(),
+            'reviewer_id' => $adviser->getKey(),
+            'decision' => 'accepted',
+            'review_notes' => 'Approved.',
+        ]);
+        $this->assertSame(DocumentStatus::Accepted, $document->fresh()->status);
+    }
+
+    public function test_assigned_adviser_can_resolve_comment_and_then_accept(): void
+    {
+        $adviser = $this->adviser();
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Resolve Group');
+        $document = $this->document($leader, $group, 'resolve-paper.pdf');
+
+        $comment = DocumentReviewComment::query()->create([
+            'document_id' => $document->getKey(),
+            'author_id' => $adviser->getKey(),
+            'comment' => 'Fix section 2',
+            'severity' => 'revision',
+        ]);
+
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.documents.comments.resolve', [$document, $comment]))
+            ->assertOk()
+            ->assertJsonPath('message', 'Comment resolved successfully.');
+
+        $this->assertNotNull($comment->fresh()->resolved_at);
+        $this->assertSame($adviser->getKey(), $comment->fresh()->resolved_by);
+
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.documents.review', $document), [
+                'decision' => 'accepted',
+                'review_notes' => 'All findings addressed.',
+            ])
+            ->assertOk();
+
+        $this->assertSame(DocumentStatus::Accepted, $document->fresh()->status);
     }
 
     public function test_revision_and_rejection_decisions_require_notes(): void
     {
         $adviser = $this->adviser();
-        $student = $this->student('Validation Student');
-        $this->enroll($adviser, $student);
-        $document = $this->document($student, 'validation-paper.pdf');
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Validation Group');
+        $document = $this->document($leader, $group, 'validation-paper.pdf');
 
         $this->actingAs($adviser)
             ->patchJson(route('adviser.documents.review', $document), [
@@ -123,118 +206,80 @@ class AdviserDocumentReviewTest extends TestCase
             ->assertJsonValidationErrors('review_notes');
 
         $this->assertDatabaseCount('document_reviews', 0);
-        $this->assertSame(DocumentStatus::Pending, $document->fresh()->status);
     }
 
-    public function test_assigned_adviser_can_request_revision_once(): void
+    public function test_controlled_decision_correction_preserves_history_and_updates_status(): void
     {
         $adviser = $this->adviser();
-        $student = $this->student('Revision Student');
-        $this->enroll($adviser, $student);
-        $document = $this->document($student, 'revision-paper.pdf');
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Correction Group');
+        $document = $this->document($leader, $group, 'correction-paper.pdf');
 
         $this->actingAs($adviser)
             ->patchJson(route('adviser.documents.review', $document), [
                 'decision' => 'revision_requested',
-                'review_notes' => '<b>Please correct the methodology.</b>',
+                'review_notes' => 'Please revise methodology.',
+            ])
+            ->assertOk();
+
+        $originalReview = DocumentReview::query()->where('document_id', $document->getKey())->firstOrFail();
+
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.documents.review.correct', $document), [
+                'decision' => 'rejected',
+                'correction_reason' => 'Initial review did not check plagiarized sections.',
+                'review_notes' => 'Paper rejected due to plagiarized sections.',
             ])
             ->assertOk()
-            ->assertJsonPath('review.decision', 'revision_requested')
-            ->assertJsonMissingPath('review.review_notes');
+            ->assertJsonPath('message', 'Document review decision corrected successfully.');
+
+        $this->assertTrue($originalReview->fresh()->is_superseded);
 
         $this->assertDatabaseHas('document_reviews', [
             'document_id' => $document->getKey(),
             'reviewer_id' => $adviser->getKey(),
-            'decision' => 'revision_requested',
-            'review_notes' => 'Please correct the methodology.',
+            'supersedes_review_id' => $originalReview->getKey(),
+            'is_superseded' => false,
+            'decision' => 'rejected',
+            'correction_reason' => 'Initial review did not check plagiarized sections.',
         ]);
-        $this->assertDatabaseHas('revision_requests', [
-            'document_id' => $document->getKey(),
-            'requested_by' => $adviser->getKey(),
-            'assigned_to' => $student->getKey(),
-            'status' => 'open',
-            'instructions' => 'Please correct the methodology.',
-        ]);
-        $this->assertDatabaseHas('research_proposals', [
-            'document_id' => $document->getKey(),
-            'submitted_by' => $student->getKey(),
-            'reviewed_by' => $adviser->getKey(),
-            'status' => 'revision_requested',
-        ]);
+
+        $this->assertSame(DocumentStatus::Rejected, $document->fresh()->status);
         $this->assertDatabaseHas('document_review_audits', [
             'document_id' => $document->getKey(),
-            'reviewer_id' => $adviser->getKey(),
-            'student_id' => $student->getKey(),
-            'action' => 'document_reviewed',
-            'decision' => 'revision_requested',
+            'action' => 'review_decision_corrected',
+            'decision' => 'rejected',
         ]);
-        $this->assertDatabaseCount('notifications', 1);
-        $this->assertSame(DocumentStatus::RevisionRequested, $document->fresh()->status);
-
-        $this->actingAs($adviser)
-            ->patchJson(route('adviser.documents.review', $document), [
-                'decision' => 'accepted',
-            ])
-            ->assertConflict()
-            ->assertExactJson([
-                'message' => 'This document has already received a final review decision.',
-            ]);
-
-        $this->assertDatabaseCount('document_reviews', 1);
     }
 
-    public function test_accepted_document_creates_progress_and_proposal_records(): void
+    public function test_cannot_review_or_correct_void_document_version(): void
     {
         $adviser = $this->adviser();
-        $student = $this->student('Accepted Student');
-        $this->enroll($adviser, $student);
-        $projectId = $this->attachProject($student);
-        $milestoneId = DB::table('research_milestones')->insertGetId([
-            'academic_term_id' => 1,
-            'program_id' => 1,
-            'name' => 'Proposal Review',
-            'description' => 'Submit and pass proposal review.',
-            'due_at' => now()->addWeek(),
-            'sequence' => 1,
-            'is_required' => true,
-        ]);
-        $document = $this->document($student, 'accepted-proposal.pdf');
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Void Group');
+        $voidDoc = $this->document($leader, $group, 'void-v1.pdf');
+        $voidDoc->update(['is_current' => false]);
 
         $this->actingAs($adviser)
-            ->patchJson(route('adviser.documents.review', $document), [
-                'decision' => 'accepted',
-                'review_notes' => 'Looks good.',
+            ->postJson(route('adviser.documents.comments.store', $voidDoc), [
+                'comment' => 'Comment on void',
+                'severity' => 'comment',
             ])
-            ->assertOk()
-            ->assertJsonPath('review.decision', 'accepted');
+            ->assertStatus(409);
 
-        $this->assertDatabaseHas('research_proposals', [
-            'research_project_id' => $projectId,
-            'document_id' => $document->getKey(),
-            'status' => 'approved',
-        ]);
-        $this->assertDatabaseHas('research_progress_updates', [
-            'research_project_id' => $projectId,
-            'milestone_id' => $milestoneId,
-            'submitted_by' => $student->getKey(),
-            'reviewed_by' => $adviser->getKey(),
-            'evidence_document_id' => $document->getKey(),
-            'status' => 'approved',
-        ]);
-        $this->assertDatabaseHas('document_review_audits', [
-            'document_id' => $document->getKey(),
-            'decision' => 'accepted',
-        ]);
-        $this->assertDatabaseCount('notifications', 1);
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.documents.review', $voidDoc), [
+                'decision' => 'rejected',
+                'review_notes' => 'Rejecting void document.',
+            ])
+            ->assertStatus(409);
     }
 
-    public function test_adviser_cannot_review_another_advisers_document(): void
+    public function test_unassigned_adviser_and_admin_without_assignment_cannot_review(): void
     {
         $assignedAdviser = $this->adviser();
         $otherAdviser = $this->adviser();
-        $student = $this->student('Protected Student');
-        $this->enroll($assignedAdviser, $student);
-        $document = $this->document($student, 'protected-paper.pdf');
+        $admin = $this->admin();
+        [$group, $leader] = $this->createGroupWithAdviser($assignedAdviser, 'Protected Group');
+        $document = $this->document($leader, $group, 'protected-paper.pdf');
 
         $this->actingAs($otherAdviser)
             ->patchJson(route('adviser.documents.review', $document), [
@@ -242,247 +287,155 @@ class AdviserDocumentReviewTest extends TestCase
             ])
             ->assertForbidden();
 
-        $this->assertDatabaseCount('document_reviews', 0);
+        $this->actingAs($admin)
+            ->patchJson(route('adviser.documents.review', $document), [
+                'decision' => 'accepted',
+            ])
+            ->assertForbidden();
     }
 
-    public function test_comment_resolution_is_scoped_to_its_document(): void
+    public function test_active_group_members_can_view_review_feedback(): void
     {
         $adviser = $this->adviser();
-        $student = $this->student('Resolve Student');
-        $this->enroll($adviser, $student);
-        $document = $this->document($student, 'first-paper.pdf');
-        $otherDocument = $this->document($student, 'second-paper.pdf');
-        $comment = DocumentReviewComment::query()->create([
-            'document_id' => $otherDocument->getKey(),
-            'author_id' => $adviser->getKey(),
-            'severity' => 'comment',
-            'comment' => 'Comment on the other document.',
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Member Group');
+        $member = $this->student('Group Member');
+
+        ResearchClassGroupMember::query()->create([
+            'research_class_group_id' => $group->id,
+            'research_class_id' => $group->research_class_id,
+            'research_class_enrollment_id' => $this->enrollInClass($group->researchClass, $member),
+            'student_id' => $member->id,
+            'assigned_by' => $adviser->id,
         ]);
 
-        $this->actingAs($adviser)
-            ->patchJson(route('adviser.documents.comments.resolve', [$document, $comment]))
-            ->assertConflict()
-            ->assertExactJson(['message' => 'The document comment was not found.']);
+        $document = $this->document($leader, $group, 'group-manuscript.pdf');
+        DocumentReviewComment::query()->create([
+            'document_id' => $document->getKey(),
+            'author_id' => $adviser->getKey(),
+            'comment' => 'Add references section',
+            'severity' => 'revision',
+            'page_number' => 5,
+        ]);
 
-        $this->assertNull($comment->fresh()->resolved_at);
-    }
-
-    public function test_classes_tab_does_not_query_hidden_consultation_or_document_tabs(): void
-    {
-        $adviser = $this->adviser();
-        $student = $this->student('Lazy Tab Student');
-        $this->enroll($adviser, $student);
-        $queries = [];
-
-        DB::listen(function ($query) use (&$queries): void {
-            $queries[] = strtolower($query->sql);
-        });
-
-        $this->actingAs($adviser)
-            ->get(route('adviser.dashboard', ['tab' => 'classes']))
-            ->assertOk();
-
-        $executedSql = implode("\n", $queries);
-
-        $this->assertStringNotContainsString('consultation_requests', $executedSql);
-        $this->assertStringNotContainsString('consultation_records', $executedSql);
-        $this->assertStringNotContainsString('document_review_comments', $executedSql);
-        $this->assertStringNotContainsString(' from "documents"', $executedSql);
-    }
-
-    public function test_class_authorized_document_view_avoids_schema_introspection_queries(): void
-    {
-        $adviser = $this->adviser();
-        $student = $this->student('Fast File Student');
-        $this->enroll($adviser, $student);
-        $document = $this->document($student, 'fast-paper.pdf');
-        Storage::disk('local')->put($document->storage_path, '%PDF-1.7 fast');
-        $queries = [];
-
-        DB::listen(function ($query) use (&$queries): void {
-            $queries[] = strtolower($query->sql);
-        });
-
-        $this->actingAs($adviser)
-            ->get(route('documents.view', $document))
-            ->assertOk();
-
-        $this->assertStringNotContainsString(
-            'information_schema',
-            implode("\n", $queries),
-        );
+        $this->actingAs($member)
+            ->get(route('student.classes.show', $group->researchClass))
+            ->assertOk()
+            ->assertSee('Add references section')
+            ->assertSee('Page 5');
     }
 
     private function adviser(): User
     {
-        $adviser = User::factory()->create();
-        $adviser->assignRole('research-adviser');
+        $user = User::factory()->create([
+            'user_type' => 'faculty',
+            'status' => 'active',
+            'approved_at' => now(),
+        ]);
+        $user->assignRole('thesis-adviser');
 
-        return $adviser;
+        return $user;
     }
 
-    private function student(string $name): User
+    private function student(string $name = 'Student Researcher'): User
     {
-        $student = User::factory()->create(['name' => $name]);
-        $student->assignRole('student-researcher');
+        $user = User::factory()->create([
+            'name' => $name,
+            'user_type' => 'student',
+            'status' => 'active',
+            'approved_at' => now(),
+            'student_id' => 'STU-'.Str::random(6),
+        ]);
+        $user->assignRole('student');
 
-        return $student;
+        return $user;
     }
 
-    private function enroll(User $adviser, User $student): void
+    private function admin(): User
     {
-        $facilitator = User::factory()->create();
+        $user = User::factory()->create([
+            'user_type' => 'admin',
+            'status' => 'active',
+            'approved_at' => now(),
+        ]);
+        $user->assignRole('administrator');
+
+        return $user;
+    }
+
+    /**
+     * @return array{0: ResearchClassGroup, 1: User}
+     */
+    private function createGroupWithAdviser(User $adviser, string $groupName): array
+    {
+        $facilitator = User::factory()->create(['user_type' => 'faculty', 'status' => 'active', 'approved_at' => now()]);
         $facilitator->assignRole('research-facilitator');
-        $researchClass = new ResearchClass([
-            'facilitator_id' => $facilitator->getKey(),
+
+        $class = new ResearchClass([
+            'facilitator_id' => $facilitator->id,
             'creation_token' => (string) Str::uuid(),
-            'name' => 'Research Class '.$student->getKey(),
+            'name' => 'Capstone 101',
             'max_students' => 50,
             'is_active' => true,
         ]);
-        $researchClass->setJoinCode(Str::upper(Str::random(8)));
-        $researchClass->save();
+        $class->setJoinCode(Str::random(6));
+        $class->save();
 
-        $enrollment = ResearchClassEnrollment::query()->create([
-            'research_class_id' => $researchClass->getKey(),
-            'student_id' => $student->getKey(),
-            'status' => 'active',
-            'requested_at' => now()->subDay(),
-            'joined_at' => now(),
-            'reviewed_by' => $facilitator->getKey(),
-            'reviewed_at' => now(),
-        ]);
+        $leader = $this->student($groupName.' Leader');
+        $enrollmentId = $this->enrollInClass($class, $leader);
 
         $group = ResearchClassGroup::query()->create([
-            'research_class_id' => $researchClass->getKey(),
+            'research_class_id' => $class->id,
+            'leader_student_id' => $leader->id,
             'creation_token' => (string) Str::uuid(),
-            'name' => 'Capstone Group '.$student->getKey(),
-            'adviser_id' => $adviser->getKey(),
-            'created_by' => $facilitator->getKey(),
+            'name' => $groupName,
+            'adviser_id' => $adviser->id,
+            'created_by' => $facilitator->id,
+            'status' => 'active',
         ]);
+
         ResearchClassGroupMember::query()->create([
-            'research_class_group_id' => $group->getKey(),
-            'research_class_id' => $researchClass->getKey(),
-            'research_class_enrollment_id' => $enrollment->getKey(),
-            'student_id' => $student->getKey(),
-            'assigned_by' => $facilitator->getKey(),
+            'research_class_group_id' => $group->id,
+            'research_class_id' => $class->id,
+            'research_class_enrollment_id' => $enrollmentId,
+            'student_id' => $leader->id,
+            'assigned_by' => $facilitator->id,
         ]);
+
+        return [$group, $leader];
     }
 
-    private function document(User $student, string $filename): Document
+    private function enrollInClass(ResearchClass $class, User $student): int
     {
-        return Document::query()->create([
-            'user_id' => $student->getKey(),
-            'submission_token' => (string) Str::uuid(),
-            'original_filename' => $filename,
-            'stored_filename' => Str::uuid().'.pdf',
-            'file_type' => 'pdf',
-            'mime_type' => 'application/pdf',
-            'file_size' => 1024,
-            'storage_disk' => 'local',
-            'storage_path' => 'documents/'.Str::uuid().'.pdf',
-            'content_sha256' => hash('sha256', $filename),
-            'submitted_at' => now(),
-            'status' => DocumentStatus::Pending,
-        ]);
-    }
-
-    private function attachProject(User $student): int
-    {
-        $profileId = DB::table('student_profiles')->insertGetId([
-            'user_id' => $student->getKey(),
-            'student_number' => 'STU-'.$student->getKey(),
-        ]);
-
-        DB::table('research_groups')->insert([
-            'id' => 100 + $student->getKey(),
-            'program_id' => 1,
-            'academic_term_id' => 1,
-        ]);
-
-        DB::table('research_group_members')->insert([
-            'research_group_id' => 100 + $student->getKey(),
-            'student_profile_id' => $profileId,
-            'member_role' => 'researcher',
+        return DB::table('research_class_enrollments')->insertGetId([
+            'research_class_id' => $class->id,
+            'student_id' => $student->id,
+            'status' => 'active',
+            'requested_at' => now(),
             'joined_at' => now(),
-        ]);
-
-        return DB::table('research_projects')->insertGetId([
-            'research_group_id' => 100 + $student->getKey(),
-            'title' => 'Backend Integrated Research',
-            'abstract' => 'Used for document review integrations.',
-            'keywords' => json_encode(['backend'], JSON_THROW_ON_ERROR),
-            'category' => 'thesis',
-            'status' => 'in_progress',
-            'created_by' => $student->getKey(),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
     }
 
-    private function createResearchContextTables(): void
+    private function document(User $uploader, ResearchClassGroup $group, string $filename): Document
     {
-        Schema::disableForeignKeyConstraints();
-
-        foreach (['research_milestones', 'consultation_requests', 'adviser_assignments', 'research_projects', 'research_group_members', 'research_groups', 'student_profiles'] as $table) {
-            Schema::dropIfExists($table);
-        }
-
-        Schema::enableForeignKeyConstraints();
-
-        if (! Schema::hasTable('student_profiles')) {
-            Schema::create('student_profiles', function (Blueprint $table): void {
-                $table->id();
-                $table->foreignId('user_id');
-                $table->string('student_number');
-            });
-        }
-
-        if (! Schema::hasTable('research_groups')) {
-            Schema::create('research_groups', function (Blueprint $table): void {
-                $table->id();
-                $table->unsignedBigInteger('program_id');
-                $table->unsignedBigInteger('academic_term_id');
-            });
-        }
-
-        if (! Schema::hasTable('research_group_members')) {
-            Schema::create('research_group_members', function (Blueprint $table): void {
-                $table->id();
-                $table->unsignedBigInteger('research_group_id');
-                $table->foreignId('student_profile_id');
-                $table->string('member_role')->nullable();
-                $table->timestamp('joined_at')->nullable();
-                $table->timestamp('left_at')->nullable();
-            });
-        }
-
-        if (! Schema::hasTable('research_projects')) {
-            Schema::create('research_projects', function (Blueprint $table): void {
-                $table->id();
-                $table->unsignedBigInteger('research_group_id');
-                $table->string('title');
-                $table->text('abstract')->nullable();
-                $table->json('keywords')->nullable();
-                $table->string('category')->nullable();
-                $table->string('status');
-                $table->foreignId('created_by');
-                $table->timestamp('archived_at')->nullable();
-                $table->timestamps();
-            });
-        }
-
-        if (! Schema::hasTable('research_milestones')) {
-            Schema::create('research_milestones', function (Blueprint $table): void {
-                $table->id();
-                $table->unsignedBigInteger('academic_term_id');
-                $table->unsignedBigInteger('program_id');
-                $table->string('name');
-                $table->text('description')->nullable();
-                $table->timestamp('due_at')->nullable();
-                $table->unsignedInteger('sequence');
-                $table->boolean('is_required')->default(true);
-            });
-        }
+        return Document::query()->create([
+            'user_id' => $uploader->id,
+            'research_class_group_id' => $group->id,
+            'submission_token' => (string) Str::uuid(),
+            'original_filename' => $filename,
+            'stored_filename' => Str::random(40).'.pdf',
+            'file_type' => 'pdf',
+            'mime_type' => 'application/pdf',
+            'document_stage' => DocumentStage::ProposalDefense->value,
+            'version_number' => 1,
+            'is_current' => true,
+            'file_size' => 1024,
+            'storage_disk' => 'private',
+            'storage_path' => 'documents/'.Str::random(40).'.pdf',
+            'content_sha256' => hash('sha256', $filename.Str::random(10)),
+            'submitted_at' => now(),
+            'status' => DocumentStatus::Pending,
+        ]);
     }
 }

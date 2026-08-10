@@ -17,15 +17,11 @@ class DocumentReviewerAccess
             return false;
         }
 
-        if ($reviewer->can('research.view-all')) {
-            return true;
-        }
-
         if ($document->research_class_group_id !== null) {
             return $this->hasCurrentGroupAccess($reviewer, $document);
         }
 
-        return $this->hasLegacyAssignmentAccess($reviewer, $document);
+        return false;
     }
 
     /**
