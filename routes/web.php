@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\AccessPendingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisabledFeatureController;
 use App\Http\Controllers\DocumentAccessController;
+use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -12,6 +14,15 @@ Route::get('/', function () {
 Route::get('/dashboard', DashboardController::class)
     ->middleware(['auth', 'verified', 'active'])
     ->name('dashboard');
+
+Route::get('/access-pending', AccessPendingController::class)
+    ->middleware(['auth', 'verified', 'active'])
+    ->name('access.pending');
+
+Route::post('/workspace/{workspace}', WorkspaceController::class)
+    ->middleware(['auth', 'verified', 'active', 'throttle:30,1'])
+    ->whereIn('workspace', ['admin', 'facilitator', 'dean', 'adviser', 'panelist', 'student'])
+    ->name('workspace.switch');
 
 Route::middleware(['auth', 'verified', 'active'])
     ->prefix('documents')

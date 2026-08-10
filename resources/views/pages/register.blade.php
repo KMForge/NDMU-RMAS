@@ -1,7 +1,7 @@
 @extends('layouts.auth')
 
 @section('auth-content')
-<div class="min-h-screen flex flex-col md:flex-row relative bg-[#f4f7f6]">
+<div x-data="{ showPassword: false, showConfirmation: false }" class="min-h-screen flex flex-col md:flex-row relative bg-[#f4f7f6]">
     <!-- Left Side: Image Banner & Brand Description -->
     <div class="w-full md:w-[45%] lg:w-[40%] bg-[#0e5c3a] text-white p-8 md:p-16 flex flex-col justify-between relative min-h-[400px] md:min-h-screen overflow-hidden">
         <img src="{{ asset('images/ndmu-optimized.jpg') }}" alt="" aria-hidden="true" fetchpriority="high" decoding="async" class="absolute inset-0 h-full w-full object-cover">
@@ -97,7 +97,14 @@
             </div>
 
             <!-- Form -->
-            <form class="space-y-3 mb-4">
+            <form method="POST" action="{{ route('register.store') }}" class="space-y-3 mb-4">
+                @csrf
+
+                @if ($errors->any())
+                    <div class="rounded-2xl border border-red-200 bg-red-50 p-3 text-xs text-red-700" role="alert">
+                        {{ $errors->first() }}
+                    </div>
+                @endif
                 <!-- Row 1: Student ID & Full Name -->
                 <div class="grid grid-cols-2 gap-3">
                     <!-- Student ID Field -->
@@ -109,7 +116,11 @@
                             </span>
                             <input
                                 id="student_id"
+                                name="student_id"
                                 type="text"
+                                value="{{ old('student_id') }}"
+                                autocomplete="off"
+                                required
                                 placeholder="e.g. STU-2026-0001"
                                 class="w-full pl-11 pr-3 py-3 bg-white border border-gray-200 rounded-2xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300"
                             >
@@ -125,7 +136,11 @@
                             </span>
                             <input
                                 id="full_name"
+                                name="name"
                                 type="text"
+                                value="{{ old('name') }}"
+                                autocomplete="name"
+                                required
                                 placeholder="Juan Dela Cruz"
                                 class="w-full pl-11 pr-3 py-3 bg-white border border-gray-200 rounded-2xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300"
                             >
@@ -142,7 +157,11 @@
                         </span>
                         <input
                             id="email"
+                            name="email"
                             type="email"
+                            value="{{ old('email') }}"
+                            autocomplete="email"
+                            required
                             placeholder="juan.delacruz@ndmu.edu.ph"
                             class="w-full pl-11 pr-3 py-3 bg-white border border-gray-200 rounded-2xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300"
                         >
@@ -163,9 +182,9 @@
                                 name="program"
                                 class="w-full pl-11 pr-10 py-3 bg-white border border-gray-200 rounded-2xl text-sm text-gray-800 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300 appearance-none"
                             >
-                                <option value="" disabled selected>Select program</option>
+                                <option value="" disabled @selected(old('program') === null)>Select program</option>
                                 @foreach (config('academic.programs') as $program)
-                                    <option value="{{ $program['label'] }}">{{ $program['label'] }}</option>
+                                    <option value="{{ $program['label'] }}" @selected(old('program') === $program['label'])>{{ $program['label'] }}</option>
                                 @endforeach
                             </select>
                             <span class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 pointer-events-none">
@@ -183,14 +202,16 @@
                             </span>
                             <select
                                 id="year_level"
+                                name="year_level"
+                                required
                                 class="w-full pl-11 pr-10 py-3 bg-white border border-gray-200 rounded-2xl text-sm text-gray-800 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300 appearance-none"
                             >
-                                <option value="" disabled selected>Select level</option>
-                                <option value="1">1st Year</option>
-                                <option value="2">2nd Year</option>
-                                <option value="3">3rd Year</option>
-                                <option value="4">4th Year</option>
-                                <option value="5">5th Year</option>
+                                <option value="" disabled @selected(old('year_level') === null)>Select level</option>
+                                <option value="1" @selected(old('year_level') == 1)>1st Year</option>
+                                <option value="2" @selected(old('year_level') == 2)>2nd Year</option>
+                                <option value="3" @selected(old('year_level') == 3)>3rd Year</option>
+                                <option value="4" @selected(old('year_level') == 4)>4th Year</option>
+                                <option value="5" @selected(old('year_level') == 5)>5th Year</option>
                             </select>
                             <span class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 pointer-events-none">
                                 <i class="ph ph-caret-down text-base"></i>
@@ -210,12 +231,15 @@
                             </span>
                             <input
                                 id="password"
-                                type="password"
-                                placeholder="Min. 8 chars"
+                                name="password"
+                                :type="showPassword ? 'text' : 'password'"
+                                autocomplete="new-password"
+                                required
+                                placeholder="Min. 12 chars"
                                 class="w-full pl-11 pr-11 py-3 bg-white border border-gray-200 rounded-2xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300"
                             >
-                            <button type="button" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
-                                <i class="ph ph-eye text-lg"></i>
+                            <button type="button" @click="showPassword = !showPassword" :aria-label="showPassword ? 'Hide password' : 'Show password'" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
+                                <i :class="showPassword ? 'ph ph-eye-slash' : 'ph ph-eye'" class="text-lg"></i>
                             </button>
                         </div>
                     </div>
@@ -229,19 +253,22 @@
                             </span>
                             <input
                                 id="password_confirmation"
-                                type="password"
+                                name="password_confirmation"
+                                :type="showConfirmation ? 'text' : 'password'"
+                                autocomplete="new-password"
+                                required
                                 placeholder="Re-enter password"
                                 class="w-full pl-11 pr-11 py-3 bg-white border border-gray-200 rounded-2xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300"
                             >
-                            <button type="button" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
-                                <i class="ph ph-eye text-lg"></i>
+                            <button type="button" @click="showConfirmation = !showConfirmation" :aria-label="showConfirmation ? 'Hide password confirmation' : 'Show password confirmation'" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
+                                <i :class="showConfirmation ? 'ph ph-eye-slash' : 'ph ph-eye'" class="text-lg"></i>
                             </button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Submit Button -->
-                <button type="button" class="w-full py-4 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-sm font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-[#0e5c3a]/10 hover:shadow-xl transition-all duration-300">
+                <button type="submit" class="w-full py-4 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-sm font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-[#0e5c3a]/10 hover:shadow-xl transition-all duration-300">
                     <i class="ph ph-user-plus text-base"></i> Submit Registration
                 </button>
             </form>

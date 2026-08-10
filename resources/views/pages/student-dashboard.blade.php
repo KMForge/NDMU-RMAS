@@ -250,6 +250,7 @@
                 >
             </form>
             <div class="flex items-center gap-3">
+                <x-workspace-switcher current="student" />
                 <button type="button" @click="activeTab = 'notifications'" class="w-9 h-9 rounded-full hover:bg-gray-50 text-gray-500 flex items-center justify-center relative">
                     <i class="ph ph-bell text-lg"></i>
                     @if ($notifications->whereNull('read_at')->isNotEmpty())

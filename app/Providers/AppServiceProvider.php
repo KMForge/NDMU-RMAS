@@ -13,6 +13,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -39,12 +40,20 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (request()->hasHeader('x-forwarded-proto') && request()->header('x-forwarded-proto') === 'https') {
+            URL::forceScheme('https');
+        }
+
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(60)->by(
             $request->user()?->getAuthIdentifier() ?: $request->ip(),
         ));
 
         RateLimiter::for('authentication', fn (Request $request) => Limit::perMinute(10)->by(
             strtolower((string) $request->input('email')).'|'.$request->ip(),
+        ));
+
+        RateLimiter::for('student-registration', fn (Request $request) => Limit::perHour(5)->by(
+            'student-registration|'.strtolower((string) $request->input('email')).'|'.$request->ip(),
         ));
 
         RateLimiter::for('password-reset-links', fn (Request $request) => Limit::perHour(5)->by(

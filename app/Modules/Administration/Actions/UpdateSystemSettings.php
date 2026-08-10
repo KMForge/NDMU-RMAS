@@ -61,6 +61,10 @@ class UpdateSystemSettings
 
         DB::table('audit_logs')->insert([
             'user_id' => $actor->getKey(),
+            'actor_name' => $actor->name,
+            'actor_email' => $actor->email,
+            'subject_name' => 'System Settings',
+            'subject_email' => null,
             'event' => 'system-settings.updated',
             'auditable_type' => SystemSetting::class,
             'auditable_id' => $settings->getKey(),

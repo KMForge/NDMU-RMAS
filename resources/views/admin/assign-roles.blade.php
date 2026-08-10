@@ -34,7 +34,7 @@
                     <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0e5c3a] font-extrabold text-white">{{ count($assignedRoles) }}</span>
                     <div>
                         <h2 class="text-base font-extrabold text-gray-900">Role Assignments</h2>
-                        <p class="mt-0.5 text-xs text-gray-500">Select every role this user should retain.</p>
+                        <p class="mt-0.5 text-xs text-gray-500">Select every role this user should retain. Faculty may have no role while awaiting an assignment.</p>
                     </div>
                 </div>
                 <div class="flex gap-2">
@@ -70,7 +70,7 @@
             </div>
 
             <div class="flex flex-col-reverse gap-3 border-t border-gray-100 bg-gray-50/50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between md:px-6">
-                <p class="text-[11px] text-gray-500">Role changes are audited and take effect immediately after saving.</p>
+                <p class="text-[11px] text-gray-500">Role changes are audited and take effect immediately. Faculty with no role use the Access Pending page.</p>
                 <div class="flex gap-3">
                     <button type="button" wire:click="closeRoleAssignment" wire:loading.attr="disabled" class="rounded-xl border border-gray-200 bg-white px-5 py-3 text-xs font-bold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60">Cancel</button>
                     <button type="submit" wire:loading.attr="disabled" wire:target="saveUserRoles" class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0e5c3a] px-5 py-3 text-xs font-extrabold text-white shadow-md transition hover:bg-[#0a4a2e] disabled:cursor-wait disabled:opacity-60">

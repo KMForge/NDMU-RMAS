@@ -59,7 +59,10 @@
             <a href="{{ route('facilitator.dashboard', ['tab' => 'classes']) }}" class="inline-flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-[#0e5c3a]">
                 <i class="ph ph-arrow-left"></i><span>Back to My Classes</span>
             </a>
-            <span class="text-xs font-bold text-gray-800">{{ $facilitator->name }}</span>
+            <div class="flex items-center gap-3">
+                <x-workspace-switcher current="facilitator" />
+                <span class="text-xs font-bold text-gray-800">{{ $facilitator->name }}</span>
+            </div>
         </header>
 
         <main class="space-y-8 p-8">

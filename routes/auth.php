@@ -3,6 +3,8 @@
 use App\Http\Controllers\Authentication\AuthenticatedSessionController;
 use App\Http\Controllers\Authentication\NewPasswordController;
 use App\Http\Controllers\Authentication\PasswordResetLinkController;
+use App\Http\Controllers\Authentication\RegisteredStudentController;
+use App\Http\Controllers\Authentication\VerifyStudentEmailController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/login', 'pages.login')
@@ -36,6 +38,14 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 Route::view('/register', 'pages.register')
     ->middleware(['guest'])
     ->name('register');
+
+Route::post('/register', [RegisteredStudentController::class, 'store'])
+    ->middleware(['guest', 'throttle:student-registration'])
+    ->name('register.store');
+
+Route::get('/verify-email/{id}/{hash}', VerifyStudentEmailController::class)
+    ->middleware(['guest', 'signed', 'throttle:6,1'])
+    ->name('verification.verify');
 
 Route::view('/verify-email', 'pages.verify-email')
     ->middleware('auth')

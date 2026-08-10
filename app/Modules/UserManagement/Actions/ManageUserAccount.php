@@ -56,7 +56,7 @@ class ManageUserAccount
     }
 
     /**
-     * @param  array{name: string, email: string, password: string, department: string, role: string}  $attributes
+     * @param  array{name: string, email: string, password: string, department: string}  $attributes
      */
     public function createStaff(array $attributes, User $actor): User
     {
@@ -72,10 +72,10 @@ class ManageUserAccount
                 'department' => $attributes['department'],
             ]);
 
-            $user->assignRole($attributes['role']);
             $this->audit($actor, $user, 'user.created', null, [
                 'status' => AccountStatus::Active->value,
-                'role' => $attributes['role'],
+                'user_type' => UserType::Faculty->value,
+                'roles' => [],
             ]);
 
             return $user;
@@ -123,6 +123,10 @@ class ManageUserAccount
 
         DB::table('audit_logs')->insert([
             'user_id' => $actor->getKey(),
+            'actor_name' => $actor->name,
+            'actor_email' => $actor->email,
+            'subject_name' => $subject->name,
+            'subject_email' => $subject->email,
             'event' => $event,
             'auditable_type' => User::class,
             'auditable_id' => $subject->getKey(),

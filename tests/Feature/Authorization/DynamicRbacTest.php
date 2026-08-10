@@ -22,7 +22,6 @@ class DynamicRbacTest extends TestCase
     public function test_user_type_does_not_grant_dashboard_access_without_permission(): void
     {
         $faculty = User::factory()->create(['user_type' => UserType::Faculty]);
-        $faculty->assignRole('faculty');
 
         $this->actingAs($faculty)
             ->get(route('adviser.dashboard'))
@@ -49,9 +48,9 @@ class DynamicRbacTest extends TestCase
     public function test_faculty_user_can_hold_multiple_responsibility_roles(): void
     {
         $faculty = User::factory()->create(['user_type' => UserType::Faculty]);
-        $faculty->assignRole(['faculty', 'program-coordinator', 'thesis-adviser']);
+        $faculty->assignRole(['program-coordinator', 'thesis-adviser']);
 
-        $this->assertTrue($faculty->hasAllRoles(['faculty', 'program-coordinator', 'thesis-adviser']));
+        $this->assertTrue($faculty->hasAllRoles(['program-coordinator', 'thesis-adviser']));
         $this->assertTrue($faculty->can('dashboards.facilitator.view'));
         $this->assertTrue($faculty->can('dashboards.adviser.view'));
     }

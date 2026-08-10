@@ -64,7 +64,10 @@
                 <i class="ph ph-arrow-left"></i>
                 <span>Back to My Classes</span>
             </a>
-            <span class="text-xs font-bold text-gray-800">{{ $adviser->name }}</span>
+            <div class="flex items-center gap-3">
+                <x-workspace-switcher current="adviser" />
+                <span class="text-xs font-bold text-gray-800">{{ $adviser->name }}</span>
+            </div>
         </header>
 
         <main class="p-8 space-y-8">

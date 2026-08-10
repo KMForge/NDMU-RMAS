@@ -8,7 +8,7 @@ use App\Http\Controllers\Student\ResearchClassController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('student')->name('student.')->middleware([
-    'auth', 'verified', 'active', 'permission:dashboards.student.view',
+    'auth', 'verified', 'active', 'permission:dashboards.student.view', 'workspace.context',
 ])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 

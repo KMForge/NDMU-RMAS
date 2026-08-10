@@ -27,9 +27,9 @@ This tracker records the backend rebuild progress after the baseline reset. GitH
 | Phase | Module | Status | Notes |
 | --- | --- | --- | --- |
 | Phase 1 | Authentication & Account Access | Completed | Login, logout, session handling, account status checks, and dashboard redirects are active. |
-| Phase 2 | Registration Foundation | In Progress | Registration UI exists; backend flow still requires completion/verification before this phase can be marked complete. |
+| Phase 2 | Registration Foundation | Completed | Transactional student registration, automatic Student role assignment, CEAC validation, signed email verification, administrator approval, and rate limiting are active. |
 | Phase 3 | User Management | Completed | Admin user management is active. |
-| Phase 4 | Dynamic RBAC with Spatie | Completed | Roles, permissions, role assignment, and permission-based access are active. |
+| Phase 4 | Dynamic RBAC with Spatie | Completed | Roles, permissions, multi-role assignment, permission-based workspaces, roleless faculty Access Pending, and audited workspace switching are active. |
 | Phase 5 | Admin Dashboard & System Settings | Completed | Admin dashboard shell, user metrics, and system settings are active. |
 | Phase 6 | Student Dashboard UI Shell | Completed | UI shell is available with standardized sidebar grouping and feature banners. |
 | Phase 7 | Adviser Dashboard UI Shell | Completed | UI shell is available. My Classes integrates the completed Phase 12 adviser-request and assigned-group workflow. |

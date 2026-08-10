@@ -210,7 +210,7 @@ class AllUsersSeeder extends Seeder
             return;
         }
 
-        $user->syncRoles(array_values(array_unique(['faculty', $canonical])));
+        $user->syncRoles($canonical);
     }
 
     private function passwordFor(string $email): string

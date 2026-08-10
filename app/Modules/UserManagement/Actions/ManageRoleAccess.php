@@ -104,6 +104,7 @@ class ManageRoleAccess
 
         $validRoles = Role::query()
             ->where('guard_name', 'web')
+            ->where('is_assignable', true)
             ->whereIn('name', $roles)
             ->pluck('name')
             ->all();
@@ -114,9 +115,41 @@ class ManageRoleAccess
             ]);
         }
 
-        if ($validRoles === []) {
+        if ($validRoles === [] && $userType !== UserType::Faculty) {
             throw ValidationException::withMessages([
-                'assignedRoles' => 'Every account must retain at least one access role.',
+                'assignedRoles' => 'Student and administrator accounts must retain their required access role.',
+            ]);
+        }
+
+        if ($userType === UserType::Faculty && collect($validRoles)->intersect(['administrator', 'student', 'faculty'])->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'assignedRoles' => 'Faculty accounts may only receive operational responsibility roles.',
+            ]);
+        }
+
+        if ($userType === UserType::Student && collect($validRoles)->intersect(['administrator', 'faculty'])->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'assignedRoles' => 'Student accounts cannot receive administrator or faculty identity roles.',
+            ]);
+        }
+
+        if ($userType === UserType::Admin && collect($validRoles)->intersect(['student', 'faculty'])->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'assignedRoles' => 'Administrator accounts cannot receive student or faculty identity roles.',
+            ]);
+        }
+
+        if ($userType === UserType::Student && ! in_array('student', $validRoles, true)) {
+            throw ValidationException::withMessages([
+                'assignedRoles' => 'Student accounts must retain the Student role.',
+            ]);
+        }
+
+        if ($userType === UserType::Admin && ! collect($validRoles)->contains(
+            fn (string $role): bool => Role::findByName($role)->hasPermissionTo('roles.manage')
+        )) {
+            throw ValidationException::withMessages([
+                'assignedRoles' => 'Administrator accounts must retain role management access.',
             ]);
         }
 
@@ -187,9 +220,18 @@ class ManageRoleAccess
 
         $isUser = $subject instanceof User;
         $id = is_int($subject) ? $subject : (int) $subject->getKey();
+        $subjectName = match (true) {
+            $subject instanceof User => $subject->name,
+            $subject instanceof Role => $subject->display_name ?: str($subject->name)->headline()->toString(),
+            default => (string) data_get($oldValues, 'name', 'Deleted role'),
+        };
 
         DB::table('audit_logs')->insert([
             'user_id' => $actor->getKey(),
+            'actor_name' => $actor->name,
+            'actor_email' => $actor->email,
+            'subject_name' => $subjectName,
+            'subject_email' => $isUser ? $subject->email : null,
             'event' => $event,
             'auditable_type' => $isUser ? User::class : Role::class,
             'auditable_id' => $id,

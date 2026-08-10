@@ -6,7 +6,7 @@ The table below distinguishes the intended domain responsibility from the curren
 
 | Module / Domain | Responsibility | Current verified rebuild state |
 |---|---|---|
-| Authentication | Registration, verification, approval, sessions, account eligibility | Authentication/account access completed; registration foundation remains in progress |
+| Authentication | Registration, verification, approval, sessions, account eligibility | Authentication and registration foundation completed; students receive automatic access while roleless faculty await an administrator assignment |
 | Dashboard | Shared and role-scoped summaries | Core dashboard/system shell phases completed for current roles |
 | UserManagement | Accounts, status, roles, permissions | Completed foundation |
 | Classes / Research Class workflow | Facilitator-owned classes, join requests, enrollment, group organization | Phases 10–12 completed |

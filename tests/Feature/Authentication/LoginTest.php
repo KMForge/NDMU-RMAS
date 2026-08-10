@@ -90,20 +90,22 @@ class LoginTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_user_without_an_assigned_role_cannot_log_in(): void
+    public function test_active_faculty_without_an_assigned_role_opens_access_pending(): void
     {
-        User::factory()->create([
-            'email' => 'student.test@ndmu.edu.ph',
+        $faculty = User::factory()->create([
+            'email' => 'faculty.pending-access@ndmu.edu.ph',
             'password' => 'TestOnly!2345',
+            'user_type' => UserType::Faculty,
         ]);
 
         $this->postJson(route('login.store'), [
-            'email' => 'student.test@ndmu.edu.ph',
+            'email' => 'faculty.pending-access@ndmu.edu.ph',
             'password' => 'TestOnly!2345',
-        ])->assertUnprocessable()
-            ->assertJsonValidationErrors('email');
+        ])->assertOk()
+            ->assertJsonPath('redirect_url', route('access.pending'))
+            ->assertJsonPath('user.roles', []);
 
-        $this->assertGuest();
+        $this->assertAuthenticatedAs($faculty);
     }
 
     public function test_client_supplied_role_cannot_change_the_database_assigned_role(): void

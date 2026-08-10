@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Enums\UserType;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -59,7 +58,7 @@ class RolePermissionSeeder extends Seeder
                     'display_name' => $definition['label'],
                     'description' => $definition['description'],
                     'is_system' => true,
-                    'is_assignable' => true,
+                    'is_assignable' => $definition['is_assignable'] ?? true,
                 ],
             );
 
@@ -67,7 +66,7 @@ class RolePermissionSeeder extends Seeder
                 'display_name' => $definition['label'],
                 'description' => $definition['description'],
                 'is_system' => true,
-                'is_assignable' => true,
+                'is_assignable' => $definition['is_assignable'] ?? true,
             ])->save();
 
             // Keep system roles usable after reseeding without removing any
@@ -102,10 +101,9 @@ class RolePermissionSeeder extends Seeder
             });
         }
 
-        User::query()->where('user_type', UserType::Faculty->value)->each(function (User $user): void {
-            if (! $user->hasRole('faculty')) {
-                $user->assignRole('faculty');
-            }
-        });
+        // Faculty identity is stored in users.user_type. Operational access is
+        // intentionally assigned later through one or more Spatie roles.
+        $facultyRole = Role::query()->where('name', 'faculty')->where('guard_name', 'web')->first();
+        $facultyRole?->users()->detach();
     }
 }

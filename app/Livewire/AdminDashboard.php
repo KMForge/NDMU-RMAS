@@ -6,6 +6,7 @@ use App\Enums\AccountStatus;
 use App\Enums\UserType;
 use App\Models\AcademicTerm;
 use App\Models\AcademicYear;
+use App\Models\AuditLog;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Modules\Administration\Actions\UpdateSystemSettings;
@@ -32,12 +33,18 @@ class AdminDashboard extends Component
 
     public string $selectedRole = '';
 
+    public string $auditSearch = '';
+
+    public string $auditEvent = '';
+
+    public string $auditDateFrom = '';
+
+    public string $auditDateTo = '';
+
     // Create Staff Account Form Fields
     public string $name = '';
 
     public string $email = '';
-
-    public string $role = '';
 
     public string $department = '';
 
@@ -78,6 +85,10 @@ class AdminDashboard extends Component
     protected $queryString = [
         'searchQuery' => ['except' => ''],
         'selectedRole' => ['except' => ''],
+        'auditSearch' => ['except' => ''],
+        'auditEvent' => ['except' => ''],
+        'auditDateFrom' => ['except' => ''],
+        'auditDateTo' => ['except' => ''],
     ];
 
     public function mount(): void
@@ -95,11 +106,39 @@ class AdminDashboard extends Component
 
     public function updatedSelectedRole(string $value): void
     {
-        if ($value !== '' && ! Role::query()->where('guard_name', 'web')->where('name', $value)->exists()) {
+        if ($value !== '' && $value !== '__without_roles__' && ! Role::query()->where('guard_name', 'web')->where('name', $value)->exists()) {
             $this->selectedRole = '';
         }
 
         $this->resetPage();
+    }
+
+    public function updatedAuditSearch(string $value): void
+    {
+        $this->auditSearch = mb_substr(strip_tags($value), 0, 100);
+        $this->resetPage('auditPage');
+    }
+
+    public function updatedAuditEvent(string $value): void
+    {
+        $this->auditEvent = mb_substr(strip_tags($value), 0, 120);
+        $this->resetPage('auditPage');
+    }
+
+    public function updatedAuditDateFrom(): void
+    {
+        $this->resetPage('auditPage');
+    }
+
+    public function updatedAuditDateTo(): void
+    {
+        $this->resetPage('auditPage');
+    }
+
+    public function clearAuditFilters(): void
+    {
+        $this->reset(['auditSearch', 'auditEvent', 'auditDateFrom', 'auditDateTo']);
+        $this->resetPage('auditPage');
     }
 
     public function updatedSettingsAcademicYearId(?int $value): void
@@ -166,16 +205,9 @@ class AdminDashboard extends Component
 
         $this->name = trim(strip_tags($this->name));
         $this->email = mb_strtolower(trim($this->email));
-        $staffRoles = Role::query()
-            ->where('guard_name', 'web')
-            ->whereNotIn('name', ['administrator', 'system-administrator', 'student', 'student-researcher'])
-            ->pluck('name')
-            ->all();
-
         $this->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
-            'role' => 'required|string|in:'.implode(',', $staffRoles),
             'password' => ['required', 'string', Password::min(12)->mixedCase()->letters()->numbers()->symbols()],
         ]);
 
@@ -186,13 +218,12 @@ class AdminDashboard extends Component
             'email' => $this->email,
             'password' => $this->password,
             'department' => $college,
-            'role' => $this->role,
         ], $this->administrator());
 
         $this->clearDashboardCache();
-        $this->successMessage = "Staff account for {$user->name} created successfully.";
+        $this->successMessage = "Faculty account for {$user->name} created. Assign a role when access is required.";
 
-        $this->reset(['name', 'email', 'role', 'password']);
+        $this->reset(['name', 'email', 'password']);
         $this->department = $college;
         $this->dispatch('staff-account-created');
     }
@@ -306,10 +337,14 @@ class AdminDashboard extends Component
         abort_if($this->roleAssignmentUserId === null, 404);
         $subject = User::query()->findOrFail($this->roleAssignmentUserId);
         Gate::authorize('manageRoles', $subject);
-        $availableRoles = Role::query()->where('guard_name', 'web')->pluck('name')->all();
+        $availableRoles = Role::query()
+            ->where('guard_name', 'web')
+            ->where('is_assignable', true)
+            ->pluck('name')
+            ->all();
 
         $this->validate([
-            'assignedRoles' => ['required', 'array', 'min:1'],
+            'assignedRoles' => ['array'],
             'assignedRoles.*' => ['string', Rule::in($availableRoles)],
             'assignedUserType' => ['required', Rule::enum(UserType::class)],
         ]);
@@ -420,6 +455,7 @@ class AdminDashboard extends Component
             $this->userManagementData(),
             $getAdminDashboardData->get(),
             $this->roleManagementData(),
+            $this->auditLogData(),
             $this->systemSettingsData(),
             $repositoryData->for($this->administrator(), request()->query()),
         );
@@ -457,13 +493,40 @@ class AdminDashboard extends Component
 
         $recentActivities = [];
 
-        foreach ($recentUsers as $user) {
-            $roleLabel = $user->roles->first()?->name ?? 'User';
-            $roleLabel = str_replace('-', ' ', Str::title($roleLabel));
-            $recentActivities[] = [
-                'text' => "New {$roleLabel} registered: {$user->email}",
-                'time' => $user->created_at->diffForHumans(),
-            ];
+        $auditLogs = AuditLog::query()
+            ->latest('created_at')
+            ->limit(5)
+            ->get();
+
+        if ($auditLogs->isNotEmpty()) {
+            foreach ($auditLogs as $log) {
+                $eventName = str_replace(['.', '_', '-'], ' ', Str::title($log->event));
+                $recentActivities[] = [
+                    'text' => "{$eventName}: {$log->description}",
+                    'actor' => $log->actor_name ?? $log->actor_email ?? 'System',
+                    'email' => $log->actor_email ?? 'system@ndmu.edu.ph',
+                    'event' => $log->event,
+                    'time' => $log->created_at->diffForHumans(),
+                ];
+            }
+        } else {
+            $recentUsers = User::query()
+                ->with('roles:id,name,display_name')
+                ->latest()
+                ->limit(5)
+                ->get();
+
+            foreach ($recentUsers as $user) {
+                $roleLabel = $user->roles->first()?->name ?? 'User';
+                $roleLabel = str_replace('-', ' ', Str::title($roleLabel));
+                $recentActivities[] = [
+                    'text' => "New {$roleLabel} registered: {$user->email}",
+                    'actor' => $user->name,
+                    'email' => $user->email,
+                    'event' => 'user.registered',
+                    'time' => $user->created_at->diffForHumans(),
+                ];
+            }
         }
 
         return [
@@ -504,7 +567,9 @@ class AdminDashboard extends Component
                 });
             })
             ->when($this->selectedRole, function ($query) {
-                $query->role($this->selectedRole);
+                $this->selectedRole === '__without_roles__'
+                    ? $query->doesntHave('roles')
+                    : $query->role($this->selectedRole);
             })
             ->orderBy('id')
             ->paginate(10);
@@ -514,6 +579,7 @@ class AdminDashboard extends Component
             'pendingApprovalCount' => $pendingStudents->count(),
             'activeAccountsCount' => (int) $counts->active_accounts_count,
             'rejectedCount' => (int) $counts->rejected_count,
+            'withoutRolesCount' => User::query()->doesntHave('roles')->count(),
             'usersList' => $usersList,
             'pendingStudents' => $pendingStudents,
         ];
@@ -572,6 +638,47 @@ class AdminDashboard extends Component
             'roleAssignmentUser' => $this->roleAssignmentUserId === null
                 ? null
                 : User::query()->select(['id', 'name', 'email'])->find($this->roleAssignmentUserId),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function auditLogData(): array
+    {
+        $search = trim(mb_substr(strip_tags($this->auditSearch), 0, 100));
+        $event = trim(mb_substr(strip_tags($this->auditEvent), 0, 120));
+        $dateFrom = preg_match('/^\d{4}-\d{2}-\d{2}$/', $this->auditDateFrom) === 1 ? $this->auditDateFrom : null;
+        $dateTo = preg_match('/^\d{4}-\d{2}-\d{2}$/', $this->auditDateTo) === 1 ? $this->auditDateTo : null;
+
+        $auditLogs = AuditLog::query()
+            ->with(['actor:id,name,email', 'auditable'])
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($query) use ($search): void {
+                    $query->where('actor_name', 'like', '%'.$search.'%')
+                        ->orWhere('actor_email', 'like', '%'.$search.'%')
+                        ->orWhere('subject_name', 'like', '%'.$search.'%')
+                        ->orWhere('subject_email', 'like', '%'.$search.'%')
+                        ->orWhere('event', 'like', '%'.$search.'%')
+                        ->orWhere('description', 'like', '%'.$search.'%')
+                        ->orWhere('ip_address', 'like', '%'.$search.'%');
+                });
+            })
+            ->when($event !== '', fn ($query) => $query->where('event', $event))
+            ->when($dateFrom !== null, fn ($query) => $query->whereDate('created_at', '>=', $dateFrom))
+            ->when($dateTo !== null, fn ($query) => $query->whereDate('created_at', '<=', $dateTo))
+            ->latest('created_at')
+            ->paginate(20, ['*'], 'auditPage');
+
+        return [
+            'auditLogs' => $auditLogs,
+            'auditLogEvents' => AuditLog::query()
+                ->distinct()
+                ->orderBy('event')
+                ->pluck('event'),
+            'auditLogStats' => [
+                'today' => AuditLog::query()->where('created_at', '>=', now()->startOfDay())->count(),
+                'workspace_switches' => AuditLog::query()->where('event', 'workspace.switched')->count(),
+                'access_changes' => AuditLog::query()->whereIn('event', ['user.access-updated', 'role.created', 'role.updated', 'role.deleted'])->count(),
+            ],
         ];
     }
 

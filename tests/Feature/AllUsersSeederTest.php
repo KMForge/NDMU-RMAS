@@ -26,7 +26,7 @@ class AllUsersSeederTest extends TestCase
 
         $this->assertTrue($admin->hasRole('administrator'));
         $this->assertSame(UserType::Admin, $admin->user_type);
-        $this->assertTrue($dean->hasAllRoles(['faculty', 'dean']));
+        $this->assertTrue($dean->hasExactRoles(['dean']));
         $this->assertSame(UserType::Faculty, $dean->user_type);
         $this->assertSame(AccountStatus::Pending, $pendingStudent->status);
         $this->assertNull($pendingStudent->approved_at);

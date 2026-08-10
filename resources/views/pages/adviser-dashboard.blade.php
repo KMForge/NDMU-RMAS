@@ -334,6 +334,7 @@
             </div>
 
             <div class="flex items-center gap-4">
+                <x-workspace-switcher current="adviser" />
                 <span class="text-xs font-bold text-gray-700">{{ $adviser->name }}</span>
             </div>
         </header>

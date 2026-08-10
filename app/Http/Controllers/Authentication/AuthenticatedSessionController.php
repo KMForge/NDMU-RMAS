@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Authentication;
 
+use App\Enums\UserType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Authentication\LoginRequest;
 use App\Models\User;
@@ -29,7 +30,7 @@ class AuthenticatedSessionController extends Controller
 
         $route = $dashboard->routeFor($user);
 
-        if (! $user->isActiveAndApproved() || $route === null) {
+        if (! $user->isActiveAndApproved() || ($route === null && $user->user_type !== UserType::Faculty)) {
             $this->endSession($request);
 
             throw ValidationException::withMessages([
@@ -39,7 +40,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        $destination = route($route);
+        $destination = route($route ?? 'access.pending');
 
         if ($request->expectsJson()) {
             return response()->json([

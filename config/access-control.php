@@ -22,8 +22,9 @@ return [
         ],
         'faculty' => [
             'label' => 'Faculty',
-            'description' => 'Base faculty identity role. Operational access is added through responsibility roles.',
+            'description' => 'Legacy faculty identity role retained for compatibility. Faculty identity now comes from the account type.',
             'user_type' => 'faculty',
+            'is_assignable' => false,
             'permissions' => [],
         ],
         'student' => [

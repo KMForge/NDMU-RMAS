@@ -256,6 +256,7 @@
 
             <!-- Profile Info and Notification Icon -->
             <div class="flex items-center gap-6">
+                <x-workspace-switcher current="admin" />
                 <!-- Notification Bell -->
                 <button class="relative w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-600 transition-colors">
                     <i class="ph ph-bell text-xl"></i>
@@ -307,142 +308,217 @@
             @enderror
 
             <!-- TAB 1: ADMIN DASHBOARD VIEW -->
-            <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">
-                    <!-- Hero Header Card Section -->
-                    <div class="relative overflow-hidden bg-white rounded-2xl p-8 border border-slate-200/60 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                        <!-- Subtle abstract NDMU logo watermark -->
-                        <div class="absolute -right-6 -bottom-6 opacity-[0.04] pointer-events-none">
-                            <img src="{{ asset('images/ndmu_logo.png') }}" alt="" class="w-64 h-auto">
-                        </div>
-
-                        <div class="relative z-10 space-y-1">
-                            <div class="flex items-center gap-2 text-xs font-semibold text-slate-400">
-                                <span>{{ now()->timezone(config('ndmu-rmas.timezone'))->format('l, F j, Y') }}</span>
-                                <span>•</span>
-                                <span class="text-[#0e5c3a] font-bold">System Administration Portal</span>
-                            </div>
-                            <h1 class="text-2xl md:text-3xl font-extrabold font-heading text-slate-900 tracking-tight">Welcome back, Administrator</h1>
-                            <p class="text-xs text-slate-500 max-w-xl">System overview, account management, permissions, and audit monitoring</p>
-                        </div>
-
-                        <div class="relative z-10 flex items-center gap-3">
-                            <button @click="activeTab = 'users'" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer">
-                                <i class="ph ph-users text-base"></i>
-                                <span>Manage Users</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Row of 4 statistics cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8 animate-fade-in">
+                    <!-- Row of 4 Premium Statistics Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
                         <!-- Card 1: Total Users -->
-                        <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
-                            <div class="space-y-1">
-                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Total Users</span>
-                                <span class="text-3xl font-extrabold text-slate-900 tracking-tight block">{{ $totalUsersCount }}</span>
-                            </div>
-                            <div class="w-11 h-11 bg-emerald-50/80 text-[#0e5c3a] border border-emerald-100/60 rounded-xl flex items-center justify-center text-xl shadow-2xs">
-                                <i class="ph ph-users"></i>
+                        <div class="group relative overflow-hidden bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-emerald-400 hover:-translate-y-1 transition-all duration-300">
+                            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-400"></div>
+                            <div class="flex items-center justify-between">
+                                <div class="space-y-1">
+                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Total Accounts</span>
+                                    <span class="text-3xl font-black text-slate-900 tracking-tight font-heading block group-hover:text-[#0e5c3a] transition-colors">{{ $totalUsersCount }}</span>
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                                        <i class="ph ph-check-circle"></i>
+                                        <span>System registered</span>
+                                    </span>
+                                </div>
+                                <div class="w-12 h-12 bg-emerald-50 text-[#0e5c3a] border border-emerald-100 group-hover:bg-[#0e5c3a] group-hover:text-white group-hover:rotate-6 rounded-2xl flex items-center justify-center text-2xl shadow-xs transition-all duration-300">
+                                    <i class="ph ph-users font-bold"></i>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Card 2: Active Research -->
-                        <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
-                            <div class="space-y-1">
-                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Active Research</span>
-                                <span class="text-3xl font-extrabold text-slate-900 tracking-tight block">{{ $activeResearchCount }}</span>
-                            </div>
-                            <div class="w-11 h-11 bg-blue-50/80 text-blue-700 border border-blue-100/60 rounded-xl flex items-center justify-center text-xl shadow-2xs">
-                                <i class="ph ph-file-text"></i>
+                        <div class="group relative overflow-hidden bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-blue-400 hover:-translate-y-1 transition-all duration-300">
+                            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+                            <div class="flex items-center justify-between">
+                                <div class="space-y-1">
+                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Active Research</span>
+                                    <span class="text-3xl font-black text-slate-900 tracking-tight font-heading block group-hover:text-blue-700 transition-colors">{{ $activeResearchCount }}</span>
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                                        <i class="ph ph-file-text"></i>
+                                        <span>Ongoing studies</span>
+                                    </span>
+                                </div>
+                                <div class="w-12 h-12 bg-blue-50 text-blue-700 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white group-hover:rotate-6 rounded-2xl flex items-center justify-center text-2xl shadow-xs transition-all duration-300">
+                                    <i class="ph ph-book-open font-bold"></i>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Card 3: Completed -->
-                        <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
-                            <div class="space-y-1">
-                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Completed</span>
-                                <span class="text-3xl font-extrabold text-slate-900 tracking-tight block">{{ $completedResearchCount }}</span>
-                            </div>
-                            <div class="w-11 h-11 bg-purple-50/80 text-purple-700 border border-purple-100/60 rounded-xl flex items-center justify-center text-xl shadow-2xs">
-                                <i class="ph ph-trend-up"></i>
+                        <div class="group relative overflow-hidden bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-purple-400 hover:-translate-y-1 transition-all duration-300">
+                            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
+                            <div class="flex items-center justify-between">
+                                <div class="space-y-1">
+                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Completed Research</span>
+                                    <span class="text-3xl font-black text-slate-900 tracking-tight font-heading block group-hover:text-purple-700 transition-colors">{{ $completedResearchCount }}</span>
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
+                                        <i class="ph ph-folder-star"></i>
+                                        <span>Institutional repository</span>
+                                    </span>
+                                </div>
+                                <div class="w-12 h-12 bg-purple-50 text-purple-700 border border-purple-100 group-hover:bg-purple-600 group-hover:text-white group-hover:rotate-6 rounded-2xl flex items-center justify-center text-2xl shadow-xs transition-all duration-300">
+                                    <i class="ph ph-trend-up font-bold"></i>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Card 4: System Activity -->
-                        <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
-                            <div class="space-y-1">
-                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Recent Activity</span>
-                                <span class="text-3xl font-extrabold text-slate-900 tracking-tight block">{{ count($recentActivities) }}</span>
-                            </div>
-                            <div class="w-11 h-11 bg-amber-50/80 text-amber-700 border border-amber-100/60 rounded-xl flex items-center justify-center text-xl shadow-2xs">
-                                <i class="ph ph-activity"></i>
+                        <div class="group relative overflow-hidden bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-amber-400 hover:-translate-y-1 transition-all duration-300">
+                            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
+                            <div class="flex items-center justify-between">
+                                <div class="space-y-1">
+                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Recent Activity</span>
+                                    <span class="text-3xl font-black text-slate-900 tracking-tight font-heading block group-hover:text-amber-700 transition-colors">{{ count($recentActivities) }}</span>
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100">
+                                        <i class="ph ph-activity"></i>
+                                        <span>Audit logs recorded</span>
+                                    </span>
+                                </div>
+                                <div class="w-12 h-12 bg-amber-50 text-amber-700 border border-amber-100 group-hover:bg-amber-500 group-hover:text-white group-hover:rotate-6 rounded-2xl flex items-center justify-center text-2xl shadow-xs transition-all duration-300">
+                                    <i class="ph ph-lightning font-bold"></i>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Lower Section: Recent Activity & System Statistics -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Lower Section: Recent Activity & User Role Distribution -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <!-- Recent Activity Card -->
-                        <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200">
-                            <h3 class="text-lg font-bold text-gray-800 mb-6">Recent Activity</h3>
-                            <div class="space-y-4">
-                                @forelse($recentActivities as $activity)
-                                    <div class="p-4 bg-gray-50/60 hover:bg-gray-50 border border-gray-100 rounded-2xl transition-all duration-200 flex items-center justify-between">
-                                        <span class="text-sm font-medium text-gray-700">{{ $activity['text'] }}</span>
-                                        <span class="text-xs text-gray-400">{{ $activity['time'] }}</span>
+                        <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#0e5c3a] to-[#0a4a2e] text-white flex items-center justify-center text-xl shadow-xs">
+                                            <i class="ph ph-activity font-bold"></i>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-base font-extrabold text-gray-900 font-heading">Recent Activity Feed</h3>
+                                            <p class="text-xs text-gray-400 font-medium">Real-time system actions and account registrations</p>
+                                        </div>
                                     </div>
-                                @empty
-                                    <div class="p-6 bg-gray-50/60 border border-gray-100 rounded-2xl text-center text-sm text-gray-500">
-                                        No recent activity found.
-                                    </div>
-                                @endforelse
+                                    <button @click="activeTab = 'audit'" class="px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 text-[#0e5c3a] text-xs font-extrabold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer">
+                                        <span>View Audit Trail</span>
+                                        <i class="ph ph-arrow-right font-bold"></i>
+                                    </button>
+                                </div>
+
+                                <div class="space-y-3">
+                                    @forelse($recentActivities as $activity)
+                                        @php
+                                            $actorName = $activity['actor'] ?? 'System';
+                                            $actorEmail = $activity['email'] ?? '';
+                                            $eventLabel = strtoupper(str_replace(['.', '_', '-'], ' ', $activity['event'] ?? 'system.event'));
+                                            $initial = strtoupper(substr($actorName, 0, 1));
+                                            $details = $activity['text'];
+                                        @endphp
+                                        <div class="p-4 bg-slate-50/80 hover:bg-white border-l-4 border-l-[#0e5c3a] border-y border-r border-slate-200/80 hover:border-emerald-300 rounded-2xl transition-all duration-200 flex items-center justify-between gap-4 shadow-2xs hover:shadow-md group">
+                                            <div class="flex items-center gap-3.5 min-w-0">
+                                                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0e5c3a] to-[#0a4a2e] text-white font-black flex items-center justify-center text-xs shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                                                    {{ $initial }}
+                                                </div>
+                                                <div class="space-y-0.5 min-w-0">
+                                                    <div class="flex items-center gap-2 flex-wrap">
+                                                        <span class="px-2 py-0.5 bg-emerald-100/80 border border-emerald-200 text-emerald-800 text-[10px] font-black rounded-md tracking-wider">
+                                                            {{ $eventLabel }}
+                                                        </span>
+                                                        <span class="text-xs font-bold text-slate-800 truncate">{{ $actorName }}</span>
+                                                        @if($actorEmail)
+                                                            <span class="text-[11px] text-slate-400 font-mono truncate">({{ $actorEmail }})</span>
+                                                        @endif
+                                                    </div>
+                                                    <p class="text-[11px] text-slate-500 font-medium truncate">{{ $details }}</p>
+                                                </div>
+                                            </div>
+                                            <span class="px-3 py-1 bg-white border border-slate-200 text-slate-500 rounded-xl text-[10px] font-bold shrink-0 shadow-2xs flex items-center gap-1.5">
+                                                <i class="ph ph-clock text-xs text-slate-400"></i>
+                                                <span>{{ $activity['time'] }}</span>
+                                            </span>
+                                        </div>
+                                    @empty
+                                        <div class="p-10 bg-slate-50/60 border border-slate-200/80 rounded-2xl text-center text-xs font-bold text-slate-400">
+                                            No recent activity logged yet.
+                                        </div>
+                                    @endforelse
+                                </div>
                             </div>
                         </div>
 
-                        <!-- System Statistics Card -->
-                        <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
+                        <!-- System Statistics Card (Enterprise Role Distribution) -->
+                        <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between">
                             <div>
-                                <h3 class="text-lg font-bold text-gray-800 mb-6">System Statistics</h3>
-                                <div class="space-y-6">
-                                    <!-- Student Researchers -->
-                                    <div class="space-y-2">
-                                        <div class="flex items-center justify-between text-sm font-semibold text-gray-600">
-                                            <span>Student Researchers</span>
-                                            <span class="text-gray-800">{{ $studentCount }}</span>
+                                <div class="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center text-xl shadow-xs">
+                                            <i class="ph ph-chart-pie-slice font-bold"></i>
                                         </div>
-                                        <div class="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                                        <div>
+                                            <h3 class="text-base font-extrabold text-gray-900 font-heading">User Role Distribution</h3>
+                                            <p class="text-xs text-gray-400 font-medium">Breakdown of account roles across NDMU</p>
+                                        </div>
+                                    </div>
+                                    <span class="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-xl text-xs font-bold">
+                                        {{ $totalUsersCount }} Accounts
+                                    </span>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <!-- Student Researchers -->
+                                    <div class="p-4 bg-gradient-to-r from-emerald-50/70 to-teal-50/70 rounded-2xl border border-emerald-200/80 space-y-2.5 shadow-2xs">
+                                        <div class="flex items-center justify-between text-xs font-black text-slate-800">
+                                            <span class="flex items-center gap-2">
+                                                <span class="w-7 h-7 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xs shadow-xs font-bold">
+                                                    <i class="ph ph-student"></i>
+                                                </span>
+                                                <span class="font-extrabold">Student Researchers</span>
+                                            </span>
+                                            <span class="text-slate-900 font-black text-sm">{{ $studentCount }} <span class="text-[10px] text-emerald-800 font-extrabold bg-white px-2.5 py-0.5 rounded-md ml-1 border border-emerald-200 shadow-2xs">{{ number_format($totalUsersCount > 0 ? ($studentCount / $totalUsersCount) * 100 : 0, 1) }}%</span></span>
+                                        </div>
+                                        <div class="w-full h-3 bg-white/80 rounded-full overflow-hidden p-0.5 border border-emerald-200/60">
                                             @php
                                                 $studentPercent = $totalUsersCount > 0 ? ($studentCount / $totalUsersCount) * 100 : 0;
                                             @endphp
-                                            <div class="h-full bg-emerald-600 rounded-full" x-init="$el.style.width = @js(max(0, min(100, $studentPercent))) + '%'"></div>
+                                            <div class="h-full bg-gradient-to-r from-emerald-500 to-[#0e5c3a] rounded-full transition-all duration-500 shadow-xs" x-init="$el.style.width = @js(max(0, min(100, $studentPercent))) + '%'"></div>
                                         </div>
                                     </div>
 
                                     <!-- Advisers -->
-                                    <div class="space-y-2">
-                                        <div class="flex items-center justify-between text-sm font-semibold text-gray-600">
-                                            <span>Advisers</span>
-                                            <span class="text-gray-800">{{ $adviserCount }}</span>
+                                    <div class="p-4 bg-gradient-to-r from-blue-50/70 to-indigo-50/70 rounded-2xl border border-blue-200/80 space-y-2.5 shadow-2xs">
+                                        <div class="flex items-center justify-between text-xs font-black text-slate-800">
+                                            <span class="flex items-center gap-2">
+                                                <span class="w-7 h-7 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs shadow-xs font-bold">
+                                                    <i class="ph ph-user-gear"></i>
+                                                </span>
+                                                <span class="font-extrabold">Research Advisers</span>
+                                            </span>
+                                            <span class="text-slate-900 font-black text-sm">{{ $adviserCount }} <span class="text-[10px] text-blue-800 font-extrabold bg-white px-2.5 py-0.5 rounded-md ml-1 border border-blue-200 shadow-2xs">{{ number_format($totalUsersCount > 0 ? ($adviserCount / $totalUsersCount) * 100 : 0, 1) }}%</span></span>
                                         </div>
-                                        <div class="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                                        <div class="w-full h-3 bg-white/80 rounded-full overflow-hidden p-0.5 border border-blue-200/60">
                                             @php
                                                 $adviserPercent = $totalUsersCount > 0 ? ($adviserCount / $totalUsersCount) * 100 : 0;
                                             @endphp
-                                            <div class="h-full bg-blue-600 rounded-full" x-init="$el.style.width = @js(max(0, min(100, $adviserPercent))) + '%'"></div>
+                                            <div class="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-500 shadow-xs" x-init="$el.style.width = @js(max(0, min(100, $adviserPercent))) + '%'"></div>
                                         </div>
                                     </div>
 
                                     <!-- Panelists -->
-                                    <div class="space-y-2">
-                                        <div class="flex items-center justify-between text-sm font-semibold text-gray-600">
-                                            <span>Panelists</span>
-                                            <span class="text-gray-800">{{ $panelistCount }}</span>
+                                    <div class="p-4 bg-gradient-to-r from-purple-50/70 to-pink-50/70 rounded-2xl border border-purple-200/80 space-y-2.5 shadow-2xs">
+                                        <div class="flex items-center justify-between text-xs font-black text-slate-800">
+                                            <span class="flex items-center gap-2">
+                                                <span class="w-7 h-7 rounded-xl bg-purple-600 text-white flex items-center justify-center text-xs shadow-xs font-bold">
+                                                    <i class="ph ph-gavel"></i>
+                                                </span>
+                                                <span class="font-extrabold">Panelists</span>
+                                            </span>
+                                            <span class="text-slate-900 font-black text-sm">{{ $panelistCount }} <span class="text-[10px] text-purple-800 font-extrabold bg-white px-2.5 py-0.5 rounded-md ml-1 border border-purple-200 shadow-2xs">{{ number_format($totalUsersCount > 0 ? ($panelistCount / $totalUsersCount) * 100 : 0, 1) }}%</span></span>
                                         </div>
-                                        <div class="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                                        <div class="w-full h-3 bg-white/80 rounded-full overflow-hidden p-0.5 border border-purple-200/60">
                                             @php
                                                 $panelistPercent = $totalUsersCount > 0 ? ($panelistCount / $totalUsersCount) * 100 : 0;
                                             @endphp
-                                            <div class="h-full bg-purple-600 rounded-full" x-init="$el.style.width = @js(max(0, min(100, $panelistPercent))) + '%'"></div>
+                                            <div class="h-full bg-gradient-to-r from-purple-500 to-pink-600 rounded-full transition-all duration-500 shadow-xs" x-init="$el.style.width = @js(max(0, min(100, $panelistPercent))) + '%'"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -450,28 +526,31 @@
                         </div>
                     </div>
 
-                    <!-- Pending Actions -->
-                    <section class="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100">
-                        <div class="flex items-center justify-between gap-4 mb-6">
+                    <!-- Pending Actions Grid Section -->
+                    <section class="bg-white rounded-3xl p-8 shadow-xs border border-slate-200/80 space-y-6">
+                        <div class="flex items-center justify-between gap-4 pb-4 border-b border-gray-100">
                             <div>
-                                <h2 class="text-lg font-bold text-gray-800">Pending Actions</h2>
-                                <p class="text-xs text-gray-500 mt-1">Items that still require review or attention</p>
+                                <h2 class="text-lg font-black font-heading text-gray-900 flex items-center gap-2">
+                                    <i class="ph ph-warning-circle text-amber-500 text-xl"></i>
+                                    <span>Pending System Actions</span>
+                                </h2>
+                                <p class="text-xs text-gray-500 mt-0.5">Items requiring administrative verification or user authorization</p>
                             </div>
-                            <span class="px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold">
-                                {{ collect($pendingActions)->sum('count') }} total
+                            <span class="px-4 py-1.5 rounded-full bg-amber-100 text-amber-900 text-xs font-black border border-amber-200">
+                                {{ collect($pendingActions)->sum('count') }} Pending Items
                             </span>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                             @foreach ($pendingActions as $action)
                                 @php
-                                    $actionTone = match ($action['tone']) {
-                                        'purple' => 'bg-purple-50 text-purple-700 border-purple-100',
-                                        'blue' => 'bg-blue-50 text-blue-700 border-blue-100',
-                                        'emerald' => 'bg-emerald-50 text-emerald-700 border-emerald-100',
-                                        'red' => 'bg-red-50 text-red-700 border-red-100',
-                                        'orange' => 'bg-orange-50 text-orange-700 border-orange-100',
-                                        default => 'bg-amber-50 text-amber-700 border-amber-100',
+                                    $actionStyle = match ($action['tone']) {
+                                        'purple' => 'border-purple-200/80 bg-purple-50/50 hover:bg-purple-50 hover:border-purple-300 text-purple-900',
+                                        'blue' => 'border-blue-200/80 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-300 text-blue-900',
+                                        'emerald' => 'border-emerald-200/80 bg-emerald-50/50 hover:bg-emerald-50 hover:border-emerald-300 text-emerald-900',
+                                        'red' => 'border-red-200/80 bg-red-50/50 hover:bg-red-50 hover:border-red-300 text-red-900',
+                                        'orange' => 'border-orange-200/80 bg-orange-50/50 hover:bg-orange-50 hover:border-orange-300 text-orange-900',
+                                        default => 'border-amber-200/80 bg-amber-50/50 hover:bg-amber-50 hover:border-amber-300 text-amber-900',
                                     };
                                 @endphp
                                 <button
@@ -480,15 +559,15 @@
                                     data-subtab="{{ $action['subtab'] }}"
                                     @click="if ($el.dataset.tab) { activeTab = $el.dataset.tab; if ($el.dataset.subtab) userManagementTab = $el.dataset.subtab; }"
                                     @disabled($action['tab'] === null)
-                                    class="p-5 rounded-2xl border text-left flex items-center justify-between gap-4 transition-all hover:shadow-sm disabled:cursor-default {{ $actionTone }}"
+                                    class="p-5 rounded-2xl border text-left flex items-center justify-between gap-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer disabled:cursor-default {{ $actionStyle }}"
                                 >
-                                    <div class="flex items-center gap-3 min-w-0">
-                                        <span class="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center flex-shrink-0">
+                                    <div class="flex items-center gap-3.5 min-w-0">
+                                        <span class="w-11 h-11 rounded-2xl bg-white shadow-2xs flex items-center justify-center shrink-0 border border-black/5">
                                             <i class="ph {{ $action['icon'] }} text-xl"></i>
                                         </span>
-                                        <span class="text-xs font-bold truncate">{{ $action['label'] }}</span>
+                                        <span class="text-xs font-black truncate leading-snug">{{ $action['label'] }}</span>
                                     </div>
-                                    <span class="text-2xl font-extrabold font-heading">{{ $action['count'] }}</span>
+                                    <span class="text-2xl font-black font-heading shrink-0">{{ $action['count'] }}</span>
                                 </button>
                             @endforeach
                         </div>
@@ -568,56 +647,65 @@
             </div>
 
             <!-- TAB 2: USER MANAGEMENT VIEW -->
-            <div x-show="activeTab === 'users'" x-cloak class="space-y-8">
+            <div x-show="activeTab === 'users'" x-cloak class="space-y-8 animate-fade-in">
                     <!-- Title Section -->
-                    <div>
-                        <h1 class="text-3xl font-extrabold font-heading text-gray-800 tracking-tight">User Management</h1>
-                        <p class="text-sm text-gray-500 font-light mt-1">Manage accounts, approve registrations, and create staff users</p>
+                    <div class="flex flex-col gap-1">
+                        <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                            <span>Admin Portal</span>
+                            <span>/</span>
+                            <span class="text-[#0e5c3a]">User Management</span>
+                        </div>
+                        <h1 class="font-heading text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">User Management & Accounts</h1>
+                        <p class="text-xs text-gray-500 max-w-xl">Oversee registered accounts, approve student registrations, edit user details, and provision staff accounts.</p>
                     </div>
 
                     <!-- Row of 4 statistics cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
                         <!-- Card 1: Total Users -->
-                        <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-teal-500 border border-gray-100 flex items-center justify-between">
+                        <div class="group bg-white rounded-2xl p-5 shadow-xs hover:shadow-md border border-gray-200/80 hover:border-teal-300 transition-all duration-200 flex items-center justify-between">
                             <div class="space-y-1">
-                                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Total Users</span>
-                                <span class="text-3xl font-extrabold text-gray-800 font-heading">{{ $totalUsersCount }}</span>
+                                <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Total Users</span>
+                                <span class="text-3xl font-black text-gray-900 font-heading tracking-tight">{{ $totalUsersCount }}</span>
+                                <span class="text-[10px] font-medium text-teal-600 block">Registered in system</span>
                             </div>
-                            <div class="w-12 h-12 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600 text-xl">
-                                <i class="ph ph-users"></i>
+                            <div class="w-12 h-12 bg-teal-50/80 group-hover:bg-teal-100/80 rounded-2xl flex items-center justify-center text-teal-600 text-xl border border-teal-100 transition-colors">
+                                <i class="ph ph-users font-bold"></i>
                             </div>
                         </div>
 
                         <!-- Card 2: Pending Approval -->
-                        <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-amber-500 border border-gray-100 flex items-center justify-between">
+                        <div class="group bg-white rounded-2xl p-5 shadow-xs hover:shadow-md border border-gray-200/80 hover:border-amber-300 transition-all duration-200 flex items-center justify-between">
                             <div class="space-y-1">
-                                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Pending Approval</span>
-                                <span class="text-3xl font-extrabold text-gray-800 font-heading">{{ $pendingApprovalCount }}</span>
+                                <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Pending Approval</span>
+                                <span class="text-3xl font-black text-gray-900 font-heading tracking-tight">{{ $pendingApprovalCount }}</span>
+                                <span class="text-[10px] font-medium text-amber-600 block">Awaiting verification</span>
                             </div>
-                            <div class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 text-xl">
-                                <i class="ph ph-clock"></i>
+                            <div class="w-12 h-12 bg-amber-50/80 group-hover:bg-amber-100/80 rounded-2xl flex items-center justify-center text-amber-600 text-xl border border-amber-100 transition-colors" :class="{{ $pendingApprovalCount }} > 0 ? 'animate-pulse' : ''">
+                                <i class="ph ph-clock font-bold"></i>
                             </div>
                         </div>
 
                         <!-- Card 3: Active Accounts -->
-                        <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-emerald-500 border border-gray-100 flex items-center justify-between">
+                        <div class="group bg-white rounded-2xl p-5 shadow-xs hover:shadow-md border border-gray-200/80 hover:border-emerald-300 transition-all duration-200 flex items-center justify-between">
                             <div class="space-y-1">
-                                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Active Accounts</span>
-                                <span class="text-3xl font-extrabold text-gray-800 font-heading">{{ $activeAccountsCount }}</span>
+                                <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Active Accounts</span>
+                                <span class="text-3xl font-black text-gray-900 font-heading tracking-tight">{{ $activeAccountsCount }}</span>
+                                <span class="text-[10px] font-medium text-emerald-600 block">Verified & authorized</span>
                             </div>
-                            <div class="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 text-xl">
-                                <i class="ph ph-check-circle"></i>
+                            <div class="w-12 h-12 bg-emerald-50/80 group-hover:bg-emerald-100/80 rounded-2xl flex items-center justify-center text-[#0e5c3a] text-xl border border-emerald-100 transition-colors">
+                                <i class="ph ph-check-circle font-bold"></i>
                             </div>
                         </div>
 
-                        <!-- Card 4: Rejected -->
-                        <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-red-500 border border-gray-100 flex items-center justify-between">
+                        <!-- Card 4: Without Roles -->
+                        <div class="group bg-white rounded-2xl p-5 shadow-xs hover:shadow-md border border-gray-200/80 hover:border-blue-300 transition-all duration-200 flex items-center justify-between">
                             <div class="space-y-1">
-                                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Rejected</span>
-                                <span class="text-3xl font-extrabold text-gray-800 font-heading">{{ $rejectedCount }}</span>
+                                <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Without Roles</span>
+                                <span class="text-3xl font-black text-gray-900 font-heading tracking-tight">{{ $withoutRolesCount }}</span>
+                                <span class="text-[10px] font-medium text-blue-600 block">Awaiting access assignment</span>
                             </div>
-                            <div class="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-600 text-xl">
-                                <i class="ph ph-x-circle"></i>
+                            <div class="w-12 h-12 bg-blue-50/80 group-hover:bg-blue-100/80 rounded-2xl flex items-center justify-center text-blue-600 text-xl border border-blue-100 transition-colors">
+                                <i class="ph ph-shield-warning font-bold"></i>
                             </div>
                         </div>
                     </div>
@@ -692,6 +780,7 @@
                                                 class="px-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300 appearance-none pr-10 relative"
                                             >
                                                 <option value="">All Roles</option>
+                                                <option value="__without_roles__">Without Roles</option>
                                                 @foreach ($rolesList as $filterRole)
                                                     <option value="{{ $filterRole['name'] }}">{{ $filterRole['label'] }}</option>
                                                 @endforeach
@@ -711,7 +800,7 @@
                                     </div>
 
                                     <!-- Table Container -->
-                                    <div class="overflow-x-auto rounded-2xl border border-gray-100">
+                                    <div id="user-management-table" class="overflow-x-auto rounded-2xl border border-gray-100">
                                         <table class="w-full border-collapse text-left text-sm text-gray-500">
                                             <thead class="bg-gradient-to-r from-[#0e5c3a] to-[#0a4a2e] text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
                                                 <tr>
@@ -727,7 +816,7 @@
                                             </thead>
                                             <tbody class="divide-y divide-gray-100 bg-white">
                                                 @forelse($usersList as $user)
-                                                    <tr class="hover:bg-gray-50/50 transition-colors duration-200">
+                                                    <tr class="group transition-all duration-200 hover:bg-emerald-50/80 hover:shadow-[inset_4px_0_0_#0e5c3a]">
                                                         <!-- Name (avatar + name) -->
                                                         <td class="px-6 py-4 flex items-center gap-3">
                                                             <div class="w-8 h-8 rounded-full bg-[#0e5c3a]/10 text-[#0e5c3a] flex items-center justify-center font-bold text-sm">
@@ -794,12 +883,12 @@
                                                         <td class="px-6 py-4">{{ $user->created_at?->format('Y-m-d') }}</td>
 
                                                         <!-- Actions -->
-                                                        <td class="px-6 py-4">
+                                                        <td class="min-w-[190px] px-6 py-4 whitespace-nowrap">
                                                             @if (auth()->id() === $user->id)
                                                                 <span class="text-xs font-bold text-gray-400">Current account</span>
                                                             @else
-                                                                <div class="flex flex-wrap gap-2">
-                                                                    <button type="button" wire:click="openRoleAssignment({{ $user->id }})" class="px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-xs font-bold text-blue-700 hover:bg-blue-100">
+                                                                <div class="flex flex-nowrap items-center gap-2">
+                                                                    <button type="button" wire:click="openRoleAssignment({{ $user->id }})" class="shrink-0 px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-xs font-bold text-blue-700 hover:bg-blue-100">
                                                                         Assign Role
                                                                     </button>
                                                                     @if ($status === 'active')
@@ -809,7 +898,7 @@
                                                                             wire:confirm="Disable this account? The user will no longer be able to sign in."
                                                                             wire:loading.attr="disabled"
                                                                             wire:target="suspendUser({{ $user->id }})"
-                                                                            class="px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-xs font-bold text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                                                                            class="shrink-0 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-xs font-bold text-amber-700 hover:bg-amber-100 disabled:opacity-50"
                                                                         >Disable</button>
                                                                     @else
                                                                         <button
@@ -818,7 +907,7 @@
                                                                             wire:confirm="Enable this account and allow the user to sign in again?"
                                                                             wire:loading.attr="disabled"
                                                                             wire:target="activateUser({{ $user->id }})"
-                                                                            class="px-3 py-2 rounded-xl bg-[#0e5c3a] text-xs font-bold text-white hover:bg-[#0a4a2e] disabled:opacity-50"
+                                                                            class="shrink-0 px-3 py-2 rounded-xl bg-[#0e5c3a] text-xs font-bold text-white hover:bg-[#0a4a2e] disabled:opacity-50"
                                                                         >Enable</button>
                                                                     @endif
                                                                 </div>
@@ -838,7 +927,7 @@
 
                                     <!-- Pagination Links -->
                                     <div class="mt-4">
-                                        {{ $usersList->links() }}
+                                        {{ $usersList->links(data: ['scrollTo' => false]) }}
                                     </div>
                             </div>
 
@@ -914,7 +1003,7 @@
                                     <div class="mb-6 p-4 bg-sky-50 border border-sky-100 text-sky-800 rounded-2xl flex gap-3 text-xs leading-relaxed">
                                         <i class="ph ph-info text-lg text-sky-600 flex-shrink-0"></i>
                                         <div>
-                                            Creates a <strong>staff account</strong> (Adviser, Panelist, Research Facilitator, or College Dean). Share the temporary password securely and ask the user to change it through the password reset flow.
+                                            Creates a <strong>faculty account without operational access</strong>. After creation, use Assign Role to grant only the responsibilities this person currently needs.
                                         </div>
                                     </div>
 
@@ -954,30 +1043,6 @@
                                                 >
                                             </div>
                                             @error('email') <span class="text-xs font-bold text-red-500">{{ $message }}</span> @enderror
-                                        </div>
-
-                                        <!-- Role dropdown -->
-                                        <div class="space-y-1.5">
-                                            <label for="new_role" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Role</label>
-                                            <div class="relative">
-                                                <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 pointer-events-none">
-                                                    <i class="ph ph-shield text-lg"></i>
-                                                </span>
-                                                <select 
-                                                    id="new_role"
-                                                    wire:model="role"
-                                                    class="w-full pl-11 pr-10 py-3.5 bg-white border @error('role') border-red-300 focus:border-red-500 focus:ring-red-500/5 @else border-gray-200 focus:border-[#0e5c3a] focus:ring-[#0e5c3a]/5 @enderror rounded-2xl text-sm focus:outline-none focus:ring-4 transition-all duration-300 appearance-none"
-                                                >
-                                                    <option value="">Select role</option>
-                                                    @foreach ($staffRoleOptions as $staffRole)
-                                                        <option value="{{ $staffRole['name'] }}">{{ $staffRole['label'] }}</option>
-                                                    @endforeach
-                                                </select>
-                                                <span class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 pointer-events-none">
-                                                    <i class="ph ph-caret-down text-base"></i>
-                                                </span>
-                                            </div>
-                                            @error('role') <span class="text-xs font-bold text-red-500">{{ $message }}</span> @enderror
                                         </div>
 
                                         <!-- College (NDMU-RMAS is scoped to CEAC) -->
@@ -2383,6 +2448,10 @@
 
             <!-- TAB 9: AUDIT LOGS VIEW -->
             <div x-show="activeTab === 'audit'" x-cloak class="space-y-8 animate-fade-in">
+                @include('admin.audit-logs')
+            </div>
+
+            <div class="hidden" aria-hidden="true">
                 <!-- Header -->
                 <div>
                     <h1 class="text-3xl font-extrabold font-heading text-gray-800 tracking-tight">Research Revision Tracker</h1>

@@ -8,7 +8,7 @@ use App\Http\Controllers\DisabledFeatureController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('adviser')->name('adviser.')->middleware([
-    'auth', 'verified', 'active', 'permission:dashboards.adviser.view',
+    'auth', 'verified', 'active', 'permission:dashboards.adviser.view', 'workspace.context',
 ])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 

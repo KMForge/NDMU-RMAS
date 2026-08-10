@@ -490,6 +490,7 @@
 
             <!-- Right profile area matching "D / Dr. Dean's Portal" -->
             <div class="flex items-center gap-4">
+                <x-workspace-switcher current="dean" />
                 <!-- Notification Bell -->
                 <button @click="activeTab = 'notifications'" class="relative w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
                     <i class="ph ph-bell text-lg"></i>

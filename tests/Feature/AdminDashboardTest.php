@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Enums\AccountStatus;
+use App\Enums\UserType;
 use App\Livewire\AdminDashboard;
+use App\Models\AuditLog;
 use App\Models\SystemSetting;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -258,6 +260,48 @@ class AdminDashboardTest extends TestCase
             ->assertSee('Disable');
     }
 
+    public function test_admin_can_filter_and_clear_audit_activity(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+        $otherActor = User::factory()->create();
+
+        AuditLog::query()->create([
+            'user_id' => $admin->id,
+            'actor_name' => $admin->name,
+            'actor_email' => $admin->email,
+            'event' => 'workspace.switched',
+            'description' => 'Unique workspace audit description.',
+            'created_at' => now(),
+        ]);
+        AuditLog::query()->create([
+            'user_id' => $otherActor->id,
+            'actor_name' => $otherActor->name,
+            'actor_email' => $otherActor->email,
+            'subject_name' => 'Target Faculty Member',
+            'subject_email' => 'target.faculty@ndmu.edu.ph',
+            'event' => 'user.activated',
+            'description' => 'Unique account audit description.',
+            'created_at' => now()->subDay(),
+        ]);
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->assertSee('Unique workspace audit description.')
+            ->assertSee('Unique account audit description.')
+            ->set('auditEvent', 'workspace.switched')
+            ->assertSee('Unique workspace audit description.')
+            ->assertDontSee('Unique account audit description.')
+            ->call('clearAuditFilters')
+            ->assertSet('auditEvent', '')
+            ->assertSee('Unique account audit description.')
+            ->set('auditSearch', 'target.faculty@ndmu.edu.ph')
+            ->assertDontSee('Unique workspace audit description.')
+            ->assertSee('Unique account audit description.')
+            ->assertSee('Target Faculty Member');
+    }
+
     public function test_admin_cannot_change_their_own_account_status(): void
     {
         $admin = User::factory()->create();
@@ -283,19 +327,18 @@ class AdminDashboardTest extends TestCase
             ->assertSee('College of Engineering, Architecture, and Computing (CEAC)')
             ->set('name', 'Dr. Lourdes Castillo')
             ->set('email', 'l.castillo@ndmu.edu.ph')
-            ->set('role', 'dean')
             ->set('department', 'Untrusted College Value')
             ->set('password', 'SecurePassword123!')
             ->call('createStaffAccount')
             ->assertHasNoErrors()
-            ->assertSet('successMessage', 'Staff account for Dr. Lourdes Castillo created successfully.');
+            ->assertSet('successMessage', 'Faculty account for Dr. Lourdes Castillo created. Assign a role when access is required.');
 
         $newUser = User::where('email', 'l.castillo@ndmu.edu.ph')->first();
         $this->assertNotNull($newUser);
         $this->assertEquals('Dr. Lourdes Castillo', $newUser->name);
         $this->assertEquals(config('academic.college.name'), $newUser->department);
         $this->assertEquals(AccountStatus::Active, $newUser->status);
-        $this->assertTrue($newUser->hasRole('dean'));
+        $this->assertTrue($newUser->roles->isEmpty());
         $this->assertSame('faculty', $newUser->user_type->value);
     }
 
@@ -309,13 +352,11 @@ class AdminDashboardTest extends TestCase
         Livewire::test(AdminDashboard::class)
             ->set('name', '')
             ->set('email', 'not-an-email')
-            ->set('role', 'invalid-role')
             ->set('password', 'short')
             ->call('createStaffAccount')
             ->assertHasErrors([
                 'name' => 'required',
                 'email' => 'email',
-                'role' => 'in',
                 'password',
             ]);
     }
@@ -385,6 +426,11 @@ class AdminDashboardTest extends TestCase
             'program-coordinator',
             'thesis-adviser',
         ]));
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'user.access-updated',
+            'subject_name' => $faculty->name,
+            'subject_email' => $faculty->email,
+        ]);
     }
 
     public function test_dynamic_role_can_be_the_users_only_access_role(): void
@@ -402,6 +448,23 @@ class AdminDashboardTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertTrue($faculty->fresh()->hasExactRoles(['program-coordinator']));
+    }
+
+    public function test_admin_can_clear_all_roles_from_a_faculty_account(): void
+    {
+        $admin = User::factory()->create(['user_type' => UserType::Admin]);
+        $admin->assignRole('system-administrator');
+        $faculty = User::factory()->create(['user_type' => UserType::Faculty]);
+        $faculty->assignRole('research-facilitator');
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->call('openRoleAssignment', $faculty->id)
+            ->set('assignedRoles', [])
+            ->call('saveUserRoles')
+            ->assertHasNoErrors();
+
+        $this->assertTrue($faculty->fresh()->roles->isEmpty());
     }
 
     public function test_default_roles_are_editable_but_administrator_cannot_be_deleted(): void
