@@ -55,7 +55,7 @@ class DocumentController extends Controller
             ], 201);
         }
 
-        return to_route('student.dashboard')
+        return to_route('student.dashboard', ['tab' => 'proposal'])
             ->with('document_success', 'Document submitted successfully and is pending review.');
     }
 
@@ -88,7 +88,7 @@ class DocumentController extends Controller
             return response()->json(['message' => $message], $status);
         }
 
-        return to_route('student.dashboard')
+        return to_route('student.dashboard', ['tab' => 'proposal'])
             ->withErrors(['document' => $message])
             ->with('document_error', $message);
     }

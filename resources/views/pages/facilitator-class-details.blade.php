@@ -219,11 +219,19 @@
                                             <form method="POST" action="{{ route('facilitator.classes.groups.leader.assign', [$researchClass, $grp]) }}" class="flex items-center gap-1">
                                                 @csrf
                                                 @method('PUT')
-                                                <select name="student_id" required onchange="this.form.submit()" class="rounded-lg border border-gray-200 px-2 py-1 text-[10px] font-bold text-gray-700 bg-white focus:border-[#0e5c3a] focus:outline-none cursor-pointer">
-                                                    <option value="">Assign Leader...</option>
+                                                <select
+                                                    name="student_id"
+                                                    required
+                                                    onchange="this.form.submit()"
+                                                    aria-label="{{ $grp->leader_student_id ? 'Change Group Leader' : 'Assign Group Leader' }}"
+                                                    class="rounded-lg border border-gray-200 px-2 py-1 text-[10px] font-bold text-gray-700 bg-white focus:border-[#0e5c3a] focus:outline-none cursor-pointer"
+                                                >
+                                                    <option value="" selected disabled>
+                                                        {{ $grp->leader_student_id ? 'Change Group Leader...' : 'Assign Group Leader...' }}
+                                                    </option>
                                                     @foreach ($members as $mbOpt)
-                                                        <option value="{{ $mbOpt->student_id }}" {{ $grp->leader_student_id === $mbOpt->student_id ? 'selected' : '' }}>
-                                                            ★ {{ $mbOpt->student?->name }}
+                                                        <option value="{{ $mbOpt->student_id }}" @disabled((int) $grp->leader_student_id === (int) $mbOpt->student_id)>
+                                                            {{ $mbOpt->student?->name }}{{ (int) $grp->leader_student_id === (int) $mbOpt->student_id ? ' (Current Leader)' : '' }}
                                                         </option>
                                                     @endforeach
                                                 </select>
@@ -235,13 +243,21 @@
                                     @else
                                         <ul class="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
                                             @foreach ($members as $mb)
-                                                <li class="flex items-center justify-between p-3 bg-white">
+                                                @php
+                                                    $isGroupLeader = (int) $grp->leader_student_id === (int) $mb->student_id;
+                                                @endphp
+                                                <li @class([
+                                                    'flex items-center justify-between p-3',
+                                                    'bg-amber-50/70' => $isGroupLeader,
+                                                    'bg-white' => ! $isGroupLeader,
+                                                ])>
                                                     <div>
                                                         <div class="flex items-center gap-2">
                                                             <p class="text-xs font-bold text-gray-800">{{ $mb->student?->name }}</p>
-                                                            @if ($grp->leader_student_id === $mb->student_id)
-                                                                <span class="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                                                                    ★ Group Leader
+                                                            @if ($isGroupLeader)
+                                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                                                    <i class="ph ph-star-fill" aria-hidden="true"></i>
+                                                                    Group Leader
                                                                 </span>
                                                             @endif
                                                         </div>

@@ -428,6 +428,8 @@ class ResearchClassGroupWorkflowTest extends TestCase
             ]);
         }
 
+        $assignedGroup->update(['leader_student_id' => $student1->getKey()]);
+
         $pendingGroup = $this->createGroup($researchClass, $facilitator, 'Pending Invitation Group');
         $adviserRequest = ResearchClassGroupAdviserRequest::query()->create([
             'research_class_group_id' => $pendingGroup->getKey(),
@@ -454,6 +456,7 @@ class ResearchClassGroupWorkflowTest extends TestCase
             ->assertSee('Assigned Capstone Group')
             ->assertSee('Assigned Member One')
             ->assertSee('Assigned Member Two')
+            ->assertSee('Group Leader')
             ->assertSee('No title selected yet')
             ->assertDontSee('Other Adviser Group');
 

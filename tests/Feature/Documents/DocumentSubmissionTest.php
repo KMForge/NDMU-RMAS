@@ -140,6 +140,47 @@ class DocumentSubmissionTest extends TestCase
         ]);
     }
 
+    public function test_student_dashboard_has_no_upload_shortcut_outside_research_proposal(): void
+    {
+        ['user' => $leader, 'group' => $group, 'class' => $class, 'facilitator' => $facilitator] = $this->studentGroupLeader();
+
+        $nonLeader = $this->student();
+        $enrollment = ResearchClassEnrollment::query()->create([
+            'research_class_id' => $class->id,
+            'student_id' => $nonLeader->id,
+            'status' => 'active',
+            'joined_at' => now(),
+        ]);
+        ResearchClassGroupMember::query()->create([
+            'research_class_group_id' => $group->id,
+            'research_class_id' => $class->id,
+            'research_class_enrollment_id' => $enrollment->id,
+            'student_id' => $nonLeader->id,
+            'assigned_by' => $facilitator->id,
+        ]);
+
+        $this->actingAs($nonLeader)
+            ->get(route('student.dashboard'))
+            ->assertOk()
+            ->assertDontSee('Submit Document')
+            ->assertDontSee('student-document-upload-input')
+            ->assertDontSee('data-document-upload-trigger')
+            ->assertSee('Group Leader Only Action');
+    }
+
+    public function test_browser_upload_returns_group_leader_to_research_proposal(): void
+    {
+        ['user' => $leader] = $this->studentGroupLeader();
+
+        $this->actingAs($leader)
+            ->post(route('student.documents.store'), [
+                'submission_token' => (string) Str::uuid(),
+                'document' => $this->pdf('Research Proposal.pdf'),
+            ])
+            ->assertRedirect(route('student.dashboard', ['tab' => 'proposal']))
+            ->assertSessionHas('document_success');
+    }
+
     public function test_student_without_active_group_cannot_submit_a_document(): void
     {
         $user = $this->student();
@@ -236,6 +277,14 @@ class DocumentSubmissionTest extends TestCase
             ->assertJsonPath('group.leader_student_id', $newLeader->id);
 
         $this->assertSame($newLeader->id, $group->fresh()->leader_student_id);
+
+        $this->actingAs($facilitator)
+            ->get(route('facilitator.classes.show', $class))
+            ->assertOk()
+            ->assertSee($newLeader->name)
+            ->assertSee('Group Leader')
+            ->assertSee('Change Group Leader...')
+            ->assertSee('Current Leader');
     }
 
     public function test_moving_group_leader_clears_old_group_leader(): void

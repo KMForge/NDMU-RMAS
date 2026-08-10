@@ -36,6 +36,7 @@ class ResearchClassController extends Controller
             ->with([
                 'group' => fn ($query) => $query->with([
                     'adviser:id,name,email,department',
+                    'leader:id,name,email',
                     'members.student:id,name,email,student_id,program,year_level',
                 ]),
             ])

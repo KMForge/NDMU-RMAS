@@ -267,30 +267,6 @@
                 'evaluations' => ['eyebrow' => 'Student Research Portal', 'title' => 'Evaluation Results', 'description' => 'Review released evaluation results and panel feedback.', 'icon' => 'ph-clipboard-text'],
                 'repository' => ['eyebrow' => 'Student Research Portal', 'title' => 'Research Repository', 'description' => 'Securely view and download the research files available to you.', 'icon' => 'ph-folder-open'],
             ]" />
-            <form id="student-document-upload-form" method="POST" action="{{ route('student.documents.store') }}" enctype="multipart/form-data" class="hidden">
-                @csrf
-                <input type="hidden" name="submission_token" value="{{ (string) Illuminate\Support\Str::uuid() }}">
-                <input
-                    id="student-document-upload-input"
-                    type="file"
-                    name="document"
-                    accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    onchange="if (this.files.length) { document.querySelectorAll('[data-document-upload-trigger]').forEach((button) => button.disabled = true); this.form.requestSubmit(); }"
-                >
-            </form>
-
-            @if (session('document_success'))
-                <div role="status" class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-                    {{ session('document_success') }}
-                </div>
-            @endif
-
-            @if (session('document_error') || $errors->has('document'))
-                <div role="alert" class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                    {{ session('document_error') ?: $errors->first('document') }}
-                </div>
-            @endif
-
             @if (session('revision_success'))
                 <div role="status" class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                     {{ session('revision_success') }}
@@ -345,12 +321,6 @@
                         <p class="text-xs text-slate-500 max-w-xl">Track your research milestones, submit documents, and manage consultations</p>
                     </div>
 
-                    <div class="relative z-10 flex items-center gap-3">
-                        <button type="button" data-document-upload-trigger onclick="document.getElementById('student-document-upload-input').click()" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer">
-                            <i class="ph ph-upload-simple text-base"></i>
-                            <span>Submit Document</span>
-                        </button>
-                    </div>
                 </div>
 
                 @if ($dashboardSearchQuery !== '')
@@ -625,64 +595,102 @@
             </section>
 
             <section x-show="activeTab === 'classes'" x-cloak class="space-y-8">
-                <div class="flex items-center justify-between gap-4">
-                    <x-student-section-heading title="My Classes" description="Approved classes and join requests for your account." />
+                <!-- Section Action Header -->
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white rounded-2xl p-6 border border-gray-150 shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <div class="w-2.5 h-8 rounded-full bg-[#0e5c3a]"></div>
+                        <div>
+                            <h2 class="text-xl font-extrabold text-[#0e5c3a] flex items-center gap-2">
+                                <span>My Enrolled Research Workspaces</span>
+                                <span class="rounded-full bg-[#eebc3f] px-3 py-0.5 text-[10px] font-black uppercase text-[#0e5c3a]">
+                                    {{ $classes->count() }} {{ Illuminate\Support\Str::plural('Class', $classes->count()) }} Enrolled
+                                </span>
+                            </h2>
+                            <p class="text-xs text-gray-500 mt-0.5">Access your capstone class workspaces, group roster, and join request statuses.</p>
+                        </div>
+                    </div>
                     <button
                         type="button"
                         @click="showJoinClassModal = true"
-                        class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2"
+                        class="inline-flex items-center gap-2 rounded-2xl bg-[#0e5c3a] px-5 py-3 text-xs font-bold text-white shadow-md hover:bg-[#0a4a2e] transition-all cursor-pointer shrink-0"
                     >
-                        <i class="ph ph-plus-circle text-base"></i>
-                        <span>Request to Join</span>
+                        <i class="ph ph-plus-circle text-lg"></i>
+                        <span>Request to Join Class</span>
                     </button>
                 </div>
 
+                <!-- Pending Join Requests -->
                 @if ($classJoinRequests->isNotEmpty())
-                    <div class="space-y-3">
-                        <h2 class="text-xs font-bold uppercase tracking-wider text-gray-500">Join request status</h2>
-                        @foreach ($classJoinRequests as $joinRequest)
-                            <article class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between gap-4">
-                                <div class="min-w-0">
-                                    <h3 class="font-bold text-gray-800 text-sm">{{ $joinRequest->class_name }}</h3>
-                                    <p class="text-[11px] text-gray-500 mt-1">
-                                        Facilitator: {{ $joinRequest->facilitator_name }}
-                                        · Requested {{ \Illuminate\Support\Carbon::parse($joinRequest->requested_at)->diffForHumans() }}
-                                    </p>
-                                </div>
-                                <span @class([
-                                    'px-3 py-1 rounded-full text-[10px] font-bold uppercase',
-                                    'bg-amber-50 text-amber-700' => $joinRequest->status === 'pending',
-                                    'bg-red-50 text-red-700' => $joinRequest->status === 'rejected',
-                                ])>
-                                    {{ $joinRequest->status }}
-                                </span>
-                            </article>
-                        @endforeach
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-6 rounded-full bg-amber-500"></div>
+                            <h3 class="text-sm font-extrabold text-amber-900">Pending Join Requests ({{ $classJoinRequests->count() }})</h3>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            @foreach ($classJoinRequests as $joinRequest)
+                                <article class="bg-white rounded-2xl p-5 border border-amber-200 shadow-sm flex items-center justify-between gap-4 border-l-4 border-l-amber-500">
+                                    <div class="min-w-0">
+                                        <h4 class="font-bold text-gray-850 text-sm">{{ $joinRequest->class_name }}</h4>
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            Facilitator: <span class="font-semibold text-gray-700">{{ $joinRequest->facilitator_name }}</span>
+                                            · Requested {{ \Illuminate\Support\Carbon::parse($joinRequest->requested_at)->diffForHumans() }}
+                                        </p>
+                                    </div>
+                                    <span @class([
+                                        'px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-2xs shrink-0',
+                                        'bg-amber-100 text-amber-900 border border-amber-200' => $joinRequest->status === 'pending',
+                                        'bg-rose-100 text-rose-900 border border-rose-200' => $joinRequest->status === 'rejected',
+                                    ])>
+                                        {{ $joinRequest->status }}
+                                    </span>
+                                </article>
+                            @endforeach
+                        </div>
                     </div>
                 @endif
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    @forelse ($classes as $class)
-                        <a href="{{ route('student.classes.show', $class->id) }}" class="block bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 space-y-4">
-                            <div>
-                                <h2 class="font-bold text-gray-800 text-sm">{{ $class->name }}</h2>
-                                <p class="text-[11px] text-gray-500 mt-1">Facilitator: {{ $class->facilitator_name }}</p>
+                <!-- Enrolled Classes Grid -->
+                <div class="space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-2 h-6 rounded-full bg-[#0e5c3a]"></div>
+                        <h3 class="text-sm font-extrabold text-[#0e5c3a]">Active Workspaces</h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        @forelse ($classes as $class)
+                            <a href="{{ route('student.classes.show', $class->id) }}" class="group block bg-white rounded-2xl p-6 border border-gray-150 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-200 space-y-4 border-t-4 border-t-[#0e5c3a] relative overflow-hidden">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] font-black uppercase tracking-wider text-[#0e5c3a] bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">Active Workspace</span>
+                                    <span class="w-8 h-8 rounded-xl bg-emerald-50 text-[#0e5c3a] flex items-center justify-center font-bold group-hover:bg-[#0e5c3a] group-hover:text-white transition-colors">
+                                        <i class="ph ph-chalkboard-teacher text-base"></i>
+                                    </span>
+                                </div>
+                                <div>
+                                    <h4 class="font-extrabold text-gray-850 text-base group-hover:text-[#0e5c3a] transition-colors">{{ $class->name }}</h4>
+                                    <p class="text-xs text-gray-500 mt-1 flex items-center gap-1.5">
+                                        <i class="ph ph-user-circle text-sm text-[#0e5c3a]"></i>
+                                        <span>Facilitator: <strong>{{ $class->facilitator_name }}</strong></span>
+                                    </p>
+                                </div>
+                                @if ($class->description)
+                                    <p class="text-xs text-gray-500 leading-relaxed line-clamp-2">{{ $class->description }}</p>
+                                @endif
+                                <div class="pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-bold">
+                                    <span class="text-[10px] font-semibold text-gray-400">
+                                        Joined {{ \Illuminate\Support\Carbon::parse($class->joined_at)->diffForHumans() }}
+                                    </span>
+                                    <span class="text-[#0e5c3a] group-hover:translate-x-1 transition-transform flex items-center gap-1 font-extrabold">
+                                        <span>Open Class</span>
+                                        <i class="ph ph-arrow-right"></i>
+                                    </span>
+                                </div>
+                            </a>
+                        @empty
+                            <div class="md:col-span-2 lg:col-span-3">
+                                <x-student-empty-state message="You have not joined a research class yet. Click 'Request to Join Class' to enter your class join code." />
                             </div>
-                            @if ($class->description)
-                                <p class="text-xs text-gray-500 leading-6">{{ $class->description }}</p>
-                            @endif
-                            <p class="text-[10px] text-gray-400 pt-3 border-t border-gray-100">
-                                Joined {{ \Illuminate\Support\Carbon::parse($class->joined_at)->diffForHumans() }}
-                            </p>
-                            <div class="flex items-center justify-between pt-1 text-[10px] font-bold text-[#0e5c3a]">
-                                <span>View class</span><i class="ph ph-arrow-right"></i>
-                            </div>
-                        </a>
-                    @empty
-                        <div class="md:col-span-2 lg:col-span-3">
-                            <x-student-empty-state message="You have not joined a research class yet." />
-                        </div>
-                    @endforelse
+                        @endforelse
+                    </div>
                 </div>
             </section>
 
@@ -1159,13 +1167,7 @@
             </section>
 
             <section x-show="activeTab === 'repository'" x-cloak class="space-y-8">
-                <div class="flex items-center justify-between">
-                    <x-student-section-heading title="Research Repository" description="Documents securely submitted by your account." />
-                    <button type="button" data-document-upload-trigger onclick="document.getElementById('student-document-upload-input').click()" class="px-4 py-2.5 bg-[#0e5c3a] text-white text-xs font-bold rounded-xl flex items-center gap-2 disabled:opacity-60">
-                        <i class="ph ph-upload-simple"></i>
-                        <span>Upload Document</span>
-                    </button>
-                </div>
+                <x-student-section-heading title="Research Repository" description="Securely view and download your group's submitted documents." />
                 <div class="space-y-4">
                     @forelse ($documents as $document)
                         <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between gap-4">
