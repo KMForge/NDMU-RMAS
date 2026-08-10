@@ -1193,16 +1193,17 @@
 
         <!-- Main Body Content -->
         <main class="flex-grow p-8 space-y-8">
-            <x-portal-feature-banner :sections="[
-                'classes' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Capstone Classes', 'description' => 'Create classes and view approved student rosters.', 'icon' => 'ph-chalkboard-teacher'],
-                'join-requests' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Join Requests', 'description' => 'Approve or reject student requests before they enter a class.', 'icon' => 'ph-user-plus'],
-                'monitoring' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Research Monitoring', 'description' => 'Monitor milestones and academic progress across all groups.', 'icon' => 'ph-chart-line-up'],
-                'advisers' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Adviser Assignments', 'description' => 'Manage adviser assignments and research-group responsibilities.', 'icon' => 'ph-users-four'],
-                'screening' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Proposal Screening', 'description' => 'Screen submitted proposals before the next review stage.', 'icon' => 'ph-file-search'],
-                'defenses' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Defense Management', 'description' => 'Coordinate defense requests, schedules, rooms, and panels.', 'icon' => 'ph-calendar-check'],
-                'statistics' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Research Statistics', 'description' => 'Review current research activity and program-level outcomes.', 'icon' => 'ph-chart-bar'],
-                'reports' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Reports & Analytics', 'description' => 'Generate and review operational research reports.', 'icon' => 'ph-presentation-chart'],
-                'repository' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Research Repository', 'description' => 'Access authorized research records and submitted files.', 'icon' => 'ph-folder-open'],
+            <x-portal-feature-banner class="mb-8" :sections="[
+                'classes' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Capstone Classes', 'description' => 'Create and manage research classes, student rosters, and research groups.', 'icon' => 'ph-chalkboard-teacher'],
+                'join-requests' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Class Join Requests', 'description' => 'Review and approve or reject student class enrollment requests.', 'icon' => 'ph-user-plus'],
+                'monitoring' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Research Monitoring', 'description' => 'Track milestone progress and progress status across research groups.', 'icon' => 'ph-chart-line-up'],
+                'advisers' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Adviser Assignments', 'description' => 'Manage thesis adviser allocations and invitation statuses.', 'icon' => 'ph-users'],
+                'screening' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Research Screening', 'description' => 'Screen submitted research proposals prior to defense scheduling.', 'icon' => 'ph-file-search'],
+                'defenses' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Defense Management', 'description' => 'Schedule proposal and final defenses, venues, and panel assignments.', 'icon' => 'ph-calendar'],
+                'statistics' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Research Statistics', 'description' => 'Analyze institutional research metrics, throughput, and completion rates.', 'icon' => 'ph-chart-bar'],
+                'reports' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Research Reports', 'description' => 'Generate comprehensive research performance and status reports.', 'icon' => 'ph-file-text'],
+                'repository' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Research Repository', 'description' => 'Access and review institutional research archives.', 'icon' => 'ph-folder'],
+                'notifications' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Notifications', 'description' => 'View system notifications, pending approvals, and schedule updates.', 'icon' => 'ph-bell'],
             ]" />
 
             <!-- TAB: Capstone Classes -->

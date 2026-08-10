@@ -57,8 +57,8 @@
     confirmingDeclineId: null
 }">
     <!-- SIDEBAR NAV -->
-    <aside class="w-72 bg-[#0e5c3a] text-white flex flex-col justify-between shrink-0 min-h-screen sticky top-0 h-screen overflow-y-auto">
-        <div>
+    <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5 overflow-y-auto">
+        <div class="flex-shrink-0">
             <!-- Brand Logo Header -->
             <div class="p-6 border-b border-white/10 flex items-center gap-3">
                 <div class="p-1 bg-white/10 rounded-xl border border-white/20">
@@ -80,9 +80,13 @@
                     <p class="text-[10px] text-white/60">Research Adviser</p>
                 </div>
             </div>
+        </div>
 
-            <!-- Navigation Links -->
-            <nav class="p-6 space-y-1.5">
+        <!-- Navigation Links -->
+        <div class="flex-grow px-6 py-4 space-y-6">
+            <div class="space-y-1.5">
+                <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
+
                 <!-- Dashboard -->
                 <a 
                    href="{{ route('adviser.dashboard', ['tab' => 'dashboard']) }}"
@@ -167,33 +171,39 @@
                     </div>
                     <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </a>
+            </div>
 
-                <!-- Official Forms -->
-                <div>
-                    <button 
-                       type="button" 
-                       @click="formsExpanded = !formsExpanded"
-                       :class="(activeTab === 'forms' || formsExpanded) ? 'bg-white/10 text-white font-bold' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                       class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
-                        <div class="flex items-center gap-3">
-                            <i class="ph ph-file-pdf text-lg"></i>
-                            <span>Official Forms</span>
-                        </div>
-                        <i class="ph text-xs transition-transform duration-200" :class="formsExpanded ? 'ph-caret-up' : 'ph-caret-down'"></i>
-                    </button>
-
-                    <div x-show="formsExpanded" x-collapse x-cloak class="mt-1 pl-4 space-y-1">
-                        <a 
-                           href="{{ route('adviser.dashboard', ['tab' => 'forms']) }}"
-                           wire:navigate
-                           :class="activeTab === 'forms' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/80 hover:text-white hover:bg-white/5 font-medium'"
-                           class="w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 text-xs text-left cursor-pointer">
-                            <span>All Official Forms</span>
-                            <span x-show="activeTab === 'forms'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                        </a>
+            <!-- Official Forms Section -->
+            <div class="space-y-1.5 pt-4 border-t border-white/10">
+                <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Research Forms</span>
+                <button 
+                   type="button" 
+                   @click="formsExpanded = !formsExpanded"
+                   :class="(activeTab === 'forms' || formsExpanded) ? 'bg-white/10 text-white font-bold' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-file-pdf text-lg"></i>
+                        <span>Official Forms</span>
                     </div>
-                </div>
+                    <i class="ph text-xs transition-transform duration-200" :class="formsExpanded ? 'ph-caret-up' : 'ph-caret-down'"></i>
+                </button>
 
+                <div x-show="formsExpanded" x-collapse x-cloak class="mt-1 pl-4 space-y-1">
+                    <a 
+                       href="{{ route('adviser.dashboard', ['tab' => 'forms']) }}"
+                       wire:navigate
+                       :class="activeTab === 'forms' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/80 hover:text-white hover:bg-white/5 font-medium'"
+                       class="w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 text-xs text-left cursor-pointer">
+                        <span>All Official Forms</span>
+                        <span x-show="activeTab === 'forms'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Logout Footer -->
+        <div class="flex-shrink-0 px-6 pb-6 mt-8">
+            <div class="pt-4 border-t border-white/10 space-y-1">
                 <!-- Notifications -->
                 <a
                    href="{{ route('adviser.dashboard', ['tab' => 'notifications']) }}"
@@ -215,27 +225,27 @@
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-gear text-lg"></i>
-                        <span>System Settings</span>
+                        <span>Settings</span>
                     </div>
                     <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </a>
-            </nav>
-        </div>
+            </div>
 
-        <!-- User Logout Footer -->
-        <div class="p-6 border-t border-white/10">
             <form method="POST" action="{{ route('logout') }}" data-confirm-logout>
                 @csrf
-                <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all cursor-pointer">
+                <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all cursor-pointer">
                     <i class="ph ph-sign-out text-lg"></i>
                     <span>Logout</span>
                 </button>
             </form>
+            <div class="text-[9px] text-white/30 text-center font-medium mt-6">
+                NDMU © {{ now()->year }} - v1.0
+            </div>
         </div>
     </aside>
 
     <!-- MAIN CONTENT AREA -->
-    <main class="flex-1 min-w-0 flex flex-col h-screen overflow-y-auto">
+    <main class="flex-1 min-w-0 flex flex-col h-screen overflow-y-auto pl-72">
         <!-- Top Sticky Header -->
         <header class="h-20 bg-white border-b border-gray-150 px-8 flex items-center justify-between sticky top-0 z-10 shrink-0">
             <div class="flex items-center gap-3">
@@ -250,6 +260,16 @@
         </header>
 
         <div class="p-8 space-y-8 flex-1">
+            <!-- Green Hero Banner Component -->
+            <x-portal-feature-banner class="mb-8" :sections="[
+                'classes' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'My Classes Workspace', 'description' => 'Review pending adviser invitations and manage your assigned research groups.', 'icon' => 'ph-chalkboard-teacher'],
+                'docreview' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Document Review System', 'description' => 'Review and annotate documents submitted by your assigned researchers.', 'icon' => 'ph-file-text'],
+                'consultation' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Consultation Records', 'description' => 'Manage student consultation bookings and record consultation outcomes.', 'icon' => 'ph-chats-teardrop'],
+                'revisions' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Revision Tracker', 'description' => 'Monitor requested manuscript revisions and resubmissions.', 'icon' => 'ph-arrows-counter-clockwise'],
+                'repository' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Research Repository', 'description' => 'Browse approved research documents, manuscripts, and archives.', 'icon' => 'ph-archive'],
+                'notifications' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Notifications', 'description' => 'Stay updated with real-time research activity alerts and reminders.', 'icon' => 'ph-bell'],
+            ]" />
+
             <!-- Flash Message Alerts -->
             @if (session('adviser_success'))
                 <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-800 flex items-center justify-between">
@@ -522,7 +542,7 @@
                 @endif
             </div>
 
-            <!-- TAB: Document Review (Unchanged) -->
+            <!-- TAB: Document Review -->
             <div x-show="activeTab === 'docreview'" x-cloak class="space-y-6">
                 <div>
                     <h1 class="text-2xl font-bold font-heading text-gray-850">Document Review System</h1>

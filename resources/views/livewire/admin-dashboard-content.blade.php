@@ -192,12 +192,30 @@
                     </div>
                     <span x-show="activeTab === 'audit'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
+            </div>
+        </div>
+
+        <!-- Sidebar Footer -->
+        <div class="flex-shrink-0 px-6 pb-6 mt-auto">
+            <div class="pt-4 border-t border-white/10 space-y-1">
+                <button
+                    type="button"
+                    @click="activeTab = 'notifications'"
+                    :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
+                >
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-bell text-lg"></i>
+                        <span>Notifications</span>
+                    </div>
+                    <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                </button>
 
                 <button 
                     type="button"
                     @click="activeTab = 'settings'"
                     :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
                 >
                     <div class="flex items-center gap-3">
                         <i class="ph ph-gear text-lg"></i>
@@ -205,16 +223,6 @@
                     </div>
                     <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
-            </div>
-        </div>
-
-        <!-- Sidebar Footer -->
-        <div class="flex-shrink-0 px-6 pb-6 mt-auto">
-            <div class="pt-4 border-t border-white/10 space-y-1">
-                <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200">
-                    <i class="ph ph-bell text-lg"></i>
-                    <span>Notifications</span>
-                </a>
                 
                 <!-- Real Logout Form -->
                 <form method="POST" action="{{ route('logout') }}" id="logout-form" class="hidden" data-confirm-logout>

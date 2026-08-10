@@ -413,7 +413,7 @@
             </div>
 
             <!-- Research Forms Section -->
-            <div class="space-y-1.5 pt-4">
+            <div class="space-y-1.5 pt-4 border-t border-white/10">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Research Forms</span>
                 
                 <button 
