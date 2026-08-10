@@ -633,6 +633,8 @@
                 @endif
             </div>
 
+            @include('pages.adviser.partials.consultations')
+
             <div x-show="activeTab === 'repository'" x-cloak class="space-y-6">
                 <x-student-section-heading title="Research Repository" description="Browse documents owned by your currently assigned research groups." />
                 @isset($repositoryDocuments)

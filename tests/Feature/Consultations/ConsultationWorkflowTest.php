@@ -150,6 +150,28 @@ class ConsultationWorkflowTest extends TestCase
         ]);
     }
 
+    public function test_assigned_adviser_can_see_the_consultation_request_on_dashboard(): void
+    {
+        ConsultationRequest::query()->create([
+            'research_class_group_id' => $this->group->id,
+            'assigned_adviser_id' => $this->adviser->id,
+            'requested_by' => $this->studentRequester->id,
+            'request_token' => (string) Str::uuid(),
+            'preferred_at' => now()->addDays(2),
+            'duration_minutes' => 60,
+            'consultation_mode' => ConsultationMode::InPerson,
+            'agenda' => 'Review our data gathering instrument before deployment.',
+            'status' => ConsultationStatus::Pending,
+        ]);
+
+        $this->actingAs($this->adviser)
+            ->get(route('adviser.dashboard', ['tab' => 'consultation']))
+            ->assertOk()
+            ->assertSee('Review our data gathering instrument before deployment.')
+            ->assertSee($this->studentRequester->name)
+            ->assertSee($this->group->name);
+    }
+
     public function test_student_cannot_book_consultation_if_group_has_no_adviser(): void
     {
         $this->group->update(['adviser_id' => null]);
