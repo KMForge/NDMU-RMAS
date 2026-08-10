@@ -32,7 +32,7 @@ class ResearchGroupAdviserRequestController extends Controller
                 return response()->json(['message' => $exception->getMessage()], 422);
             }
 
-            return to_route('adviser.dashboard', ['tab' => 'dashboard'])
+            return to_route('adviser.dashboard', ['tab' => 'classes'])
                 ->withErrors(['adviser_request' => $exception->getMessage()]);
         }
 
@@ -50,7 +50,7 @@ class ResearchGroupAdviserRequestController extends Controller
             ]);
         }
 
-        return to_route('adviser.dashboard', ['tab' => 'dashboard'])
+        return to_route('adviser.dashboard', ['tab' => 'classes'])
             ->with('adviser_success', $message);
     }
 }

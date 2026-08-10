@@ -391,7 +391,7 @@ class ResearchClassGroupWorkflowTest extends TestCase
 
         $this->actingAs($adviser)
             ->patch(route('adviser.group-requests.respond', $adviserRequest), ['decision' => 'accept'])
-            ->assertRedirect(route('adviser.dashboard', ['tab' => 'dashboard']));
+            ->assertRedirect(route('adviser.dashboard', ['tab' => 'classes']));
 
         $this->actingAs($facilitator)
             ->get(route('facilitator.classes.show', $researchClass))
@@ -399,6 +399,69 @@ class ResearchClassGroupWorkflowTest extends TestCase
             ->assertSee('Browser Flow Student')
             ->assertSee('Browser Flow Group')
             ->assertSee('Browser Flow Adviser');
+    }
+
+    public function test_adviser_my_classes_displays_pending_requests_badge_and_assigned_group_members(): void
+    {
+        $facilitator = $this->userWithRole('research-facilitator');
+        $adviser = $this->userWithRole('thesis-adviser');
+        $otherAdviser = $this->userWithRole('thesis-adviser');
+        $student1 = $this->userWithRole('student-researcher');
+        $student2 = $this->userWithRole('student-researcher');
+        $student1->update(['name' => 'Assigned Member One']);
+        $student2->update(['name' => 'Assigned Member Two']);
+
+        $researchClass = $this->createClass($facilitator);
+        $enrollment1 = $this->enroll($researchClass, $student1, 'active');
+        $enrollment2 = $this->enroll($researchClass, $student2, 'active');
+
+        $assignedGroup = $this->createGroup($researchClass, $facilitator, 'Assigned Capstone Group');
+        $assignedGroup->update(['adviser_id' => $adviser->getKey()]);
+
+        foreach ([[$enrollment1, $student1], [$enrollment2, $student2]] as [$enr, $std]) {
+            ResearchClassGroupMember::query()->create([
+                'research_class_group_id' => $assignedGroup->getKey(),
+                'research_class_id' => $researchClass->getKey(),
+                'research_class_enrollment_id' => $enr->getKey(),
+                'student_id' => $std->getKey(),
+                'assigned_by' => $facilitator->getKey(),
+            ]);
+        }
+
+        $pendingGroup = $this->createGroup($researchClass, $facilitator, 'Pending Invitation Group');
+        $adviserRequest = ResearchClassGroupAdviserRequest::query()->create([
+            'research_class_group_id' => $pendingGroup->getKey(),
+            'adviser_id' => $adviser->getKey(),
+            'requested_by' => $facilitator->getKey(),
+            'status' => 'pending',
+            'requested_at' => now(),
+        ]);
+
+        // Adviser B has a request that must not be counted or visible to Adviser A
+        $otherGroup = $this->createGroup($researchClass, $facilitator, 'Other Adviser Group');
+        ResearchClassGroupAdviserRequest::query()->create([
+            'research_class_group_id' => $otherGroup->getKey(),
+            'adviser_id' => $otherAdviser->getKey(),
+            'requested_by' => $facilitator->getKey(),
+            'status' => 'pending',
+            'requested_at' => now(),
+        ]);
+
+        $this->actingAs($adviser)
+            ->get(route('adviser.dashboard', ['tab' => 'classes']))
+            ->assertOk()
+            ->assertSee('Pending Invitation Group')
+            ->assertSee('Assigned Capstone Group')
+            ->assertSee('Assigned Member One')
+            ->assertSee('Assigned Member Two')
+            ->assertSee('No title selected yet')
+            ->assertDontSee('Other Adviser Group');
+
+        // Adviser A cannot accept Adviser B's request (422)
+        $otherRequest = ResearchClassGroupAdviserRequest::query()->where('adviser_id', $otherAdviser->getKey())->sole();
+        $this->actingAs($adviser)
+            ->patchJson(route('adviser.group-requests.respond', $otherRequest), ['decision' => 'accept'])
+            ->assertUnprocessable();
     }
 
     public function test_student_can_click_an_enrolled_class_and_see_only_their_group(): void

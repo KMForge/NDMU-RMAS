@@ -36,7 +36,7 @@ class DashboardController extends Controller
             ->where('adviser_id', $user->getKey())
             ->where('status', 'pending')
             ->with([
-                'group' => fn ($query) => $query->where('status', 'active')->with('researchClass:id,name'),
+                'group' => fn ($query) => $query->where('status', 'active')->with(['researchClass:id,name', 'members']),
                 'requester:id,name,email',
             ])
             ->latest()
