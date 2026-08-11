@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Authentication;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -15,8 +16,8 @@ class VerifyStudentEmailController extends Controller
 
         abort_unless(hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification())), 403);
 
-        if (! $user->hasVerifiedEmail()) {
-            $user->markEmailAsVerified();
+        if (! $user->hasVerifiedEmail() && $user->markEmailAsVerified()) {
+            event(new Verified($user));
         }
 
         return to_route('login')->with(

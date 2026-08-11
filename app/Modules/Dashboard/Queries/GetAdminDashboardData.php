@@ -241,7 +241,7 @@ class GetAdminDashboardData
         $progress = $denominator > 0 ? (int) round(($completedWeight / $denominator) * 100) : 0;
 
         return [
-            'title' => $group->research_title ?: $group->name,
+            'title' => ($group->research_title ?? null) ?: ($group->name ?? 'Research Group'),
             'progress' => max(0, min(100, $progress)),
             'completed' => $completed,
             'in_progress' => $inProgress,

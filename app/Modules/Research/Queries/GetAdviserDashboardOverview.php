@@ -97,7 +97,7 @@ class GetAdviserDashboardOverview
                 return [
                     'id' => (int) $student->id,
                     'name' => $student->name,
-                    'project' => $student->research_title ?: ($project?->title ?: $student->group_name),
+                    'project' => ($student->research_title ?? null) ?: ($project?->title ?: $student->group_name),
                     'status' => $project?->status,
                     'progress' => $progress,
                     'avatar' => Str::upper(Str::substr($student->name, 0, 1)),

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\AccountStatus;
 use App\Enums\UserType;
+use App\Notifications\SendNDMUEmailVerification;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -38,6 +39,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function signature(): HasOne
     {
         return $this->hasOne(UserSignature::class);
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new SendNDMUEmailVerification);
     }
 
     /**
