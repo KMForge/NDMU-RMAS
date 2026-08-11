@@ -5,6 +5,7 @@ namespace App\Modules\Research\Queries;
 use App\Models\Document;
 use App\Models\User;
 use App\Modules\Documents\Support\DocumentGroupAccess;
+use App\Modules\ResearchProgress\Queries\GetResearchGroupProgress;
 use App\Support\CachesDatabaseSchema;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -18,6 +19,7 @@ class GetStudentDashboardData
 
     public function __construct(
         private readonly DocumentGroupAccess $documentGroupAccess,
+        private readonly GetResearchGroupProgress $groupProgress,
     ) {}
 
     /**
@@ -96,14 +98,6 @@ class GetStudentDashboardData
                     $proposals = $this->proposalsFor((int) $project->id);
                 }
 
-                if ($isDashboard || $activeTab === 'progress') {
-                    $progress = $this->progressFor((int) $project->id);
-                    $milestones = $this->milestonesFor(
-                        (int) $project->id,
-                        (int) $project->research_group_id,
-                    );
-                }
-
                 if ($isDashboard || $activeTab === 'consultation') {
                     $consultations = $this->consultationsFor((int) $project->id);
                     $consultationRequests = $this->consultationRequestsFor((int) $project->id, $user);
@@ -132,6 +126,27 @@ class GetStudentDashboardData
         $documentsForSearch = $empty;
         $activeGroupMember = $this->documentGroupAccess->activeMembershipFor($user);
         $activeGroup = $activeGroupMember?->researchClassGroup;
+
+        if (($isDashboard || $activeTab === 'progress') && $activeGroup !== null) {
+            $progressSummary = $this->groupProgress->for($activeGroup);
+            $milestones = $progressSummary['milestones']->map(fn ($milestone): object => (object) [
+                'id' => $milestone->getKey(),
+                'name' => $milestone->definition->name,
+                'description' => $milestone->definition->description,
+                'sequence' => $milestone->definition->sequence,
+                'weight' => (float) $milestone->definition->weight,
+                'status' => $milestone->status->value,
+                'due_at' => $milestone->due_at,
+                'started_at' => $milestone->started_at,
+                'completed_at' => $milestone->completed_at,
+                'remarks' => $milestone->remarks,
+                'feedback' => $milestone->remarks,
+                'not_applicable_reason' => $milestone->not_applicable_reason,
+                'is_overdue' => $milestone->isOverdue(),
+                'evidences' => $milestone->evidences,
+                'events' => $milestone->events,
+            ]);
+        }
         $groupDocumentQuery = $activeGroup === null
             ? null
             : Document::query()->where('research_class_group_id', $activeGroup->getKey());
@@ -300,84 +315,6 @@ class GetStudentDashboardData
         return DB::table('research_proposals')
             ->where('research_project_id', $researchProjectId)
             ->latest('version')
-            ->get();
-    }
-
-    /**
-     * @return Collection<int, object>
-     */
-    private function progressFor(int $researchProjectId): Collection
-    {
-        if (! $this->tablesExist(['research_progress_updates', 'research_milestones'])) {
-            return collect();
-        }
-
-        return DB::table('research_progress_updates as updates')
-            ->join('research_milestones as milestones', 'milestones.id', '=', 'updates.milestone_id')
-            ->where('updates.research_project_id', $researchProjectId)
-            ->orderBy('milestones.sequence')
-            ->select([
-                'updates.*',
-                'milestones.name as milestone_name',
-                'milestones.description as milestone_description',
-                'milestones.due_at',
-                'milestones.sequence',
-            ])
-            ->get();
-    }
-
-    /**
-     * @return Collection<int, object>
-     */
-    private function milestonesFor(int $researchProjectId, int $researchGroupId): Collection
-    {
-        if (! $this->tablesExist([
-            'research_groups',
-            'research_milestones',
-            'research_progress_updates',
-        ])) {
-            return collect();
-        }
-
-        $group = DB::table('research_groups')
-            ->select(['program_id', 'academic_term_id'])
-            ->find($researchGroupId);
-
-        if ($group === null) {
-            return collect();
-        }
-
-        $latestVersions = DB::table('research_progress_updates')
-            ->where('research_project_id', $researchProjectId)
-            ->selectRaw('milestone_id, MAX(version) as latest_version')
-            ->groupBy('milestone_id');
-
-        return DB::table('research_milestones as milestones')
-            ->leftJoinSub($latestVersions, 'latest_updates', function ($join): void {
-                $join->on('latest_updates.milestone_id', '=', 'milestones.id');
-            })
-            ->leftJoin('research_progress_updates as updates', function ($join) use ($researchProjectId): void {
-                $join->on('updates.milestone_id', '=', 'milestones.id')
-                    ->on('updates.version', '=', 'latest_updates.latest_version')
-                    ->where('updates.research_project_id', $researchProjectId);
-            })
-            ->where('milestones.program_id', $group->program_id)
-            ->where('milestones.academic_term_id', $group->academic_term_id)
-            ->orderBy('milestones.sequence')
-            ->select([
-                'milestones.id',
-                'milestones.name',
-                'milestones.description',
-                'milestones.due_at',
-                'milestones.sequence',
-                'milestones.is_required',
-                'updates.status',
-                'updates.progress_percentage',
-                'updates.summary',
-                'updates.feedback',
-                'updates.submitted_at',
-                'updates.reviewed_at',
-            ])
             ->get();
     }
 
@@ -620,19 +557,16 @@ class GetStudentDashboardData
         int $documentCount,
         int $pendingDocumentCount,
     ): array {
-        $completedStatuses = ['accepted', 'approved', 'completed', 'resolved'];
-        $latestProgress = $progress
-            ->filter(fn (object $update): bool => $update->submitted_at !== null)
-            ->sortByDesc('submitted_at')
-            ->first();
+        $completedStatuses = ['completed'];
         $completedMilestones = $milestones
             ->filter(fn (object $milestone): bool => in_array($milestone->status, $completedStatuses, true))
             ->count();
-        $progressPercentage = (int) round((float) ($latestProgress?->progress_percentage ?? 0));
-
-        if ($latestProgress === null && $milestones->isNotEmpty()) {
-            $progressPercentage = (int) round(($completedMilestones / $milestones->count()) * 100);
-        }
+        $applicableMilestones = $milestones->reject(fn (object $milestone): bool => $milestone->status === 'not_applicable');
+        $applicableWeight = (float) $applicableMilestones->sum(fn (object $milestone): float => (float) ($milestone->weight ?? 1));
+        $completedWeight = (float) $applicableMilestones
+            ->filter(fn (object $milestone): bool => $milestone->status === 'completed')
+            ->sum(fn (object $milestone): float => (float) ($milestone->weight ?? 1));
+        $progressPercentage = $applicableWeight > 0 ? (int) round(($completedWeight / $applicableWeight) * 100) : 0;
 
         $openRevisions = $revisions
             ->reject(fn (object $revision): bool => in_array($revision->status, $completedStatuses, true));
@@ -705,16 +639,6 @@ class GetStudentDashboardData
 
         $recentUpdates = collect();
 
-        foreach ($progress as $update) {
-            $recentUpdates->push([
-                'type' => 'progress',
-                'title' => $update->milestone_name,
-                'description' => Str::headline((string) $update->status),
-                'occurred_at' => $this->parseDate($update->submitted_at),
-                'tab' => 'progress',
-            ]);
-        }
-
         foreach ($documents as $document) {
             $recentUpdates->push([
                 'type' => 'document',
@@ -749,8 +673,11 @@ class GetStudentDashboardData
             'project' => $project,
             'progress_percentage' => max(0, min(100, $progressPercentage)),
             'completed_milestones' => $completedMilestones,
-            'total_milestones' => $milestones->count(),
-            'current_milestones' => $milestones->take(4)->values(),
+            'total_milestones' => $applicableMilestones->count(),
+            'current_milestones' => $applicableMilestones
+                ->filter(fn (object $milestone): bool => $milestone->status !== 'completed')
+                ->take(1)
+                ->values(),
             'urgent_task_count' => $actionItems->count(),
             'action_items' => $actionItems->take(3)->values(),
             'document_count' => $documentCount,

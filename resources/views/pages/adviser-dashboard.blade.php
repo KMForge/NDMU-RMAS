@@ -1094,7 +1094,29 @@
 
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
                     <i class="ph ph-chart-line-up text-4xl text-gray-300"></i>
-                    <p class="mt-3 text-sm text-gray-500">Research monitoring backend is scheduled for the milestone rebuild phase.</p>
+                    @forelse ($adviserProgressGroups as $group)
+                        @php($summary = $group->progress_summary)
+                        <article class="mt-4 rounded-2xl border border-gray-200 p-5">
+                            <div class="flex justify-between gap-4">
+                                <div>
+                                    <h3 class="font-bold text-gray-900">{{ $group->research_title ?: $group->name }}</h3>
+                                    <p class="text-xs text-gray-500">{{ $group->researchClass?->name }} · Read-only adviser view</p>
+                                </div>
+                                <strong class="text-2xl text-emerald-700">{{ number_format($summary['progress_percentage'], 0) }}%</strong>
+                            </div>
+                            <div class="mt-4 h-2 overflow-hidden rounded-full bg-gray-100"><div class="h-full bg-emerald-600" style="width: {{ $summary['progress_percentage'] }}%"></div></div>
+                            <div class="mt-4 grid gap-2 md:grid-cols-2">
+                                @foreach ($summary['milestones'] as $milestone)
+                                    <div class="rounded-xl border border-gray-100 p-3 text-xs">
+                                        <span class="font-bold">{{ $milestone->definition->sequence }}. {{ $milestone->definition->name }}</span>
+                                        <span class="block text-gray-500 mt-1">{{ $milestone->status->label() }}@if($milestone->isOverdue()) · Overdue @endif</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </article>
+                    @empty
+                        <p class="mt-3 text-sm text-gray-500">No assigned research groups are available.</p>
+                    @endforelse
                 </div>
             </div>
 

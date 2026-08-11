@@ -59,3 +59,16 @@ The project uses Spatie's normalized schema instead of duplicate RBAC tables:
 | Exceptional direct user permissions (normally avoided) | `model_has_permissions` |
 
 Record access remains narrower than a permission alone. Policies and queries must still verify ownership, group membership, adviser/panel assignment, facilitator ownership, CEAC scope, and explicit administrative authority.
+
+## Phase 18 progress permissions
+
+| Permission | Intended scope |
+| --- | --- |
+| `progress.view-own` | Current/former student reads proven group history |
+| `progress.view-assigned` | Current or verified historical adviser reads assigned group history |
+| `progress.view-owned-classes` | Facilitator reads groups in currently owned classes |
+| `progress.manage-owned-classes` | Facilitator mutates active milestones only in currently owned classes |
+| `progress.override-order` | Adds controlled sequence/direct-completion override authority; ownership still required |
+| `progress.view-all` | Explicit administrator system-wide read visibility only |
+
+None of these permissions bypasses `ResearchProgressAccess` or `ResearchGroupMilestonePolicy`. Admin visibility does not grant milestone mutation.

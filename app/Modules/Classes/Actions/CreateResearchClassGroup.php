@@ -7,6 +7,7 @@ use App\Models\ResearchClassGroup;
 use App\Models\User;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
+use App\Modules\ResearchProgress\Actions\InitializeGroupMilestones;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 
 class CreateResearchClassGroup
 {
+    public function __construct(private readonly InitializeGroupMilestones $initializeMilestones) {}
+
     public function handle(
         User $facilitator,
         ResearchClass $researchClass,
@@ -49,13 +52,17 @@ class CreateResearchClassGroup
                     throw new DuplicateClassOperation('A group with this name already exists in this class.');
                 }
 
-                return ResearchClassGroup::query()->create([
+                $group = ResearchClassGroup::query()->create([
                     'research_class_id' => $lockedClass->getKey(),
                     'creation_token' => $creationToken,
                     'name' => $trimmedName,
                     'created_by' => $facilitator->getKey(),
                     'status' => 'active',
                 ]);
+
+                $this->initializeMilestones->execute($group);
+
+                return $group;
             }, 3);
         } catch (QueryException $exception) {
             report($exception);

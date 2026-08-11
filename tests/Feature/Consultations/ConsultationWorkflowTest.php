@@ -12,7 +12,8 @@ use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupMember;
-use App\Models\ResearchProgressUpdate;
+use App\Models\ResearchGroupMilestone;
+use App\Models\ResearchGroupMilestoneEvent;
 use App\Models\RevisionRequest;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -639,6 +640,7 @@ class ConsultationWorkflowTest extends TestCase
         ]);
 
         $this->assertEquals(0, RevisionRequest::query()->count());
-        $this->assertEquals(0, ResearchProgressUpdate::query()->count());
+        $this->assertEquals(0, ResearchGroupMilestone::query()->where('status', 'completed')->count());
+        $this->assertEquals(0, ResearchGroupMilestoneEvent::query()->count());
     }
 }

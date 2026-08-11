@@ -2,15 +2,14 @@
 
 ## Current Verified Runtime Baseline
 
-NDMU-RMAS is a Laravel modular monolith using Eloquent ORM. The current repository configuration example uses **MySQL**:
+NDMU-RMAS is a Laravel modular monolith using Eloquent ORM. The current authoritative runtime for Phase 18 is **PostgreSQL hosted by Supabase**, accessed directly through Laravel's `pgsql` driver.
 
-- `DB_CONNECTION=mysql`
-- host `127.0.0.1`
-- port `3306`
-- database example `ndmu_rmas`
-- storage engine configuration `InnoDB`
+- `DB_CONNECTION=pgsql`
+- Supabase pooled PostgreSQL connection from server-only environment variables
+- Laravel Eloquent/query builder for bound SQL and transactions
+- Supabase HTTP APIs only where PostgreSQL cannot provide the required capability
 
-The current Phase 14 documentation also records that its reversible migration was applied successfully to the configured local MySQL database, while automated tests may use SQLite. PostgreSQL/Supabase must therefore not be described as the currently verified application database unless the active deployment configuration is changed and independently verified.
+Local MySQL/WAMP is preserved as a development alternative, and automated tests use SQLite where configured. New schema/query code therefore remains database-neutral unless a guarded PostgreSQL-only security operation is required. Phase 18 RLS enablement is explicitly guarded by the `pgsql` driver and is a no-op on MySQL/SQLite.
 
 The project currently uses Laravel's integer primary-key convention. Do not introduce UUID/ULID primary keys without an explicit migration strategy. UUIDs are used for private stored document filenames and submission/idempotency values independently of database primary keys.
 
@@ -108,7 +107,18 @@ Version numbering also follows that stream.
 
 A replacement in Proposal Defense therefore affects only the current Proposal Defense version for that group and must not supersede a current document from another stage.
 
-The implementation uses transaction/locking logic rather than relying on a PostgreSQL-specific partial-index solution because the verified runtime is MySQL and the automated tests may use SQLite.
+The implementation uses transaction/locking logic rather than relying on a PostgreSQL-specific partial-index solution so the invariant remains portable to local MySQL and SQLite tests.
+
+## Research Progress Milestones — Phase 18
+
+Phase 18 replaces disposable legacy/test `research_milestones` and `research_progress_updates` data with a group-owned model:
+
+- `milestone_definitions` stores stable codes, sequence, active state, and configurable positive weight.
+- `research_group_milestones` stores one current state per Research Class Group and definition.
+- `research_group_milestone_events` preserves transition, correction, deadline, override, and evidence-link history.
+- `milestone_evidences` references verified same-group records from completed earlier modules.
+
+The unique key `(research_class_group_id, milestone_definition_id)` makes initialization idempotent. Status is enum-controlled in the application. Percentage and overdue are derived, not stored. Supabase RLS is enabled on all four tables, while Laravel permissions and record-scoped policies remain authoritative for application access.
 
 ## Historical Group Membership
 

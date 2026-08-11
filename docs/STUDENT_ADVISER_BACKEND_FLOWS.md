@@ -84,7 +84,7 @@ Student routes require `role:student-researcher` and `permission:research.view-o
 | My Classes | Complete workflow | Reads active classes and join-request states; students can request entry using a join code. |
 | My Research | Database-backed read | Reads the student's active project, program, team, and adviser from research/group/assignment tables. |
 | Research Proposal | Database-backed read | Reads `research_proposals`; document review may synchronize proposal status when the required schema is available. |
-| Research Progress | Database-backed read | Reads milestones and latest `research_progress_updates`; an accepted review may create an approved progress update. |
+| Research Progress | Database-backed group read | Reads weighted `research_group_milestones`; document review decisions never mutate official progress automatically. |
 | Consultation Records | Complete workflow | Student books a consultation and sees requests plus completed records. |
 | Revision Tracker | Complete workflow | Student starts an assigned revision and submits a secured replacement document. |
 | Defense Schedule | Database-backed read | Reads defense requests, schedules, and rooms. No student scheduling endpoint exists yet. |
@@ -308,7 +308,7 @@ The query uses the authenticated user and, where relevant, active/non-archived m
 - `users`, `student_profiles`
 - `research_group_members`, `research_groups`, `programs`
 - `research_projects`, `adviser_assignments`, `faculty_profiles`
-- `research_proposals`, `research_milestones`, `research_progress_updates`
+- `research_proposals`, `milestone_definitions`, `research_group_milestones`, `research_group_milestone_events`, `milestone_evidences`
 - `consultation_requests`, `consultation_records`
 - `documents`, `revision_requests`
 - `defense_requests`, `defense_schedules`, `defense_rooms`
@@ -344,7 +344,7 @@ This lazy tab loading reduces unnecessary database work when switching adviser s
 | Documents | `documents`, `document_upload_audits` |
 | Document review | `document_reviews`, `document_review_comments`, `document_review_audits` |
 | Revisions | `revision_requests`, `revision_request_events`, plus revised rows in `documents` |
-| Proposal/progress integration | `research_proposals`, `research_progress_updates`, `research_milestones` |
+| Proposal/progress integration | `research_proposals`; Phase 18 progress remains separate in `research_group_milestones` and may only link evidence |
 | Defense/evaluation reads | `defense_requests`, `defense_schedules`, `defense_rooms`, `evaluations` |
 | User notifications | `notifications` |
 

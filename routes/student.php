@@ -5,6 +5,7 @@ use App\Http\Controllers\Student\ConsultationController;
 use App\Http\Controllers\Student\DashboardController;
 use App\Http\Controllers\Student\DocumentController;
 use App\Http\Controllers\Student\ResearchClassController;
+use App\Http\Controllers\Student\ResearchProgressController;
 use App\Http\Controllers\Student\RevisionRequestController;
 use Illuminate\Support\Facades\Route;
 
@@ -41,6 +42,11 @@ Route::prefix('student')->name('student.')->middleware([
         ->middleware('permission:classes.view-enrolled')
         ->whereNumber('researchClass')
         ->name('classes.show');
+
+    Route::get('/groups/{group}/progress', [ResearchProgressController::class, 'show'])
+        ->middleware('permission:progress.view-own')
+        ->whereNumber('group')
+        ->name('progress.show');
 
     Route::prefix('/revisions/{revisionRequest}')
         ->whereNumber('revisionRequest')

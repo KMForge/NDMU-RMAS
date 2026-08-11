@@ -85,21 +85,19 @@ class GetAdviserDashboardOverview
             ->join('research_class_groups as groups', 'groups.id', '=', 'members.research_class_group_id')
             ->join('users as students', 'students.id', '=', 'members.student_id')
             ->where('groups.adviser_id', $adviser->getKey())
-            ->select(['students.id', 'students.name'])
+            ->select(['students.id', 'students.name', 'groups.id as group_id', 'groups.name as group_name', 'groups.research_title'])
             ->distinct()
             ->orderBy('students.name')
             ->limit(5)
             ->get()
             ->map(function (object $student): array {
                 $project = $this->projectForStudent((int) $student->id);
-                $progress = $project === null
-                    ? 0
-                    : $this->projectProgress((int) $project->id);
+                $progress = $this->groupProgress((int) $student->group_id);
 
                 return [
                     'id' => (int) $student->id,
                     'name' => $student->name,
-                    'project' => $project?->title,
+                    'project' => $student->research_title ?: ($project?->title ?: $student->group_name),
                     'status' => $project?->status,
                     'progress' => $progress,
                     'avatar' => Str::upper(Str::substr($student->name, 0, 1)),
@@ -138,19 +136,28 @@ class GetAdviserDashboardOverview
             ->first();
     }
 
-    private function projectProgress(int $projectId): int
+    private function groupProgress(int $groupId): int
     {
-        if (! $this->tableExists('research_progress_updates')) {
+        if (! $this->tablesExist(['research_group_milestones', 'milestone_definitions'])) {
             return 0;
         }
 
-        return (int) min(100, max(
-            0,
-            (float) (DB::table('research_progress_updates')
-                ->where('research_project_id', $projectId)
-                ->latest('created_at')
-                ->value('progress_percentage') ?? 0),
-        ));
+        $milestones = DB::table('research_group_milestones as progress')
+            ->join('milestone_definitions as definitions', 'definitions.id', '=', 'progress.milestone_definition_id')
+            ->where('progress.research_class_group_id', $groupId)
+            ->where('definitions.is_active', true)
+            ->where('progress.status', '!=', 'not_applicable')
+            ->select(['progress.status', 'definitions.weight'])
+            ->get();
+        $denominator = (float) $milestones->sum('weight');
+
+        if ($denominator <= 0) {
+            return 0;
+        }
+
+        $completed = (float) $milestones->where('status', 'completed')->sum('weight');
+
+        return (int) round(($completed / $denominator) * 100);
     }
 
     private function activeAdviseeCount(User $adviser): int

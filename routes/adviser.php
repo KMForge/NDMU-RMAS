@@ -4,6 +4,7 @@ use App\Http\Controllers\Adviser\ConsultationController;
 use App\Http\Controllers\Adviser\DashboardController;
 use App\Http\Controllers\Adviser\DocumentReviewController;
 use App\Http\Controllers\Adviser\ResearchGroupAdviserRequestController;
+use App\Http\Controllers\Adviser\ResearchProgressController;
 use App\Http\Controllers\Adviser\RevisionRequestController;
 use App\Http\Controllers\DisabledFeatureController;
 use Illuminate\Support\Facades\Route;
@@ -17,6 +18,11 @@ Route::prefix('adviser')->name('adviser.')->middleware([
         ->middleware(['permission:classes.serve-as-adviser', 'throttle:consultation-decisions'])
         ->whereNumber('adviserRequest')
         ->name('group-requests.respond');
+
+    Route::get('/groups/{group}/progress', [ResearchProgressController::class, 'show'])
+        ->middleware('permission:progress.view-assigned')
+        ->whereNumber('group')
+        ->name('progress.show');
 
     Route::post('/classes', DisabledFeatureController::class)
         ->middleware('permission:classes.create')

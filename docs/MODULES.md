@@ -14,10 +14,10 @@ The table below distinguishes the intended domain responsibility from the curren
 | Documents | Secure group-owned research submission, storage, versioning, audits | Phase 13 completed and extended with Phase 14 stage-aware versioning |
 | ResearchRepository | Scoped repository discovery, safe metadata, search/filter/sort/pagination, version history, protected view/download, access audit | Phase 14 completed |
 | ResearchProposal | Proposal-oriented submission/presentation workflows | Current student document submission UI uses the Research Proposal area; later proposal-review behavior must follow its verified phase boundary |
-| Adviser Document Review | Adviser comments, review decisions, revision requests | Phase 15 planned / not started in the verified tracker |
-| ConsultationRecords | Adviser consultation records | Phase 16 planned |
-| RevisionTracker | Revision requests and resolution | Phase 17 planned |
-| ResearchProgress | Milestones and progress evidence | Phase 18 planned; separate from document submission stages |
+| Adviser Document Review | Adviser comments, review decisions, revision requests | Phase 15 completed |
+| ConsultationRecords | Adviser consultation records | Phase 16 completed |
+| RevisionTracker | Revision requests and resolution | Phase 17 completed |
+| ResearchProgress | Group-owned official milestones, weighted derived progress, deadlines, evidence, and audit history | Phase 18 completed; separate from document/review/consultation/revision state |
 | Official Research Forms | Research form workflows, approvals, print/export | Phase 19 planned |
 | Digital Signatures | Signature enrollment, approval, verification | Phase 20 planned |
 | DefenseScheduling | Rooms, schedules, conflicts, and panels | Phase 21 planned |

@@ -220,31 +220,28 @@ class GetAdminDashboardData
             'pending' => 0,
             'milestones' => [],
         ];
-        $project = DB::table('research_projects')
-            ->whereNull('archived_at')
-            ->latest('updated_at')
-            ->first();
-
-        if ($project === null) {
+        if (! $this->tablesExist(['research_class_groups', 'research_group_milestones', 'milestone_definitions'])) {
             return $empty;
         }
 
-        $progress = $this->tableExists('research_progress_updates')
-            ? (int) (DB::table('research_progress_updates')
-                ->where('research_project_id', $project->id)
-                ->latest('created_at')
-                ->value('progress_percentage') ?? 0)
-            : 0;
-        $milestones = $this->milestonesFor($project);
-        $completed = $milestones->where('status', 'completed')->count();
-        $inProgress = $milestones->where('status', 'in_progress')->count();
+        $group = DB::table('research_class_groups')
+            ->latest('updated_at')
+            ->first();
 
-        if ($progress === 0 && $milestones->isNotEmpty()) {
-            $progress = (int) round(($completed / $milestones->count()) * 100);
+        if ($group === null) {
+            return $empty;
         }
 
+        $milestones = $this->milestonesForGroup((int) $group->id);
+        $completed = $milestones->where('status', 'completed')->count();
+        $inProgress = $milestones->where('status', 'in_progress')->count();
+        $applicable = $milestones->where('status', '!=', 'not_applicable');
+        $denominator = (float) $applicable->sum('weight');
+        $completedWeight = (float) $applicable->where('status', 'completed')->sum('weight');
+        $progress = $denominator > 0 ? (int) round(($completedWeight / $denominator) * 100) : 0;
+
         return [
-            'title' => $project->title,
+            'title' => $group->research_title ?: $group->name,
             'progress' => max(0, min(100, $progress)),
             'completed' => $completed,
             'in_progress' => $inProgress,
@@ -256,49 +253,28 @@ class GetAdminDashboardData
     /**
      * @return Collection<int, array<string, mixed>>
      */
-    private function milestonesFor(object $project): Collection
+    private function milestonesForGroup(int $groupId): Collection
     {
-        if (! $this->tablesExist(['research_groups', 'research_milestones'])) {
-            return collect();
-        }
-
-        $group = DB::table('research_groups')->find($project->research_group_id);
-
-        if ($group === null) {
-            return collect();
-        }
-
-        $updates = $this->tableExists('research_progress_updates')
-            ? DB::table('research_progress_updates')
-                ->where('research_project_id', $project->id)
-                ->latest('created_at')
-                ->get()
-                ->unique('milestone_id')
-                ->keyBy('milestone_id')
-            : collect();
-
-        return DB::table('research_milestones')
-            ->where('program_id', $group->program_id)
-            ->where('academic_term_id', $group->academic_term_id)
-            ->orderBy('sequence')
+        return DB::table('research_group_milestones as progress')
+            ->join('milestone_definitions as definitions', 'definitions.id', '=', 'progress.milestone_definition_id')
+            ->where('progress.research_class_group_id', $groupId)
+            ->where('definitions.is_active', true)
+            ->orderBy('definitions.sequence')
+            ->select([
+                'progress.id', 'progress.status', 'progress.due_at',
+                'definitions.name', 'definitions.description', 'definitions.weight',
+            ])
             ->get()
-            ->map(function (object $milestone) use ($updates): array {
-                $update = $updates->get($milestone->id);
-                $completedStatuses = ['accepted', 'approved', 'completed', 'resolved'];
-                $status = $update === null
-                    ? 'pending'
-                    : (in_array($update->status, $completedStatuses, true) ? 'completed' : 'in_progress');
-
-                return [
-                    'id' => (int) $milestone->id,
-                    'name' => $milestone->name,
-                    'description' => $milestone->description,
-                    'due_at' => $milestone->due_at === null
-                        ? null
-                        : Carbon::parse($milestone->due_at)->format('M j, Y'),
-                    'status' => $status,
-                ];
-            });
+            ->map(fn (object $milestone): array => [
+                'id' => (int) $milestone->id,
+                'name' => $milestone->name,
+                'description' => $milestone->description,
+                'due_at' => $milestone->due_at === null
+                    ? null
+                    : Carbon::parse($milestone->due_at)->format('M j, Y'),
+                'status' => $milestone->status,
+                'weight' => (float) $milestone->weight,
+            ]);
     }
 
     /**

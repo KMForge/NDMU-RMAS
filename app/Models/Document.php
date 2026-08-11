@@ -91,11 +91,6 @@ class Document extends Model
         return $this->hasMany(ResearchProposal::class);
     }
 
-    public function progressUpdates(): HasMany
-    {
-        return $this->hasMany(ResearchProgressUpdate::class, 'evidence_document_id');
-    }
-
     public function stageLabel(): string
     {
         return $this->document_stage?->label() ?? 'Unclassified';

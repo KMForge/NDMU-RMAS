@@ -18,7 +18,7 @@ return [
             'label' => 'Administrator',
             'description' => 'Manages system users, access control, configuration, auditing, and reporting.',
             'user_type' => 'admin',
-            'permissions' => ['dashboards.admin.view', 'research.view-all', 'documents.download', 'documents.download-any', 'defenses.view', 'reports.view', 'reports.export', 'users.manage', 'roles.manage', 'permissions.manage', 'audit-logs.view', 'settings.manage', 'notifications.broadcast'],
+            'permissions' => ['dashboards.admin.view', 'research.view-all', 'progress.view-all', 'documents.download', 'documents.download-any', 'defenses.view', 'reports.view', 'reports.export', 'users.manage', 'roles.manage', 'permissions.manage', 'audit-logs.view', 'settings.manage', 'notifications.broadcast'],
         ],
         'faculty' => [
             'label' => 'Faculty',
@@ -31,13 +31,13 @@ return [
             'label' => 'Student',
             'description' => 'Student researcher access to owned records and enrolled classes.',
             'user_type' => 'student',
-            'permissions' => ['dashboards.student.view', 'research.view-own', 'research.create', 'research.update-own', 'proposal.submit', 'documents.upload', 'documents.download', 'consultations.request', 'classes.join', 'classes.view-enrolled', 'revisions.resolve', 'defenses.view', 'evaluations.view-own'],
+            'permissions' => ['dashboards.student.view', 'research.view-own', 'progress.view-own', 'research.create', 'research.update-own', 'proposal.submit', 'documents.upload', 'documents.download', 'consultations.request', 'classes.join', 'classes.view-enrolled', 'revisions.resolve', 'defenses.view', 'evaluations.view-own'],
         ],
         'research-facilitator' => [
             'label' => 'Research Facilitator',
             'description' => 'Coordinates research classes, groups, reviews, defenses, and reporting.',
             'user_type' => 'faculty',
-            'permissions' => ['dashboards.facilitator.view', 'research.view-all', 'proposal.review', 'proposal.approve', 'documents.review', 'documents.download', 'revisions.create', 'defenses.view', 'defenses.manage', 'evaluations.view-assigned', 'reports.view', 'reports.export', 'notifications.broadcast', 'classes.create', 'classes.view-own', 'classes.manage-join-requests', 'classes.manage-groups', 'classes.assign-advisers'],
+            'permissions' => ['dashboards.facilitator.view', 'research.view-all', 'progress.view-owned-classes', 'progress.manage-owned-classes', 'progress.override-order', 'proposal.review', 'proposal.approve', 'documents.review', 'documents.download', 'revisions.create', 'defenses.view', 'defenses.manage', 'evaluations.view-assigned', 'reports.view', 'reports.export', 'notifications.broadcast', 'classes.create', 'classes.view-own', 'classes.manage-join-requests', 'classes.manage-groups', 'classes.assign-advisers'],
         ],
         'program-coordinator' => [
             'label' => 'Program Coordinator',
@@ -49,7 +49,7 @@ return [
             'label' => 'Thesis Adviser',
             'description' => 'Advises assigned research groups and reviews their work.',
             'user_type' => 'faculty',
-            'permissions' => ['dashboards.adviser.view', 'classes.serve-as-adviser', 'research.view-assigned', 'proposal.review', 'documents.upload', 'documents.review', 'documents.download', 'consultations.manage-assigned', 'revisions.create', 'revisions.resolve', 'defenses.view', 'evaluations.view-assigned', 'classes.view-assigned'],
+            'permissions' => ['dashboards.adviser.view', 'classes.serve-as-adviser', 'research.view-assigned', 'progress.view-assigned', 'proposal.review', 'documents.upload', 'documents.review', 'documents.download', 'consultations.manage-assigned', 'revisions.create', 'revisions.resolve', 'defenses.view', 'evaluations.view-assigned', 'classes.view-assigned'],
         ],
         'panel-member' => [
             'label' => 'Panel Member',
@@ -100,6 +100,12 @@ return [
             'research.view-college' => ['label' => 'View College Research', 'description' => 'View research within the configured CEAC college.', 'scope' => 'CEAC'],
             'research.view-all' => ['label' => 'View All Research', 'description' => 'View all research records allowed by administrative policy.', 'scope' => 'System research records'],
             'research.approve' => ['label' => 'Approve Research', 'description' => 'Approve research records at the authorized review level.', 'scope' => 'Assigned review scope'],
+            'progress.view-own' => ['label' => 'View Own Group Progress', 'description' => 'View milestone progress for a current or verified former research group.', 'scope' => 'Own research group'],
+            'progress.view-assigned' => ['label' => 'View Assigned Group Progress', 'description' => 'View milestone progress for assigned advisee groups.', 'scope' => 'Assigned research groups'],
+            'progress.view-owned-classes' => ['label' => 'View Owned Class Progress', 'description' => 'Monitor milestones for groups in classes owned by the facilitator.', 'scope' => 'Owned research classes'],
+            'progress.manage-owned-classes' => ['label' => 'Manage Owned Class Progress', 'description' => 'Manage milestone state, dates, remarks, and evidence for groups in owned classes.', 'scope' => 'Owned research classes'],
+            'progress.override-order' => ['label' => 'Override Milestone Order', 'description' => 'Perform a justified, audited out-of-order milestone transition in an owned class.', 'scope' => 'Owned research classes'],
+            'progress.view-all' => ['label' => 'View All Research Progress', 'description' => 'View research progress for administrative oversight without mutation authority.', 'scope' => 'System research groups'],
         ],
         'Classes' => [
             'classes.serve-as-adviser' => ['label' => 'Serve as Adviser', 'description' => 'Allow assignment as the adviser of a research group.', 'scope' => 'Assigned research groups'],

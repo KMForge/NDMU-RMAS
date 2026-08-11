@@ -186,86 +186,6 @@
         }
     ],
 
-    selectedMonitoringId: 1,
-    showMonitoringEditModal: false,
-    monitoringProjects: [
-        {
-            id: 1,
-            code: 'RES-2026-001',
-            title: 'Machine Learning Applications in Agricultural Pest Detection',
-            students: 'Maria Santos, Juan Dela Cruz',
-            adviser: 'Dr. Roberto Garcia',
-            milestones: [
-                { title: 'Research Title Presentation', status: 'Completed', date: 'Feb 15, 2026', details: 'All requirements met and approved' },
-                { title: 'Proposal Approval', status: 'Completed', date: 'Mar 10, 2026', details: 'All requirements met and approved' },
-                { title: 'Adviser Endorsement', status: 'Completed', date: 'Mar 20, 2026', details: 'All requirements met and approved' },
-                { title: 'Instrument Validation', status: 'Completed', date: 'Apr 5, 2026', details: 'All requirements met and approved' },
-                { title: 'Data Gathering', status: 'In Progress', date: 'In Progress', details: 'Currently working on this milestone' },
-                { title: 'Proposal Defense', status: 'Completed', date: 'May 10, 2026', details: 'All requirements met and approved' },
-                { title: 'Revisions', status: 'In Progress', date: 'May 18, 2026', details: 'Currently working on this milestone' },
-                { title: 'Final Defense', status: 'Pending', date: 'Jul 15, 2026', details: 'Not Started' },
-                { title: 'Technical Editing', status: 'Pending', date: 'Not Started', details: '' },
-                { title: 'Language Editing', status: 'Pending', date: 'Not Started', details: '' },
-                { title: 'Final Manuscript Approval', status: 'Pending', date: 'Not Started', details: '' },
-                { title: 'Certificate of Authentic Authorship', status: 'Pending', date: 'Not Started', details: '' }
-            ]
-        },
-        {
-            id: 2,
-            code: 'RES-2026-002',
-            title: 'IoT-Based Smart Classroom Management',
-            students: 'Anna Reyes, Carlos Mendoza',
-            adviser: 'Dr. Patricia Cruz',
-            milestones: [
-                { title: 'Research Title Presentation', status: 'Completed', date: 'Jan 10, 2026', details: 'All requirements met and approved' },
-                { title: 'Proposal Approval', status: 'Completed', date: 'Jan 28, 2026', details: 'All requirements met and approved' },
-                { title: 'Adviser Endorsement', status: 'Completed', date: 'Feb 05, 2026', details: 'All requirements met and approved' },
-                { title: 'Instrument Validation', status: 'In Progress', date: 'In Progress', details: 'Currently working on this milestone' },
-                { title: 'Data Gathering', status: 'Pending', date: 'Not Started', details: '' },
-                { title: 'Proposal Defense', status: 'Pending', date: 'Not Started', details: '' },
-                { title: 'Revisions', status: 'Pending', date: 'Not Started', details: '' },
-                { title: 'Final Defense', status: 'Pending', date: 'Not Started', details: '' },
-                { title: 'Technical Editing', status: 'Pending', date: 'Not Started', details: '' },
-                { title: 'Language Editing', status: 'Pending', date: 'Not Started', details: '' },
-                { title: 'Final Manuscript Approval', status: 'Pending', date: 'Not Started', details: '' },
-                { title: 'Certificate of Authentic Authorship', status: 'Pending', date: 'Not Started', details: '' }
-            ]
-        },
-        {
-            id: 3,
-            code: 'RES-2026-003',
-            title: 'Community Health Information System',
-            students: 'Luis Fernandez, Sarah Gonzales',
-            adviser: 'Dr. Michael Tan',
-            milestones: [
-                { title: 'Research Title Presentation', status: 'Completed', date: 'Dec 12, 2025', details: 'All requirements met and approved' },
-                { title: 'Proposal Approval', status: 'Completed', date: 'Dec 22, 2025', details: 'All requirements met and approved' },
-                { title: 'Adviser Endorsement', status: 'Completed', date: 'Jan 08, 2026', details: 'All requirements met and approved' },
-                { title: 'Instrument Validation', status: 'Completed', date: 'Jan 20, 2026', details: 'All requirements met and approved' },
-                { title: 'Data Gathering', status: 'Completed', date: 'Feb 15, 2026', details: 'All requirements met and approved' },
-                { title: 'Proposal Defense', status: 'Completed', date: 'Feb 28, 2026', details: 'All requirements met and approved' },
-                { title: 'Revisions', status: 'Completed', date: 'Mar 15, 2026', details: 'All requirements met and approved' },
-                { title: 'Final Defense', status: 'In Progress', date: 'In Progress', details: 'Currently working on this milestone' },
-                { title: 'Technical Editing', status: 'Pending', date: 'Not Started', details: '' },
-                { title: 'Language Editing', status: 'Pending', date: 'Not Started', details: '' },
-                { title: 'Final Manuscript Approval', status: 'Pending', date: 'Not Started', details: '' },
-                { title: 'Certificate of Authentic Authorship', status: 'Pending', date: 'Not Started', details: '' }
-            ]
-        }
-    ],
-    get activeMonitoringProject() {
-        return this.monitoringProjects.find(p => p.id === this.selectedMonitoringId) || this.monitoringProjects[0];
-    },
-    get activeMonitoringStats() {
-        let project = this.activeMonitoringProject;
-        let completed = project.milestones.filter(m => m.status === 'Completed').length;
-        let inProgress = project.milestones.filter(m => m.status === 'In Progress').length;
-        let pending = project.milestones.filter(m => m.status === 'Pending').length;
-        let total = project.milestones.length;
-        let percent = Math.round((completed / total) * 100);
-        return { completed, inProgress, pending, total, percent };
-    },
-
     userManagementSubTab: 'all',
     userSearchQuery: '',
     userRoleFilter: 'All',
@@ -1513,6 +1433,17 @@
 
             <!-- TAB: Research Monitoring -->
             <div x-show="activeTab === 'monitoring'" x-cloak class="space-y-8 animate-fade-in">
+                @if (isset($progressGroups))
+                    <x-research-progress.facilitator-monitoring
+                        :groups="$progressGroups"
+                        :search="$progressSearch"
+                        :group-status="$progressGroupStatus"
+                    />
+                @else
+                    <div class="rounded-3xl border border-gray-100 bg-white p-12 text-center text-gray-500">
+                        Open Research Monitoring from the sidebar to load current group progress.
+                    </div>
+                @if (false)
                 <!-- Breadcrumbs & Header -->
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
@@ -1687,6 +1618,9 @@
                     </div>
                 </div>
 
+                @endif
+                @endif
+            </div>
             <!-- TAB: Research Screening (Proposal Management) -->
             <div x-show="activeTab === 'screening'" x-cloak class="space-y-8 animate-fade-in">
                 <!-- Breadcrumbs & Header -->

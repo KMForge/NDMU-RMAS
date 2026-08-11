@@ -10,6 +10,7 @@ use App\Models\ResearchClassGroupAdviserRequest;
 use App\Modules\Consultations\Queries\GetAdviserConsultationData;
 use App\Modules\Documents\Queries\GetAdviserDocumentReviewData;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
+use App\Modules\ResearchProgress\Queries\GetResearchGroupProgress;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -23,6 +24,7 @@ class DashboardController extends Controller
         GetDocumentRepositoryData $repositoryData,
         GetAdviserDocumentReviewData $reviewData,
         GetAdviserConsultationData $consultationData,
+        GetResearchGroupProgress $groupProgress,
     ): View {
         $allowedTabs = [
             'dashboard',
@@ -112,6 +114,14 @@ class DashboardController extends Controller
             )];
         }
 
+        if ($activeTab === 'monitoring') {
+            $viewData['adviserProgressGroups'] = $assignedGroups->map(function (ResearchClassGroup $group) use ($groupProgress): ResearchClassGroup {
+                $group->setAttribute('progress_summary', $groupProgress->for($group));
+
+                return $group;
+            });
+        }
+
         return view('pages.adviser-dashboard', [
             'area' => 'Research Adviser',
             'adviser' => $user,
@@ -154,6 +164,7 @@ class DashboardController extends Controller
             'pendingConsultationsCount' => 0,
             'pendingDocReviewsCount' => 0,
             'pendingAdviserRequestsCount' => 0,
+            'adviserProgressGroups' => new Collection,
         ];
     }
 }

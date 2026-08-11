@@ -55,6 +55,11 @@ class ResearchClassGroup extends Model
         return $this->hasMany(Document::class);
     }
 
+    public function milestones(): HasMany
+    {
+        return $this->hasMany(ResearchGroupMilestone::class);
+    }
+
     public function memberHistories(): HasMany
     {
         return $this->hasMany(ResearchClassGroupMemberHistory::class);

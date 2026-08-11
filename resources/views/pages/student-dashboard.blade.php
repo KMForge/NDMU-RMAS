@@ -905,18 +905,16 @@
                 </div>
 
                 @php
-                    $completedStatuses = ['accepted', 'approved', 'completed', 'resolved', 'passed'];
-                    $activeStatuses = ['pending', 'in_progress', 'submitted', 'review', 'under_review'];
+                    $completedStatuses = ['completed'];
+                    $activeStatuses = ['in_progress'];
                     
                     $completedCount = $researchMilestones->filter(fn($m) => in_array(strtolower($m->status ?? ''), $completedStatuses, true))->count();
                     $inProgressCount = $researchMilestones->filter(fn($m) => in_array(strtolower($m->status ?? ''), $activeStatuses, true))->count();
-                    $pendingCount = $researchMilestones->filter(fn($m) => empty($m->status) || !in_array(strtolower($m->status), array_merge($completedStatuses, $activeStatuses), true))->count();
+                    $notApplicableCount = $researchMilestones->filter(fn($m) => strtolower($m->status ?? '') === 'not_applicable')->count();
+                    $pendingCount = $researchMilestones->filter(fn($m) => strtolower($m->status ?? '') === 'pending')->count();
                     
                     $totalMilestones = $researchMilestones->count();
                     $progressPercentage = $dashboardOverview['progress_percentage'] ?? 0;
-                    if ($progressPercentage === 0 && $totalMilestones > 0) {
-                        $progressPercentage = (int) round(($completedCount / $totalMilestones) * 100);
-                    }
                 @endphp
 
                 <!-- Overall Progress Card -->
@@ -924,7 +922,7 @@
                     <div class="flex items-center justify-between">
                         <div class="space-y-1">
                             <h3 class="text-lg font-bold text-gray-800">Overall Progress</h3>
-                            <p class="text-xs text-gray-400 font-light">{{ $researchProject->title ?? 'No active research project found' }}</p>
+                            <p class="text-xs text-gray-400 font-light">{{ $activeGroup?->research_title ?: ($activeGroup?->name ?: 'Research title not yet finalized') }}</p>
                         </div>
                         <div class="text-right">
                             <span class="text-2xl font-extrabold text-emerald-600 font-heading">{{ $progressPercentage }}%</span>
@@ -938,7 +936,7 @@
                     </div>
 
                     <!-- Counts -->
-                    <div class="grid grid-cols-3 gap-6 text-center pt-2">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center pt-2">
                         <div>
                             <span class="text-xl font-extrabold text-emerald-600 font-heading block">{{ $completedCount }}</span>
                             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">Completed</span>
@@ -950,6 +948,10 @@
                         <div>
                             <span class="text-xl font-extrabold text-gray-400 font-heading block">{{ $pendingCount }}</span>
                             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">Pending</span>
+                        </div>
+                        <div>
+                            <span class="text-xl font-extrabold text-slate-500 font-heading block">{{ $notApplicableCount }}</span>
+                            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">Not Applicable</span>
                         </div>
                     </div>
                 </div>
@@ -965,12 +967,14 @@
                                 $statusLower = strtolower($milestone->status ?? 'not_started');
                                 $milestoneCompleted = in_array($statusLower, $completedStatuses, true);
                                 $milestoneInProgress = in_array($statusLower, $activeStatuses, true);
+                                $milestoneNotApplicable = $statusLower === 'not_applicable';
                                 
                                 $isOverdue = !$milestoneCompleted
+                                    && !$milestoneNotApplicable
                                     && $milestone->due_at
                                     && Illuminate\Support\Carbon::parse($milestone->due_at)->isPast();
                                 
-                                $displayStatus = $milestoneCompleted ? 'completed' : ($milestoneInProgress ? 'in_progress' : 'pending');
+                                $displayStatus = $milestoneCompleted ? 'completed' : ($milestoneInProgress ? 'in_progress' : ($milestoneNotApplicable ? 'not_applicable' : 'pending'));
                                 if ($isOverdue && !$milestoneCompleted) {
                                     $displayStatus = 'overdue';
                                 }
@@ -1013,8 +1017,29 @@
                                             <p class="text-xs text-emerald-705 font-medium flex items-center gap-1">✓ All requirements met and approved</p>
                                         @elseif ($milestoneInProgress)
                                             <p class="text-xs text-amber-705 font-medium flex items-center gap-1">Currently working on this milestone</p>
+                                        @elseif ($milestoneNotApplicable)
+                                            <p class="text-xs text-slate-500 font-medium">{{ $milestone->not_applicable_reason }}</p>
                                         @elseif ($milestone->description)
                                             <p class="text-xs text-gray-500 font-medium">{{ $milestone->description }}</p>
+                                        @endif
+                                        @if ($milestone->completed_at)
+                                            <p class="text-xs text-gray-500">Completed {{ $milestone->completed_at->format('M j, Y g:i A') }}</p>
+                                        @endif
+                                        @if ($milestone->remarks)
+                                            <p class="text-xs text-gray-600">Facilitator remarks: {{ $milestone->remarks }}</p>
+                                        @endif
+                                        @if ($milestone->evidences->isNotEmpty())
+                                            <p class="text-xs text-purple-700">{{ $milestone->evidences->count() }} linked evidence record(s)</p>
+                                        @endif
+                                        @if ($milestone->events->isNotEmpty())
+                                            <details class="text-xs text-gray-500">
+                                                <summary class="cursor-pointer font-semibold">View history ({{ $milestone->events->count() }})</summary>
+                                                <ul class="mt-2 space-y-1">
+                                                    @foreach ($milestone->events->sortByDesc('occurred_at') as $event)
+                                                        <li>{{ str($event->event)->headline() }} · {{ $event->occurred_at?->format('M j, Y g:i A') }}@if($event->actor) · {{ $event->actor->name }}@endif</li>
+                                                    @endforeach
+                                                </ul>
+                                            </details>
                                         @endif
                                     </div>
                                     <span @class([
@@ -1027,21 +1052,14 @@
                             </div>
                         @empty
                             <div class="p-10 bg-gray-55/60 border border-gray-100 rounded-3xl text-center text-sm text-gray-500">
-                                No research milestones have been configured for your program and academic term.
+                                Join an active research group to view its official milestones.
                             </div>
                         @endforelse
                     </div>
                 </div>
 
-                <!-- Bottom Action Buttons -->
+                <!-- Read-only student timeline actions -->
                 <div class="flex items-center gap-3 pt-6">
-                    <button 
-                        type="button"
-                        @click="alert('Progress updates are submitted automatically when you upload documents or complete consultations.')"
-                        class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl transition-all duration-200 cursor-pointer"
-                    >
-                        Update Progress
-                    </button>
                     <button 
                         type="button"
                         @click="window.print()"

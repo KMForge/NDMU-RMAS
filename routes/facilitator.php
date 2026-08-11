@@ -4,6 +4,7 @@ use App\Http\Controllers\Facilitator\ClassJoinRequestController;
 use App\Http\Controllers\Facilitator\DashboardController;
 use App\Http\Controllers\Facilitator\ResearchClassController;
 use App\Http\Controllers\Facilitator\ResearchClassGroupController;
+use App\Http\Controllers\Facilitator\ResearchProgressController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('facilitator')->name('facilitator.')->middleware([
@@ -18,6 +19,23 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
         ->middleware('permission:classes.view-own')
         ->whereNumber('researchClass')
         ->name('classes.show');
+
+    Route::get('/groups/{group}/progress', [ResearchProgressController::class, 'show'])
+        ->middleware('permission:progress.view-owned-classes')
+        ->whereNumber('group')
+        ->name('progress.show');
+
+    Route::prefix('/progress/{milestone}')
+        ->whereNumber('milestone')
+        ->middleware(['permission:progress.manage-owned-classes', 'throttle:progress-actions'])
+        ->group(function (): void {
+            Route::patch('/start', [ResearchProgressController::class, 'start'])->name('progress.start');
+            Route::patch('/complete', [ResearchProgressController::class, 'complete'])->name('progress.complete');
+            Route::patch('/correct', [ResearchProgressController::class, 'correct'])->name('progress.correct');
+            Route::patch('/not-applicable', [ResearchProgressController::class, 'notApplicable'])->name('progress.not-applicable');
+            Route::patch('/due-date', [ResearchProgressController::class, 'dueDate'])->name('progress.due-date');
+            Route::post('/evidence', [ResearchProgressController::class, 'evidence'])->name('progress.evidence');
+        });
 
     Route::prefix('/classes/{researchClass}')
         ->whereNumber('researchClass')

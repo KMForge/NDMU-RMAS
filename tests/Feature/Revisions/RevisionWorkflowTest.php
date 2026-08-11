@@ -664,8 +664,8 @@ class RevisionWorkflowTest extends TestCase
         app(SubmitRevisionDocument::class)->handle($this->leader, $file, Str::uuid()->toString(), '127.0.0.1', $cycle);
         app(ResolveRevisionCycle::class)->handle($this->adviser, $cycle);
 
-        $this->assertEquals(0, DB::table('research_milestones')->count());
-        $this->assertEquals(0, DB::table('research_progress_updates')->count());
+        $this->assertEquals(0, DB::table('research_group_milestones')->where('status', 'completed')->count());
+        $this->assertEquals(0, DB::table('research_group_milestone_events')->count());
     }
 
     public function test_upload_validation_failure_audit(): void
