@@ -6,7 +6,7 @@ use App\Enums\AccountStatus;
 use App\Enums\UserType;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
-use Illuminate\Auth\Notifications\VerifyEmail;
+use App\Notifications\SendNDMUEmailVerification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
@@ -46,7 +46,7 @@ class StudentRegistrationTest extends TestCase
         $this->assertNull($student->approved_at);
         $this->assertNull($student->email_verified_at);
         $this->assertTrue($student->hasExactRoles(['student']));
-        Notification::assertSentTo($student, VerifyEmail::class);
+        Notification::assertSentTo($student, SendNDMUEmailVerification::class);
     }
 
     public function test_signed_verification_link_verifies_pending_student_email(): void

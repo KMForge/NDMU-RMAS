@@ -31,6 +31,16 @@ class AdviserOfficialFormsTest extends TestCase
         foreach (array_keys(config('official-forms.adviser')) as $code) {
             $response->assertSee($code);
         }
+
+        $this->assertSame([
+            'RES-026', 'RES-027', 'RES-038', 'RES-031', 'RES-032', 'RES-033', 'RES-034',
+            'RES-035', 'RES-040', 'RES-042', 'RES-044', 'RES-048', 'RES-049',
+        ], array_keys(config('official-forms.adviser')));
+        $response
+            ->assertSee('Official Research Forms')
+            ->assertSee('Invitation to Research Adviser')
+            ->assertSee('Certificate of Authentic Authorship')
+            ->assertSee('Database saving will be connected in the backend stage');
     }
 
     public function test_only_adviser_specific_forms_have_adviser_blade_files(): void

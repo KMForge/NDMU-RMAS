@@ -267,15 +267,54 @@
                     <i class="ph text-xs transition-transform duration-200" :class="formsExpanded ? 'ph-caret-up' : 'ph-caret-down'"></i>
                 </button>
 
-                <div x-show="formsExpanded" x-collapse x-cloak class="mt-1 pl-4 space-y-1">
-                    <a 
-                       href="{{ route('adviser.dashboard', ['tab' => 'forms']) }}"
-                       wire:navigate
-                       :class="activeTab === 'forms' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/80 hover:text-white hover:bg-white/5 font-medium'"
-                       class="w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 text-xs text-left cursor-pointer">
-                        <span>All Official Forms</span>
-                        <span x-show="activeTab === 'forms'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                    </a>
+                <div x-show="formsExpanded" x-cloak x-transition class="mt-1 space-y-0.5">
+                    @foreach ($officialFormPhases as $phase => $label)
+                        @php
+                            $phaseForms = $officialFormsByPhase->get($phase, collect());
+                        @endphp
+
+                        @if ($phaseForms->isNotEmpty())
+                            <div>
+                            <button
+                                type="button"
+                                @click="activeTab = 'forms'; activeFormPhase = activeFormPhase === '{{ $phase }}' ? null : '{{ $phase }}'"
+                                class="w-full flex items-center justify-between gap-2 rounded-xl py-2 pl-4 pr-3 text-left text-[11px] font-semibold text-white/55 transition-colors duration-200 hover:bg-white/5 hover:text-white"
+                            >
+                                <span class="flex min-w-0 items-start gap-2">
+                                    <i class="ph ph-caret-right mt-0.5 shrink-0 text-[10px] transition-transform duration-200" :class="activeFormPhase === '{{ $phase }}' && 'rotate-90'"></i>
+                                    <span class="leading-4">{{ $label }}</span>
+                                </span>
+                                <span class="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#eebc3f]/20 px-1.5 text-[9px] font-bold text-[#eebc3f]">
+                                    {{ $phaseForms->count() }}
+                                </span>
+                            </button>
+
+                            <div
+                                x-show="activeFormPhase === '{{ $phase }}'"
+                                x-cloak
+                                x-transition:enter="transition ease-out duration-150"
+                                x-transition:enter-start="-translate-y-1 opacity-0"
+                                x-transition:enter-end="translate-y-0 opacity-100"
+                                class="mt-0.5 space-y-0.5 pl-2"
+                            >
+                                @foreach ($phaseForms as $code => $form)
+                                    <button
+                                        type="button"
+                                        @click="activeTab = 'forms'; activeOfficialForm = '{{ $code }}'"
+                                        :class="activeOfficialForm === '{{ $code }}' ? 'bg-[#eebc3f] text-[#0e5c3a] ring-1 ring-white font-bold' : 'text-white/70 hover:text-white hover:bg-white/5'"
+                                        class="w-full flex items-start gap-2 rounded-xl px-3 py-2 text-left transition-colors duration-200"
+                                    >
+                                        <i class="ph ph-file-plus mt-0.5 shrink-0 text-sm"></i>
+                                        <span class="min-w-0">
+                                            <span class="block text-[10px] font-bold">{{ $code }}</span>
+                                            <span class="block text-[10px] leading-3.5">{{ $form['title'] }}</span>
+                                        </span>
+                                    </button>
+                                @endforeach
+                            </div>
+                            </div>
+                        @endif
+                    @endforeach
                 </div>
             </div>
         </div>
@@ -353,6 +392,7 @@
                 'endorsement' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Defense Endorsement', 'description' => 'Prepare and monitor defense endorsement requests for your advisees.', 'icon' => 'ph-seal-check'],
                 'evaluations' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Evaluation Records', 'description' => 'Review defense and research evaluation records for assigned groups.', 'icon' => 'ph-clipboard-text'],
                 'repository' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Research Repository', 'description' => 'Browse approved research documents, manuscripts, and archives.', 'icon' => 'ph-archive'],
+                'forms' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Official Research Forms', 'description' => 'Open the official forms required for adviser participation across the seven research phases.', 'icon' => 'ph-file-text'],
                 'notifications' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'Notifications', 'description' => 'Stay updated with real-time research activity alerts and reminders.', 'icon' => 'ph-bell'],
             ]" />
 
@@ -1145,6 +1185,11 @@
                     <p class="mt-3 text-sm text-gray-500">Evaluation records backend will be rebuilt in the evaluation phase.</p>
                 </div>
             </div>
+
+            <!-- TAB: Official Research Forms (UI only; persistence begins in Phase 19 backend work) -->
+            <section x-show="activeTab === 'forms'" x-cloak class="space-y-8">
+                @include('pages.adviser.forms.index')
+            </section>
         </div>
     </main>
 </div>

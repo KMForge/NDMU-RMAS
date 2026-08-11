@@ -5,14 +5,17 @@ namespace Tests\Feature\ResearchProgress;
 use App\Enums\DocumentStatus;
 use App\Enums\ResearchMilestoneStatus;
 use App\Models\Document;
+use App\Models\MilestoneDefinition;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupMember;
 use App\Models\ResearchClassGroupMemberHistory;
 use App\Models\ResearchGroupMilestone;
+use App\Models\ResearchGroupMilestoneEvent;
 use App\Models\User;
 use App\Modules\Classes\Actions\CreateResearchClassGroup;
+use App\Modules\ResearchProgress\Actions\SyncResearchMilestoneDefinitions;
 use App\Modules\ResearchProgress\Queries\GetResearchGroupProgress;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -41,6 +44,8 @@ class ResearchProgressMilestoneTest extends TestCase
         parent::setUp();
         $this->seed(RolePermissionSeeder::class);
 
+        app(SyncResearchMilestoneDefinitions::class)->execute();
+
         $this->facilitator = $this->user('research-facilitator');
         $this->adviser = $this->user('thesis-adviser');
         $this->student = $this->user('student');
@@ -66,13 +71,13 @@ class ResearchProgressMilestoneTest extends TestCase
         ]);
     }
 
-    public function test_initialization_is_idempotent_and_creates_exactly_twelve_records(): void
+    public function test_initialization_is_idempotent_and_creates_exactly_thirteen_active_records(): void
     {
         $query = app(GetResearchGroupProgress::class);
-        $this->assertCount(12, $query->for($this->group)['milestones']);
-        $this->assertCount(12, $query->for($this->group)['milestones']);
-        $this->assertDatabaseCount('milestone_definitions', 12);
-        $this->assertDatabaseCount('research_group_milestones', 12);
+        $this->assertCount(13, $query->for($this->group)['milestones']);
+        $this->assertCount(13, $query->for($this->group)['milestones']);
+        $this->assertDatabaseCount('milestone_definitions', 13);
+        $this->assertDatabaseCount('research_group_milestones', 13);
     }
 
     public function test_new_group_created_through_the_domain_action_is_initialized_immediately(): void
@@ -84,8 +89,7 @@ class ResearchProgressMilestoneTest extends TestCase
             'New Progress Group',
         );
 
-        $this->assertSame(12, $group->milestones()->count());
-        $this->assertDatabaseCount('milestone_definitions', 12);
+        $this->assertSame(13, $group->milestones()->whereHas('definition', fn ($q) => $q->where('is_active', true))->count());
     }
 
     public function test_progress_is_derived_from_weights_and_not_a_client_percentage(): void
@@ -94,7 +98,8 @@ class ResearchProgressMilestoneTest extends TestCase
         $this->startAndComplete($milestones[0]);
         $summary = app(GetResearchGroupProgress::class)->for($this->group);
 
-        $this->assertSame(8.33, $summary['progress_percentage']);
+        $expectedSinglePercentage = round((1 / 13) * 100, 2);
+        $this->assertSame($expectedSinglePercentage, $summary['progress_percentage']);
         $this->assertSame(1, $summary['completed_count']);
 
         foreach ($milestones->skip(1) as $milestone) {
@@ -117,6 +122,30 @@ class ResearchProgressMilestoneTest extends TestCase
         ]);
     }
 
+    public function test_proposal_defense_sequence_requires_proposal_defense_before_survey_validation_and_data_gathering(): void
+    {
+        $milestones = $this->milestones();
+        $proposalDefense = $milestones->firstWhere('definition.code', 'research-proposal-defense');
+        $surveyValidation = $milestones->firstWhere('definition.code', 'validation-survey-instrument');
+        $dataGathering = $milestones->firstWhere('definition.code', 'data-gathering');
+
+        $this->assertTrue($proposalDefense->definition->sequence < $surveyValidation->definition->sequence);
+        $this->assertTrue($surveyValidation->definition->sequence < $dataGathering->definition->sequence);
+
+        $this->actingAs($this->facilitator)->patchJson(route('facilitator.progress.start', $dataGathering))->assertUnprocessable();
+    }
+
+    public function test_proposal_revision_and_whole_paper_revision_are_independent_milestones(): void
+    {
+        $milestones = $this->milestones();
+        $proposalRevision = $milestones->firstWhere('definition.code', 'revision-research-proposal');
+        $wholePaperRevision = $milestones->firstWhere('definition.code', 'revision-whole-research-paper');
+
+        $this->assertNotNull($proposalRevision);
+        $this->assertNotNull($wholePaperRevision);
+        $this->assertNotEquals($proposalRevision->definition->getKey(), $wholePaperRevision->definition->getKey());
+    }
+
     public function test_not_applicable_excludes_weight_and_requires_a_reason(): void
     {
         $last = $this->milestones()->last();
@@ -126,7 +155,7 @@ class ResearchProgressMilestoneTest extends TestCase
         ])->assertOk();
 
         $summary = app(GetResearchGroupProgress::class)->for($this->group);
-        $this->assertSame(11, $summary['applicable_count']);
+        $this->assertSame(12, $summary['applicable_count']);
         $this->assertSame(0.0, $summary['progress_percentage']);
     }
 
@@ -273,7 +302,8 @@ class ResearchProgressMilestoneTest extends TestCase
             'progress_percentage' => 99,
         ])->assertOk();
 
-        $this->assertSame(8.33, app(GetResearchGroupProgress::class)->for($this->group)['progress_percentage']);
+        $expectedSinglePercentage = round((1 / 13) * 100, 2);
+        $this->assertSame($expectedSinglePercentage, app(GetResearchGroupProgress::class)->for($this->group)['progress_percentage']);
         Notification::assertNothingSent();
     }
 
@@ -300,6 +330,47 @@ class ResearchProgressMilestoneTest extends TestCase
         $this->milestones();
         $this->document($this->group, DocumentStatus::Accepted);
         $this->assertSame(0, ResearchGroupMilestone::query()->where('status', 'completed')->count());
+    }
+
+    public function test_legacy_group_milestones_with_academic_history_are_preserved_intact_under_inactive_definitions(): void
+    {
+        $legacyDef = MilestoneDefinition::query()->create([
+            'code' => 'legacy-custom-phase',
+            'name' => 'Old Legacy Phase',
+            'sequence' => 999,
+            'weight' => 1,
+            'is_active' => false,
+        ]);
+
+        $legacyGroupMilestone = ResearchGroupMilestone::query()->create([
+            'research_class_group_id' => $this->group->getKey(),
+            'milestone_definition_id' => $legacyDef->getKey(),
+            'status' => ResearchMilestoneStatus::Completed,
+            'started_at' => now()->subDays(5),
+            'completed_at' => now()->subDays(2),
+            'remarks' => 'Completed under old academic process.',
+        ]);
+
+        ResearchGroupMilestoneEvent::query()->create([
+            'research_group_milestone_id' => $legacyGroupMilestone->getKey(),
+            'actor_id' => $this->facilitator->getKey(),
+            'event' => 'status_changed',
+            'from_status' => 'pending',
+            'to_status' => 'completed',
+            'occurred_at' => now()->subDays(2),
+        ]);
+
+        app(SyncResearchMilestoneDefinitions::class)->execute();
+
+        $this->assertDatabaseHas('research_group_milestones', [
+            'id' => $legacyGroupMilestone->getKey(),
+            'status' => 'completed',
+            'remarks' => 'Completed under old academic process.',
+        ]);
+
+        $summary = app(GetResearchGroupProgress::class)->for($this->group);
+        $this->assertCount(13, $summary['milestones']);
+        $this->assertSame(0.0, $summary['progress_percentage']);
     }
 
     private function milestones()

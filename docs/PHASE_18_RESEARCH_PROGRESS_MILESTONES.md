@@ -8,20 +8,27 @@ This workflow remains separate from document stages, adviser reviews, consultati
 
 ## Authoritative milestones
 
-Definitions are centralized in `config/research-progress.php`, persisted in `milestone_definitions`, and initialized idempotently for active groups:
+Definitions are centralized in `config/research-progress.php`, persisted in `milestone_definitions`, synchronized via `SyncResearchMilestoneDefinitions`, and initialized idempotently for active groups:
 
-1. Research Title Presentation
-2. Proposal Approval
-3. Adviser Endorsement
-4. Instrument Validation
-5. Data Gathering
-6. Proposal Defense
-7. Revisions
-8. Final Defense
-9. Technical Editing
-10. Language Editing
-11. Final Manuscript Approval
-12. Certificate of Authentic Authorship
+1. Research Title Presentation (`research-title-presentation`)
+2. Formulation of Research Proposal (`formulation-research-proposal`)
+3. Research Proposal Defense (`research-proposal-defense`)
+4. Revision of Research Proposal Paper (`revision-research-proposal`)
+5. Validation of Survey Instrument (`validation-survey-instrument`)
+6. Submission of the Complete Research Proposal Paper & Others (`submission-complete-research-proposal`)
+7. Data Gathering (`data-gathering`)
+8. Data Processing (`data-processing`)
+9. Report Writing (`report-writing`)
+10. Research Final/Oral Defense (`research-final-oral-defense`)
+11. Revision of the Whole Research Paper (`revision-whole-research-paper`)
+12. Language and Technical Editing (`language-technical-editing`)
+13. Submission of the Final Copy of the Research Paper (`submission-final-research-paper`)
+
+### Architectural Boundaries & Layering
+- **Official Research Writing Phases (Phase 18)**: Top-level process progression (the 13 phases above).
+- **Document Stages**: File upload categories (`DocumentStage::ProposalDefense`, `DocumentStage::FinalDefense`, etc.).
+- **Official Forms (Phase 19)**: Form workflows (`RES-Form-026`, `RES-Form-034`, `RES-Form-045`, `RES-Form-047`, etc.).
+- **Digital Signatures (Phase 20)**: Signature sign-offs attached to versioned official form submissions.
 
 The stable code, display name, sequence, active flag, and weight belong to the definition. A unique constraint permits only one group record per definition. Database weights can be adjusted centrally without changing controllers or Blade files; active weights must be positive.
 
