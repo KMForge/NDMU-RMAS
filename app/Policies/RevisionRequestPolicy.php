@@ -64,7 +64,7 @@ class RevisionRequestPolicy
             return false;
         }
 
-        return in_array($revisionRequest->status, [RevisionStatus::Open, RevisionStatus::InProgress], true)
+        return $revisionRequest->status === RevisionStatus::InProgress
             && $revisionRequest->submitted_document_id === null;
     }
 

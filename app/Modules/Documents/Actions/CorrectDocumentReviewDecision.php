@@ -46,27 +46,9 @@ class CorrectDocumentReviewDecision
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                if (! $lockedDocument->is_current) {
-                    throw new DocumentReviewException(
-                        'Cannot correct a decision on a historical or superseded document version.',
-                    );
-                }
-
                 if (! $this->reviewerAccess->canReview($reviewer, $lockedDocument)) {
                     throw new DocumentReviewException(
                         'You are not authorized to correct decisions for this document.',
-                    );
-                }
-
-                $newerVersionExists = Document::query()
-                    ->where('research_class_group_id', $lockedDocument->research_class_group_id)
-                    ->where('document_stage', $lockedDocument->document_stage?->value)
-                    ->where('version_number', '>', $lockedDocument->version_number)
-                    ->exists();
-
-                if ($newerVersionExists) {
-                    throw new DocumentReviewException(
-                        'Cannot correct decision because a newer document version has been submitted.',
                     );
                 }
 
@@ -81,6 +63,34 @@ class CorrectDocumentReviewDecision
                     throw new DocumentReviewException(
                         'No prior review decision exists to correct for this document.',
                     );
+                }
+
+                $newerDocuments = Document::query()
+                    ->where('research_class_group_id', $lockedDocument->research_class_group_id)
+                    ->where('document_stage', $lockedDocument->document_stage?->value)
+                    ->where('version_number', '>', $lockedDocument->version_number)
+                    ->get();
+
+                if (! $lockedDocument->is_current || $newerDocuments->isNotEmpty()) {
+                    $isCaseA = false;
+
+                    if ($originalReview->decision === DocumentStatus::RevisionRequested->value) {
+                        $cycle = RevisionRequest::query()
+                            ->where('source_document_review_id', $originalReview->getKey())
+                            ->first();
+
+                        if ($cycle !== null && $cycle->submitted_document_id !== null) {
+                            if ($newerDocuments->count() === 1 && $newerDocuments->first()->getKey() === $cycle->submitted_document_id) {
+                                $isCaseA = true;
+                            }
+                        }
+                    }
+
+                    if (! $isCaseA) {
+                        throw new DocumentReviewException(
+                            'Cannot correct a decision on a historical or superseded document version.',
+                        );
+                    }
                 }
 
                 if (trim($reason) === '') {

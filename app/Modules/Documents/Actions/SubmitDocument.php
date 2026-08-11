@@ -190,17 +190,13 @@ class SubmitDocument
                         ->lockForUpdate()
                         ->firstOrFail();
 
-                    if ($lockedRevision->research_class_group_id !== null
-                        && $lockedRevision->research_class_group_id !== $lockedGroup->getKey()) {
+                    if ($lockedRevision->research_class_group_id !== $lockedGroup->getKey()) {
                         throw new RevisionWorkflowException(
                             'This revision request does not belong to your research group.',
                         );
                     }
 
-                    if (! in_array($lockedRevision->status, [
-                        RevisionStatus::Open,
-                        RevisionStatus::InProgress,
-                    ], true)) {
+                    if ($lockedRevision->status !== RevisionStatus::InProgress) {
                         throw new RevisionWorkflowException(
                             'This revision request is not accepting another document.',
                         );

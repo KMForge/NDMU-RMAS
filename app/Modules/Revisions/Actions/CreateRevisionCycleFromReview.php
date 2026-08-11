@@ -32,7 +32,7 @@ class CreateRevisionCycleFromReview
                 'document_id' => $document->getKey(),
                 'source_document_review_id' => $review->getKey(),
                 'requested_by' => $review->reviewer_id,
-                'assigned_to' => $document->researchClassGroup?->leader_student_id ?? $document->user_id,
+                'assigned_to' => null,
                 'source_type' => 'document_review',
                 'title' => $title,
                 'instructions' => $instructions,

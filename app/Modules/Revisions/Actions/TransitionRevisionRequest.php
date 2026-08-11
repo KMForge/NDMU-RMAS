@@ -113,7 +113,8 @@ class TransitionRevisionRequest
                 'occurred_at' => now(),
             ]);
 
-            $this->notifyCounterparty($lockedRevision, $actor, $action);
+            // Legacy / Disabled: Direct notifications remain Phase 23
+            // $this->notifyCounterparty($lockedRevision, $actor, $action);
 
             return $lockedRevision->fresh([
                 'assignee:id,name,email',

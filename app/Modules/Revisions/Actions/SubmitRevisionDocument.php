@@ -39,7 +39,7 @@ class SubmitRevisionDocument
             throw new AuthorizationException('Only your assigned Group Leader can submit revised research documents.');
         }
 
-        if (! in_array($cycle->status, [RevisionStatus::Open, RevisionStatus::InProgress], true)) {
+        if ($cycle->status !== RevisionStatus::InProgress) {
             throw new RevisionWorkflowException('This revision request is not accepting another document.');
         }
 

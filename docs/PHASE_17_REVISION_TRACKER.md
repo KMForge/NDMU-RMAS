@@ -32,7 +32,6 @@ stateDiagram-v2
     [*] --> Open: Review Decision = Revision Requested
     Open --> InProgress: Group Leader Starts Revision
     InProgress --> Submitted: Group Leader Submits Revised Doc (V2+)
-    Open --> Submitted: Group Leader Submits Directly
     Submitted --> Resolved: Current Adviser Resolves (All blocking findings resolved)
     Resolved --> Submitted: Controlled Reopen by Adviser (with reason)
     Open --> Cancelled: Review Decision Corrected to Accepted/Rejected
@@ -41,13 +40,13 @@ stateDiagram-v2
 ```
 
 ### State Machine Rules
-1. **Automatic Creation**: Issued inside `ReviewDocument` transaction when decision is `RevisionRequested`.
+1. **Automatic Creation**: Issued inside `ReviewDocument` transaction when decision is `RevisionRequested`. Sets `assigned_to = null` to isolate legacy column; modern ownership uses `research_class_group_id`.
 2. **Start Revision (`Open -> InProgress`)**: Executed by active Group Leader via `StartRevisionCycle`.
-3. **Submit Response (`InProgress -> Submitted`)**: Executed by active Group Leader via `SubmitRevisionDocument`. Derives stage from source document, increments version, marks `is_current = true`, and populates `submitted_document_id`.
+3. **Submit Response (`InProgress -> Submitted`)**: Executed by active Group Leader via `SubmitRevisionDocument`. Direct submission from `Open` is denied. Derives stage from source document, increments version, marks `is_current = true`, and populates `submitted_document_id`.
 4. **Adviser Resolution (`Submitted -> Resolved`)**: Executed by Current Assigned Adviser via `ResolveRevisionCycle`. Requires all blocking findings (`severity` in `['revision', 'critical']`) on source document to be resolved (`resolved_at !== null`).
 5. **Controlled Reopening (`Resolved -> Submitted`)**: Executed by Current Assigned Adviser via `ReopenRevisionCycle`. Reverts accidental resolution back to `Submitted` state, requires non-empty reason string, and preserves `submitted_document_id`.
 6. **Decision Correction Reconciliation**:
-   - `Revision Requested -> Accepted/Rejected`: Invalidates cycle (`status = Cancelled`). If response document exists, preserves document link and logs audit event.
+   - `Revision Requested -> Accepted/Rejected`: Invalidates cycle (`status = Cancelled`). If response document exists (Case A), preserves response document link and logs audit event. Unrelated newer versions continue to block unsafe correction (Case B).
    - `Accepted/Rejected -> Revision Requested`: Creates 1 new cycle.
 
 ---
@@ -57,7 +56,7 @@ stateDiagram-v2
 - **Policy**: `App\Policies\RevisionRequestPolicy`
 - **View (`view`)**: Active/historical members of the research group, current/original adviser, or class facilitator.
 - **Start (`start`)**: Active Group Leader (`$group->isLeader($user)`) AND group active AND cycle status `Open`.
-- **Submit (`submit`)**: Active Group Leader (`$group->isLeader($user)`) AND group active AND cycle status in `[Open, InProgress]` AND `submitted_document_id === null`.
+- **Submit (`submit`)**: Active Group Leader (`$group->isLeader($user)`) AND group active AND cycle status `InProgress` AND `submitted_document_id === null`.
 - **Resolve (`resolve`)**: User has `revisions.resolve` permission AND current assigned adviser (`$group->adviser_id === $user->id`) AND group active AND cycle status `Submitted`.
 - **Update Due Date (`updateDueDate`)**: Current Assigned Adviser (`$group->adviser_id === $user->id`).
 - **Reopen (`reopen`)**: Current Assigned Adviser (`$group->adviser_id === $user->id`) AND cycle status `Resolved`.
