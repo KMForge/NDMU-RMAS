@@ -11,17 +11,27 @@ use InvalidArgumentException;
 
 class AssignOfficialFormActor
 {
-    /** @var list<string> */
-    public const ALLOWED_ACTOR_TYPES = [
-        'adviser',
-        'panelist',
-        'language_editor',
-        'technical_editor',
-        'instrument_validator',
-        'research_instructor',
-        'program_coordinator',
-        'dean',
-        'consultant',
+    /** @var array<string, list<string>> */
+    public const FORM_ALLOWED_ACTOR_TYPES = [
+        'RES-027' => ['adviser'],
+        'RES-028' => ['panelist'],
+        'RES-029' => ['language_editor'],
+        'RES-030' => ['adviser', 'panelist', 'language_editor'],
+        'RES-032' => ['consultant', 'language_editor', 'technical_editor', 'instrument_validator', 'panelist'],
+        'RES-034' => ['adviser', 'panelist'],
+        'RES-035' => ['adviser', 'panelist'],
+        'RES-036' => ['panelist'],
+        'RES-037' => ['panelist'],
+        'RES-038' => ['adviser'],
+        'RES-040' => ['research_instructor'],
+        'RES-041' => ['program_coordinator'],
+        'RES-042' => ['instrument_validator'],
+        'RES-043A' => ['instrument_validator'],
+        'RES-043B' => ['instrument_validator'],
+        'RES-044' => ['adviser', 'panelist'],
+        'RES-045' => ['language_editor'],
+        'RES-046' => ['technical_editor'],
+        'RES-047' => ['dean', 'program_coordinator'],
     ];
 
     public function handle(
@@ -30,11 +40,24 @@ class AssignOfficialFormActor
         int $userId,
         string $actorType
     ): OfficialFormActorAssignment {
-        if (! in_array($actorType, self::ALLOWED_ACTOR_TYPES, true)) {
-            throw new InvalidArgumentException("Invalid form actor type [{$actorType}].");
+        $formCode = strtoupper($instance->definition->code);
+        $allowedTypes = self::FORM_ALLOWED_ACTOR_TYPES[$formCode] ?? [
+            'adviser', 'panelist', 'language_editor', 'technical_editor',
+            'instrument_validator', 'research_instructor', 'program_coordinator', 'dean', 'consultant',
+        ];
+
+        if (! in_array($actorType, $allowedTypes, true)) {
+            throw new InvalidArgumentException("Actor type [{$actorType}] is not valid for form {$formCode}.");
         }
 
         $user = User::query()->findOrFail($userId);
+
+        $userTypeVal = is_object($user->user_type) ? ($user->user_type->value ?? (string) $user->user_type) : (string) $user->user_type;
+        if (in_array($actorType, ['adviser', 'panelist', 'language_editor', 'technical_editor', 'instrument_validator', 'research_instructor', 'program_coordinator', 'dean'], true)) {
+            if ($userTypeVal !== 'faculty' && ! $user->can('users.manage')) {
+                throw new InvalidArgumentException("Specialist actor type [{$actorType}] requires a faculty user.");
+            }
+        }
 
         return DB::transaction(function () use ($assigner, $instance, $user, $actorType) {
             $assignment = OfficialFormActorAssignment::query()->updateOrCreate(

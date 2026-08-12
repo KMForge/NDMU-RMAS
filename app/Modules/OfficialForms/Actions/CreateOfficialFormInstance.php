@@ -3,9 +3,14 @@
 namespace App\Modules\OfficialForms\Actions;
 
 use App\Models\AuditLog;
+use App\Models\ConsultationRecord;
+use App\Models\DocumentReview;
 use App\Models\OfficialFormDefinition;
 use App\Models\OfficialFormInstance;
 use App\Models\OfficialFormVersion;
+use App\Models\ResearchClass;
+use App\Models\ResearchClassGroup;
+use App\Models\RevisionRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -23,6 +28,7 @@ class CreateOfficialFormInstance
         string $contextKey = 'general',
         ?string $sourceType = null,
         ?int $sourceId = null,
+        ?int $actorUserId = null,
         array $payload = [],
     ): OfficialFormInstance {
         $definition = OfficialFormDefinition::query()
@@ -30,16 +36,20 @@ class CreateOfficialFormInstance
             ->where('is_active', true)
             ->firstOrFail();
 
-        if ($definition->ownership_scope === 'research_group' && $groupId === null) {
-            throw new InvalidArgumentException("Form {$formCode} requires a research_class_group_id.");
-        }
+        $this->validateOwnershipScope($definition, $groupId, $classId);
 
-        if ($definition->ownership_scope === 'research_class' && $classId === null) {
-            throw new InvalidArgumentException("Form {$formCode} requires a research_class_id.");
-        }
+        $targetActorId = $actorUserId ?? $initiator->id;
 
-        return DB::transaction(function () use ($definition, $initiator, $groupId, $classId, $contextKey, $sourceType, $sourceId, $payload) {
-            $this->validateCardinality($definition, $groupId, $classId, $contextKey, $initiator->id);
+        return DB::transaction(function () use ($definition, $initiator, $groupId, $classId, $contextKey, $sourceType, $sourceId, $targetActorId, $payload) {
+            // Lock owner record for update to prevent concurrent duplicate creation
+            if ($groupId !== null) {
+                ResearchClassGroup::query()->lockForUpdate()->find($groupId);
+            } elseif ($classId !== null) {
+                ResearchClass::query()->lockForUpdate()->find($classId);
+            }
+
+            $this->validateSourceLinkage($groupId, $sourceType, $sourceId);
+            $this->validateCardinality($definition, $groupId, $classId, $contextKey, $targetActorId, $sourceId);
 
             $instance = OfficialFormInstance::query()->create([
                 'official_form_definition_id' => $definition->id,
@@ -76,12 +86,59 @@ class CreateOfficialFormInstance
         });
     }
 
+    private function validateOwnershipScope(OfficialFormDefinition $definition, ?int $groupId, ?int $classId): void
+    {
+        if ($definition->ownership_scope === 'research_group') {
+            if ($groupId === null) {
+                throw new InvalidArgumentException("Form {$definition->code} requires a research_class_group_id.");
+            }
+            if ($classId !== null) {
+                $group = ResearchClassGroup::query()->find($groupId);
+                if ($group !== null && (int) $group->research_class_id !== (int) $classId) {
+                    throw new InvalidArgumentException('Mismatch between research_class_id and research_class_group_id.');
+                }
+            }
+        } elseif ($definition->ownership_scope === 'research_class') {
+            if ($classId === null) {
+                throw new InvalidArgumentException("Form {$definition->code} requires a research_class_id.");
+            }
+            if ($groupId !== null) {
+                throw new InvalidArgumentException("Class-owned form {$definition->code} must not specify a research_class_group_id.");
+            }
+        }
+    }
+
+    private function validateSourceLinkage(?int $groupId, ?string $sourceType, ?int $sourceId): void
+    {
+        if ($sourceType === null || $sourceId === null) {
+            return;
+        }
+
+        if ($sourceType === ConsultationRecord::class) {
+            $record = ConsultationRecord::query()->find($sourceId);
+            if (! $record || ($groupId !== null && (int) $record->research_class_group_id !== (int) $groupId)) {
+                throw new InvalidArgumentException('Source ConsultationRecord does not belong to the specified group.');
+            }
+        } elseif ($sourceType === DocumentReview::class) {
+            $review = DocumentReview::query()->find($sourceId);
+            if (! $review || ($groupId !== null && (int) $review->research_class_group_id !== (int) $groupId)) {
+                throw new InvalidArgumentException('Source DocumentReview does not belong to the specified group.');
+            }
+        } elseif ($sourceType === RevisionRequest::class) {
+            $request = RevisionRequest::query()->find($sourceId);
+            if (! $request || ($groupId !== null && (int) $request->research_class_group_id !== (int) $groupId)) {
+                throw new InvalidArgumentException('Source RevisionRequest does not belong to the specified group.');
+            }
+        }
+    }
+
     private function validateCardinality(
         OfficialFormDefinition $definition,
         ?int $groupId,
         ?int $classId,
         string $contextKey,
-        int $initiatorId
+        int $targetActorId,
+        ?int $sourceId
     ): void {
         $query = OfficialFormInstance::query()
             ->where('official_form_definition_id', $definition->id);
@@ -103,10 +160,18 @@ class CreateOfficialFormInstance
             $exists = (clone $query)
                 ->where('research_class_group_id', $groupId)
                 ->where('context_key', $contextKey)
-                ->where('initiated_by', $initiatorId)
+                ->where(function ($q) use ($targetActorId, $sourceId) {
+                    $q->where('initiated_by', $targetActorId)
+                        ->orWhereHas('actorAssignments', function ($aq) use ($targetActorId) {
+                            $aq->where('user_id', $targetActorId)->where('status', 'active');
+                        });
+                    if ($sourceId !== null) {
+                        $q->where('source_id', $sourceId);
+                    }
+                })
                 ->exists();
             if ($exists) {
-                throw new InvalidArgumentException("Form {$definition->code} already exists for this actor in context ({$contextKey}).");
+                throw new InvalidArgumentException("Form {$definition->code} already exists for this actor user in context ({$contextKey}).");
             }
         }
     }
