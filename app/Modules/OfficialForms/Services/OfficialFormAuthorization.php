@@ -26,14 +26,14 @@ class OfficialFormAuthorization
         'res-037' => ['fill' => ['forms.res-037.sign'], 'approve' => ['forms.res-037.sign']],
         'res-038' => ['fill' => ['forms.res-038.endorse'], 'approve' => ['forms.res-038.endorse']],
         'res-039' => ['fill' => ['forms.res-039.fill'], 'approve' => ['forms.res-039.approve']],
-        'res-040' => ['fill' => ['forms.res-040.endorse'], 'endorse' => ['forms.res-040.endorse'], 'receive' => ['forms.res-040.receive'], 'approve' => ['forms.res-040.receive', 'forms.res-040.endorse']],
-        'res-041' => ['fill' => ['forms.res-041.fill'], 'endorse' => ['forms.res-041.endorse'], 'receive' => ['forms.res-041.receive'], 'approve' => ['forms.res-041.receive', 'forms.res-041.endorse']],
+        'res-040' => ['view' => ['forms.res-040.view'], 'fill' => ['forms.res-040.endorse'], 'endorse' => ['forms.res-040.endorse'], 'receive' => ['forms.res-040.receive']],
+        'res-041' => ['view' => ['forms.res-041.view'], 'fill' => ['forms.res-041.fill'], 'endorse' => ['forms.res-041.endorse'], 'receive' => ['forms.res-041.receive']],
         'res-042' => ['fill' => ['forms.res-042.submit'], 'approve' => ['forms.res-042.submit']],
-        'res-043a' => ['fill' => ['forms.res-043a.validate'], 'validate' => ['forms.res-043a.validate'], 'approve' => ['forms.res-043a.validate']],
-        'res-043b' => ['fill' => ['forms.res-043b.validate'], 'validate' => ['forms.res-043b.validate'], 'approve' => ['forms.res-043b.validate']],
+        'res-043a' => ['view' => ['forms.res-043a.view'], 'fill' => ['forms.res-043a.validate'], 'validate' => ['forms.res-043a.validate']],
+        'res-043b' => ['view' => ['forms.res-043b.view'], 'fill' => ['forms.res-043b.validate'], 'validate' => ['forms.res-043b.validate']],
         'res-044' => ['fill' => ['forms.res-044.endorse'], 'approve' => ['forms.res-044.endorse']],
-        'res-045' => ['fill' => ['forms.res-045.certify'], 'certify' => ['forms.res-045.certify'], 'approve' => ['forms.res-045.certify']],
-        'res-046' => ['fill' => ['forms.res-046.certify'], 'certify' => ['forms.res-046.certify'], 'approve' => ['forms.res-046.certify']],
+        'res-045' => ['view' => ['forms.res-045.view'], 'fill' => ['forms.res-045.certify'], 'certify' => ['forms.res-045.certify']],
+        'res-046' => ['view' => ['forms.res-046.view'], 'fill' => ['forms.res-046.certify'], 'certify' => ['forms.res-046.certify']],
         'res-047' => ['fill' => ['forms.res-047.endorse'], 'approve' => ['forms.res-047.endorse']],
         'res-048' => ['fill' => ['forms.res-048.fill'], 'approve' => ['forms.res-048.fill']],
         'res-049' => ['fill' => ['forms.res-049.sign'], 'approve' => ['forms.res-049.sign']],
@@ -43,7 +43,7 @@ class OfficialFormAuthorization
     public const FORM_ACTION_ACTOR_TYPES = [
         'res-036' => ['evaluate' => 'panelist'],
         'res-037' => ['sign' => 'panelist'],
-        'res-040' => ['endorse' => 'adviser', 'receive' => 'research_instructor'],
+        'res-040' => ['fill' => 'adviser', 'endorse' => 'adviser', 'receive' => 'research_instructor'],
         'res-041' => ['fill' => 'research_instructor', 'endorse' => 'research_instructor', 'receive' => 'program_coordinator'],
         'res-043a' => ['validate' => 'instrument_validator'],
         'res-043b' => ['validate' => 'instrument_validator'],
@@ -51,10 +51,37 @@ class OfficialFormAuthorization
         'res-046' => ['certify' => 'technical_editor'],
     ];
 
+    /**
+     * Verified academic state transitions. A target status never implies an action;
+     * callers must name the action and it must exist here.
+     *
+     * @var array<string, array<string, array{from: list<string>, to: string}>>
+     */
+    public const FORM_WORKFLOWS = [
+        'res-040' => [
+            'endorse' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'endorsed'],
+            'receive' => ['from' => ['endorsed'], 'to' => 'approved'],
+        ],
+        'res-041' => [
+            'endorse' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'endorsed'],
+            'receive' => ['from' => ['endorsed'], 'to' => 'approved'],
+        ],
+        'res-045' => [
+            'certify' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'completed'],
+        ],
+        'res-046' => [
+            'certify' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'completed'],
+        ],
+    ];
+
     public function canInitiate(User $user, OfficialFormDefinition $definition, ?ResearchClassGroup $group = null, ?ResearchClass $class = null): bool
     {
         $code = strtolower($definition->code);
-        $allowedPermissions = self::FORM_ACTION_PERMISSIONS[$code]['fill'] ?? ["forms.{$code}.fill", "forms.{$code}.submit"];
+        $allowedPermissions = self::FORM_ACTION_PERMISSIONS[$code]['fill'] ?? null;
+
+        if ($allowedPermissions === null) {
+            return false;
+        }
 
         $hasPerm = false;
         foreach ($allowedPermissions as $perm) {
@@ -71,6 +98,10 @@ class OfficialFormAuthorization
         if ($definition->ownership_scope === 'research_group' && $group !== null) {
             $requiredActorType = self::FORM_ACTION_ACTOR_TYPES[$code]['fill'] ?? null;
 
+            if ($requiredActorType === 'adviser') {
+                return (int) $group->adviser_id === (int) $user->id;
+            }
+
             $hasGroupActorAssignment = $requiredActorType !== null && OfficialFormInstance::query()
                 ->where('research_class_group_id', $group->id)
                 ->whereHas('actorAssignments', fn ($q) => $q->where('user_id', $user->id)->where('actor_type', $requiredActorType)->where('status', 'active'))
@@ -86,12 +117,13 @@ class OfficialFormAuthorization
         }
 
         if ($definition->ownership_scope === 'research_class' && $class !== null) {
-            $hasClassActorAssignment = OfficialFormInstance::query()
-                ->where('research_class_id', $class->id)
-                ->whereHas('actorAssignments', fn ($q) => $q->where('user_id', $user->id)->where('status', 'active'))
-                ->exists();
+            $requiredActorType = self::FORM_ACTION_ACTOR_TYPES[$code]['fill'] ?? null;
 
-            return (int) $class->facilitator_id === (int) $user->id || $hasClassActorAssignment;
+            if ($requiredActorType !== null) {
+                return $this->hasClassActorAssignment($user, $class, $requiredActorType);
+            }
+
+            return (int) $class->facilitator_id === (int) $user->id;
         }
 
         return true;
@@ -99,7 +131,20 @@ class OfficialFormAuthorization
 
     public function canSubmit(User $user, OfficialFormInstance $instance): bool
     {
-        return $this->canPerformAction($user, $instance, 'fill');
+        $code = strtolower($instance->definition->code);
+        $allowedPermissions = self::FORM_ACTION_PERMISSIONS[$code]['fill'] ?? null;
+
+        if ($allowedPermissions === null || ! $this->hasAnyPermission($user, $allowedPermissions)) {
+            return false;
+        }
+
+        $requiredActorType = self::FORM_ACTION_ACTOR_TYPES[$code]['fill'] ?? null;
+
+        if ($requiredActorType !== null) {
+            return $this->checkSpecificActorTypeContext($user, $instance, $requiredActorType);
+        }
+
+        return $this->checkDraftContextualAccess($user, $instance);
     }
 
     public function canCertify(User $user, OfficialFormInstance $instance): bool
@@ -138,17 +183,9 @@ class OfficialFormAuthorization
     public function canPerformAction(User $user, OfficialFormInstance $instance, string $action): bool
     {
         $code = strtolower($instance->definition->code);
-        $allowedPermissions = self::FORM_ACTION_PERMISSIONS[$code][$action] ?? self::FORM_ACTION_PERMISSIONS[$code]['approve'] ?? ["forms.{$code}.{$action}"];
+        $allowedPermissions = self::FORM_ACTION_PERMISSIONS[$code][$action] ?? null;
 
-        $hasPerm = false;
-        foreach ($allowedPermissions as $perm) {
-            if ($user->hasPermissionTo($perm)) {
-                $hasPerm = true;
-                break;
-            }
-        }
-
-        if (! $hasPerm) {
+        if ($allowedPermissions === null || ! $this->hasAnyPermission($user, $allowedPermissions)) {
             return false;
         }
 
@@ -167,7 +204,13 @@ class OfficialFormAuthorization
             return true;
         }
 
-        return $this->checkAcademicContextualAccess($user, $instance);
+        return $this->checkDraftContextualAccess($user, $instance);
+    }
+
+    /** @return array{from: list<string>, to: string}|null */
+    public function transitionFor(OfficialFormInstance $instance, string $action): ?array
+    {
+        return self::FORM_WORKFLOWS[strtolower($instance->definition->code)][$action] ?? null;
     }
 
     private function checkSpecificActorTypeContext(User $user, OfficialFormInstance $instance, string $requiredActorType): bool
@@ -188,7 +231,8 @@ class OfficialFormAuthorization
             || ($instance->group !== null && OfficialFormInstance::query()
                 ->where('research_class_group_id', $instance->group->id)
                 ->whereHas('actorAssignments', fn ($q) => $q->where('user_id', $user->id)->where('actor_type', $requiredActorType)->where('status', 'active'))
-                ->exists());
+                ->exists())
+            || ($instance->researchClass !== null && $this->hasClassActorAssignment($user, $instance->researchClass, $requiredActorType));
     }
 
     private function checkAcademicContextualAccess(User $user, OfficialFormInstance $instance): bool
@@ -215,8 +259,42 @@ class OfficialFormAuthorization
         return $instance->actorAssignments()
             ->where('user_id', $user->id)
             ->where('status', 'active')
-            ->exists()
-            || (int) $instance->initiated_by === (int) $user->id;
+            ->exists();
+    }
+
+    private function checkDraftContextualAccess(User $user, OfficialFormInstance $instance): bool
+    {
+        if ($this->isSystemAdmin($user) || (int) $instance->initiated_by === (int) $user->id) {
+            return true;
+        }
+
+        return $this->checkAcademicContextualAccess($user, $instance);
+    }
+
+    private function hasClassActorAssignment(User $user, ResearchClass $class, string $actorType): bool
+    {
+        return OfficialFormInstance::query()
+            ->where(function ($query) use ($class) {
+                $query->where('research_class_id', $class->id)
+                    ->orWhereHas('group', fn ($groupQuery) => $groupQuery->where('research_class_id', $class->id));
+            })
+            ->whereHas('actorAssignments', fn ($query) => $query
+                ->where('user_id', $user->id)
+                ->where('actor_type', $actorType)
+                ->where('status', 'active'))
+            ->exists();
+    }
+
+    /** @param list<string> $permissions */
+    private function hasAnyPermission(User $user, array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if ($user->hasPermissionTo($permission)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function isSystemAdmin(User $user): bool

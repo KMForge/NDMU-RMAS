@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\OfficialForms;
 
+use App\Models\OfficialFormDefinition;
 use App\Models\OfficialFormInstance;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
@@ -11,6 +12,7 @@ use App\Modules\OfficialForms\Actions\AssignOfficialFormActor;
 use App\Modules\OfficialForms\Actions\CertifyOfficialForm;
 use App\Modules\OfficialForms\Actions\CreateOfficialFormInstance;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
+use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -149,7 +151,7 @@ class OfficialFormBackendTest extends TestCase
         $group = $this->createGroup(adviser: $adviser);
 
         $createAction = new CreateOfficialFormInstance;
-        $instance1 = $createAction->handle($group->leader, 'RES-040', $group->id);
+        $instance1 = $createAction->handle($adviser, 'RES-040', $group->id);
 
         $assignAction = new AssignOfficialFormActor;
         $assignAction->handle($group->creator, $instance1, $instructor->id, 'research_instructor');
@@ -157,19 +159,19 @@ class OfficialFormBackendTest extends TestCase
         $approveAction = new ApproveOfficialForm;
 
         // Adviser can endorse
-        $endorsedInstance = $approveAction->handle($adviser, $instance1, ['notes' => 'Endorsed'], 'endorsed');
+        $endorsedInstance = $approveAction->handle($adviser, $instance1, ['notes' => 'Endorsed'], 'endorsed', 'endorse');
         $this->assertSame('endorsed', $endorsedInstance->status);
 
         // Research Instructor can receive
-        $receivedInstance = $approveAction->handle($instructor, $instance1, ['notes' => 'Received'], 'approved');
+        $receivedInstance = $approveAction->handle($instructor, $instance1, ['notes' => 'Received'], 'approved', 'receive');
         $this->assertSame('approved', $receivedInstance->status);
 
         // Instructor CANNOT perform adviser endorsement on a new draft instance
-        $instance2 = $createAction->handle($group->leader, 'RES-040', $group->id, contextKey: 'second_submission');
+        $instance2 = $createAction->handle($adviser, 'RES-040', $group->id, contextKey: 'second_submission');
         $assignAction->handle($group->creator, $instance2, $instructor->id, 'research_instructor');
 
         try {
-            $approveAction->handle($instructor, $instance2, ['notes' => 'Attempt'], 'endorsed');
+            $approveAction->handle($instructor, $instance2, ['notes' => 'Attempt'], 'endorsed', 'endorse');
             $this->fail('Expected InvalidArgumentException for instructor endorsement.');
         } catch (InvalidArgumentException $e) {
             $this->assertStringContainsString('not contextually authorized', $e->getMessage());
@@ -178,39 +180,158 @@ class OfficialFormBackendTest extends TestCase
 
     public function test_res041_action_specific_actor_rules(): void
     {
+        $adviser = User::factory()->create(['user_type' => 'faculty']);
         $instructor = User::factory()->create(['user_type' => 'faculty']);
         $instructor->givePermissionTo('forms.res-041.fill', 'forms.res-041.endorse');
 
         $coordinator = User::factory()->create(['user_type' => 'faculty']);
         $coordinator->givePermissionTo('forms.res-041.receive');
 
-        $group = $this->createGroup();
+        $group = $this->createGroup(adviser: $adviser);
         $class = $group->researchClass;
-        $class->facilitator->givePermissionTo('forms.res-041.fill', 'forms.res-041.endorse');
-
         $createAction = new CreateOfficialFormInstance;
-        $instance = $createAction->handle($class->facilitator, 'RES-041', classId: $class->id);
+        $res040 = $createAction->handle($adviser, 'RES-040', $group->id);
 
         $assignAction = new AssignOfficialFormActor;
+        $assignAction->handle($group->creator, $res040, $instructor->id, 'research_instructor');
+
+        $instance = $createAction->handle($instructor, 'RES-041', classId: $class->id);
         $assignAction->handle($class->facilitator, $instance, $instructor->id, 'research_instructor');
         $assignAction->handle($class->facilitator, $instance, $coordinator->id, 'program_coordinator');
 
         $approveAction = new ApproveOfficialForm;
 
+        try {
+            $approveAction->handle($coordinator, $instance, [], 'approved', 'receive');
+            $this->fail('Expected coordinator receive to fail before instructor endorsement.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('cannot be performed', $exception->getMessage());
+        }
+
+        try {
+            $approveAction->handle($coordinator, $instance, [], 'approved', 'approve');
+            $this->fail('Expected generic approve to fail closed for RES-041.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('not explicitly configured', $exception->getMessage());
+        }
+
         // Instructor can endorse
-        $endorsedInstance = $approveAction->handle($instructor, $instance, ['notes' => 'Instructor endorse'], 'endorsed');
+        $endorsedInstance = $approveAction->handle($instructor, $instance, ['notes' => 'Instructor endorse'], 'endorsed', 'endorse');
         $this->assertSame('endorsed', $endorsedInstance->status);
 
         // Coordinator can receive
-        $receivedInstance = $approveAction->handle($coordinator, $instance, ['notes' => 'Coordinator receive'], 'approved');
+        $receivedInstance = $approveAction->handle($coordinator, $instance, ['notes' => 'Coordinator receive'], 'approved', 'receive');
         $this->assertSame('approved', $receivedInstance->status);
 
         // Coordinator CANNOT perform instructor endorsement on new draft instance
-        $instance2 = $createAction->handle($class->facilitator, 'RES-041', classId: $class->id);
+        $instance2 = $createAction->handle($instructor, 'RES-041', classId: $class->id);
         $assignAction->handle($class->facilitator, $instance2, $coordinator->id, 'program_coordinator');
 
         $this->expectException(InvalidArgumentException::class);
-        $approveAction->handle($coordinator, $instance2, ['notes' => 'Coordinator endorse attempt'], 'endorsed');
+        $approveAction->handle($coordinator, $instance2, ['notes' => 'Coordinator endorse attempt'], 'endorsed', 'endorse');
+    }
+
+    public function test_res040_rejects_generic_approve_and_out_of_order_receive(): void
+    {
+        $adviser = User::factory()->create(['user_type' => 'faculty']);
+        $instructor = User::factory()->create(['user_type' => 'faculty']);
+        $instructor->givePermissionTo('forms.res-040.receive');
+        $group = $this->createGroup(adviser: $adviser);
+
+        $instance = (new CreateOfficialFormInstance)->handle($adviser, 'RES-040', $group->id);
+        (new AssignOfficialFormActor)->handle($group->creator, $instance, $instructor->id, 'research_instructor');
+
+        $action = new ApproveOfficialForm;
+
+        try {
+            $action->handle($adviser, $instance, [], 'approved', 'approve');
+            $this->fail('Expected generic approve to fail closed for RES-040.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('not explicitly configured', $exception->getMessage());
+        }
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('cannot be performed');
+        $action->handle($instructor, $instance, [], 'approved', 'receive');
+    }
+
+    public function test_initiated_by_never_grants_res040_endorsement_authority(): void
+    {
+        $adviser = User::factory()->create(['user_type' => 'faculty']);
+        $instructor = User::factory()->create(['user_type' => 'faculty']);
+        $instructor->givePermissionTo('forms.res-040.endorse', 'forms.res-040.receive');
+        $group = $this->createGroup(adviser: $adviser);
+
+        $instance = (new CreateOfficialFormInstance)->handle($adviser, 'RES-040', $group->id);
+        $instance->update(['initiated_by' => $instructor->id]);
+        (new AssignOfficialFormActor)->handle($group->creator, $instance, $instructor->id, 'research_instructor');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('not contextually authorized');
+        (new ApproveOfficialForm)->handle($instructor, $instance, [], 'endorsed', 'endorse');
+    }
+
+    public function test_class_owned_initiation_requires_the_exact_configured_actor_type(): void
+    {
+        $adviser = User::factory()->create(['user_type' => 'faculty']);
+        $languageEditor = User::factory()->create(['user_type' => 'faculty']);
+        $languageEditor->givePermissionTo('forms.res-041.fill', 'forms.res-045.certify');
+        $instructor = User::factory()->create(['user_type' => 'faculty']);
+        $instructor->givePermissionTo('forms.res-041.fill');
+        $group = $this->createGroup(adviser: $adviser);
+        $class = $group->researchClass;
+
+        $create = new CreateOfficialFormInstance;
+        $languageCertificate = $create->handle($group->leader, 'RES-045', $group->id);
+        (new AssignOfficialFormActor)->handle($group->creator, $languageCertificate, $languageEditor->id, 'language_editor');
+
+        $definition = OfficialFormDefinition::query()->where('code', 'RES-041')->firstOrFail();
+        $authorization = new OfficialFormAuthorization;
+
+        $this->assertFalse($authorization->canInitiate($languageEditor, $definition, class: $class));
+        $this->assertFalse($authorization->canInitiate($class->facilitator, $definition, class: $class));
+
+        $instructorEndorsement = $create->handle($adviser, 'RES-040', $group->id);
+        (new AssignOfficialFormActor)->handle($group->creator, $instructorEndorsement, $instructor->id, 'research_instructor');
+
+        $this->assertTrue($authorization->canInitiate($instructor, $definition, class: $class));
+    }
+
+    public function test_unknown_form_action_fails_closed(): void
+    {
+        $adviser = User::factory()->create(['user_type' => 'faculty']);
+        $group = $this->createGroup(adviser: $adviser);
+        $instance = (new CreateOfficialFormInstance)->handle($adviser, 'RES-040', $group->id);
+
+        $adviser->givePermissionTo('forms.res-040.endorse');
+
+        $this->assertFalse((new OfficialFormAuthorization)->canPerformAction($adviser, $instance, 'publish'));
+    }
+
+    public function test_custom_role_can_receive_res040_only_with_research_instructor_assignment(): void
+    {
+        $adviser = User::factory()->create(['user_type' => 'faculty']);
+        $group = $this->createGroup(adviser: $adviser);
+        $customRole = Role::create(['name' => 'custom-capstone-receiver', 'guard_name' => 'web']);
+        $customRole->givePermissionTo('forms.res-040.receive');
+        $receiver = User::factory()->create(['user_type' => 'faculty']);
+        $receiver->assignRole($customRole);
+
+        $instance = (new CreateOfficialFormInstance)->handle($adviser, 'RES-040', $group->id);
+        $action = new ApproveOfficialForm;
+        $action->handle($adviser, $instance, [], 'endorsed', 'endorse');
+
+        try {
+            $action->handle($receiver, $instance, [], 'approved', 'receive');
+            $this->fail('Expected custom role permission without assignment to be denied.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('not contextually authorized', $exception->getMessage());
+        }
+
+        (new AssignOfficialFormActor)->handle($group->creator, $instance, $receiver->id, 'research_instructor');
+        $received = $action->handle($receiver, $instance, [], 'approved', 'receive');
+
+        $this->assertSame('approved', $received->status);
     }
 
     public function test_custom_role_compatibility_with_actor_assignment(): void

@@ -21,6 +21,32 @@ $$\text{Allow} = \text{HasRequiredFormPermission} \land \text{HasAcademicActorAs
 
 Form-only roles do not gain dedicated dashboards; form actions render dynamically inside the common Faculty navigation when permission requirements are satisfied.
 
+### Explicit action authorization
+
+Academic mutation authority is action-specific. `ApproveOfficialForm` accepts only the explicit actions `approve`, `endorse`, and `receive`; it never derives an academic action from a target status. `CertifyOfficialForm` remains the only certification transition action. An action that is absent from the configured permission map or verified workflow map fails closed.
+
+Draft access and academic action access are intentionally separate. `initiated_by` may establish draft ownership and creator visibility, but it never grants `approve`, `endorse`, `receive`, `validate`, `certify`, `evaluate`, or `sign` authority. Academic actions require both the configured Spatie permission and the exact contextual actor source.
+
+For class-owned forms with an actor-scoped fill action, a class facilitator is not automatically the academic actor. RES-041 initiation requires an active `research_instructor` assignment in the same class; an unrelated actor assignment such as `language_editor`, or class ownership by itself, is insufficient.
+
+## Action-Specific Actor and Transition Matrix
+
+| Form | Action | Permission | Academic Actor | Authoritative Source | Scope | Allowed From | Resulting State | Status | Dependency |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `RES-040` | `endorse` | `forms.res-040.endorse` | Adviser | `research_class_groups.adviser_id` | Research group | `draft`, `submitted`, `in_progress`, `pending_action` | `endorsed` | Active | None |
+| `RES-040` | `receive` | `forms.res-040.receive` | Research Instructor | Active `official_form_actor_assignments` entry with `actor_type = research_instructor` for the same group | Research group | `endorsed` | `approved` | Active | Adviser endorsement |
+| `RES-041` | `fill` | `forms.res-041.fill` | Research Instructor | Active `research_instructor` actor assignment within the same research class, including a group-owned form in that class | Research class | Initiation/draft editing context | `draft` or a new immutable draft version | Active | Verified same-class instructor assignment |
+| `RES-041` | `endorse` | `forms.res-041.endorse` | Research Instructor | Active `research_instructor` actor assignment within the same research class | Research class | `draft`, `submitted`, `in_progress`, `pending_action` | `endorsed` | Active | None |
+| `RES-041` | `receive` | `forms.res-041.receive` | Program Coordinator | Active `official_form_actor_assignments` entry with `actor_type = program_coordinator` in the same class | Research class | `endorsed` | `approved` | Active | Research Instructor endorsement |
+| `RES-043A` | `validate` | `forms.res-043a.validate` | Instrument Validator | Pre-existing active `instrument_validator` assignment on the linked `RES-042` instance | Research group | Not yet implemented as a transition | Not yet implemented | Authorization/source protection active | Same-group `RES-042` source |
+| `RES-043B` | `validate` | `forms.res-043b.validate` | Instrument Validator | Pre-existing active `instrument_validator` assignment on the linked `RES-042` instance | Research group | Not yet implemented as a transition | Not yet implemented | Authorization/source protection active | Same-group `RES-042` source |
+| `RES-045` | `certify` | `forms.res-045.certify` | Language Editor | Active assignment with `actor_type = language_editor` for the same group | Research group | `draft`, `submitted`, `in_progress`, `pending_action` | `completed` | Active | None |
+| `RES-046` | `certify` | `forms.res-046.certify` | Technical Editor | Active assignment with `actor_type = technical_editor` for the same group | Research group | `draft`, `submitted`, `in_progress`, `pending_action` | `completed` | Active | None |
+| `RES-036` | `evaluate` | `forms.res-036.evaluate` | Panelist | Authoritative defense panel assignment | Research group/defense | None | None | Blocked | Phase 21 defense panel assignment |
+| `RES-037` | `sign` | `forms.res-037.sign` | Panelist | Authoritative defense panel/evaluation summary source | Research group/defense | None | None | Blocked | Phase 21/22 panel and evaluation data |
+
+Generic `approve` is deliberately not configured for RES-040 or RES-041 and cannot substitute for `receive`. Wrong-order transitions are rejected inside the database transaction after the form instance is locked.
+
 ## Catalog Schema & Models
 
 - `official_form_definitions`: `id`, `code` (unique, e.g. `RES-026`), `title`, `description`, `default_category`, `ownership_scope` (`research_group` vs `research_class`), `cardinality` (`single_per_group`, `single_per_context`, `per_actor`, `repeatable`), `template_view`, `is_active`, `sort_order`, `metadata`.
@@ -59,3 +85,14 @@ Form-only roles do not gain dedicated dashboards; form actions render dynamicall
 - **Phase 18 (Progress Milestones)**: Form approval does not automatically complete Phase 18 milestones. Progress transitions remain under explicit facilitator control.
 - **Phase 20 (Digital Signatures)**: Phase 19 stores authoritative version payloads so Phase 20 can later attach digital signatures and QR verification hashes.
 
+## Generic Authorization Cleanup Verification
+
+- `OfficialFormBackendTest`: 16 tests, 36 assertions, 0 failures.
+- `FormPermissionsTest`: 5 tests, 16 assertions, 0 failures.
+- Complete Official Forms feature suite: 33 tests, 231 assertions, 0 failures.
+- Full regression: 289 tests, 1,256 assertions, 257 passed, 9 failed, 23 skipped. The remaining failures are outside this cleanup (legacy admin/dashboard expectations, Phase 20 signature routes intentionally returning `410`, and an existing student milestone assertion).
+- Laravel Pint: passed after formatting the changed Phase 19 files.
+- Vite production build: passed (58 modules transformed).
+- Migration status: all listed migrations ran; this cleanup adds no migration.
+
+Phase 19 remains **In Progress**. The next work is the direct, evidence-based per-form implementation sequence beginning with RES-026; no further generic authorization redesign is planned.

@@ -16,10 +16,7 @@ class ApproveOfficialForm
     ) {}
 
     /** @var list<string> */
-    private const ALLOWED_INITIAL_STATES = ['draft', 'submitted', 'in_progress', 'pending_action', 'endorsed'];
-
-    /** @var list<string> */
-    private const ALLOWED_TARGET_STATES = ['approved', 'endorsed', 'completed'];
+    private const ALLOWED_ACTIONS = ['approve', 'endorse', 'receive'];
 
     /**
      * @param  array<string, mixed>  $approvalMetadata
@@ -27,28 +24,33 @@ class ApproveOfficialForm
     public function handle(
         User $approver,
         OfficialFormInstance $instance,
-        array $approvalMetadata = [],
-        string $targetStatus = 'approved'
+        array $approvalMetadata,
+        string $targetStatus,
+        string $action
     ): OfficialFormInstance {
-        if (! in_array($targetStatus, self::ALLOWED_TARGET_STATES, true)) {
-            throw new InvalidArgumentException("Invalid approval target status [{$targetStatus}].");
+        if (! in_array($action, self::ALLOWED_ACTIONS, true)) {
+            throw new InvalidArgumentException("Unsupported official-form action [{$action}].");
         }
 
-        return DB::transaction(function () use ($approver, $instance, $approvalMetadata, $targetStatus) {
+        return DB::transaction(function () use ($approver, $instance, $approvalMetadata, $targetStatus, $action) {
             /** @var OfficialFormInstance $lockedInstance */
             $lockedInstance = OfficialFormInstance::query()
                 ->lockForUpdate()
                 ->findOrFail($instance->id);
 
-            if (! in_array($lockedInstance->status, self::ALLOWED_INITIAL_STATES, true)) {
-                throw new InvalidArgumentException("Form instance #{$lockedInstance->id} cannot be approved from status {$lockedInstance->status}.");
+            $transition = $this->authorization->transitionFor($lockedInstance, $action);
+
+            if ($transition === null) {
+                throw new InvalidArgumentException("Action [{$action}] is not explicitly configured for form {$lockedInstance->definition->code}.");
             }
 
-            $action = match ($targetStatus) {
-                'endorsed' => 'endorse',
-                'completed' => 'certify',
-                default => 'approve',
-            };
+            if ($transition['to'] !== $targetStatus) {
+                throw new InvalidArgumentException("Action [{$action}] cannot transition form {$lockedInstance->definition->code} to status [{$targetStatus}].");
+            }
+
+            if (! in_array($lockedInstance->status, $transition['from'], true)) {
+                throw new InvalidArgumentException("Action [{$action}] cannot be performed on form instance #{$lockedInstance->id} from status {$lockedInstance->status}.");
+            }
 
             if (! $this->authorization->canPerformAction($approver, $lockedInstance, $action)) {
                 throw new InvalidArgumentException("User #{$approver->id} is not contextually authorized to {$action} form instance #{$instance->id}.");
@@ -61,13 +63,15 @@ class ApproveOfficialForm
                 'user_id' => $approver->id,
                 'actor_name' => $approver->name,
                 'actor_email' => $approver->email,
-                'event' => 'official_form.approved',
+                'event' => "official_form.{$action}d",
                 'auditable_type' => OfficialFormInstance::class,
                 'auditable_id' => $lockedInstance->id,
-                'description' => "Approved form instance #{$lockedInstance->id} ({$lockedInstance->definition->code}) to status {$targetStatus}.",
+                'description' => ucfirst($action)." action completed for form instance #{$lockedInstance->id} ({$lockedInstance->definition->code}); status changed to {$targetStatus}.",
                 'subject_snapshot' => array_merge($approvalMetadata, [
-                    'approved_by' => $approver->id,
-                    'approved_at' => now()->toIso8601String(),
+                    'action' => $action,
+                    'target_status' => $targetStatus,
+                    'acted_by' => $approver->id,
+                    'acted_at' => now()->toIso8601String(),
                 ]),
             ]);
 

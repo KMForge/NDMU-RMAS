@@ -37,7 +37,13 @@ class CertifyOfficialForm
                 ->lockForUpdate()
                 ->findOrFail($instance->id);
 
-            if (in_array($lockedInstance->status, ['completed', 'cancelled', 'superseded'], true)) {
+            $transition = $this->authorization->transitionFor($lockedInstance, 'certify');
+
+            if ($transition === null || $transition['to'] !== 'completed') {
+                throw new InvalidArgumentException("Form {$code} has no verified certification workflow.");
+            }
+
+            if (! in_array($lockedInstance->status, $transition['from'], true)) {
                 throw new InvalidArgumentException("Form instance #{$lockedInstance->id} cannot be certified from status {$lockedInstance->status}.");
             }
 
