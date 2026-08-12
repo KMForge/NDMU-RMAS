@@ -52,23 +52,19 @@ class OfficialFormAuthorization
             }
         }
 
-        if (! $hasPerm && ! $this->isSystemAdmin($user)) {
+        if (! $hasPerm) {
             return false;
         }
 
         if ($definition->ownership_scope === 'research_group' && $group !== null) {
-            $isGroupContext = (int) $user->research_class_group_id === (int) $group->id
+            return (int) $user->research_class_group_id === (int) $group->id
                 || (int) $group->leader_student_id === (int) $user->id
                 || (int) $group->adviser_id === (int) $user->id
-                || $definition->cardinality === 'per_actor'
-                || $this->isSystemAdmin($user);
-
-            return $hasPerm && $isGroupContext;
+                || (int) $group->created_by === (int) $user->id;
         }
 
         if ($definition->ownership_scope === 'research_class' && $class !== null) {
-            return $class->facilitator_id === $user->id
-                || $this->isSystemAdmin($user);
+            return (int) $class->facilitator_id === (int) $user->id;
         }
 
         return true;
@@ -87,11 +83,11 @@ class OfficialFormAuthorization
             }
         }
 
-        if (! $hasSubmitPerm && ! $this->isSystemAdmin($user)) {
+        if (! $hasSubmitPerm) {
             return false;
         }
 
-        return $this->checkContextualAccess($user, $instance);
+        return $this->checkAcademicContextualAccess($user, $instance);
     }
 
     public function canAssignActor(User $assigner, OfficialFormInstance $instance): bool
@@ -102,20 +98,19 @@ class OfficialFormAuthorization
 
         if ($instance->research_class_group_id !== null) {
             $group = $instance->group;
-            if ($group !== null && ($group->adviser_id === $assigner->id || $group->created_by === $assigner->id)) {
+            if ($group !== null && ((int) $group->adviser_id === (int) $assigner->id || (int) $group->created_by === (int) $assigner->id)) {
                 return true;
             }
         }
 
         if ($instance->research_class_id !== null) {
             $class = $instance->researchClass;
-            if ($class !== null && $class->facilitator_id === $assigner->id) {
+            if ($class !== null && (int) $class->facilitator_id === (int) $assigner->id) {
                 return true;
             }
         }
 
-        return $instance->initiated_by === $assigner->id
-            || $instance->actorAssignments()->where('user_id', $assigner->id)->where('status', 'active')->exists();
+        return false;
     }
 
     public function canApprove(User $user, OfficialFormInstance $instance): bool
@@ -131,7 +126,7 @@ class OfficialFormAuthorization
             }
         }
 
-        if (! $hasPerm && ! $this->isSystemAdmin($user)) {
+        if (! $hasPerm) {
             return false;
         }
 
@@ -144,6 +139,11 @@ class OfficialFormAuthorization
             return true;
         }
 
+        return $this->checkAcademicContextualAccess($user, $instance);
+    }
+
+    private function checkAcademicContextualAccess(User $user, OfficialFormInstance $instance): bool
+    {
         if ($instance->research_class_group_id !== null) {
             $group = $instance->group;
             if ($group !== null) {
@@ -158,7 +158,7 @@ class OfficialFormAuthorization
 
         if ($instance->research_class_id !== null) {
             $class = $instance->researchClass;
-            if ($class !== null && $class->facilitator_id === $user->id) {
+            if ($class !== null && (int) $class->facilitator_id === (int) $user->id) {
                 return true;
             }
         }
@@ -167,30 +167,7 @@ class OfficialFormAuthorization
             ->where('user_id', $user->id)
             ->where('status', 'active')
             ->exists()
-            || $instance->initiated_by === $user->id;
-    }
-
-    private function checkAcademicContextualAccess(User $user, OfficialFormInstance $instance): bool
-    {
-        if ($instance->research_class_group_id !== null) {
-            $group = $instance->group;
-            if ($group !== null && $group->adviser_id === $user->id) {
-                return true;
-            }
-        }
-
-        if ($instance->research_class_id !== null) {
-            $class = $instance->researchClass;
-            if ($class !== null && $class->facilitator_id === $user->id) {
-                return true;
-            }
-        }
-
-        return $instance->actorAssignments()
-            ->where('user_id', $user->id)
-            ->where('status', 'active')
-            ->exists()
-            || $instance->initiated_by === $user->id;
+            || (int) $instance->initiated_by === (int) $user->id;
     }
 
     private function isSystemAdmin(User $user): bool

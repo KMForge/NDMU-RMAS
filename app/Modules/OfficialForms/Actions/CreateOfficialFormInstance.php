@@ -190,14 +190,10 @@ class CreateOfficialFormInstance
             $exists = (clone $query)
                 ->where('research_class_group_id', $groupId)
                 ->where('context_key', $contextKey)
-                ->where(function ($q) use ($targetActorId, $sourceId) {
-                    $q->whereHas('actorAssignments', function ($aq) use ($targetActorId) {
-                        $aq->where('user_id', $targetActorId)->where('status', 'active');
-                    })->orWhere('initiated_by', $targetActorId);
-                    if ($sourceId !== null) {
-                        $q->where('source_id', $sourceId);
-                    }
+                ->whereHas('actorAssignments', function ($aq) use ($targetActorId) {
+                    $aq->where('user_id', $targetActorId)->where('status', 'active');
                 })
+                ->when($sourceId !== null, fn ($q) => $q->where('source_id', $sourceId))
                 ->exists();
             if ($exists) {
                 throw new InvalidArgumentException("Form {$definition->code} already exists for this actor user in context ({$contextKey}).");

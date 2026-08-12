@@ -111,27 +111,51 @@ class OfficialFormBackendTest extends TestCase
         $action->handle($student, 'RES-026', $groupB->id);
     }
 
-    public function test_per_actor_assignment_persisted_atomically_at_creation(): void
+    public function test_per_actor_assignment_persisted_atomically_at_creation_and_uses_persisted_actor_identity(): void
     {
-        $panelist = User::factory()->create(['user_type' => 'faculty']);
-        $panelist->givePermissionTo('forms.res-036.evaluate');
-        $group = $this->createGroup();
+        $adviser = User::factory()->create(['user_type' => 'faculty']);
+        $adviser->givePermissionTo('forms.res-036.evaluate');
+        $panelistA = User::factory()->create(['user_type' => 'faculty']);
+        $panelistB = User::factory()->create(['user_type' => 'faculty']);
+        $group = $this->createGroup(adviser: $adviser);
 
         $action = new CreateOfficialFormInstance;
-        $instance = $action->handle(
-            initiator: $panelist,
+        // Adviser creates evaluation for Panelist A
+        $instance1 = $action->handle(
+            initiator: $adviser,
             formCode: 'RES-036',
             groupId: $group->id,
             contextKey: 'proposal_defense',
-            actorUserId: $panelist->id
+            actorUserId: $panelistA->id
         );
 
+        $this->assertSame($adviser->id, $instance1->initiated_by);
         $this->assertDatabaseHas('official_form_actor_assignments', [
-            'official_form_instance_id' => $instance->id,
-            'user_id' => $panelist->id,
+            'official_form_instance_id' => $instance1->id,
+            'user_id' => $panelistA->id,
             'actor_type' => 'panelist',
             'status' => 'active',
         ]);
+
+        // Second creation for Panelist B in same defense context is allowed
+        $instance2 = $action->handle(
+            initiator: $adviser,
+            formCode: 'RES-036',
+            groupId: $group->id,
+            contextKey: 'proposal_defense',
+            actorUserId: $panelistB->id
+        );
+        $this->assertInstanceOf(OfficialFormInstance::class, $instance2);
+
+        // Duplicate creation for Panelist A in same defense context is blocked
+        $this->expectException(InvalidArgumentException::class);
+        $action->handle(
+            initiator: $adviser,
+            formCode: 'RES-036',
+            groupId: $group->id,
+            contextKey: 'proposal_defense',
+            actorUserId: $panelistA->id
+        );
     }
 
     public function test_assigner_authorization_prevents_unauthorized_faculty_assignment(): void
@@ -156,7 +180,6 @@ class OfficialFormBackendTest extends TestCase
 
         $unauthorizedStudent = User::factory()->create(['user_type' => 'student']);
         $unauthorizedStudent->update(['research_class_group_id' => $group->id]);
-        // Student lacks submission permission
 
         $createAction = new CreateOfficialFormInstance;
         $instance = $createAction->handle($group->leader, 'RES-026', $group->id);
@@ -178,5 +201,16 @@ class OfficialFormBackendTest extends TestCase
         $approveAction = new ApproveOfficialForm;
         $this->expectException(InvalidArgumentException::class);
         $approveAction->handle($admin, $instance, ['remarks' => 'Admin override attempt']);
+    }
+
+    public function test_admin_system_manage_cannot_initiate_group_form_without_group_context(): void
+    {
+        $admin = User::factory()->create(['user_type' => 'faculty']);
+        $admin->givePermissionTo('users.manage', 'forms.res-026.fill', 'forms.res-026.submit');
+        $group = $this->createGroup(); // Admin is NOT student/adviser in group
+
+        $createAction = new CreateOfficialFormInstance;
+        $this->expectException(InvalidArgumentException::class);
+        $createAction->handle($admin, 'RES-026', $group->id);
     }
 }
