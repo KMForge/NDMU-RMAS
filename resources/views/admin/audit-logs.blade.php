@@ -269,7 +269,7 @@
 
         @if ($auditLogs->hasPages())
             <div class="border-t border-gray-100 px-6 py-4 bg-gray-50/50">
-                {{ $auditLogs->links(data: ['scrollTo' => false]) }}
+                {{ $auditLogs->links('partials.pagination', ['scrollTo' => false]) }}
             </div>
         @endif
     </section>

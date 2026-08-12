@@ -927,7 +927,7 @@
 
                                     <!-- Pagination Links -->
                                     <div class="mt-4">
-                                        {{ $usersList->links(data: ['scrollTo' => false]) }}
+                                        {{ $usersList->links('partials.pagination', ['scrollTo' => false]) }}
                                     </div>
                             </div>
 

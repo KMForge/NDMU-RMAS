@@ -41,6 +41,36 @@ class AdminDashboard extends Component
 
     public string $auditDateTo = '';
 
+    public function updatedSearchQuery(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSelectedRole(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedAuditSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedAuditEvent(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedAuditDateFrom(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedAuditDateTo(): void
+    {
+        $this->resetPage();
+    }
+
     // Create Staff Account Form Fields
     public string $name = '';
 
