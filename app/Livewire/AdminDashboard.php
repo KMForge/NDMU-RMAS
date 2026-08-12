@@ -719,6 +719,7 @@ class AdminDashboard extends Component
     private function clearDashboardCache(): void
     {
         Cache::forget('admin-dashboard.overview');
+        Cache::forget('admin-dashboard.analytics-data');
         $this->resetPage();
     }
 }

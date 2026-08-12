@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Support\CachesDatabaseSchema;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -24,22 +25,28 @@ class GetAdminDashboardData
      */
     public function get(): array
     {
-        $research = $this->researchData();
-        $revisions = $this->revisionData();
+        return Cache::remember(
+            'admin-dashboard.analytics-data',
+            now()->addSeconds(30),
+            function (): array {
+                $research = $this->researchData();
+                $revisions = $this->revisionData();
 
-        return [
-            ...$research,
-            ...$revisions,
-            'staffList' => $this->staffList(),
-            'defensesList' => $this->defensesList(),
-            'repositoryList' => [],
-            'proposalsList' => $this->proposalsList(),
-            'adviserOptions' => $this->staffOptions('classes.serve-as-adviser'),
-            'panelistOptions' => $this->staffOptions('evaluations.create'),
-            'pendingActions' => $this->pendingActions(),
-            'securityOverview' => $this->securityOverview(),
-            'systemHealth' => $this->systemHealth(),
-        ];
+                return [
+                    ...$research,
+                    ...$revisions,
+                    'staffList' => $this->staffList(),
+                    'defensesList' => $this->defensesList(),
+                    'repositoryList' => [],
+                    'proposalsList' => $this->proposalsList(),
+                    'adviserOptions' => $this->staffOptions('classes.serve-as-adviser'),
+                    'panelistOptions' => $this->staffOptions('evaluations.create'),
+                    'pendingActions' => $this->pendingActions(),
+                    'securityOverview' => $this->securityOverview(),
+                    'systemHealth' => $this->systemHealth(),
+                ];
+            },
+        );
     }
 
     /**
