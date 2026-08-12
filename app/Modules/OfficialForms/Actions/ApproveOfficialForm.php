@@ -16,7 +16,7 @@ class ApproveOfficialForm
     ) {}
 
     /** @var list<string> */
-    private const ALLOWED_INITIAL_STATES = ['draft', 'submitted', 'in_progress', 'pending_action'];
+    private const ALLOWED_INITIAL_STATES = ['draft', 'submitted', 'in_progress', 'pending_action', 'endorsed'];
 
     /** @var list<string> */
     private const ALLOWED_TARGET_STATES = ['approved', 'endorsed', 'completed'];
@@ -44,8 +44,14 @@ class ApproveOfficialForm
                 throw new InvalidArgumentException("Form instance #{$lockedInstance->id} cannot be approved from status {$lockedInstance->status}.");
             }
 
-            if (! $this->authorization->canApprove($approver, $lockedInstance)) {
-                throw new InvalidArgumentException("User #{$approver->id} is not contextually authorized to approve form instance #{$instance->id}.");
+            $action = match ($targetStatus) {
+                'endorsed' => 'endorse',
+                'completed' => 'certify',
+                default => 'approve',
+            };
+
+            if (! $this->authorization->canPerformAction($approver, $lockedInstance, $action)) {
+                throw new InvalidArgumentException("User #{$approver->id} is not contextually authorized to {$action} form instance #{$instance->id}.");
             }
 
             // Update instance status only; do NOT mutate submitted version payload

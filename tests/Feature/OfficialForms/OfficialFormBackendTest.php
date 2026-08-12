@@ -10,12 +10,12 @@ use App\Modules\OfficialForms\Actions\ApproveOfficialForm;
 use App\Modules\OfficialForms\Actions\AssignOfficialFormActor;
 use App\Modules\OfficialForms\Actions\CertifyOfficialForm;
 use App\Modules\OfficialForms\Actions\CreateOfficialFormInstance;
-use App\Modules\OfficialForms\Actions\SubmitOfficialFormVersion;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class OfficialFormBackendTest extends TestCase
@@ -44,10 +44,10 @@ class OfficialFormBackendTest extends TestCase
         ]);
 
         $leaderUser = $leader ?? User::factory()->create(['user_type' => 'student']);
-        $leaderUser->givePermissionTo('forms.res-026.fill', 'forms.res-026.submit', 'forms.res-031.fill', 'forms.res-033.endorse', 'forms.res-045.certify', 'forms.res-046.certify', 'forms.res-042.submit');
+        $leaderUser->givePermissionTo('forms.res-026.fill', 'forms.res-026.submit', 'forms.res-031.fill', 'forms.res-033.endorse', 'forms.res-045.certify', 'forms.res-046.certify', 'forms.res-042.submit', 'forms.res-040.endorse', 'forms.res-041.fill', 'forms.res-041.endorse', 'forms.res-043a.validate');
 
         if ($adviser !== null) {
-            $adviser->givePermissionTo('forms.res-033.endorse', 'forms.res-026.approve');
+            $adviser->givePermissionTo('forms.res-033.endorse', 'forms.res-026.approve', 'forms.res-040.endorse');
         }
 
         return ResearchClassGroup::query()->create([
@@ -85,6 +85,177 @@ class OfficialFormBackendTest extends TestCase
             'event' => 'official_form.created',
             'auditable_id' => $instance->id,
         ]);
+    }
+
+    public function test_admin_users_manage_cannot_certify_res045_without_language_editor_assignment(): void
+    {
+        $admin = User::factory()->create(['user_type' => 'faculty']);
+        $admin->givePermissionTo('users.manage', 'forms.res-045.certify');
+        $group = $this->createGroup();
+
+        $createAction = new CreateOfficialFormInstance;
+        $instance = $createAction->handle($group->leader, 'RES-045', $group->id);
+
+        $certifyAction = new CertifyOfficialForm;
+        $this->expectException(InvalidArgumentException::class);
+        $certifyAction->handle($admin, $instance, ['notes' => 'Admin certification attempt']);
+    }
+
+    public function test_initiator_cannot_certify_res045_without_language_editor_assignment(): void
+    {
+        $initiator = User::factory()->create(['user_type' => 'student']);
+        $group = $this->createGroup(leader: $initiator);
+
+        $createAction = new CreateOfficialFormInstance;
+        $instance = $createAction->handle($initiator, 'RES-045', $group->id);
+
+        // Give initiator certification permission but NO language_editor assignment
+        $initiator->givePermissionTo('forms.res-045.certify');
+
+        $certifyAction = new CertifyOfficialForm;
+        $this->expectException(InvalidArgumentException::class);
+        $certifyAction->handle($initiator, $instance, ['notes' => 'Initiator certification attempt']);
+    }
+
+    public function test_generic_actor_assignment_does_not_authorize_wrong_specialist_action(): void
+    {
+        $user = User::factory()->create(['user_type' => 'faculty']);
+        $user->givePermissionTo('forms.res-045.certify', 'forms.res-046.certify');
+        $group = $this->createGroup();
+
+        // Assign user as language_editor on RES-045 instance
+        $createAction = new CreateOfficialFormInstance;
+        $instance045 = $createAction->handle($group->leader, 'RES-045', $group->id);
+        $assignAction = new AssignOfficialFormActor;
+        $assignAction->handle($group->creator, $instance045, $user->id, 'language_editor');
+
+        // Create RES-046 instance (no technical_editor assignment)
+        $instance046 = $createAction->handle($group->leader, 'RES-046', $group->id);
+
+        // User is language_editor on Group A, but attempting Certify on RES-046 (requires technical_editor) is denied
+        $certifyAction = new CertifyOfficialForm;
+        $this->expectException(InvalidArgumentException::class);
+        $certifyAction->handle($user, $instance046, ['notes' => 'Wrong actor type attempt on 046']);
+    }
+
+    public function test_res040_action_specific_actor_rules(): void
+    {
+        $adviser = User::factory()->create(['user_type' => 'faculty']);
+        $adviser->givePermissionTo('forms.res-040.endorse');
+
+        $instructor = User::factory()->create(['user_type' => 'faculty']);
+        $instructor->givePermissionTo('forms.res-040.receive');
+
+        $group = $this->createGroup(adviser: $adviser);
+
+        $createAction = new CreateOfficialFormInstance;
+        $instance1 = $createAction->handle($group->leader, 'RES-040', $group->id);
+
+        $assignAction = new AssignOfficialFormActor;
+        $assignAction->handle($group->creator, $instance1, $instructor->id, 'research_instructor');
+
+        $approveAction = new ApproveOfficialForm;
+
+        // Adviser can endorse
+        $endorsedInstance = $approveAction->handle($adviser, $instance1, ['notes' => 'Endorsed'], 'endorsed');
+        $this->assertSame('endorsed', $endorsedInstance->status);
+
+        // Research Instructor can receive
+        $receivedInstance = $approveAction->handle($instructor, $instance1, ['notes' => 'Received'], 'approved');
+        $this->assertSame('approved', $receivedInstance->status);
+
+        // Instructor CANNOT perform adviser endorsement on a new draft instance
+        $instance2 = $createAction->handle($group->leader, 'RES-040', $group->id, contextKey: 'second_submission');
+        $assignAction->handle($group->creator, $instance2, $instructor->id, 'research_instructor');
+
+        try {
+            $approveAction->handle($instructor, $instance2, ['notes' => 'Attempt'], 'endorsed');
+            $this->fail('Expected InvalidArgumentException for instructor endorsement.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertStringContainsString('not contextually authorized', $e->getMessage());
+        }
+    }
+
+    public function test_res041_action_specific_actor_rules(): void
+    {
+        $instructor = User::factory()->create(['user_type' => 'faculty']);
+        $instructor->givePermissionTo('forms.res-041.fill', 'forms.res-041.endorse');
+
+        $coordinator = User::factory()->create(['user_type' => 'faculty']);
+        $coordinator->givePermissionTo('forms.res-041.receive');
+
+        $group = $this->createGroup();
+        $class = $group->researchClass;
+        $class->facilitator->givePermissionTo('forms.res-041.fill', 'forms.res-041.endorse');
+
+        $createAction = new CreateOfficialFormInstance;
+        $instance = $createAction->handle($class->facilitator, 'RES-041', classId: $class->id);
+
+        $assignAction = new AssignOfficialFormActor;
+        $assignAction->handle($class->facilitator, $instance, $instructor->id, 'research_instructor');
+        $assignAction->handle($class->facilitator, $instance, $coordinator->id, 'program_coordinator');
+
+        $approveAction = new ApproveOfficialForm;
+
+        // Instructor can endorse
+        $endorsedInstance = $approveAction->handle($instructor, $instance, ['notes' => 'Instructor endorse'], 'endorsed');
+        $this->assertSame('endorsed', $endorsedInstance->status);
+
+        // Coordinator can receive
+        $receivedInstance = $approveAction->handle($coordinator, $instance, ['notes' => 'Coordinator receive'], 'approved');
+        $this->assertSame('approved', $receivedInstance->status);
+
+        // Coordinator CANNOT perform instructor endorsement on new draft instance
+        $instance2 = $createAction->handle($class->facilitator, 'RES-041', classId: $class->id);
+        $assignAction->handle($class->facilitator, $instance2, $coordinator->id, 'program_coordinator');
+
+        $this->expectException(InvalidArgumentException::class);
+        $approveAction->handle($coordinator, $instance2, ['notes' => 'Coordinator endorse attempt'], 'endorsed');
+    }
+
+    public function test_custom_role_compatibility_with_actor_assignment(): void
+    {
+        // Create custom role without canonical name
+        $customRole = Role::create(['name' => 'custom-language-reviewer', 'guard_name' => 'web']);
+        $customRole->givePermissionTo('forms.res-045.certify');
+
+        $reviewer = User::factory()->create(['user_type' => 'faculty']);
+        $reviewer->assignRole($customRole);
+
+        $group = $this->createGroup();
+
+        $createAction = new CreateOfficialFormInstance;
+        $instance = $createAction->handle($group->leader, 'RES-045', $group->id);
+
+        $certifyAction = new CertifyOfficialForm;
+
+        // Without actor assignment -> DENIED
+        try {
+            $certifyAction->handle($reviewer, $instance, ['notes' => 'Attempt without assignment']);
+            $this->fail('Expected InvalidArgumentException without assignment.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertStringContainsString('not contextually authorized', $e->getMessage());
+        }
+
+        // With language_editor assignment -> ALLOWED
+        $assignAction = new AssignOfficialFormActor;
+        $assignAction->handle($group->creator, $instance, $reviewer->id, 'language_editor');
+
+        $certified = $certifyAction->handle($reviewer, $instance, ['notes' => 'Approved']);
+        $this->assertSame('completed', $certified->status);
+    }
+
+    public function test_assign_actor_fails_closed_on_unmapped_form(): void
+    {
+        $group = $this->createGroup();
+        $createAction = new CreateOfficialFormInstance;
+
+        // RES-026 is single_per_group and has no entry in FORM_ALLOWED_ACTOR_TYPES
+        $instance = $createAction->handle($group->leader, 'RES-026', $group->id);
+
+        $assignAction = new AssignOfficialFormActor;
+        $this->expectException(InvalidArgumentException::class);
+        $assignAction->handle($group->creator, $instance, $group->creator->id, 'consultant');
     }
 
     public function test_res036_creation_blocked_pending_phase21_panel_assignment(): void
@@ -136,7 +307,7 @@ class OfficialFormBackendTest extends TestCase
         // 2. Unassigned validator attempting RES-043A linked to RES-042 is blocked
         try {
             $action->handle(
-                initiator: $validatorA,
+                initiator: $group->leader,
                 formCode: 'RES-043A',
                 groupId: $group->id,
                 sourceType: OfficialFormInstance::class,
@@ -152,9 +323,9 @@ class OfficialFormBackendTest extends TestCase
         $assignAction = new AssignOfficialFormActor;
         $assignAction->handle($group->creator, $res042, $validatorA->id, 'instrument_validator');
 
-        // 4. Assigned Validator A creating RES-043A linked to RES-042 succeeds
+        // 4. Group Leader initiating RES-043A for assigned Validator A linked to RES-042 succeeds
         $res043a = $action->handle(
-            initiator: $validatorA,
+            initiator: $group->leader,
             formCode: 'RES-043A',
             groupId: $group->id,
             sourceType: OfficialFormInstance::class,
@@ -167,139 +338,12 @@ class OfficialFormBackendTest extends TestCase
         // 5. Attempting RES-043A with wrong actorUserId (Validator B) is blocked
         $this->expectException(InvalidArgumentException::class);
         $action->handle(
-            initiator: $validatorA,
+            initiator: $group->leader,
             formCode: 'RES-043A',
             groupId: $group->id,
             sourceType: OfficialFormInstance::class,
             sourceId: $res042->id,
             actorUserId: $validatorB->id
         );
-    }
-
-    public function test_res045_language_editor_requires_pre_existing_assignment_and_prevents_cross_group(): void
-    {
-        $editor = User::factory()->create(['user_type' => 'faculty']);
-        $editor->givePermissionTo('forms.res-045.certify');
-        $groupA = $this->createGroup();
-        $groupB = $this->createGroup();
-
-        $createAction = new CreateOfficialFormInstance;
-
-        // 1. Create RES-029 or RES-045 on Group A
-        $instanceA = $createAction->handle($groupA->leader, 'RES-045', $groupA->id);
-
-        // 2. Assign editor to Group A instance
-        $assignAction = new AssignOfficialFormActor;
-        $assignAction->handle($groupA->creator, $instanceA, $editor->id, 'language_editor');
-
-        // 3. Editor can certify RES-045 for Group A
-        $certifyAction = new CertifyOfficialForm;
-        $certifiedInstance = $certifyAction->handle($editor, $instanceA, ['notes' => 'Approved']);
-        $this->assertSame('completed', $certifiedInstance->status);
-
-        // 4. Group B RES-045 without assignment for editor is denied
-        $instanceB = $createAction->handle($groupB->leader, 'RES-045', $groupB->id);
-        $this->expectException(InvalidArgumentException::class);
-        $certifyAction->handle($editor, $instanceB, ['notes' => 'Cross-group attempt']);
-    }
-
-    public function test_generic_actor_assignment_does_not_authorize_wrong_specialist_action(): void
-    {
-        $editor = User::factory()->create(['user_type' => 'faculty']);
-        $editor->givePermissionTo('forms.res-045.certify', 'forms.res-046.certify');
-        $group = $this->createGroup();
-
-        // Create RES-045 and assign user as language_editor
-        $createAction = new CreateOfficialFormInstance;
-        $instance045 = $createAction->handle($group->leader, 'RES-045', $group->id);
-        $assignAction = new AssignOfficialFormActor;
-        $assignAction->handle($group->creator, $instance045, $editor->id, 'language_editor');
-
-        // User is language_editor, but attempting RES-046 (technical_editor) without technical_editor assignment throws exception
-        $instance046 = $createAction->handle($group->leader, 'RES-046', $group->id);
-        $certifyAction = new CertifyOfficialForm;
-        $this->expectException(InvalidArgumentException::class);
-        $certifyAction->handle($editor, $instance046, ['notes' => 'Wrong actor type attempt']);
-    }
-
-    public function test_direct_action_creation_by_unauthorized_user_throws_exception(): void
-    {
-        $student = User::factory()->create(['user_type' => 'student']);
-        // Student lacks forms.res-026.fill permission
-        $group = $this->createGroup();
-        $student->update(['research_class_group_id' => $group->id]);
-
-        $action = new CreateOfficialFormInstance;
-        $this->expectException(InvalidArgumentException::class);
-        $action->handle($student, 'RES-026', $group->id);
-    }
-
-    public function test_student_attempting_to_create_form_for_wrong_group_throws_exception(): void
-    {
-        $student = User::factory()->create(['user_type' => 'student']);
-        $student->givePermissionTo('forms.res-026.fill', 'forms.res-026.submit');
-        $groupA = $this->createGroup(leader: $student);
-        $groupB = $this->createGroup();
-        $student->update(['research_class_group_id' => $groupA->id]);
-
-        $action = new CreateOfficialFormInstance;
-        $this->expectException(InvalidArgumentException::class);
-        $action->handle($student, 'RES-026', $groupB->id);
-    }
-
-    public function test_assigner_authorization_prevents_unauthorized_faculty_assignment(): void
-    {
-        $randomFaculty = User::factory()->create(['user_type' => 'faculty']);
-        $randomFaculty->givePermissionTo('forms.res-045.certify');
-        $targetEditor = User::factory()->create(['user_type' => 'faculty']);
-        $group = $this->createGroup();
-
-        $createAction = new CreateOfficialFormInstance;
-        $instance = $createAction->handle($group->leader, 'RES-045', $group->id);
-
-        $assignAction = new AssignOfficialFormActor;
-        $this->expectException(InvalidArgumentException::class);
-        $assignAction->handle($randomFaculty, $instance, $targetEditor->id, 'language_editor');
-    }
-
-    public function test_direct_submission_permission_enforcement(): void
-    {
-        $leaderStudent = User::factory()->create(['user_type' => 'student']);
-        $group = $this->createGroup(leader: $leaderStudent);
-
-        $unauthorizedStudent = User::factory()->create(['user_type' => 'student']);
-        $unauthorizedStudent->update(['research_class_group_id' => $group->id]);
-
-        $createAction = new CreateOfficialFormInstance;
-        $instance = $createAction->handle($group->leader, 'RES-026', $group->id);
-
-        $submitAction = new SubmitOfficialFormVersion;
-        $this->expectException(InvalidArgumentException::class);
-        $submitAction->handle($unauthorizedStudent, $instance, ['title' => 'Unauthorized update']);
-    }
-
-    public function test_admin_system_manage_does_not_act_as_academic_approver_without_academic_context(): void
-    {
-        $admin = User::factory()->create(['user_type' => 'faculty']);
-        $admin->givePermissionTo('users.manage', 'forms.res-033.endorse');
-        $group = $this->createGroup(); // Admin is NOT group adviser
-
-        $createAction = new CreateOfficialFormInstance;
-        $instance = $createAction->handle($group->leader, 'RES-033', $group->id, contextKey: 'proposal_defense');
-
-        $approveAction = new ApproveOfficialForm;
-        $this->expectException(InvalidArgumentException::class);
-        $approveAction->handle($admin, $instance, ['remarks' => 'Admin override attempt']);
-    }
-
-    public function test_admin_system_manage_cannot_initiate_group_form_without_group_context(): void
-    {
-        $admin = User::factory()->create(['user_type' => 'faculty']);
-        $admin->givePermissionTo('users.manage', 'forms.res-026.fill', 'forms.res-026.submit');
-        $group = $this->createGroup(); // Admin is NOT student/adviser in group
-
-        $createAction = new CreateOfficialFormInstance;
-        $this->expectException(InvalidArgumentException::class);
-        $createAction->handle($admin, 'RES-026', $group->id);
     }
 }

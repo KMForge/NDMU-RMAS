@@ -54,16 +54,21 @@ class OfficialFormInstancePolicy
 
     public function endorse(User $user, OfficialFormInstance $instance): bool
     {
-        return $this->authorization->canApprove($user, $instance);
+        return $this->authorization->canPerformAction($user, $instance, 'endorse');
     }
 
     public function certify(User $user, OfficialFormInstance $instance): bool
     {
-        return $this->authorization->canApprove($user, $instance);
+        return $this->authorization->canCertify($user, $instance);
     }
 
     public function approve(User $user, OfficialFormInstance $instance): bool
     {
-        return $this->authorization->canApprove($user, $instance);
+        return $this->authorization->canPerformAction($user, $instance, 'approve');
+    }
+
+    public function receive(User $user, OfficialFormInstance $instance): bool
+    {
+        return $this->authorization->canPerformAction($user, $instance, 'receive');
     }
 }

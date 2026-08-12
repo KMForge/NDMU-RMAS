@@ -5,11 +5,16 @@ namespace App\Modules\OfficialForms\Actions;
 use App\Models\AuditLog;
 use App\Models\OfficialFormInstance;
 use App\Models\User;
+use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class CertifyOfficialForm
 {
+    public function __construct(
+        private readonly OfficialFormAuthorization $authorization = new OfficialFormAuthorization
+    ) {}
+
     /** @var list<string> */
     private const CERTIFIABLE_FORM_CODES = ['RES-045', 'RES-046'];
 
@@ -36,7 +41,9 @@ class CertifyOfficialForm
                 throw new InvalidArgumentException("Form instance #{$lockedInstance->id} cannot be certified from status {$lockedInstance->status}.");
             }
 
-            $this->validateCertifierAuthority($certifier, $lockedInstance, $code);
+            if (! $this->authorization->canCertify($certifier, $lockedInstance)) {
+                throw new InvalidArgumentException("User #{$certifier->id} is not contextually authorized to certify form instance #{$lockedInstance->id}.");
+            }
 
             // Update instance status only; do NOT mutate submitted version payload
             $lockedInstance->update(['status' => 'completed']);
@@ -57,26 +64,5 @@ class CertifyOfficialForm
 
             return $lockedInstance->load(['definition', 'currentVersion']);
         });
-    }
-
-    private function validateCertifierAuthority(User $certifier, OfficialFormInstance $instance, string $code): void
-    {
-        if ($certifier->can('users.manage')) {
-            return;
-        }
-
-        $perm = strtolower($code) === 'res-045' ? 'forms.res-045.certify' : 'forms.res-046.certify';
-        if (! $certifier->hasPermissionTo($perm)) {
-            throw new InvalidArgumentException("User #{$certifier->id} lacks permission [{$perm}].");
-        }
-
-        $isAssigned = $instance->actorAssignments()
-            ->where('user_id', $certifier->id)
-            ->where('status', 'active')
-            ->exists() || $instance->initiated_by === $certifier->id;
-
-        if (! $isAssigned) {
-            throw new InvalidArgumentException("User #{$certifier->id} is not an assigned editor for form instance #{$instance->id}.");
-        }
     }
 }

@@ -29,7 +29,7 @@ class AssignOfficialFormActor
         'RES-037' => ['panelist'],
         'RES-038' => ['adviser'],
         'RES-040' => ['research_instructor'],
-        'RES-041' => ['program_coordinator'],
+        'RES-041' => ['research_instructor', 'program_coordinator'],
         'RES-042' => ['instrument_validator'],
         'RES-043A' => ['instrument_validator'],
         'RES-043B' => ['instrument_validator'],
@@ -50,10 +50,12 @@ class AssignOfficialFormActor
         }
 
         $formCode = strtoupper($instance->definition->code);
-        $allowedTypes = self::FORM_ALLOWED_ACTOR_TYPES[$formCode] ?? [
-            'adviser', 'panelist', 'language_editor', 'technical_editor',
-            'instrument_validator', 'research_instructor', 'program_coordinator', 'dean', 'consultant',
-        ];
+
+        if (! isset(self::FORM_ALLOWED_ACTOR_TYPES[$formCode])) {
+            throw new InvalidArgumentException("Actor assignment is not configured for form {$formCode}.");
+        }
+
+        $allowedTypes = self::FORM_ALLOWED_ACTOR_TYPES[$formCode];
 
         if (! in_array($actorType, $allowedTypes, true)) {
             throw new InvalidArgumentException("Actor type [{$actorType}] is not valid for form {$formCode}.");
