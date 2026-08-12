@@ -39,6 +39,14 @@ class CreateOfficialFormInstance
     ): OfficialFormInstance {
         $formCodeUpper = strtoupper($formCode);
 
+        // Block RES-036 and RES-037 pending Phase 21/22 Defense Panel Assignment sources
+        if ($formCodeUpper === 'RES-036') {
+            throw new InvalidArgumentException('RES-036 is blocked pending the authoritative Defense Panel Assignment source from Phase 21.');
+        }
+        if ($formCodeUpper === 'RES-037') {
+            throw new InvalidArgumentException('RES-037 is blocked pending the authoritative Defense Panel/Evaluation source from Phase 21/22.');
+        }
+
         $definition = OfficialFormDefinition::query()
             ->where('code', $formCodeUpper)
             ->where('is_active', true)
@@ -47,18 +55,18 @@ class CreateOfficialFormInstance
         $group = $groupId !== null ? ResearchClassGroup::query()->find($groupId) : null;
         $class = $classId !== null ? ResearchClass::query()->find($classId) : null;
 
+        $targetActorId = $actorUserId ?? $initiator->id;
+
+        // Authoritative Source Enforcements per form
+        if (in_array($formCodeUpper, ['RES-043A', 'RES-043B'], true)) {
+            $targetActorId = $this->validateValidationRequestSourceAndValidator($groupId, $sourceType, $sourceId, $targetActorId);
+        }
+
         if (! $this->authorization->canInitiate($initiator, $definition, $group, $class)) {
             throw new InvalidArgumentException("User #{$initiator->id} is not authorized to initiate form {$definition->code}.");
         }
 
         $this->validateOwnershipScope($definition, $groupId, $classId);
-
-        // Authoritative Source Enforcements per form
-        if (in_array($formCodeUpper, ['RES-043A', 'RES-043B'], true)) {
-            $this->validateValidationRequestSource($groupId, $sourceType, $sourceId);
-        }
-
-        $targetActorId = $actorUserId ?? $initiator->id;
 
         return DB::transaction(function () use ($definition, $initiator, $groupId, $classId, $contextKey, $sourceType, $sourceId, $targetActorId, $payload) {
             // Lock owner record for update to prevent concurrent duplicate creation
@@ -92,7 +100,7 @@ class CreateOfficialFormInstance
 
             $instance->update(['current_version_id' => $version->id]);
 
-            // For per_actor cardinality forms, persist the target actor assignment atomically
+            // For per_actor cardinality forms, mirror the verified target actor assignment atomically
             if ($definition->cardinality === 'per_actor') {
                 $actorType = AssignOfficialFormActor::FORM_ALLOWED_ACTOR_TYPES[strtoupper($definition->code)][0] ?? 'consultant';
                 OfficialFormActorAssignment::query()->updateOrCreate(
@@ -145,7 +153,7 @@ class CreateOfficialFormInstance
         }
     }
 
-    private function validateValidationRequestSource(?int $groupId, ?string $sourceType, ?int $sourceId): void
+    private function validateValidationRequestSourceAndValidator(?int $groupId, ?string $sourceType, ?int $sourceId, int $targetActorId): int
     {
         if ($sourceType !== OfficialFormInstance::class || $sourceId === null) {
             throw new InvalidArgumentException('RES-043A/B validation rating requires an authoritative RES-042 validation request source.');
@@ -158,6 +166,40 @@ class CreateOfficialFormInstance
 
         if ($groupId !== null && (int) $sourceForm->research_class_group_id !== (int) $groupId) {
             throw new InvalidArgumentException('Source RES-042 validation request does not belong to the specified research group.');
+        }
+
+        // Require pre-existing instrument_validator actor assignment on the source RES-042 request instance
+        $isAssigned = $sourceForm->actorAssignments()
+            ->where('user_id', $targetActorId)
+            ->where('actor_type', 'instrument_validator')
+            ->where('status', 'active')
+            ->exists();
+
+        if (! $isAssigned) {
+            throw new InvalidArgumentException("Target user #{$targetActorId} is not an assigned instrument validator for the source RES-042 validation request.");
+        }
+
+        return $targetActorId;
+    }
+
+    private function validateEditorAssignment(?int $groupId, int $targetActorId, string $requiredActorType): void
+    {
+        if ($groupId === null) {
+            return;
+        }
+
+        $group = ResearchClassGroup::query()->find($groupId);
+        if (! $group) {
+            throw new InvalidArgumentException('Target research group does not exist.');
+        }
+
+        $hasAssignment = OfficialFormInstance::query()
+            ->where('research_class_group_id', $groupId)
+            ->whereHas('actorAssignments', fn ($q) => $q->where('user_id', $targetActorId)->where('actor_type', $requiredActorType)->where('status', 'active'))
+            ->exists();
+
+        if (! $hasAssignment) {
+            throw new InvalidArgumentException("Target user #{$targetActorId} does not have an active {$requiredActorType} assignment for this research group.");
         }
     }
 

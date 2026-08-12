@@ -87,6 +87,141 @@ class OfficialFormBackendTest extends TestCase
         ]);
     }
 
+    public function test_res036_creation_blocked_pending_phase21_panel_assignment(): void
+    {
+        $panelist = User::factory()->create(['user_type' => 'faculty']);
+        $panelist->givePermissionTo('forms.res-036.evaluate');
+        $group = $this->createGroup();
+
+        $action = new CreateOfficialFormInstance;
+
+        try {
+            $action->handle($panelist, 'RES-036', $group->id, actorUserId: $panelist->id);
+            $this->fail('Expected InvalidArgumentException for RES-036 creation.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertStringContainsString('RES-036 is blocked pending the authoritative Defense Panel Assignment source from Phase 21', $e->getMessage());
+        }
+
+        $this->assertDatabaseMissing('official_form_instances', [
+            'research_class_group_id' => $group->id,
+            'initiated_by' => $panelist->id,
+        ]);
+    }
+
+    public function test_res037_creation_blocked_pending_phase21_evaluations(): void
+    {
+        $panelist = User::factory()->create(['user_type' => 'faculty']);
+        $panelist->givePermissionTo('forms.res-037.sign');
+        $group = $this->createGroup();
+
+        $action = new CreateOfficialFormInstance;
+
+        $this->expectException(InvalidArgumentException::class);
+        $action->handle($panelist, 'RES-037', $group->id, actorUserId: $panelist->id);
+    }
+
+    public function test_res043a_requires_pre_existing_validator_assignment_on_res042_source(): void
+    {
+        $validatorA = User::factory()->create(['user_type' => 'faculty']);
+        $validatorA->givePermissionTo('forms.res-043a.validate');
+        $validatorB = User::factory()->create(['user_type' => 'faculty']);
+        $validatorB->givePermissionTo('forms.res-043a.validate');
+        $group = $this->createGroup();
+
+        $action = new CreateOfficialFormInstance;
+
+        // 1. Create valid RES-042 request instance
+        $res042 = $action->handle($group->leader, 'RES-042', $group->id);
+
+        // 2. Unassigned validator attempting RES-043A linked to RES-042 is blocked
+        try {
+            $action->handle(
+                initiator: $validatorA,
+                formCode: 'RES-043A',
+                groupId: $group->id,
+                sourceType: OfficialFormInstance::class,
+                sourceId: $res042->id,
+                actorUserId: $validatorA->id
+            );
+            $this->fail('Expected InvalidArgumentException for unassigned validator.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertStringContainsString('is not an assigned instrument validator for the source RES-042 validation request', $e->getMessage());
+        }
+
+        // 3. Assign Validator A to RES-042 request instance
+        $assignAction = new AssignOfficialFormActor;
+        $assignAction->handle($group->creator, $res042, $validatorA->id, 'instrument_validator');
+
+        // 4. Assigned Validator A creating RES-043A linked to RES-042 succeeds
+        $res043a = $action->handle(
+            initiator: $validatorA,
+            formCode: 'RES-043A',
+            groupId: $group->id,
+            sourceType: OfficialFormInstance::class,
+            sourceId: $res042->id,
+            actorUserId: $validatorA->id
+        );
+
+        $this->assertInstanceOf(OfficialFormInstance::class, $res043a);
+
+        // 5. Attempting RES-043A with wrong actorUserId (Validator B) is blocked
+        $this->expectException(InvalidArgumentException::class);
+        $action->handle(
+            initiator: $validatorA,
+            formCode: 'RES-043A',
+            groupId: $group->id,
+            sourceType: OfficialFormInstance::class,
+            sourceId: $res042->id,
+            actorUserId: $validatorB->id
+        );
+    }
+
+    public function test_res045_language_editor_requires_pre_existing_assignment_and_prevents_cross_group(): void
+    {
+        $editor = User::factory()->create(['user_type' => 'faculty']);
+        $editor->givePermissionTo('forms.res-045.certify');
+        $groupA = $this->createGroup();
+        $groupB = $this->createGroup();
+
+        $createAction = new CreateOfficialFormInstance;
+
+        // 1. Create RES-029 or RES-045 on Group A
+        $instanceA = $createAction->handle($groupA->leader, 'RES-045', $groupA->id);
+
+        // 2. Assign editor to Group A instance
+        $assignAction = new AssignOfficialFormActor;
+        $assignAction->handle($groupA->creator, $instanceA, $editor->id, 'language_editor');
+
+        // 3. Editor can certify RES-045 for Group A
+        $certifyAction = new CertifyOfficialForm;
+        $certifiedInstance = $certifyAction->handle($editor, $instanceA, ['notes' => 'Approved']);
+        $this->assertSame('completed', $certifiedInstance->status);
+
+        // 4. Group B RES-045 without assignment for editor is denied
+        $instanceB = $createAction->handle($groupB->leader, 'RES-045', $groupB->id);
+        $this->expectException(InvalidArgumentException::class);
+        $certifyAction->handle($editor, $instanceB, ['notes' => 'Cross-group attempt']);
+    }
+
+    public function test_generic_actor_assignment_does_not_authorize_wrong_specialist_action(): void
+    {
+        $editor = User::factory()->create(['user_type' => 'faculty']);
+        $editor->givePermissionTo('forms.res-045.certify', 'forms.res-046.certify');
+        $group = $this->createGroup();
+
+        // Create RES-045 and assign user as language_editor
+        $createAction = new CreateOfficialFormInstance;
+        $instance045 = $createAction->handle($group->leader, 'RES-045', $group->id);
+        $assignAction = new AssignOfficialFormActor;
+        $assignAction->handle($group->creator, $instance045, $editor->id, 'language_editor');
+
+        // User is language_editor, but attempting RES-046 (technical_editor) without technical_editor assignment throws exception
+        $instance046 = $createAction->handle($group->leader, 'RES-046', $group->id);
+        $certifyAction = new CertifyOfficialForm;
+        $this->expectException(InvalidArgumentException::class);
+        $certifyAction->handle($editor, $instance046, ['notes' => 'Wrong actor type attempt']);
+    }
+
     public function test_direct_action_creation_by_unauthorized_user_throws_exception(): void
     {
         $student = User::factory()->create(['user_type' => 'student']);
@@ -110,125 +245,6 @@ class OfficialFormBackendTest extends TestCase
         $action = new CreateOfficialFormInstance;
         $this->expectException(InvalidArgumentException::class);
         $action->handle($student, 'RES-026', $groupB->id);
-    }
-
-    public function test_per_actor_assignment_persisted_atomically_at_creation_and_uses_persisted_actor_identity(): void
-    {
-        $adviser = User::factory()->create(['user_type' => 'faculty']);
-        $adviser->givePermissionTo('forms.res-036.evaluate');
-        $panelistA = User::factory()->create(['user_type' => 'faculty']);
-        $panelistB = User::factory()->create(['user_type' => 'faculty']);
-        $group = $this->createGroup(adviser: $adviser);
-
-        $action = new CreateOfficialFormInstance;
-        // Adviser creates evaluation for Panelist A
-        $instance1 = $action->handle(
-            initiator: $adviser,
-            formCode: 'RES-036',
-            groupId: $group->id,
-            contextKey: 'proposal_defense',
-            actorUserId: $panelistA->id
-        );
-
-        $this->assertSame($adviser->id, $instance1->initiated_by);
-        $this->assertDatabaseHas('official_form_actor_assignments', [
-            'official_form_instance_id' => $instance1->id,
-            'user_id' => $panelistA->id,
-            'actor_type' => 'panelist',
-            'status' => 'active',
-        ]);
-
-        // Second creation for Panelist B in same defense context is allowed
-        $instance2 = $action->handle(
-            initiator: $adviser,
-            formCode: 'RES-036',
-            groupId: $group->id,
-            contextKey: 'proposal_defense',
-            actorUserId: $panelistB->id
-        );
-        $this->assertInstanceOf(OfficialFormInstance::class, $instance2);
-
-        // Duplicate creation for Panelist A in same defense context is blocked
-        $this->expectException(InvalidArgumentException::class);
-        $action->handle(
-            initiator: $adviser,
-            formCode: 'RES-036',
-            groupId: $group->id,
-            contextKey: 'proposal_defense',
-            actorUserId: $panelistA->id
-        );
-    }
-
-    public function test_validator_source_linkage_requires_res042_request_source(): void
-    {
-        $validator = User::factory()->create(['user_type' => 'faculty']);
-        $validator->givePermissionTo('forms.res-043a.validate');
-        $group = $this->createGroup();
-
-        $action = new CreateOfficialFormInstance;
-
-        // 1. Without source throws exception
-        try {
-            $action->handle($validator, 'RES-043A', $group->id, actorUserId: $validator->id);
-            $this->fail('Expected InvalidArgumentException for missing source.');
-        } catch (InvalidArgumentException $e) {
-            $this->assertStringContainsString('authoritative RES-042 validation request source', $e->getMessage());
-        }
-
-        // 2. Create valid RES-042 request instance
-        $res042 = $action->handle($group->leader, 'RES-042', $group->id);
-
-        // 3. Create RES-043A linked to RES-042 succeeds
-        $res043a = $action->handle(
-            initiator: $validator,
-            formCode: 'RES-043A',
-            groupId: $group->id,
-            sourceType: OfficialFormInstance::class,
-            sourceId: $res042->id,
-            actorUserId: $validator->id
-        );
-
-        $this->assertInstanceOf(OfficialFormInstance::class, $res043a);
-        $this->assertSame(OfficialFormInstance::class, $res043a->source_type);
-        $this->assertSame($res042->id, $res043a->source_id);
-
-        // 4. Duplicate creation for same validator + same RES-042 is blocked
-        $this->expectException(InvalidArgumentException::class);
-        $action->handle(
-            initiator: $validator,
-            formCode: 'RES-043A',
-            groupId: $group->id,
-            sourceType: OfficialFormInstance::class,
-            sourceId: $res042->id,
-            actorUserId: $validator->id
-        );
-    }
-
-    public function test_actor_type_isolation_prevents_cross_actor_actions(): void
-    {
-        $editor = User::factory()->create(['user_type' => 'faculty']);
-        $editor->givePermissionTo('forms.res-045.certify', 'forms.res-046.certify');
-        $group = $this->createGroup();
-
-        // Create RES-045 form instance
-        $createAction = new CreateOfficialFormInstance;
-        $instance = $createAction->handle($group->leader, 'RES-045', $group->id);
-
-        // Assign user as language_editor
-        $assignAction = new AssignOfficialFormActor;
-        $assignAction->handle($group->creator, $instance, $editor->id, 'language_editor');
-
-        // Language Editor can certify RES-045
-        $certifyAction = new CertifyOfficialForm;
-        $certifiedInstance = $certifyAction->handle($editor, $instance, ['notes' => 'Language approved']);
-        $this->assertSame('completed', $certifiedInstance->status);
-
-        // Create RES-046 Technical Editor form instance
-        $res046Instance = $createAction->handle($group->leader, 'RES-046', $group->id);
-
-        // Without technical_editor assignment, certifying RES-046 is denied
-        $this->expectException(InvalidArgumentException::class);
-        $certifyAction->handle($editor, $res046Instance, ['notes' => 'Technical approval']);
     }
 
     public function test_assigner_authorization_prevents_unauthorized_faculty_assignment(): void

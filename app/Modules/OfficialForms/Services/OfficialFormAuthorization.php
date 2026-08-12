@@ -69,13 +69,18 @@ class OfficialFormAuthorization
         }
 
         if ($definition->ownership_scope === 'research_group' && $group !== null) {
-            $isSpecialistForm = in_array(strtolower($definition->code), ['res-036', 'res-037', 'res-043a', 'res-043b', 'res-045', 'res-046'], true);
+            $requiredActorType = self::FORM_REQUIRED_ACTOR_TYPES[$code] ?? null;
+
+            $hasGroupActorAssignment = $requiredActorType !== null && OfficialFormInstance::query()
+                ->where('research_class_group_id', $group->id)
+                ->whereHas('actorAssignments', fn ($q) => $q->where('user_id', $user->id)->where('actor_type', $requiredActorType)->where('status', 'active'))
+                ->exists();
 
             $isGroupContext = (int) $user->research_class_group_id === (int) $group->id
                 || (int) $group->leader_student_id === (int) $user->id
                 || (int) $group->adviser_id === (int) $user->id
                 || (int) $group->created_by === (int) $user->id
-                || $isSpecialistForm;
+                || $hasGroupActorAssignment;
 
             return $hasPerm && $isGroupContext;
         }
