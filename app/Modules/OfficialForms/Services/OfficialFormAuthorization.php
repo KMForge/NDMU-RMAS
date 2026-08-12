@@ -39,6 +39,18 @@ class OfficialFormAuthorization
         'res-049' => ['fill' => ['forms.res-049.sign'], 'approve' => ['forms.res-049.sign']],
     ];
 
+    /** @var array<string, string> */
+    public const FORM_REQUIRED_ACTOR_TYPES = [
+        'res-036' => 'panelist',
+        'res-037' => 'panelist',
+        'res-043a' => 'instrument_validator',
+        'res-043b' => 'instrument_validator',
+        'res-045' => 'language_editor',
+        'res-046' => 'technical_editor',
+        'res-040' => 'research_instructor',
+        'res-041' => 'program_coordinator',
+    ];
+
     public function canInitiate(User $user, OfficialFormDefinition $definition, ?ResearchClassGroup $group = null, ?ResearchClass $class = null): bool
     {
         $code = strtolower($definition->code);
@@ -57,10 +69,15 @@ class OfficialFormAuthorization
         }
 
         if ($definition->ownership_scope === 'research_group' && $group !== null) {
-            return (int) $user->research_class_group_id === (int) $group->id
+            $isSpecialistForm = in_array(strtolower($definition->code), ['res-036', 'res-037', 'res-043a', 'res-043b', 'res-045', 'res-046'], true);
+
+            $isGroupContext = (int) $user->research_class_group_id === (int) $group->id
                 || (int) $group->leader_student_id === (int) $user->id
                 || (int) $group->adviser_id === (int) $user->id
-                || (int) $group->created_by === (int) $user->id;
+                || (int) $group->created_by === (int) $user->id
+                || $isSpecialistForm;
+
+            return $hasPerm && $isGroupContext;
         }
 
         if ($definition->ownership_scope === 'research_class' && $class !== null) {
@@ -144,6 +161,17 @@ class OfficialFormAuthorization
 
     private function checkAcademicContextualAccess(User $user, OfficialFormInstance $instance): bool
     {
+        $code = strtolower($instance->definition->code);
+        $requiredActorType = self::FORM_REQUIRED_ACTOR_TYPES[$code] ?? null;
+
+        if ($requiredActorType !== null) {
+            return $instance->actorAssignments()
+                ->where('user_id', $user->id)
+                ->where('actor_type', $requiredActorType)
+                ->where('status', 'active')
+                ->exists();
+        }
+
         if ($instance->research_class_group_id !== null) {
             $group = $instance->group;
             if ($group !== null) {

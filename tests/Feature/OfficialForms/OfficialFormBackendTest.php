@@ -8,6 +8,7 @@ use App\Models\ResearchClassGroup;
 use App\Models\User;
 use App\Modules\OfficialForms\Actions\ApproveOfficialForm;
 use App\Modules\OfficialForms\Actions\AssignOfficialFormActor;
+use App\Modules\OfficialForms\Actions\CertifyOfficialForm;
 use App\Modules\OfficialForms\Actions\CreateOfficialFormInstance;
 use App\Modules\OfficialForms\Actions\SubmitOfficialFormVersion;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
@@ -43,7 +44,7 @@ class OfficialFormBackendTest extends TestCase
         ]);
 
         $leaderUser = $leader ?? User::factory()->create(['user_type' => 'student']);
-        $leaderUser->givePermissionTo('forms.res-026.fill', 'forms.res-026.submit', 'forms.res-031.fill', 'forms.res-033.endorse', 'forms.res-045.certify');
+        $leaderUser->givePermissionTo('forms.res-026.fill', 'forms.res-026.submit', 'forms.res-031.fill', 'forms.res-033.endorse', 'forms.res-045.certify', 'forms.res-046.certify', 'forms.res-042.submit');
 
         if ($adviser !== null) {
             $adviser->givePermissionTo('forms.res-033.endorse', 'forms.res-026.approve');
@@ -156,6 +157,78 @@ class OfficialFormBackendTest extends TestCase
             contextKey: 'proposal_defense',
             actorUserId: $panelistA->id
         );
+    }
+
+    public function test_validator_source_linkage_requires_res042_request_source(): void
+    {
+        $validator = User::factory()->create(['user_type' => 'faculty']);
+        $validator->givePermissionTo('forms.res-043a.validate');
+        $group = $this->createGroup();
+
+        $action = new CreateOfficialFormInstance;
+
+        // 1. Without source throws exception
+        try {
+            $action->handle($validator, 'RES-043A', $group->id, actorUserId: $validator->id);
+            $this->fail('Expected InvalidArgumentException for missing source.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertStringContainsString('authoritative RES-042 validation request source', $e->getMessage());
+        }
+
+        // 2. Create valid RES-042 request instance
+        $res042 = $action->handle($group->leader, 'RES-042', $group->id);
+
+        // 3. Create RES-043A linked to RES-042 succeeds
+        $res043a = $action->handle(
+            initiator: $validator,
+            formCode: 'RES-043A',
+            groupId: $group->id,
+            sourceType: OfficialFormInstance::class,
+            sourceId: $res042->id,
+            actorUserId: $validator->id
+        );
+
+        $this->assertInstanceOf(OfficialFormInstance::class, $res043a);
+        $this->assertSame(OfficialFormInstance::class, $res043a->source_type);
+        $this->assertSame($res042->id, $res043a->source_id);
+
+        // 4. Duplicate creation for same validator + same RES-042 is blocked
+        $this->expectException(InvalidArgumentException::class);
+        $action->handle(
+            initiator: $validator,
+            formCode: 'RES-043A',
+            groupId: $group->id,
+            sourceType: OfficialFormInstance::class,
+            sourceId: $res042->id,
+            actorUserId: $validator->id
+        );
+    }
+
+    public function test_actor_type_isolation_prevents_cross_actor_actions(): void
+    {
+        $editor = User::factory()->create(['user_type' => 'faculty']);
+        $editor->givePermissionTo('forms.res-045.certify', 'forms.res-046.certify');
+        $group = $this->createGroup();
+
+        // Create RES-045 form instance
+        $createAction = new CreateOfficialFormInstance;
+        $instance = $createAction->handle($group->leader, 'RES-045', $group->id);
+
+        // Assign user as language_editor
+        $assignAction = new AssignOfficialFormActor;
+        $assignAction->handle($group->creator, $instance, $editor->id, 'language_editor');
+
+        // Language Editor can certify RES-045
+        $certifyAction = new CertifyOfficialForm;
+        $certifiedInstance = $certifyAction->handle($editor, $instance, ['notes' => 'Language approved']);
+        $this->assertSame('completed', $certifiedInstance->status);
+
+        // Create RES-046 Technical Editor form instance
+        $res046Instance = $createAction->handle($group->leader, 'RES-046', $group->id);
+
+        // Without technical_editor assignment, certifying RES-046 is denied
+        $this->expectException(InvalidArgumentException::class);
+        $certifyAction->handle($editor, $res046Instance, ['notes' => 'Technical approval']);
     }
 
     public function test_assigner_authorization_prevents_unauthorized_faculty_assignment(): void

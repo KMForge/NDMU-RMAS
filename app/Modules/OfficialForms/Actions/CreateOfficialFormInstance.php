@@ -37,8 +37,10 @@ class CreateOfficialFormInstance
         ?int $actorUserId = null,
         array $payload = [],
     ): OfficialFormInstance {
+        $formCodeUpper = strtoupper($formCode);
+
         $definition = OfficialFormDefinition::query()
-            ->where('code', $formCode)
+            ->where('code', $formCodeUpper)
             ->where('is_active', true)
             ->firstOrFail();
 
@@ -50,6 +52,11 @@ class CreateOfficialFormInstance
         }
 
         $this->validateOwnershipScope($definition, $groupId, $classId);
+
+        // Authoritative Source Enforcements per form
+        if (in_array($formCodeUpper, ['RES-043A', 'RES-043B'], true)) {
+            $this->validateValidationRequestSource($groupId, $sourceType, $sourceId);
+        }
 
         $targetActorId = $actorUserId ?? $initiator->id;
 
@@ -135,6 +142,22 @@ class CreateOfficialFormInstance
             if ($groupId !== null) {
                 throw new InvalidArgumentException("Class-owned form {$definition->code} must not specify a research_class_group_id.");
             }
+        }
+    }
+
+    private function validateValidationRequestSource(?int $groupId, ?string $sourceType, ?int $sourceId): void
+    {
+        if ($sourceType !== OfficialFormInstance::class || $sourceId === null) {
+            throw new InvalidArgumentException('RES-043A/B validation rating requires an authoritative RES-042 validation request source.');
+        }
+
+        $sourceForm = OfficialFormInstance::query()->find($sourceId);
+        if (! $sourceForm || strtoupper($sourceForm->definition->code) !== 'RES-042') {
+            throw new InvalidArgumentException('Source form instance must be an official RES-042 validation request.');
+        }
+
+        if ($groupId !== null && (int) $sourceForm->research_class_group_id !== (int) $groupId) {
+            throw new InvalidArgumentException('Source RES-042 validation request does not belong to the specified research group.');
         }
     }
 
