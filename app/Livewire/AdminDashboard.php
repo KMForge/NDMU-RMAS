@@ -82,7 +82,13 @@ class AdminDashboard extends Component
 
     public ?int $settingsAcademicTermId = null;
 
+    public string $tab = 'dashboard';
+
+    public string $userManagementTab = 'all-users';
+
     protected $queryString = [
+        'tab' => ['except' => 'dashboard'],
+        'userManagementTab' => ['except' => 'all-users'],
         'searchQuery' => ['except' => ''],
         'selectedRole' => ['except' => ''],
         'auditSearch' => ['except' => ''],

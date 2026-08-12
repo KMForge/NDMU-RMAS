@@ -2,8 +2,8 @@
 <div
     class="min-h-screen flex font-sans bg-[#f4f7f6]"
     x-data="{
-    activeTab: @js(request()->query('tab') === 'repository' ? 'repository' : 'dashboard'),
-    userManagementTab: 'all-users',
+    activeTab: $wire.entangle('tab').live,
+    userManagementTab: $wire.entangle('userManagementTab').live,
     showPassword: false,
     selectedDefense: null,
     permissionsSearch: '',
