@@ -6,11 +6,16 @@ use App\Models\AuditLog;
 use App\Models\OfficialFormInstance;
 use App\Models\OfficialFormVersion;
 use App\Models\User;
+use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class SubmitOfficialFormVersion
 {
+    public function __construct(
+        private readonly OfficialFormAuthorization $authorization = new OfficialFormAuthorization
+    ) {}
+
     /** @var list<string> */
     private const ALLOWED_SUBMISSION_STATUSES = ['submitted', 'in_progress', 'pending_action'];
 
@@ -37,7 +42,9 @@ class SubmitOfficialFormVersion
                 throw new InvalidArgumentException("Form instance #{$lockedInstance->id} is finalized and cannot accept new versions.");
             }
 
-            $this->validateActorAuthority($actor, $lockedInstance);
+            if (! $this->authorization->canSubmit($actor, $lockedInstance)) {
+                throw new InvalidArgumentException("User #{$actor->id} is not authorized to submit versions on form instance #{$lockedInstance->id}.");
+            }
 
             $currentVersion = $lockedInstance->currentVersion;
             $nextVersionNumber = ($lockedInstance->versions()->max('version_number') ?? 0) + 1;
@@ -72,35 +79,5 @@ class SubmitOfficialFormVersion
 
             return $newVersion;
         });
-    }
-
-    private function validateActorAuthority(User $actor, OfficialFormInstance $instance): void
-    {
-        if ($actor->can('users.manage')) {
-            return;
-        }
-
-        if ($instance->research_class_group_id !== null) {
-            $group = $instance->group;
-            if ($group !== null && ($actor->research_class_group_id === $group->id || $group->adviser_id === $actor->id)) {
-                return;
-            }
-        }
-
-        if ($instance->research_class_id !== null) {
-            $class = $instance->researchClass;
-            if ($class !== null && $class->facilitator_id === $actor->id) {
-                return;
-            }
-        }
-
-        $isAssigned = $instance->actorAssignments()
-            ->where('user_id', $actor->id)
-            ->where('status', 'active')
-            ->exists() || $instance->initiated_by === $actor->id;
-
-        if (! $isAssigned) {
-            throw new InvalidArgumentException("User #{$actor->id} is not contextually authorized to submit versions on form instance #{$instance->id}.");
-        }
     }
 }

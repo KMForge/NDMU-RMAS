@@ -6,11 +6,16 @@ use App\Models\AuditLog;
 use App\Models\OfficialFormActorAssignment;
 use App\Models\OfficialFormInstance;
 use App\Models\User;
+use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class AssignOfficialFormActor
 {
+    public function __construct(
+        private readonly OfficialFormAuthorization $authorization = new OfficialFormAuthorization
+    ) {}
+
     /** @var array<string, list<string>> */
     public const FORM_ALLOWED_ACTOR_TYPES = [
         'RES-027' => ['adviser'],
@@ -40,6 +45,10 @@ class AssignOfficialFormActor
         int $userId,
         string $actorType
     ): OfficialFormActorAssignment {
+        if (! $this->authorization->canAssignActor($assigner, $instance)) {
+            throw new InvalidArgumentException("User #{$assigner->id} is not authorized to assign actors for form instance #{$instance->id}.");
+        }
+
         $formCode = strtoupper($instance->definition->code);
         $allowedTypes = self::FORM_ALLOWED_ACTOR_TYPES[$formCode] ?? [
             'adviser', 'panelist', 'language_editor', 'technical_editor',

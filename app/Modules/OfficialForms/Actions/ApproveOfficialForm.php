@@ -5,11 +5,16 @@ namespace App\Modules\OfficialForms\Actions;
 use App\Models\AuditLog;
 use App\Models\OfficialFormInstance;
 use App\Models\User;
+use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class ApproveOfficialForm
 {
+    public function __construct(
+        private readonly OfficialFormAuthorization $authorization = new OfficialFormAuthorization
+    ) {}
+
     /** @var list<string> */
     private const ALLOWED_INITIAL_STATES = ['draft', 'submitted', 'in_progress', 'pending_action'];
 
@@ -39,7 +44,9 @@ class ApproveOfficialForm
                 throw new InvalidArgumentException("Form instance #{$lockedInstance->id} cannot be approved from status {$lockedInstance->status}.");
             }
 
-            $this->validateContextualAuthority($approver, $lockedInstance);
+            if (! $this->authorization->canApprove($approver, $lockedInstance)) {
+                throw new InvalidArgumentException("User #{$approver->id} is not contextually authorized to approve form instance #{$instance->id}.");
+            }
 
             // Update instance status only; do NOT mutate submitted version payload
             $lockedInstance->update(['status' => $targetStatus]);
@@ -60,35 +67,5 @@ class ApproveOfficialForm
 
             return $lockedInstance->load(['definition', 'currentVersion']);
         });
-    }
-
-    private function validateContextualAuthority(User $approver, OfficialFormInstance $instance): void
-    {
-        if ($approver->can('users.manage')) {
-            return;
-        }
-
-        if ($instance->research_class_group_id !== null) {
-            $group = $instance->group;
-            if ($group !== null && $group->adviser_id === $approver->id) {
-                return;
-            }
-        }
-
-        if ($instance->research_class_id !== null) {
-            $class = $instance->researchClass;
-            if ($class !== null && $class->facilitator_id === $approver->id) {
-                return;
-            }
-        }
-
-        $isAssignedActor = $instance->actorAssignments()
-            ->where('user_id', $approver->id)
-            ->where('status', 'active')
-            ->exists();
-
-        if (! $isAssignedActor && $instance->initiated_by !== $approver->id) {
-            throw new InvalidArgumentException("User #{$approver->id} is not contextually assigned to approve form instance #{$instance->id}.");
-        }
     }
 }

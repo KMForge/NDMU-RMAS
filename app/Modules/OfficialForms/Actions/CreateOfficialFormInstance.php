@@ -5,6 +5,7 @@ namespace App\Modules\OfficialForms\Actions;
 use App\Models\AuditLog;
 use App\Models\ConsultationRecord;
 use App\Models\DocumentReview;
+use App\Models\OfficialFormActorAssignment;
 use App\Models\OfficialFormDefinition;
 use App\Models\OfficialFormInstance;
 use App\Models\OfficialFormVersion;
@@ -12,11 +13,16 @@ use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
 use App\Models\RevisionRequest;
 use App\Models\User;
+use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class CreateOfficialFormInstance
 {
+    public function __construct(
+        private readonly OfficialFormAuthorization $authorization = new OfficialFormAuthorization
+    ) {}
+
     /**
      * @param  array<string, mixed>  $payload
      */
@@ -35,6 +41,13 @@ class CreateOfficialFormInstance
             ->where('code', $formCode)
             ->where('is_active', true)
             ->firstOrFail();
+
+        $group = $groupId !== null ? ResearchClassGroup::query()->find($groupId) : null;
+        $class = $classId !== null ? ResearchClass::query()->find($classId) : null;
+
+        if (! $this->authorization->canInitiate($initiator, $definition, $group, $class)) {
+            throw new InvalidArgumentException("User #{$initiator->id} is not authorized to initiate form {$definition->code}.");
+        }
 
         $this->validateOwnershipScope($definition, $groupId, $classId);
 
@@ -72,6 +85,23 @@ class CreateOfficialFormInstance
 
             $instance->update(['current_version_id' => $version->id]);
 
+            // For per_actor cardinality forms, persist the target actor assignment atomically
+            if ($definition->cardinality === 'per_actor') {
+                $actorType = AssignOfficialFormActor::FORM_ALLOWED_ACTOR_TYPES[strtoupper($definition->code)][0] ?? 'consultant';
+                OfficialFormActorAssignment::query()->updateOrCreate(
+                    [
+                        'official_form_instance_id' => $instance->id,
+                        'actor_type' => $actorType,
+                        'user_id' => $targetActorId,
+                    ],
+                    [
+                        'assigned_by' => $initiator->id,
+                        'assigned_at' => now(),
+                        'status' => 'active',
+                    ]
+                );
+            }
+
             AuditLog::query()->create([
                 'user_id' => $initiator->id,
                 'actor_name' => $initiator->name,
@@ -82,7 +112,7 @@ class CreateOfficialFormInstance
                 'description' => "Created official form instance {$definition->code} (v1).",
             ]);
 
-            return $instance->load(['definition', 'currentVersion']);
+            return $instance->load(['definition', 'currentVersion', 'actorAssignments']);
         });
     }
 
@@ -161,10 +191,9 @@ class CreateOfficialFormInstance
                 ->where('research_class_group_id', $groupId)
                 ->where('context_key', $contextKey)
                 ->where(function ($q) use ($targetActorId, $sourceId) {
-                    $q->where('initiated_by', $targetActorId)
-                        ->orWhereHas('actorAssignments', function ($aq) use ($targetActorId) {
-                            $aq->where('user_id', $targetActorId)->where('status', 'active');
-                        });
+                    $q->whereHas('actorAssignments', function ($aq) use ($targetActorId) {
+                        $aq->where('user_id', $targetActorId)->where('status', 'active');
+                    })->orWhere('initiated_by', $targetActorId);
                     if ($sourceId !== null) {
                         $q->where('source_id', $sourceId);
                     }
