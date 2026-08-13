@@ -88,10 +88,17 @@
 
         <form id="official-form-editor" method="POST" action="{{ route('official-forms.workspace.save', $instance) }}">
             @csrf
-            @include($instance->definition->template_view, [
-                'officialFormInstance' => $instance,
-                'payload' => old('payload', $payload),
-            ])
+            @if (view()->exists($instance->definition->template_view))
+                @include($instance->definition->template_view, [
+                    'officialFormInstance' => $instance,
+                    'payload' => old('payload', $payload),
+                ])
+            @else
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+                    <h3 class="text-base font-bold">Template Under Verification</h3>
+                    <p class="mt-1 text-xs text-amber-800">The dedicated view template for {{ $instance->definition->code }} ({{ $instance->definition->title }}) is not yet available in the catalog view path [{{ $instance->definition->template_view }}]. Form instance data and status are preserved in the database backend.</p>
+                </div>
+            @endif
         </form>
 
         <section class="sticky bottom-4 z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-xl backdrop-blur">

@@ -24,9 +24,16 @@
         <button type="button" onclick="window.print()" class="rounded-lg bg-[#0e5c3a] px-5 py-2 text-xs font-bold text-white">Print / Save as PDF</button>
     </div>
 
-    @include($instance->definition->template_view, [
-        'officialFormInstance' => $instance,
-        'payload' => $payload,
-    ])
+    @if (view()->exists($instance->definition->template_view))
+        @include($instance->definition->template_view, [
+            'officialFormInstance' => $instance,
+            'payload' => $payload,
+        ])
+    @else
+        <div class="mx-auto max-w-4xl p-10 text-center">
+            <h2 class="text-xl font-bold text-gray-800">{{ $instance->definition->code }} — {{ $instance->definition->title }}</h2>
+            <p class="mt-2 text-sm text-gray-600">Institutional print view template under verification [{{ $instance->definition->template_view }}].</p>
+        </div>
+    @endif
 </body>
 </html>

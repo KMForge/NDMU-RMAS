@@ -1,7 +1,41 @@
+@php
+    $officialFormInstance = $officialFormInstance ?? null;
+    $payload = $payload ?? [];
+    $members = $officialFormInstance?->group?->members?->values() ?? collect();
+@endphp
 <div x-show="activeOfficialForm === 'RES-048'" x-cloak><x-student-official-form code="RES-Form-048" title="Self and Peer Evaluation" guidebook-page="134">
-    <fieldset><legend class="font-bold">Type of Evaluation Phase:</legend><div class="mt-2 flex gap-6"><label><input type="radio" name="evaluation_phase" value="proposal"> Research Proposal Phase (Research-I)</label><label><input type="radio" name="evaluation_phase" value="final"> Final Phase (Research-II)</label></div></fieldset>
+    <fieldset><legend class="font-bold">Type of Evaluation Phase:</legend>
+        <div class="mt-2 flex gap-6">
+            <label><input type="radio" name="payload[evaluation_phase]" value="proposal" @checked(($payload['evaluation_phase'] ?? '') === 'proposal')> Research Proposal Phase (Research-I)</label>
+            <label><input type="radio" name="payload[evaluation_phase]" value="final" @checked(($payload['evaluation_phase'] ?? '') === 'final')> Final Phase (Research-II)</label>
+        </div>
+    </fieldset>
     <p class="text-xs"><strong>Instruction:</strong> Evaluate yourself and each group member by writing the number which represents his/her extent of participation in a specific area.</p>
     <div class="text-xs"><strong>Legend:</strong> 4 – Always &nbsp; 3 – Sometimes &nbsp; 2 – Rarely &nbsp; 1 – Never</div>
-    <table class="official-form-table text-xs"><thead><tr><th>Area</th><th class="w-20">Self</th><th><input name="member_names[0]" placeholder="Member 1" class="w-full"></th><th><input name="member_names[1]" placeholder="Member 2" class="w-full"></th><th><input name="member_names[2]" placeholder="Member 3" class="w-full"></th></tr></thead><tbody>@foreach (['Participated willingly in all activities of the group.','Took extra effort to contribute for the development of the research paper.','Did best in doing the assigned research tasks.','Was consistent and punctual in attending group activities/meetings.','Contributed bright ideas in order to improve the research paper.','Did the assigned tasks on or before the deadline.','Took the initiative to perform some unaccomplished parts of the research.','Encouraged other members of the group to participate actively.','Showed favorable attitude towards other members of the group.','Accepted/listened to the opinions of other members of the group.'] as $criterionIndex => $criterion)<tr><td>{{ $criterionIndex + 1 }}. {{ $criterion }}</td>@for ($i=0;$i<4;$i++)<td><input type="number" min="1" max="4" name="ratings[{{ $criterionIndex }}][{{ $i }}]" class="w-full text-center"></td>@endfor</tr>@endforeach<tr><td class="font-bold">TOTAL</td>@for ($i=0;$i<4;$i++)<td></td>@endfor</tr></tbody></table>
-    <div class="mx-auto mt-10 grid max-w-xl gap-6 md:grid-cols-2"><x-official-signature-field name-field="evaluator_name" label="Student Evaluator" /><label class="text-center"><input type="date" name="evaluation_date" class="w-full text-center"><span class="mt-1 block text-xs">Date of Evaluation</span></label></div>
+    <table class="official-form-table text-xs">
+        <thead>
+            <tr>
+                <th>Area</th>
+                <th class="w-20">Self</th>
+                <th><input value="{{ $members->get(0)?->student?->name ?? 'Member 1' }}" placeholder="Member 1" class="w-full" readonly></th>
+                <th><input value="{{ $members->get(1)?->student?->name ?? 'Member 2' }}" placeholder="Member 2" class="w-full" readonly></th>
+                <th><input value="{{ $members->get(2)?->student?->name ?? 'Member 3' }}" placeholder="Member 3" class="w-full" readonly></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (['Participated willingly in all activities of the group.','Took extra effort to contribute for the development of the research paper.','Did best in doing the assigned research tasks.','Was consistent and punctual in attending group activities/meetings.','Contributed bright ideas in order to improve the research paper.','Did the assigned tasks on or before the deadline.','Took the initiative to perform some unaccomplished parts of the research.','Encouraged other members of the group to participate actively.','Showed favorable attitude towards other members of the group.','Accepted/listened to the opinions of other members of the group.'] as $criterionIndex => $criterion)
+                <tr>
+                    <td>{{ $criterionIndex + 1 }}. {{ $criterion }}</td>
+                    @for ($i=0;$i<4;$i++)
+                        <td><input type="number" min="1" max="4" name="payload[ratings][{{ $criterionIndex }}][{{ $i }}]" value="{{ $payload['ratings'][$criterionIndex][$i] ?? '' }}" class="w-full text-center"></td>
+                    @endfor
+                </tr>
+            @endforeach
+            <tr><td class="font-bold">TOTAL</td>@for ($i=0;$i<4;$i++)<td></td>@endfor</tr>
+        </tbody>
+    </table>
+    <div class="mx-auto mt-10 grid max-w-xl gap-6 md:grid-cols-2">
+        <x-official-signature-field label="Student Evaluator" />
+        <label class="text-center"><input type="date" name="payload[evaluation_date]" value="{{ $payload['evaluation_date'] ?? '' }}" class="w-full text-center"><span class="mt-1 block text-xs">Date of Evaluation</span></label>
+    </div>
 </x-student-official-form></div>

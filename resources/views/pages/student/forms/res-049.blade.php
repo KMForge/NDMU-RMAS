@@ -1,7 +1,33 @@
+@php
+    $officialFormInstance = $officialFormInstance ?? null;
+    $payload = $payload ?? [];
+    $members = $officialFormInstance?->group?->members?->values() ?? collect();
+@endphp
 <div x-show="activeOfficialForm === 'RES-049'" x-cloak><x-student-official-form code="RES-Form-049" title="Certificate of Authentic Authorship" guidebook-page="135">
     <p class="text-justify leading-6">I/We declare that this submission is my/our own work and to the best of my/our knowledge it contains no materials previously published or written by another person, nor material which to a substantial extent has been accepted for the award of any other degree or diploma at NDMU or elsewhere, except where due acknowledgment is made in the research paper.</p>
     <p class="text-justify leading-6">I/We also declare that the intellectual content of this research is the product of my/our work, except to the extent that assistance from others in the project's design and conception or in style, presentation, and linguistic expression is acknowledged.</p>
-    <label class="flex items-start gap-3 rounded border border-[#173c30] p-4"><input type="checkbox" name="authorship_confirmed" required class="mt-1"><span>I/We certify this declaration and accept responsibility for the authenticity of the submitted research.</span></label>
-    <div class="space-y-8 pt-8">@for ($i=1;$i<=4;$i++)<div class="grid grid-cols-1 gap-5 text-center md:grid-cols-3"><label><input type="text" autocomplete="name" name="researcher_names[]" class="w-full text-center"><span class="mt-1 block text-xs">Printed Name of Researcher {{ $i }}</span></label><x-official-signature-field :label="'Researcher '.$i.' signature'" /><label><input type="date" name="signature_dates[]" class="w-full text-center"><span class="mt-1 block text-xs">Date</span></label></div>@endfor</div>
-    <div class="grid grid-cols-2 gap-8 pt-10 text-center"><div class="border-t border-[#173c30] pt-1">Research Adviser</div><div class="border-t border-[#173c30] pt-1">Program Coordinator</div></div>
+    <input type="hidden" name="payload[authorship_confirmed]" value="0">
+    <label class="flex items-start gap-3 rounded border border-[#173c30] p-4">
+        <input type="checkbox" name="payload[authorship_confirmed]" value="1" @checked((bool)($payload['authorship_confirmed'] ?? false)) class="mt-1">
+        <span>I/We certify this declaration and accept responsibility for the authenticity of the submitted research.</span>
+    </label>
+    <div class="space-y-8 pt-8">
+        @for ($i = 1; $i <= 4; $i++)
+            <div class="grid grid-cols-1 gap-5 text-center md:grid-cols-3">
+                <label>
+                    <input type="text" value="{{ $members->get($i - 1)?->student?->name }}" class="w-full text-center" readonly>
+                    <span class="mt-1 block text-xs">Printed Name of Researcher {{ $i }}</span>
+                </label>
+                <x-official-signature-field :label="'Researcher '.$i.' signature'" />
+                <label>
+                    <input type="text" value="{{ $officialFormInstance?->submitted_at?->format('M j, Y') ?? 'Pending' }}" class="w-full text-center" readonly>
+                    <span class="mt-1 block text-xs">Date</span>
+                </label>
+            </div>
+        @endfor
+    </div>
+    <div class="grid grid-cols-2 gap-8 pt-10 text-center">
+        <div class="border-t border-[#173c30] pt-1">Research Adviser</div>
+        <div class="border-t border-[#173c30] pt-1">Program Coordinator</div>
+    </div>
 </x-student-official-form></div>

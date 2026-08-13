@@ -861,4 +861,111 @@ class OfficialFormBackendTest extends TestCase
             'auditable_id' => $instance->id,
         ]);
     }
+
+    public function test_unrelated_class_facilitator_cannot_assign_validator_to_res_042(): void
+    {
+        $group = $this->createGroup();
+        $res042 = (new CreateOfficialFormInstance)->handle($group->leader, 'RES-042', $group->id);
+
+        $unrelatedFacilitator = User::factory()->create(['user_type' => 'faculty']);
+        $validator = User::factory()->create(['user_type' => 'faculty']);
+        $validator->givePermissionTo('forms.res-043a.validate');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('is not authorized to assign actors');
+
+        (new AssignOfficialFormActor)->handle($unrelatedFacilitator, $res042, $validator->id, 'instrument_validator');
+    }
+
+    public function test_exact_group_adviser_can_assign_eligible_validator_to_res_042(): void
+    {
+        $adviser = User::factory()->create(['user_type' => 'faculty']);
+        $group = $this->createGroup(adviser: $adviser);
+        $res042 = (new CreateOfficialFormInstance)->handle($group->leader, 'RES-042', $group->id);
+
+        $validator = User::factory()->create(['user_type' => 'faculty']);
+        $validator->givePermissionTo('forms.res-043a.validate');
+
+        $assignment = (new AssignOfficialFormActor)->handle($adviser, $res042, $validator->id, 'instrument_validator');
+        $this->assertSame($validator->id, $assignment->user_id);
+        $this->assertSame('active', $assignment->status);
+    }
+
+    public function test_group_created_by_user_can_assign_validator_following_backend_rules(): void
+    {
+        $group = $this->createGroup();
+        $creator = $group->creator; // created_by user
+        $res042 = (new CreateOfficialFormInstance)->handle($group->leader, 'RES-042', $group->id);
+
+        $validator = User::factory()->create(['user_type' => 'faculty']);
+        $validator->givePermissionTo('forms.res-043b.validate');
+
+        $assignment = (new AssignOfficialFormActor)->handle($creator, $res042, $validator->id, 'instrument_validator');
+        $this->assertSame($validator->id, $assignment->user_id);
+        $this->assertSame('active', $assignment->status);
+    }
+
+    public function test_unrelated_faculty_cannot_assign_validator_to_res_042(): void
+    {
+        $group = $this->createGroup();
+        $res042 = (new CreateOfficialFormInstance)->handle($group->leader, 'RES-042', $group->id);
+
+        $unrelatedFaculty = User::factory()->create(['user_type' => 'faculty']);
+        $validator = User::factory()->create(['user_type' => 'faculty']);
+        $validator->givePermissionTo('forms.res-043a.validate');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('is not authorized to assign actors');
+
+        (new AssignOfficialFormActor)->handle($unrelatedFaculty, $res042, $validator->id, 'instrument_validator');
+    }
+
+    public function test_student_cannot_assign_validator_to_res_042(): void
+    {
+        $student = User::factory()->create(['user_type' => 'student']);
+        $group = $this->createGroup(leader: $student);
+        $res042 = (new CreateOfficialFormInstance)->handle($student, 'RES-042', $group->id);
+
+        $validator = User::factory()->create(['user_type' => 'faculty']);
+        $validator->givePermissionTo('forms.res-043a.validate');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('is not authorized to assign actors');
+
+        (new AssignOfficialFormActor)->handle($student, $res042, $validator->id, 'instrument_validator');
+    }
+
+    public function test_system_admin_can_assign_validator_administratively_without_becoming_academic_validator(): void
+    {
+        $admin = User::factory()->create(['user_type' => 'faculty']);
+        $admin->givePermissionTo('users.manage');
+
+        $group = $this->createGroup();
+        $res042 = (new CreateOfficialFormInstance)->handle($group->leader, 'RES-042', $group->id);
+
+        $validator = User::factory()->create(['user_type' => 'faculty']);
+        $validator->givePermissionTo('forms.res-043a.validate');
+
+        $assignment = (new AssignOfficialFormActor)->handle($admin, $res042, $validator->id, 'instrument_validator');
+        $this->assertSame($validator->id, $assignment->user_id);
+        $this->assertNotEquals($admin->id, $assignment->user_id);
+    }
+
+    public function test_res_029_safe_template_rendering_fallback(): void
+    {
+        $student = User::factory()->create(['user_type' => 'student']);
+        $group = $this->createGroup(leader: $student);
+        $student->givePermissionTo('forms.res-029.respond', 'forms.res-029.view');
+
+        $instance = (new CreateOfficialFormInstance)->handle($student, 'RES-029', $group->id);
+
+        $response = $this->actingAs($student)->get(route('official-forms.workspace.show', $instance));
+        $response->assertStatus(200);
+        $response->assertSee('Template Under Verification');
+        $response->assertSee('RES-029');
+
+        $printResponse = $this->actingAs($student)->get(route('official-forms.print', $instance));
+        $printResponse->assertStatus(200);
+        $printResponse->assertSee('Institutional print view template under verification');
+    }
 }
