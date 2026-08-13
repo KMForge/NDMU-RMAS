@@ -3,6 +3,7 @@
 use App\Http\Controllers\Facilitator\ClassJoinRequestController;
 use App\Http\Controllers\Facilitator\DashboardController;
 use App\Http\Controllers\Facilitator\ResearchClassController;
+use App\Http\Controllers\Facilitator\ResearchClassFormActorController;
 use App\Http\Controllers\Facilitator\ResearchClassGroupController;
 use App\Http\Controllers\Facilitator\ResearchProgressController;
 use Illuminate\Support\Facades\Route;
@@ -40,6 +41,13 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
     Route::prefix('/classes/{researchClass}')
         ->whereNumber('researchClass')
         ->group(function (): void {
+            Route::post('/official-form-actors', [ResearchClassFormActorController::class, 'store'])
+                ->middleware(['permission:classes.view-own', 'throttle:class-creation'])
+                ->name('classes.form-actors.store');
+            Route::delete('/official-form-actors/{assignment}', [ResearchClassFormActorController::class, 'destroy'])
+                ->middleware(['permission:classes.view-own', 'throttle:class-creation'])
+                ->whereNumber('assignment')
+                ->name('classes.form-actors.destroy');
             Route::post('/groups', [ResearchClassGroupController::class, 'store'])
                 ->middleware(['permission:classes.manage-groups', 'throttle:class-creation'])
                 ->name('classes.groups.store');

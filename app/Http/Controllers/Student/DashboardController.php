@@ -62,6 +62,8 @@ class DashboardController extends Controller
         $data['pendingConsultationsCount'] = $pendingConsultationsCount;
         $data['officialFormPhases'] = config('official-forms.phases', []);
         $data['officialForms'] = collect(config('official-forms.student', []))
+            ->filter(fn (array $form, string $code) => $request->user()->getAllPermissions()
+                ->contains(fn ($permission) => str_starts_with($permission->name, 'forms.'.strtolower($code).'.')))
             ->map(function (array $form, string $code): array {
                 unset($form['file']);
 

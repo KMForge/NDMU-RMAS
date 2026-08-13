@@ -2,6 +2,7 @@
 
 namespace App\Modules\OfficialForms\Validators;
 
+use Carbon\CarbonImmutable;
 use InvalidArgumentException;
 
 class OfficialFormPayloadValidator
@@ -80,6 +81,8 @@ class OfficialFormPayloadValidator
             };
         }
 
+        $this->validateSemantics($code, $validated);
+
         return $validated;
     }
 
@@ -129,5 +132,66 @@ class OfficialFormPayloadValidator
         }
 
         return $validated;
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function validateSemantics(string $code, array $payload): void
+    {
+        foreach (['date', 'defense_date', 'follow_up_date'] as $dateField) {
+            if (! isset($payload[$dateField]) || $payload[$dateField] === '') {
+                continue;
+            }
+
+            try {
+                $parsed = CarbonImmutable::createFromFormat('Y-m-d', (string) $payload[$dateField]);
+            } catch (\Throwable) {
+                $parsed = null;
+            }
+
+            if ($parsed === null || $parsed->format('Y-m-d') !== $payload[$dateField]) {
+                throw new InvalidArgumentException("Field [{$dateField}] for {$code} must use a valid Y-m-d date.");
+            }
+        }
+
+        if ($code === 'RES-026' && isset($payload['topics']) && count($payload['topics']) > 3) {
+            throw new InvalidArgumentException('RES-026 permits at most three proposed topics.');
+        }
+
+        if ($code === 'RES-041') {
+            $this->validateRows($payload['entries'] ?? [], ['title', 'researchers'], $code, 'entries', 8);
+        }
+
+        if ($code === 'RES-043A') {
+            $this->validateRows($payload['items'] ?? [], ['question', 'decision', 'comment'], $code, 'items', 10);
+            foreach ($payload['items'] ?? [] as $item) {
+                if (($item['decision'] ?? '') !== '' && ! in_array($item['decision'], ['accept', 'revise', 'reject'], true)) {
+                    throw new InvalidArgumentException('RES-043A item decisions must be accept, revise, or reject.');
+                }
+            }
+        }
+
+        if (in_array($code, ['RES-043B', 'RES-048'], true)) {
+            foreach ($payload['ratings'] ?? [] as $rating) {
+                if (! is_numeric($rating) || (float) $rating < 1 || (float) $rating > 5) {
+                    throw new InvalidArgumentException("Ratings for {$code} must be between 1 and 5.");
+                }
+            }
+        }
+    }
+
+    /** @param array<int|string, mixed> $rows
+     * @param  list<string>  $allowedKeys
+     */
+    private function validateRows(array $rows, array $allowedKeys, string $code, string $field, int $maximum): void
+    {
+        if (count($rows) > $maximum) {
+            throw new InvalidArgumentException("Field [{$field}] for {$code} permits at most {$maximum} rows.");
+        }
+
+        foreach ($rows as $row) {
+            if (! is_array($row) || array_diff(array_keys($row), $allowedKeys) !== []) {
+                throw new InvalidArgumentException("Field [{$field}] for {$code} contains a malformed row.");
+            }
+        }
     }
 }

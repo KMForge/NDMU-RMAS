@@ -16,7 +16,7 @@ class ApproveOfficialForm
     ) {}
 
     /** @var list<string> */
-    private const ALLOWED_ACTIONS = ['approve', 'endorse', 'receive'];
+    private const ALLOWED_ACTIONS = ['approve', 'endorse', 'receive', 'validate'];
 
     /**
      * @param  array<string, mixed>  $approvalMetadata
@@ -56,6 +56,7 @@ class ApproveOfficialForm
                 throw new InvalidArgumentException("User #{$approver->id} is not contextually authorized to {$action} form instance #{$instance->id}.");
             }
 
+            $oldStatus = $lockedInstance->status;
             // Update instance status only; do NOT mutate submitted version payload
             $lockedInstance->update(['status' => $targetStatus]);
 
@@ -69,6 +70,9 @@ class ApproveOfficialForm
                 'description' => ucfirst($action)." action completed for form instance #{$lockedInstance->id} ({$lockedInstance->definition->code}); status changed to {$targetStatus}.",
                 'subject_snapshot' => array_merge($approvalMetadata, [
                     'action' => $action,
+                    'actor_function' => $this->authorization->requiredActorType($lockedInstance, $action),
+                    'old_status' => $oldStatus,
+                    'new_status' => $targetStatus,
                     'target_status' => $targetStatus,
                     'acted_by' => $approver->id,
                     'acted_at' => now()->toIso8601String(),

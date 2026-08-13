@@ -2,6 +2,7 @@
 
 namespace App\Modules\OfficialForms\Actions;
 
+use App\Enums\AccountStatus;
 use App\Models\AuditLog;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassActorAssignment;
@@ -30,11 +31,24 @@ class AssignResearchClassFormActor
         }
 
         $userType = is_object($actor->user_type) ? $actor->user_type->value : $actor->user_type;
-        if ($userType !== 'faculty' || ! collect($permissions)->contains(fn (string $permission) => $actor->hasPermissionTo($permission))) {
+        if ($userType !== 'faculty'
+            || $actor->status !== AccountStatus::Active
+            || $actor->approved_at === null
+            || ! collect($permissions)->contains(fn (string $permission) => $actor->hasPermissionTo($permission))) {
             throw new InvalidArgumentException("User #{$actor->id} is not eligible for class actor type [{$actorType}].");
         }
 
         return DB::transaction(function () use ($assigner, $class, $actor, $actorType): ResearchClassActorAssignment {
+            ResearchClass::query()->lockForUpdate()->findOrFail($class->id);
+
+            ResearchClassActorAssignment::query()
+                ->where('research_class_id', $class->id)
+                ->where('actor_type', $actorType)
+                ->where('user_id', '!=', $actor->id)
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->update(['status' => 'inactive']);
+
             $assignment = ResearchClassActorAssignment::query()->updateOrCreate(
                 [
                     'research_class_id' => $class->id,
@@ -56,7 +70,13 @@ class AssignResearchClassFormActor
                 'auditable_type' => ResearchClass::class,
                 'auditable_id' => $class->id,
                 'description' => "Assigned {$actor->name} as {$actorType} for research class #{$class->id}.",
-                'subject_snapshot' => ['actor_user_id' => $actor->id, 'actor_type' => $actorType],
+                'subject_snapshot' => [
+                    'actor_user_id' => $actor->id,
+                    'actor_type' => $actorType,
+                    'actor_function' => $actorType,
+                    'old_status' => null,
+                    'new_status' => 'active',
+                ],
             ]);
 
             return $assignment;

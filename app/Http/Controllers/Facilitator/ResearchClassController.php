@@ -93,6 +93,25 @@ class ResearchClassController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'department']);
 
+        $researchClass->load([
+            'officialFormActorAssignments' => fn ($query) => $query
+                ->where('status', 'active')
+                ->with(['user:id,name,email', 'assigner:id,name,email'])
+                ->orderBy('actor_type'),
+        ]);
+
+        $classActorCandidates = collect([
+            'research_instructor' => ['forms.res-041.fill', 'forms.res-041.endorse'],
+            'program_coordinator' => ['forms.res-041.receive'],
+            'dean' => ['forms.res-047.approve'],
+        ])->map(fn (array $permissions) => User::query()
+            ->where('user_type', 'faculty')
+            ->where('status', AccountStatus::Active)
+            ->whereNotNull('approved_at')
+            ->permission($permissions)
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']));
+
         if (! $request->expectsJson()) {
             $enrollmentQuery = $researchClass->enrollments()
                 ->with(['student:id,name,email,student_id,program,year_level'])
@@ -120,6 +139,7 @@ class ResearchClassController extends Controller
                 'groups' => $activeGroups,
                 'unassignedStudents' => $unassignedStudents,
                 'classAdviserOptions' => $advisers,
+                'classActorCandidates' => $classActorCandidates,
                 'search' => $search,
             ]);
         }

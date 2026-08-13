@@ -43,7 +43,7 @@ class SubmitOfficialFormVersion
                 ->lockForUpdate()
                 ->findOrFail($instance->id);
 
-            if (in_array($lockedInstance->status, ['completed', 'cancelled', 'superseded'], true)) {
+            if (in_array($lockedInstance->status, ['approved', 'completed', 'cancelled', 'superseded'], true)) {
                 throw new InvalidArgumentException("Form instance #{$lockedInstance->id} is finalized and cannot accept new versions.");
             }
 
@@ -52,6 +52,30 @@ class SubmitOfficialFormVersion
             }
 
             $currentVersion = $lockedInstance->currentVersion;
+            $oldStatus = $lockedInstance->status;
+
+            if ($currentVersion !== null && $currentVersion->payload === $validatedPayload) {
+                $lockedInstance->update(['status' => $nextStatus]);
+
+                AuditLog::query()->create([
+                    'user_id' => $actor->id,
+                    'actor_name' => $actor->name,
+                    'actor_email' => $actor->email,
+                    'event' => 'official_form.submitted',
+                    'auditable_type' => OfficialFormInstance::class,
+                    'auditable_id' => $lockedInstance->id,
+                    'description' => "Submitted unchanged official form version v{$currentVersion->version_number} (status: {$nextStatus}).",
+                    'subject_snapshot' => [
+                        'actor_function' => 'form_submitter',
+                        'old_status' => $oldStatus,
+                        'new_status' => $nextStatus,
+                        'version_number' => $currentVersion->version_number,
+                    ],
+                ]);
+
+                return $currentVersion;
+            }
+
             $nextVersionNumber = ($lockedInstance->versions()->max('version_number') ?? 0) + 1;
 
             if ($currentVersion) {
@@ -80,6 +104,12 @@ class SubmitOfficialFormVersion
                 'auditable_type' => OfficialFormInstance::class,
                 'auditable_id' => $lockedInstance->id,
                 'description' => "Submitted official form version v{$nextVersionNumber} (status: {$nextStatus}).",
+                'subject_snapshot' => [
+                    'actor_function' => 'form_submitter',
+                    'old_status' => $oldStatus,
+                    'new_status' => $nextStatus,
+                    'version_number' => $nextVersionNumber,
+                ],
             ]);
 
             return $newVersion;

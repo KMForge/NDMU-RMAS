@@ -33,7 +33,10 @@ class DashboardController extends Controller
             'area' => 'Research Facilitator',
             'facilitator' => $request->user(),
             'officialFormPhases' => config('official-forms.phases', []),
-            'officialForms' => config('official-forms.facilitator', []),
+            'officialForms' => collect(config('official-forms.facilitator', []))
+                ->filter(fn (array $form, string $code) => $request->user()->getAllPermissions()
+                    ->contains(fn ($permission) => str_starts_with($permission->name, 'forms.'.strtolower($code).'.')))
+                ->all(),
             ...$classData->for(
                 $request->user(),
                 $request->query('request_q'),

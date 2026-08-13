@@ -5,7 +5,33 @@
 ])
 
 <div {{ $attributes->class(['space-y-2 text-center']) }}>
-    @if ($nameField)
+    @php
+        $officialFormInstance = request()->routeIs('official-forms.workspace.show', 'official-forms.print') ? request()->route('instance') : null;
+        $authoritativeName = null;
+        if ($officialFormInstance instanceof \App\Models\OfficialFormInstance && $nameField) {
+            $field = strtolower($nameField);
+            $actorType = match (true) {
+                str_contains($field, 'instructor') => 'research_instructor',
+                str_contains($field, 'coordinator') => 'program_coordinator',
+                str_contains($field, 'dean') => 'dean',
+                str_contains($field, 'validator') => 'instrument_validator',
+                str_contains($field, '045') => 'language_editor',
+                str_contains($field, '046') => 'technical_editor',
+                default => null,
+            };
+
+            $classAssignments = $officialFormInstance->researchClass?->officialFormActorAssignments
+                ?? $officialFormInstance->group?->researchClass?->officialFormActorAssignments;
+            $authoritativeName = str_contains($field, 'adviser')
+                ? $officialFormInstance->group?->adviser?->name
+                : ($officialFormInstance->actorAssignments->firstWhere('actor_type', $actorType)?->user?->name
+                    ?? $classAssignments?->firstWhere('actor_type', $actorType)?->user?->name);
+        }
+    @endphp
+
+    @if ($nameField && $officialFormInstance instanceof \App\Models\OfficialFormInstance)
+        <div class="border-b border-[#173c30] px-2 py-1 font-bold">{{ $authoritativeName ?: 'Authorized actor pending assignment' }}</div>
+    @elseif ($nameField)
         <label class="block text-left">
             <span class="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[#173c30]/70">Printed name</span>
             <input

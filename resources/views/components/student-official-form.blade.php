@@ -1,4 +1,5 @@
 @props(['code', 'title', 'guidebookPage'])
+@php($workspaceInstance = request()->routeIs('official-forms.workspace.show', 'official-forms.print') ? request()->route('instance') : null)
 
 @once
     <style>
@@ -68,9 +69,18 @@
     </div>
 
     <div class="official-form-actions flex flex-wrap gap-3 border-t border-[#173c30]/20 pt-3">
-        <button type="button" disabled title="Database saving will be connected in the backend stage" class="rounded-lg bg-[#009b67] px-5 py-2.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-55">Save Form</button>
-        <button type="button" onclick="window.print()" class="rounded-lg bg-blue-600 px-5 py-2.5 text-xs font-bold text-white">Print Form</button>
-        <button type="button" onclick="window.print()" class="rounded-lg bg-purple-600 px-5 py-2.5 text-xs font-bold text-white">Export to PDF</button>
+        @if ($workspaceInstance instanceof \App\Models\OfficialFormInstance)
+            <button type="submit" form="official-form-editor" class="rounded-lg bg-[#009b67] px-5 py-2.5 text-xs font-bold text-white">Save Form</button>
+        @else
+            <a href="{{ route('official-forms.workspace.index') }}" class="rounded-lg bg-[#009b67] px-5 py-2.5 text-xs font-bold text-white">Open Saved Form</a>
+        @endif
+        @if ($workspaceInstance instanceof \App\Models\OfficialFormInstance)
+            <a href="{{ route('official-forms.print', $workspaceInstance) }}" target="_blank" rel="noopener" class="rounded-lg bg-blue-600 px-5 py-2.5 text-xs font-bold text-white">Print Saved Form</a>
+            <a href="{{ route('official-forms.print', $workspaceInstance) }}" target="_blank" rel="noopener" class="rounded-lg bg-purple-600 px-5 py-2.5 text-xs font-bold text-white">Export Saved PDF</a>
+        @else
+            <button type="button" disabled class="rounded-lg bg-blue-600 px-5 py-2.5 text-xs font-bold text-white opacity-50">Print Saved Form</button>
+            <button type="button" disabled class="rounded-lg bg-purple-600 px-5 py-2.5 text-xs font-bold text-white opacity-50">Export Saved PDF</button>
+        @endif
         <button type="button" @click="activeTab = 'dashboard'" class="rounded-lg bg-gray-100 px-5 py-2.5 text-xs font-bold text-gray-700">Cancel</button>
     </div>
 </div>

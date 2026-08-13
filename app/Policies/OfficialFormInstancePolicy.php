@@ -17,7 +17,8 @@ class OfficialFormInstancePolicy
 
     public function viewAny(User $user): bool
     {
-        return $user->getAllPermissions()->contains(fn ($p) => str_starts_with($p->name, 'forms.'));
+        return $user->can('users.manage')
+            || $user->getAllPermissions()->contains(fn ($p) => str_starts_with($p->name, 'forms.'));
     }
 
     public function view(User $user, OfficialFormInstance $instance): bool
@@ -70,5 +71,15 @@ class OfficialFormInstancePolicy
     public function receive(User $user, OfficialFormInstance $instance): bool
     {
         return $this->authorization->canPerformAction($user, $instance, 'receive');
+    }
+
+    public function validate(User $user, OfficialFormInstance $instance): bool
+    {
+        return $this->authorization->canPerformAction($user, $instance, 'validate');
+    }
+
+    public function assignActor(User $user, OfficialFormInstance $instance): bool
+    {
+        return $this->authorization->canAssignActor($user, $instance);
     }
 }

@@ -72,6 +72,12 @@
             @if ($errors->has('group'))
                 <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $errors->first('group') }}</div>
             @endif
+            @if (session('class_actor_success'))
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('class_actor_success') }}</div>
+            @endif
+            @if ($errors->has('class_actor'))
+                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $errors->first('class_actor') }}</div>
+            @endif
 
             <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0e5c3a] via-[#0a4a2e] to-[#083a24] p-8 text-white shadow-xl border border-emerald-800/40">
                 <div class="absolute -right-12 -top-12 h-64 w-64 rounded-full bg-white/5 blur-2xl pointer-events-none"></div>
@@ -136,6 +142,64 @@
                     </div>
                     <p class="mt-3 text-2xl font-black text-gray-850">{{ $groupsCollection->count() }} <span class="text-sm font-medium text-emerald-700">Active Groups</span></p>
                     <p class="mt-1 text-xs text-amber-700 font-semibold">{{ $unassignedCollection->count() }} Unassigned Student(s)</p>
+                </div>
+            </section>
+
+            <section class="rounded-3xl border border-gray-150 bg-white p-6 shadow-sm">
+                <div class="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-[#0e5c3a]">Official Forms Institutional Actors</h2>
+                        <p class="mt-1 text-xs text-gray-500">Assign the exact faculty members authorized to act for this class. This does not change their system roles.</p>
+                    </div>
+                    <span class="rounded-full bg-amber-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700">Class scoped</span>
+                </div>
+
+                <div class="grid gap-5 lg:grid-cols-3">
+                    @foreach ([
+                        'research_instructor' => 'Research Instructor',
+                        'program_coordinator' => 'Program Coordinator',
+                        'dean' => 'College Dean',
+                    ] as $actorType => $actorLabel)
+                        @php
+                            $assignment = $researchClass->officialFormActorAssignments->firstWhere('actor_type', $actorType);
+                            $candidates = $classActorCandidates->get($actorType, collect());
+                        @endphp
+                        <article class="rounded-2xl border border-gray-200 p-5">
+                            <p class="text-[10px] font-black uppercase tracking-wider text-[#0e5c3a]">{{ $actorLabel }}</p>
+                            @if ($assignment)
+                                <p class="mt-3 text-sm font-bold text-gray-900">{{ $assignment->user->name }}</p>
+                                <p class="mt-1 truncate text-xs text-gray-500">{{ $assignment->user->email }}</p>
+                                <p class="mt-3 text-[10px] leading-4 text-gray-500">
+                                    Assigned {{ $assignment->assigned_at?->format('M j, Y g:i A') }}
+                                    @if ($assignment->assigner) by {{ $assignment->assigner->name }} @endif
+                                </p>
+                            @else
+                                <p class="mt-3 text-sm font-semibold text-gray-500">No active assignment</p>
+                            @endif
+
+                            <form method="POST" action="{{ route('facilitator.classes.form-actors.store', $researchClass) }}" class="mt-4 space-y-2">
+                                @csrf
+                                <input type="hidden" name="actor_type" value="{{ $actorType }}">
+                                <select name="user_id" required class="w-full rounded-xl border border-gray-200 px-3 py-2 text-xs">
+                                    <option value="">{{ $assignment ? 'Replace assignment' : 'Select eligible faculty' }}</option>
+                                    @foreach ($candidates as $candidate)
+                                        <option value="{{ $candidate->id }}">{{ $candidate->name }} — {{ $candidate->email }}</option>
+                                    @endforeach
+                                </select>
+                                <button type="submit" class="w-full rounded-xl bg-[#0e5c3a] px-3 py-2 text-xs font-bold text-white hover:bg-[#0a4a2e]">
+                                    {{ $assignment ? 'Replace' : 'Assign' }} {{ $actorLabel }}
+                                </button>
+                            </form>
+
+                            @if ($assignment)
+                                <form method="POST" action="{{ route('facilitator.classes.form-actors.destroy', [$researchClass, $assignment]) }}" class="mt-2" onsubmit="return confirm('Deactivate this class actor assignment?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="w-full rounded-xl border border-red-200 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50">Deactivate</button>
+                                </form>
+                            @endif
+                        </article>
+                    @endforeach
                 </div>
             </section>
 

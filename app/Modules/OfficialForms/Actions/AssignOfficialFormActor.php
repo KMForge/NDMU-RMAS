@@ -2,6 +2,7 @@
 
 namespace App\Modules\OfficialForms\Actions;
 
+use App\Enums\AccountStatus;
 use App\Models\AuditLog;
 use App\Models\OfficialFormActorAssignment;
 use App\Models\OfficialFormInstance;
@@ -39,6 +40,22 @@ class AssignOfficialFormActor
         'RES-047' => ['dean', 'program_coordinator'],
     ];
 
+    /** @var array<string, list<string>> */
+    public const ACTOR_PERMISSION_REQUIREMENTS = [
+        'RES-027:adviser' => ['forms.res-027.respond'],
+        'RES-028:panelist' => ['forms.res-028.respond'],
+        'RES-029:language_editor' => ['forms.res-029.respond'],
+        'RES-040:research_instructor' => ['forms.res-040.receive'],
+        'RES-041:research_instructor' => ['forms.res-041.fill', 'forms.res-041.endorse'],
+        'RES-041:program_coordinator' => ['forms.res-041.receive'],
+        'RES-042:instrument_validator' => ['forms.res-043a.validate', 'forms.res-043b.validate'],
+        'RES-043A:instrument_validator' => ['forms.res-043a.validate'],
+        'RES-043B:instrument_validator' => ['forms.res-043b.validate'],
+        'RES-045:language_editor' => ['forms.res-045.certify'],
+        'RES-046:technical_editor' => ['forms.res-046.certify'],
+        'RES-047:dean' => ['forms.res-047.approve'],
+    ];
+
     public function handle(
         User $assigner,
         OfficialFormInstance $instance,
@@ -65,9 +82,16 @@ class AssignOfficialFormActor
 
         $userTypeVal = is_object($user->user_type) ? ($user->user_type->value ?? (string) $user->user_type) : (string) $user->user_type;
         if (in_array($actorType, ['adviser', 'panelist', 'language_editor', 'technical_editor', 'instrument_validator', 'research_instructor', 'program_coordinator', 'dean'], true)) {
-            if ($userTypeVal !== 'faculty' && ! $user->can('users.manage')) {
+            if ($userTypeVal !== 'faculty' || $user->status !== AccountStatus::Active || $user->approved_at === null) {
                 throw new InvalidArgumentException("Specialist actor type [{$actorType}] requires a faculty user.");
             }
+        }
+
+        $requiredPermissions = self::ACTOR_PERMISSION_REQUIREMENTS["{$formCode}:{$actorType}"] ?? [];
+        if ($requiredPermissions !== [] && ! collect($requiredPermissions)->contains(
+            fn (string $permission): bool => $user->hasPermissionTo($permission)
+        )) {
+            throw new InvalidArgumentException("User #{$user->id} lacks the required permission for actor type [{$actorType}] on {$formCode}.");
         }
 
         return DB::transaction(function () use ($assigner, $instance, $user, $actorType) {

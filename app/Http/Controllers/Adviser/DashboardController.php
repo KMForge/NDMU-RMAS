@@ -87,7 +87,10 @@ class DashboardController extends Controller
         $viewData['pendingDocReviewsCount'] = $pendingDocReviewsCount;
         $viewData['assignedGroups'] = $assignedGroups;
         $viewData['officialFormPhases'] = config('official-forms.phases', []);
-        $viewData['officialForms'] = config('official-forms.adviser', []);
+        $viewData['officialForms'] = collect(config('official-forms.adviser', []))
+            ->filter(fn (array $form, string $code) => $user->getAllPermissions()
+                ->contains(fn ($permission) => str_starts_with($permission->name, 'forms.'.strtolower($code).'.')))
+            ->all();
 
         if ($activeTab === 'repository') {
             $viewData = [...$viewData, ...$repositoryData->for($user, $request->query())];

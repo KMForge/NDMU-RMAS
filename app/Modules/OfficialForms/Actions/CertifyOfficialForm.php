@@ -51,6 +51,7 @@ class CertifyOfficialForm
                 throw new InvalidArgumentException("User #{$certifier->id} is not contextually authorized to certify form instance #{$lockedInstance->id}.");
             }
 
+            $oldStatus = $lockedInstance->status;
             // Update instance status only; do NOT mutate submitted version payload
             $lockedInstance->update(['status' => 'completed']);
 
@@ -63,6 +64,9 @@ class CertifyOfficialForm
                 'auditable_id' => $lockedInstance->id,
                 'description' => "Issued certification for form instance #{$lockedInstance->id} ({$code}).",
                 'subject_snapshot' => array_merge($certificationData, [
+                    'actor_function' => $this->authorization->requiredActorType($lockedInstance, 'certify'),
+                    'old_status' => $oldStatus,
+                    'new_status' => 'completed',
                     'certified_by' => $certifier->id,
                     'certified_at' => now()->toIso8601String(),
                 ]),

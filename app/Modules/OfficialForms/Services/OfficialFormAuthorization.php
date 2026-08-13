@@ -7,6 +7,7 @@ use App\Models\OfficialFormInstance;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassActorAssignment;
 use App\Models\ResearchClassGroup;
+use App\Models\ResearchClassGroupMember;
 use App\Models\User;
 
 class OfficialFormAuthorization
@@ -46,10 +47,10 @@ class OfficialFormAuthorization
         'res-037' => ['sign' => 'panelist'],
         'res-040' => ['fill' => 'adviser', 'endorse' => 'adviser', 'receive' => 'research_instructor'],
         'res-041' => ['fill' => 'research_instructor', 'endorse' => 'research_instructor', 'receive' => 'program_coordinator'],
-        'res-043a' => ['validate' => 'instrument_validator'],
-        'res-043b' => ['validate' => 'instrument_validator'],
-        'res-045' => ['certify' => 'language_editor'],
-        'res-046' => ['certify' => 'technical_editor'],
+        'res-043a' => ['fill' => 'instrument_validator', 'validate' => 'instrument_validator'],
+        'res-043b' => ['fill' => 'instrument_validator', 'validate' => 'instrument_validator'],
+        'res-045' => ['fill' => 'language_editor', 'certify' => 'language_editor'],
+        'res-046' => ['fill' => 'technical_editor', 'certify' => 'technical_editor'],
         'res-047' => ['fill' => 'adviser', 'endorse' => 'adviser', 'approve' => 'dean'],
     ];
 
@@ -111,10 +112,11 @@ class OfficialFormAuthorization
                 ->whereHas('actorAssignments', fn ($q) => $q->where('user_id', $user->id)->where('actor_type', $requiredActorType)->where('status', 'active'))
                 ->exists();
 
-            $isGroupContext = (int) $user->research_class_group_id === (int) $group->id
+            $isGroupContext = $this->isCurrentGroupMember($user, $group)
                 || (int) $group->leader_student_id === (int) $user->id
                 || (int) $group->adviser_id === (int) $user->id
                 || (int) $group->created_by === (int) $user->id
+                || $this->isSystemAdmin($user)
                 || $hasGroupActorAssignment;
 
             return $hasPerm && $isGroupContext;
@@ -214,6 +216,11 @@ class OfficialFormAuthorization
         return self::FORM_WORKFLOWS[strtolower($instance->definition->code)][$action] ?? null;
     }
 
+    public function requiredActorType(OfficialFormInstance $instance, string $action): ?string
+    {
+        return self::FORM_ACTION_ACTOR_TYPES[strtolower($instance->definition->code)][$action] ?? null;
+    }
+
     private function checkSpecificActorTypeContext(User $user, OfficialFormInstance $instance, string $requiredActorType): bool
     {
         if ($requiredActorType === 'adviser') {
@@ -246,7 +253,7 @@ class OfficialFormAuthorization
         if ($instance->research_class_group_id !== null) {
             $group = $instance->group;
             if ($group !== null) {
-                if ((int) $user->research_class_group_id === (int) $group->id || (int) $group->leader_student_id === (int) $user->id) {
+                if ($this->isCurrentGroupMember($user, $group) || (int) $group->leader_student_id === (int) $user->id) {
                     return true;
                 }
                 if ((int) $group->adviser_id === (int) $user->id) {
@@ -293,6 +300,14 @@ class OfficialFormAuthorization
             ->where('user_id', $user->id)
             ->where('actor_type', $actorType)
             ->where('status', 'active')
+            ->exists();
+    }
+
+    private function isCurrentGroupMember(User $user, ResearchClassGroup $group): bool
+    {
+        return ResearchClassGroupMember::query()
+            ->where('research_class_group_id', $group->id)
+            ->where('student_id', $user->id)
             ->exists();
     }
 

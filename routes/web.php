@@ -4,7 +4,9 @@ use App\Http\Controllers\AccessPendingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisabledFeatureController;
 use App\Http\Controllers\DocumentAccessController;
+use App\Http\Controllers\Facilitator\ResearchClassFormActorController;
 use App\Http\Controllers\OfficialFormController;
+use App\Http\Controllers\OfficialFormWorkspaceController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 
@@ -44,6 +46,15 @@ Route::middleware(['auth', 'verified', 'active'])
     });
 
 Route::middleware(['auth', 'verified', 'active'])
+    ->prefix('official-form-class-actors')
+    ->name('official-form-class-actors.')
+    ->group(function (): void {
+        Route::get('/{researchClass}', [ResearchClassFormActorController::class, 'index'])->whereNumber('researchClass')->name('index');
+        Route::post('/{researchClass}', [ResearchClassFormActorController::class, 'store'])->whereNumber('researchClass')->middleware('throttle:class-creation')->name('store');
+        Route::delete('/{researchClass}/{assignment}', [ResearchClassFormActorController::class, 'destroy'])->whereNumber(['researchClass', 'assignment'])->middleware('throttle:class-creation')->name('destroy');
+    });
+
+Route::middleware(['auth', 'verified', 'active'])
     ->prefix('settings/signature')
     ->name('signature.')
     ->group(function (): void {
@@ -62,6 +73,32 @@ Route::get('/official-forms/{instance}/print', [OfficialFormController::class, '
     ->middleware(['auth', 'verified', 'active', 'throttle:60,1'])
     ->whereNumber('instance')
     ->name('official-forms.print');
+
+Route::middleware(['auth', 'verified', 'active'])
+    ->prefix('official-forms')
+    ->name('official-forms.workspace.')
+    ->group(function (): void {
+        Route::get('/', [OfficialFormWorkspaceController::class, 'index'])->name('index');
+        Route::post('/definitions/{definition}', [OfficialFormWorkspaceController::class, 'store'])
+            ->whereNumber('definition')->middleware('throttle:30,1')->name('store');
+        Route::post('/definitions/{definition}/sources/{sourceKind}/{source}', [OfficialFormWorkspaceController::class, 'storeFromSource'])
+            ->whereNumber(['definition', 'source'])
+            ->whereIn('sourceKind', ['consultation-record', 'document-review', 'revision-request', 'res-042'])
+            ->middleware('throttle:30,1')->name('store-from-source');
+        Route::get('/instances/{instance}', [OfficialFormWorkspaceController::class, 'show'])
+            ->whereNumber('instance')->name('show');
+        Route::post('/instances/{instance}/draft', [OfficialFormWorkspaceController::class, 'save'])
+            ->whereNumber('instance')->middleware('throttle:60,1')->name('save');
+        Route::post('/instances/{instance}/submit', [OfficialFormWorkspaceController::class, 'submit'])
+            ->whereNumber('instance')->middleware('throttle:30,1')->name('submit');
+        Route::post('/instances/{instance}/actions/{action}', [OfficialFormWorkspaceController::class, 'action'])
+            ->whereNumber('instance')->whereIn('action', ['endorse', 'receive', 'approve', 'certify', 'validate'])
+            ->middleware('throttle:30,1')->name('action');
+        Route::post('/instances/{instance}/actors', [OfficialFormWorkspaceController::class, 'assignActor'])
+            ->whereNumber('instance')->middleware('throttle:30,1')->name('actors.store');
+        Route::delete('/instances/{instance}/actors/{assignment}', [OfficialFormWorkspaceController::class, 'deactivateActor'])
+            ->whereNumber(['instance', 'assignment'])->middleware('throttle:30,1')->name('actors.destroy');
+    });
 
 require __DIR__.'/auth.php';
 require __DIR__.'/admin.php';
