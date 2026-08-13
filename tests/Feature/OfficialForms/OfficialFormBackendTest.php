@@ -15,6 +15,9 @@ use App\Modules\OfficialForms\Actions\AssignOfficialFormActor;
 use App\Modules\OfficialForms\Actions\AssignResearchClassFormActor;
 use App\Modules\OfficialForms\Actions\CertifyOfficialForm;
 use App\Modules\OfficialForms\Actions\CreateOfficialFormInstance;
+use App\Modules\OfficialForms\Actions\DeactivateOfficialFormActor;
+use App\Modules\OfficialForms\Actions\DeactivateResearchClassFormActor;
+use App\Modules\OfficialForms\Actions\SaveOfficialFormDraft;
 use App\Modules\OfficialForms\Actions\SubmitOfficialFormVersion;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
 use Database\Seeders\RolePermissionSeeder;
@@ -693,5 +696,169 @@ class OfficialFormBackendTest extends TestCase
             sourceId: $source->id,
             actorUserId: $validator->id
         );
+    }
+
+    public function test_saving_a_draft_creates_an_immutable_linear_version_history(): void
+    {
+        $student = User::factory()->create(['user_type' => 'student']);
+        $student->givePermissionTo('forms.res-026.fill', 'forms.res-026.submit');
+        $group = $this->createGroup(leader: $student);
+        $instance = (new CreateOfficialFormInstance)->handle(
+            $student,
+            'RES-026',
+            $group->id,
+            payload: ['date' => '2026-08-13', 'topics' => ['Version one']],
+        );
+
+        $first = $instance->currentVersion;
+        $second = (new SaveOfficialFormDraft)->handle($student, $instance, [
+            'date' => '2026-08-14',
+            'topics' => ['Version two'],
+        ]);
+        $third = (new SaveOfficialFormDraft)->handle($student, $instance->fresh(), [
+            'date' => '2026-08-15',
+            'topics' => ['Version three'],
+        ]);
+
+        $this->assertSame(1, $first->version_number);
+        $this->assertSame(['Version one'], $first->fresh()->payload['topics']);
+        $this->assertSame($first->id, $second->supersedes_version_id);
+        $this->assertSame($second->id, $third->supersedes_version_id);
+        $this->assertSame(3, $third->version_number);
+        $this->assertSame(1, $instance->versions()->where('is_current', true)->count());
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'official_form.draft_saved',
+            'auditable_id' => $instance->id,
+        ]);
+    }
+
+    public function test_terminal_form_cannot_be_silently_edited(): void
+    {
+        $student = User::factory()->create(['user_type' => 'student']);
+        $student->givePermissionTo('forms.res-026.fill', 'forms.res-026.submit');
+        $group = $this->createGroup(leader: $student);
+        $instance = (new CreateOfficialFormInstance)->handle($student, 'RES-026', $group->id);
+        $instance->update(['status' => 'approved']);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('is not editable from status approved');
+
+        (new SaveOfficialFormDraft)->handle($student, $instance, ['topics' => ['Changed title']]);
+    }
+
+    public function test_class_actor_assignment_replaces_the_active_actor_and_is_audited(): void
+    {
+        $group = $this->createGroup();
+        $class = $group->researchClass;
+        $first = User::factory()->create(['user_type' => 'faculty']);
+        $second = User::factory()->create(['user_type' => 'faculty']);
+        $first->givePermissionTo('forms.res-041.fill');
+        $second->givePermissionTo('forms.res-041.endorse');
+
+        $action = new AssignResearchClassFormActor;
+        $oldAssignment = $action->handle($group->creator, $class, $first, 'research_instructor');
+        $newAssignment = $action->handle($group->creator, $class, $second, 'research_instructor');
+
+        $this->assertSame('inactive', $oldAssignment->fresh()->status);
+        $this->assertSame('active', $newAssignment->fresh()->status);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'official_form.class_actor_assigned',
+            'auditable_id' => $class->id,
+        ]);
+
+        (new DeactivateResearchClassFormActor)->handle($group->creator, $class, $newAssignment);
+        $this->assertSame('inactive', $newAssignment->fresh()->status);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'official_form.class_actor_deactivated',
+            'auditable_id' => $class->id,
+        ]);
+    }
+
+    public function test_class_actor_assignment_denies_wrong_facilitator_and_student_target(): void
+    {
+        $group = $this->createGroup();
+        $outsider = User::factory()->create(['user_type' => 'faculty']);
+        $candidate = User::factory()->create(['user_type' => 'faculty']);
+        $candidate->givePermissionTo('forms.res-041.fill');
+
+        try {
+            (new AssignResearchClassFormActor)->handle(
+                $outsider,
+                $group->researchClass,
+                $candidate,
+                'research_instructor',
+            );
+            $this->fail('A facilitator must not manage another facilitator\'s class actor assignments.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('cannot assign institutional actors', $exception->getMessage());
+        }
+
+        $student = User::factory()->create(['user_type' => 'student']);
+        $student->givePermissionTo('forms.res-041.fill');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('is not eligible for class actor type');
+        (new AssignResearchClassFormActor)->handle(
+            $group->creator,
+            $group->researchClass,
+            $student,
+            'research_instructor',
+        );
+    }
+
+    public function test_res043b_is_bound_to_its_res042_validator_and_can_be_validated(): void
+    {
+        $validator = User::factory()->create(['user_type' => 'faculty']);
+        $validator->givePermissionTo('forms.res-043a.validate', 'forms.res-043b.validate');
+        $group = $this->createGroup();
+        $source = (new CreateOfficialFormInstance)->handle($group->leader, 'RES-042', $group->id);
+        (new AssignOfficialFormActor)->handle($group->creator, $source, $validator->id, 'instrument_validator');
+
+        $instance = (new CreateOfficialFormInstance)->handle(
+            $validator,
+            'RES-043B',
+            groupId: $group->id,
+            sourceType: OfficialFormInstance::class,
+            sourceId: $source->id,
+            actorUserId: $validator->id,
+        );
+        (new SaveOfficialFormDraft)->handle($validator, $instance, [
+            'ratings' => [5, 4, 5, 4, 5],
+            'date' => '2026-08-13',
+        ]);
+        $completed = (new ApproveOfficialForm)->handle($validator, $instance->fresh(), [], 'completed', 'validate');
+
+        $this->assertSame('completed', $completed->status);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'official_form.validated',
+            'auditable_id' => $instance->id,
+        ]);
+    }
+
+    public function test_admin_can_create_a_specialist_shell_but_only_assigned_editor_can_certify_it(): void
+    {
+        $admin = User::factory()->create(['user_type' => 'admin']);
+        $admin->givePermissionTo('users.manage', 'forms.res-046.certify');
+        $editor = User::factory()->create(['user_type' => 'faculty']);
+        $editor->givePermissionTo('forms.res-046.certify');
+        $group = $this->createGroup();
+
+        $instance = (new CreateOfficialFormInstance)->handle($admin, 'RES-046', $group->id);
+        $assignment = (new AssignOfficialFormActor)->handle(
+            $admin,
+            $instance,
+            $editor->id,
+            'technical_editor',
+        );
+        $completed = (new CertifyOfficialForm)->handle($editor, $instance, ['notes' => 'Technical editing complete.']);
+
+        $this->assertSame('completed', $completed->status);
+
+        (new DeactivateOfficialFormActor)->handle($admin, $instance, $assignment);
+        $this->assertSame('inactive', $assignment->fresh()->status);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'official_form.actor_deactivated',
+            'auditable_id' => $instance->id,
+        ]);
     }
 }

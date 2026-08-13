@@ -22,11 +22,17 @@ class FacilitatorOfficialFormsTest extends TestCase
     {
         $facilitator = User::factory()->create();
         $facilitator->assignRole('research-facilitator');
+        $facilitator->givePermissionTo(
+            collect(config('official-forms.facilitator'))
+                ->keys()
+                ->map(fn (string $code): string => 'forms.'.strtolower($code).'.view')
+                ->all(),
+        );
 
         $response = $this->actingAs($facilitator)
             ->get(route('facilitator.dashboard', ['tab' => 'forms', 'form' => 'RES-043A']))
             ->assertOk()
-            ->assertSee("activeOfficialForm = 'RES-043A'", false);
+            ->assertSee("activeOfficialForm: 'RES-043A'", false);
 
         foreach (array_keys(config('official-forms.facilitator')) as $code) {
             $response->assertSee($code);

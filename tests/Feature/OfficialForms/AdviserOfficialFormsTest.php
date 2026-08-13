@@ -40,7 +40,7 @@ class AdviserOfficialFormsTest extends TestCase
             ->assertSee('Official Research Forms')
             ->assertSee('Invitation to Research Adviser')
             ->assertSee('Certificate of Authentic Authorship')
-            ->assertSee('Database saving will be connected in the backend stage');
+            ->assertSee('Open Saved Form');
     }
 
     public function test_only_adviser_specific_forms_have_adviser_blade_files(): void
