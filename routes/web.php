@@ -4,6 +4,7 @@ use App\Http\Controllers\AccessPendingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisabledFeatureController;
 use App\Http\Controllers\DocumentAccessController;
+use App\Http\Controllers\OfficialFormController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 
@@ -57,4 +58,13 @@ Route::middleware(['auth', 'verified', 'active'])
             ->name('destroy');
     });
 
+Route::get('/official-forms/{instance}/print', [OfficialFormController::class, 'print'])
+    ->middleware(['auth', 'verified', 'active', 'throttle:60,1'])
+    ->whereNumber('instance')
+    ->name('official-forms.print');
+
 require __DIR__.'/auth.php';
+require __DIR__.'/admin.php';
+require __DIR__.'/student.php';
+require __DIR__.'/adviser.php';
+require __DIR__.'/facilitator.php';

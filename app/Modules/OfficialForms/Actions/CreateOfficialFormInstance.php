@@ -14,18 +14,28 @@ use App\Models\ResearchClassGroup;
 use App\Models\RevisionRequest;
 use App\Models\User;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
+use App\Modules\OfficialForms\Validators\OfficialFormPayloadValidator;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class CreateOfficialFormInstance
 {
     public function __construct(
-        private readonly OfficialFormAuthorization $authorization = new OfficialFormAuthorization
+        private readonly OfficialFormAuthorization $authorization = new OfficialFormAuthorization,
+        private readonly OfficialFormPayloadValidator $payloadValidator = new OfficialFormPayloadValidator
     ) {}
 
     /**
      * @param  array<string, mixed>  $payload
      */
+    /** @var array<string, list<string>> */
+    public const FORM_ALLOWED_SOURCE_TYPES = [
+        'RES-031' => [ConsultationRecord::class],
+        'RES-039' => [DocumentReview::class, RevisionRequest::class],
+        'RES-043A' => [OfficialFormInstance::class],
+        'RES-043B' => [OfficialFormInstance::class],
+    ];
+
     public function handle(
         User $initiator,
         string $formCode,
@@ -47,13 +57,25 @@ class CreateOfficialFormInstance
             throw new InvalidArgumentException('RES-037 is blocked pending the authoritative Defense Panel/Evaluation source from Phase 21/22.');
         }
 
+        $validatedPayload = $this->payloadValidator->validate($formCodeUpper, $payload);
+
         $definition = OfficialFormDefinition::query()
             ->where('code', $formCodeUpper)
             ->where('is_active', true)
             ->firstOrFail();
 
         $group = $groupId !== null ? ResearchClassGroup::query()->find($groupId) : null;
+        if ($group !== null && $classId === null) {
+            $classId = $group->research_class_id;
+        }
         $class = $classId !== null ? ResearchClass::query()->find($classId) : null;
+
+        if ($sourceType !== null) {
+            $allowedSources = self::FORM_ALLOWED_SOURCE_TYPES[$formCodeUpper] ?? null;
+            if ($allowedSources === null || ! in_array($sourceType, $allowedSources, true)) {
+                throw new InvalidArgumentException("Source type [{$sourceType}] is not permitted for form {$formCodeUpper}.");
+            }
+        }
 
         $targetActorId = $actorUserId ?? $initiator->id;
 
@@ -68,7 +90,7 @@ class CreateOfficialFormInstance
 
         $this->validateOwnershipScope($definition, $groupId, $classId);
 
-        return DB::transaction(function () use ($definition, $initiator, $groupId, $classId, $contextKey, $sourceType, $sourceId, $targetActorId, $payload) {
+        return DB::transaction(function () use ($definition, $initiator, $groupId, $classId, $contextKey, $sourceType, $sourceId, $targetActorId, $validatedPayload) {
             // Lock owner record for update to prevent concurrent duplicate creation
             if ($groupId !== null) {
                 ResearchClassGroup::query()->lockForUpdate()->find($groupId);
@@ -93,7 +115,7 @@ class CreateOfficialFormInstance
             $version = OfficialFormVersion::query()->create([
                 'official_form_instance_id' => $instance->id,
                 'version_number' => 1,
-                'payload' => $payload,
+                'payload' => $validatedPayload,
                 'created_by' => $initiator->id,
                 'is_current' => true,
             ]);
@@ -215,8 +237,10 @@ class CreateOfficialFormInstance
                 throw new InvalidArgumentException('Source ConsultationRecord does not belong to the specified group.');
             }
         } elseif ($sourceType === DocumentReview::class) {
-            $review = DocumentReview::query()->find($sourceId);
-            if (! $review || ($groupId !== null && (int) $review->research_class_group_id !== (int) $groupId)) {
+            /** @var DocumentReview|null $review */
+            $review = DocumentReview::query()->with('document')->find($sourceId);
+            $reviewGroupId = $review?->research_class_group_id ?? $review?->document?->research_class_group_id;
+            if (! $review || ($groupId !== null && (int) $reviewGroupId !== (int) $groupId)) {
                 throw new InvalidArgumentException('Source DocumentReview does not belong to the specified group.');
             }
         } elseif ($sourceType === RevisionRequest::class) {

@@ -7,13 +7,15 @@ use App\Models\OfficialFormInstance;
 use App\Models\OfficialFormVersion;
 use App\Models\User;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
+use App\Modules\OfficialForms\Validators\OfficialFormPayloadValidator;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class SubmitOfficialFormVersion
 {
     public function __construct(
-        private readonly OfficialFormAuthorization $authorization = new OfficialFormAuthorization
+        private readonly OfficialFormAuthorization $authorization = new OfficialFormAuthorization,
+        private readonly OfficialFormPayloadValidator $payloadValidator = new OfficialFormPayloadValidator
     ) {}
 
     /** @var list<string> */
@@ -32,7 +34,10 @@ class SubmitOfficialFormVersion
             throw new InvalidArgumentException("Invalid submission status [{$nextStatus}].");
         }
 
-        return DB::transaction(function () use ($actor, $instance, $payload, $nextStatus) {
+        $formCode = strtoupper($instance->definition->code);
+        $validatedPayload = $this->payloadValidator->validate($formCode, $payload);
+
+        return DB::transaction(function () use ($actor, $instance, $nextStatus, $validatedPayload) {
             /** @var OfficialFormInstance $lockedInstance */
             $lockedInstance = OfficialFormInstance::query()
                 ->lockForUpdate()
@@ -56,7 +61,7 @@ class SubmitOfficialFormVersion
             $newVersion = OfficialFormVersion::query()->create([
                 'official_form_instance_id' => $lockedInstance->id,
                 'version_number' => $nextVersionNumber,
-                'payload' => $payload,
+                'payload' => $validatedPayload,
                 'created_by' => $actor->id,
                 'supersedes_version_id' => $currentVersion?->id,
                 'is_current' => true,

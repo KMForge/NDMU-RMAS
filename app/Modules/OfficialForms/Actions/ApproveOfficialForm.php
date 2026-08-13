@@ -24,10 +24,18 @@ class ApproveOfficialForm
     public function handle(
         User $approver,
         OfficialFormInstance $instance,
-        array $approvalMetadata,
-        string $targetStatus,
-        string $action
+        array $approvalMetadata = [],
+        string $targetStatus = 'approved',
+        ?string $action = null
     ): OfficialFormInstance {
+        $code = strtolower($instance->definition->code);
+        $action = $action ?? match ($targetStatus) {
+            'endorsed' => 'endorse',
+            'completed' => 'certify',
+            'approved' => isset(OfficialFormAuthorization::FORM_ACTION_PERMISSIONS[$code]['receive']) ? 'receive' : 'approve',
+            default => 'approve',
+        };
+
         if (! in_array($action, self::ALLOWED_ACTIONS, true)) {
             throw new InvalidArgumentException("Unsupported official-form action [{$action}].");
         }

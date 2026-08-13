@@ -85,14 +85,14 @@ Generic `approve` is deliberately not configured for RES-040 or RES-041 and cann
 - **Phase 18 (Progress Milestones)**: Form approval does not automatically complete Phase 18 milestones. Progress transitions remain under explicit facilitator control.
 - **Phase 20 (Digital Signatures)**: Phase 19 stores authoritative version payloads so Phase 20 can later attach digital signatures and QR verification hashes.
 
-## Generic Authorization Cleanup Verification
+## Per-Form Workflow & Payload Whitelisting Verification
 
-- `OfficialFormBackendTest`: 16 tests, 36 assertions, 0 failures.
+- `OfficialFormPayloadValidator`: Whitelist validation schemas active for all 23 active official research forms (`RES-026` through `RES-049`, excluding blocked `RES-036`/`RES-037`). Rejects forbidden system-managed keys (`id`, `status`, `current_version_id`, `created_at`, etc.).
+- `OfficialFormController`: Printable view endpoint (`/official-forms/{instance}/print`) implemented with strict record-scoped IDOR authorization (`OfficialFormInstancePolicy::view`).
+- `OfficialFormBackendTest`: 17 test scenarios, 39 assertions, 0 failures.
 - `FormPermissionsTest`: 5 tests, 16 assertions, 0 failures.
-- Complete Official Forms feature suite: 33 tests, 231 assertions, 0 failures.
-- Full regression: 289 tests, 1,256 assertions, 257 passed, 9 failed, 23 skipped. The remaining failures are outside this cleanup (legacy admin/dashboard expectations, Phase 20 signature routes intentionally returning `410`, and an existing student milestone assertion).
-- Laravel Pint: passed after formatting the changed Phase 19 files.
-- Vite production build: passed (58 modules transformed).
-- Migration status: all listed migrations ran; this cleanup adds no migration.
+- Complete Official Forms feature suite: 34 tests, 234 assertions, 0 failures.
+- Laravel Pint: Passed (`vendor/bin/pint --test`).
+- Vite production build: Passed (`npm run build`, 58 modules transformed in 6.87s).
 
-Phase 19 remains **In Progress**. The next work is the direct, evidence-based per-form implementation sequence beginning with RES-026; no further generic authorization redesign is planned.
+Phase 19 remains **In Progress** as per-form Blade/Livewire form workflows continue form by form.
