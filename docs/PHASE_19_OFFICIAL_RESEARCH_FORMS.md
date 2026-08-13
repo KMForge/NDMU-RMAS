@@ -1,98 +1,140 @@
-# Phase 19 — Official Research Forms
+# Phase 19 — Official Research Forms (Correctness Recovery)
 
-## Purpose and Scope
+Status: **In Progress**
+Recovery baseline: `dffbd16df88762e564549781901fe66332281265`
 
-Phase 19 establishes the backend foundation, role-based access control (RBAC), form definition catalog, contextual form persistence, version history, and actor assignments for NDMU's 25 official research forms (`RES-026` through `RES-049`).
+This document records the evidence audit and fail-closed corrections made after the initial Phase 19 foundation. A form being visible in Blade does not prove an approval workflow. Permissions, actor identity, ownership, source binding, and state transition must all be independently established.
 
-## Permission & Access Architecture
+## Security invariants
 
-Official Form access is strictly permission-driven extending the existing Spatie RBAC framework.
-Form permissions follow the machine-readable naming pattern: `forms.<form-code-lowercase>.<action>` (e.g. `forms.res-026.view`, `forms.res-026.submit`, `forms.res-045.certify`).
+- Authorization is `permission AND exact active actor assignment AND exact record scope AND valid state transition`.
+- `initiated_by` grants draft ownership/visibility only; it never grants an academic action.
+- Group-owned instances store only `research_class_group_id`; class-owned instances store only `research_class_id`.
+- `ApproveOfficialForm` requires the caller to pass `action`, `targetStatus`, and metadata explicitly. Status never selects an action.
+- Only `approve`, `endorse`, and `receive` are accepted by that action. Certification remains in `CertifyOfficialForm`.
+- Browser payloads cannot set IDs, ownership, source fields, status, actor identities, signatures, institutional decisions, or timestamps.
+- Source type and source ID are an inseparable pair. Source-bound forms fail closed if either is absent or the lifecycle/scope check fails.
+- Print uses the authorized saved instance and its current immutable version. It does not accept an arbitrary payload or expose another group's form.
 
-Runtime authorization is dynamically calculated:
+## Evidence and action matrix
 
-$$\text{Allow} = \text{HasRequiredFormPermission} \land \text{HasAcademicActorAssignment} \land \text{ValidGroup/Class/DefenseScope} \land \text{ValidWorkflowState}$$
+| Form | Template evidence | Verified backend action | Actor source | Workflow status |
+| --- | --- | --- | --- | --- |
+| RES-026 | Panel chairman/member lines, Program Coordinator, College Dean | Draft + submit only | Group leader for draft | Approval blocked; adviser is not a signer in the template |
+| RES-027–030 | Invitations/change request fields exist | Persistence only | Instance assignment where configured | Approval/response transition not verified |
+| RES-031 | Consultation rows and adviser signature | Source-bound persistence | Completed, non-superseded `ConsultationRecord` | Signature transition not verified |
+| RES-032–035 | Consultation/defense fields exist | Persistence only | Group/instance context | Generic approval removed |
+| RES-036–037 | Defense evaluation UI exists | None | Future defense panel assignment | Blocked until Phases 21/22 |
+| RES-038–039 | Endorsement/revision UI exists | Source-bound persistence for RES-039 | Group; authoritative review/revision source | Generic approval removed |
+| RES-040 | Adviser endorsement, instructor receipt | `endorse`, then `receive` | Group adviser; instance `research_instructor` | Active and ordered |
+| RES-041 | Instructor endorsement, coordinator receipt | `endorse`, then `receive` | Exact active class assignment | Active and ordered |
+| RES-042 | Validation request | Persistence only | Group | Generic approval removed |
+| RES-043A/B | Validator item/rating forms | `validate` | Pre-existing validator assignment on same-group RES-042 source | Active |
+| RES-044 | Data-gathering endorsement | Persistence only | Group adviser/panel context | Transition not yet verified |
+| RES-045–046 | Editor certificate templates | `certify` | Exact language/technical editor assignment | Active |
+| RES-047 | Adviser endorsement and College Dean approval | `endorse`, then `approve` | Group adviser; exact class `dean` assignment | Active and ordered |
+| RES-048–049 | Peer evaluation/authorship declaration | Persistence only | Group | Generic approval removed |
 
-### Default Specialist Roles
-- `research-instructor`: Instructor for Capstone/Research methods courses (`forms.res-040.*`, `forms.res-041.*`).
-- `language-editor`: Specialist for manuscript language editing review & certification (`forms.res-029.*`, `forms.res-045.*`).
-- `technical-editor`: Specialist for manuscript technical editing review & certification (`forms.res-046.*`).
-- `instrument-validator`: Specialist for survey instrument item validation & rating (`forms.res-042.*`, `forms.res-043a.*`, `forms.res-043b.*`).
+## Ownership and assignment authority
 
-Form-only roles do not gain dedicated dashboards; form actions render dynamically inside the common Faculty navigation when permission requirements are satisfied.
+`official_form_actor_assignments` remains instance-scoped. It is appropriate for a validator, editor, consultant, panelist, or recipient assigned to one form instance.
 
-### Explicit action authorization
+Class-wide institutional responsibility is stored separately in `research_class_actor_assignments`. This avoids treating an actor on one unrelated group form as the instructor/coordinator/dean of every form in that class.
 
-Academic mutation authority is action-specific. `ApproveOfficialForm` accepts only the explicit actions `approve`, `endorse`, and `receive`; it never derives an academic action from a target status. `CertifyOfficialForm` remains the only certification transition action. An action that is absent from the configured permission map or verified workflow map fails closed.
+| Assignment | Record | Who may assign | Eligibility |
+| --- | --- | --- | --- |
+| Research Instructor | `research_class_actor_assignments` | Class facilitator or administrator | Faculty with RES-041 fill/endorse permission |
+| Program Coordinator | `research_class_actor_assignments` | Class facilitator or administrator | Faculty with RES-041 receive permission |
+| College Dean | `research_class_actor_assignments` | Class facilitator or administrator | Faculty with RES-047 approve permission |
+| Adviser | `research_class_groups.adviser_id` | Existing class/group workflow | Exact group adviser |
+| Validator/editor/specialist | `official_form_actor_assignments` | Authorized instance assigner | Faculty plus matching form permission |
 
-Draft access and academic action access are intentionally separate. `initiated_by` may establish draft ownership and creator visibility, but it never grants `approve`, `endorse`, `receive`, `validate`, `certify`, `evaluate`, or `sign` authority. Academic actions require both the configured Spatie permission and the exact contextual actor source.
+Assignment creation is audited. The institutional business process deciding who may designate class-level officers still needs product/UI integration; the backend mechanism is explicit and record-scoped.
 
-For class-owned forms with an actor-scoped fill action, a class facilitator is not automatically the academic actor. RES-041 initiation requires an active `research_instructor` assignment in the same class; an unrelated actor assignment such as `language_editor`, or class ownership by itself, is insufficient.
+## Source-binding matrix
 
-## Action-Specific Actor and Transition Matrix
+| Form | Allowed source | Required checks |
+| --- | --- | --- |
+| RES-031 | `ConsultationRecord` | Same group, `consulted_at` present, not superseded |
+| RES-039 | `DocumentReview` | Document belongs to same group, reviewed, not superseded |
+| RES-039 | `RevisionRequest` | Same group, not invalidated, not cancelled |
+| RES-043A/B | `OfficialFormInstance` (RES-042 only) | Same group and target validator already has an active assignment on source RES-042 |
 
-| Form | Action | Permission | Academic Actor | Authoritative Source | Scope | Allowed From | Resulting State | Status | Dependency |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `RES-040` | `endorse` | `forms.res-040.endorse` | Adviser | `research_class_groups.adviser_id` | Research group | `draft`, `submitted`, `in_progress`, `pending_action` | `endorsed` | Active | None |
-| `RES-040` | `receive` | `forms.res-040.receive` | Research Instructor | Active `official_form_actor_assignments` entry with `actor_type = research_instructor` for the same group | Research group | `endorsed` | `approved` | Active | Adviser endorsement |
-| `RES-041` | `fill` | `forms.res-041.fill` | Research Instructor | Active `research_instructor` actor assignment within the same research class, including a group-owned form in that class | Research class | Initiation/draft editing context | `draft` or a new immutable draft version | Active | Verified same-class instructor assignment |
-| `RES-041` | `endorse` | `forms.res-041.endorse` | Research Instructor | Active `research_instructor` actor assignment within the same research class | Research class | `draft`, `submitted`, `in_progress`, `pending_action` | `endorsed` | Active | None |
-| `RES-041` | `receive` | `forms.res-041.receive` | Program Coordinator | Active `official_form_actor_assignments` entry with `actor_type = program_coordinator` in the same class | Research class | `endorsed` | `approved` | Active | Research Instructor endorsement |
-| `RES-043A` | `validate` | `forms.res-043a.validate` | Instrument Validator | Pre-existing active `instrument_validator` assignment on the linked `RES-042` instance | Research group | Not yet implemented as a transition | Not yet implemented | Authorization/source protection active | Same-group `RES-042` source |
-| `RES-043B` | `validate` | `forms.res-043b.validate` | Instrument Validator | Pre-existing active `instrument_validator` assignment on the linked `RES-042` instance | Research group | Not yet implemented as a transition | Not yet implemented | Authorization/source protection active | Same-group `RES-042` source |
-| `RES-045` | `certify` | `forms.res-045.certify` | Language Editor | Active assignment with `actor_type = language_editor` for the same group | Research group | `draft`, `submitted`, `in_progress`, `pending_action` | `completed` | Active | None |
-| `RES-046` | `certify` | `forms.res-046.certify` | Technical Editor | Active assignment with `actor_type = technical_editor` for the same group | Research group | `draft`, `submitted`, `in_progress`, `pending_action` | `completed` | Active | None |
-| `RES-036` | `evaluate` | `forms.res-036.evaluate` | Panelist | Authoritative defense panel assignment | Research group/defense | None | None | Blocked | Phase 21 defense panel assignment |
-| `RES-037` | `sign` | `forms.res-037.sign` | Panelist | Authoritative defense panel/evaluation summary source | Research group/defense | None | None | Blocked | Phase 21/22 panel and evaluation data |
+All other source model types are rejected. RES-043A/B cannot create their own validator authority.
 
-Generic `approve` is deliberately not configured for RES-040 or RES-041 and cannot substitute for `receive`. Wrong-order transitions are rejected inside the database transaction after the form instance is locked.
+## Payload-to-template alignment
 
-## Catalog Schema & Models
+The whitelist below contains browser-editable content only. Actor names, student rosters, research/class identity, signatures, reviewer remarks, approvals, and calculated values must come from authoritative records or future workflow actions.
 
-- `official_form_definitions`: `id`, `code` (unique, e.g. `RES-026`), `title`, `description`, `default_category`, `ownership_scope` (`research_group` vs `research_class`), `cardinality` (`single_per_group`, `single_per_context`, `per_actor`, `repeatable`), `template_view`, `is_active`, `sort_order`, `metadata`.
-- `official_form_instances`: `id`, `official_form_definition_id`, `research_class_group_id` (nullable), `research_class_id` (nullable), `context_key` (`general`, `proposal_defense`, `final_defense`, `proposal_revision`, `final_paper_revision`), `source_type` (nullable), `source_id` (nullable), `initiated_by`, `status`, `current_version_id`.
-- `official_form_versions`: `id`, `official_form_instance_id`, `version_number`, `payload` (JSON), `created_by`, `supersedes_version_id`, `is_current`.
-- `official_form_actor_assignments`: `id`, `official_form_instance_id`, `user_id`, `actor_type` (`adviser`, `panelist`, `language_editor`, `technical_editor`, `instrument_validator`, `research_instructor`, `program_coordinator`, `dean`, `consultant`), `assigned_by`, `assigned_at`, `status`.
+| Form | Accepted browser fields | Server-derived/read-only examples |
+| --- | --- | --- |
+| RES-026 | `date`, `topics` | students, approved title/number, remarks, panel/coordinator/dean |
+| RES-027 | `date`, `course`, `research_title` | adviser, students, issuer/signature |
+| RES-028 | `date`, `panel_role`, `defense`, `course`, `defense_date`, `time`, `venue`, `research_title` | panelist, students, coordinator/dean |
+| RES-029 | none until a template is verified | all actor/response fields |
+| RES-030 | `date`, `degree_program`, `research_title`, `personnel_type`, `current_names`, `proposed_replacement`, `reasons` | students and approving/noting officers |
+| RES-031 | none; authoritative consultation source | researchers, adviser, consultation rows/signature |
+| RES-032 | `date`, `consultant_types`, `specific_concerns`, `recommendations`, `follow_up_date` | students and consultant signature |
+| RES-033 | `date`, `defense_type`, `defense_date`, `time` | students, title, adviser, receiver |
+| RES-034 | `date`, `time`, `defense_type`, `issues`, `pages` | students, adviser, title |
+| RES-035 | `date`, `defense_type`, `comments` | students, title, adviser/panel signatures |
+| RES-038 | `date`, `day`, `month_year` | adviser, students, title, officer signatures |
+| RES-039 | `revisions`, `recommendation`, `date` | research identity and reviewers |
+| RES-040 | `date` | title, students, adviser/instructor identity |
+| RES-041 | `date`, `subject_number`, `descriptive_title`, `entries` | instructor/coordinator identity |
+| RES-042 | `date`, `descriptive_title`, `course` | students, program, title, adviser/validator |
+| RES-043A | `problem`, `items`, `date` | researchers, title, validator identity |
+| RES-043B | `ratings`, `date` | researchers, title, mean, validator identity |
+| RES-044 | `date`, `salutation` | group/title and adviser/coordinator/dean |
+| RES-045–047 | `date` (plus `salutation` on RES-047) | group/title and editor/adviser/dean identity |
+| RES-048 | `evaluation_phase`, `ratings`, `date` | member names, totals, evaluator signature |
+| RES-049 | `authorship_confirmed` | researchers and digital-signature metadata |
 
-## Authoritative Actor-Source Matrix
+Array values are bounded and recursively limited; strings are trimmed and length-limited. Blade output remains escaped.
 
-| Form Code | Actor Type | Authoritative Actor Source | Source Model / FK | Owner Scope | Context Key | Source Exists? | Phase Owner | Integration Status | Blocked Dependency |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `RES-026` | Student / Adviser | `ResearchClassGroup` | `leader_student_id` / `adviser_id` | Research Group | `general` | Yes | Phase 12 | Active | None |
-| `RES-027` | Adviser | `ResearchClassGroup` | `adviser_id` | Research Group | `general` | Yes | Phase 12 | Active | None |
-| `RES-028` | Panelist | `OfficialFormActorAssignment` | `official_form_actor_assignments` | Research Group | `defense` | Yes | Phase 19 | Active | None |
-| `RES-029` | Language Editor | `OfficialFormActorAssignment` | `official_form_actor_assignments` | Research Group | `editing` | Yes | Phase 19 | Active | None |
-| `RES-031` | Adviser | `ConsultationRecord` | `consultation_records` | Research Group | `general` | Yes | Phase 16 | Active | None |
-| `RES-032` | Specialist Consultant | `OfficialFormActorAssignment` | `official_form_actor_assignments` | Research Group | `specialist` | Yes | Phase 19 | Active | None |
-| `RES-033` | Adviser | `ResearchClassGroup` | `adviser_id` | Research Group | `proposal_defense` | Yes | Phase 12 | Active | None |
-| `RES-036` | Panelist | Defense Panel Assignment | `defense_schedules` / `evaluations` | Research Group | `defense` | No | Phase 21 | Blocked | Blocked pending Phase 21 Defense Panel Assignment |
-| `RES-037` | Panelist | Defense Panel Assignment | `defense_schedules` / `evaluations` | Research Group | `defense` | No | Phase 21 / 22 | Blocked | Blocked pending Phase 21/22 Panel Summaries |
-| `RES-038` | Adviser / Facilitator | `ResearchClass` | `facilitator_id` / `adviser_id` | Research Class | `endorsement` | Yes | Phase 10 / 12 | Active | None |
-| `RES-039` | Adviser / Group | `DocumentReview` / `RevisionRequest` | `document_reviews` / `revision_requests` | Research Group | `revision` | Yes | Phase 15 / 17 | Active | None |
-| `RES-040` | Research Instructor | Specialist Role Assignment | `official_form_actor_assignments` | Research Class | `endorsement` | Yes | Phase 19 | Active | None |
-| `RES-041` | Program Coordinator | Specialist Role Assignment | `official_form_actor_assignments` | Research Class | `endorsement` | Yes | Phase 19 | Active | None |
-| `RES-042` | Student / Validator | `OfficialFormInstance` | `official_form_instances` (`RES-042`) | Research Group | `validation` | Yes | Phase 19 | Active | None |
-| `RES-043A` | Instrument Validator | `RES-042` Validation Request | `source_type` = `OfficialFormInstance` (`RES-042`) | Research Group | `validation` | Yes | Phase 19 | Active | Linked to `RES-042` source |
-| `RES-043B` | Instrument Validator | `RES-042` Validation Request | `source_type` = `OfficialFormInstance` (`RES-042`) | Research Group | `validation` | Yes | Phase 19 | Active | Linked to `RES-042` source |
-| `RES-044` | Adviser | `ResearchClassGroup` | `adviser_id` | Research Group | `final_defense` | Yes | Phase 12 | Active | None |
-| `RES-045` | Language Editor | `OfficialFormActorAssignment` | `actor_type` = `language_editor` | Research Group | `editing` | Yes | Phase 19 | Active | None |
-| `RES-046` | Technical Editor | `OfficialFormActorAssignment` | `actor_type` = `technical_editor` | Research Group | `editing` | Yes | Phase 19 | Active | None |
-| `RES-047` | Facilitator / Dean | `ResearchClass` | `facilitator_id` | Research Class | `approval` | Yes | Phase 10 | Active | None |
+## UI and print audit
 
-## Cross-Phase Integrations
-- **Phase 16 (Consultations)**: `RES-031` integrates with completed academic records from `consultation_records`. `RES-032` represents external/specialist consultations.
-- **Phase 15 & 17 (Revisions)**: `RES-039` aggregates Phase 15 document review findings (`document_review_findings`) and Phase 17 revision cycle responses (`revision_requests`).
-- **Phase 18 (Progress Milestones)**: Form approval does not automatically complete Phase 18 milestones. Progress transitions remain under explicit facilitator control.
-- **Phase 20 (Digital Signatures)**: Phase 19 stores authoritative version payloads so Phase 20 can later attach digital signatures and QR verification hashes.
+- All located RES-026–049 Blade templates were inspected; RES-029 has no verified dedicated template.
+- RES-026 and RES-047 were checked against their actual signature labels, not inferred role names.
+- The current generic print page is persistence/version display, not proof that a form's institutional layout or signatures are complete.
+- Print access uses `OfficialFormInstancePolicy::view` and the current saved version only.
 
-## Per-Form Workflow & Payload Whitelisting Verification
+## Verification coverage
 
-- `OfficialFormPayloadValidator`: Whitelist validation schemas active for all 23 active official research forms (`RES-026` through `RES-049`, excluding blocked `RES-036`/`RES-037`). Rejects forbidden system-managed keys (`id`, `status`, `current_version_id`, `created_at`, etc.).
-- `OfficialFormController`: Printable view endpoint (`/official-forms/{instance}/print`) implemented with strict record-scoped IDOR authorization (`OfficialFormInstancePolicy::view`).
-- `OfficialFormBackendTest`: 17 test scenarios, 39 assertions, 0 failures.
-- `FormPermissionsTest`: 5 tests, 16 assertions, 0 failures.
-- Complete Official Forms feature suite: 34 tests, 234 assertions, 0 failures.
-- Laravel Pint: Passed (`vendor/bin/pint --test`).
-- Vite production build: Passed (`npm run build`, 58 modules transformed in 6.87s).
+The focused backend suite covers exclusive ownership, permission-without-assignment denial, exact same-class assignment, cross-class denial, explicit actions, action/status mismatch, RES-026 fail-closed behavior, RES-047 adviser/dean ordering, facilitator denial, system/unknown payload fields, source type/scope/lifecycle rules, RES-043 cross-group denial, print IDOR, specialist assignments, and RES-036/037 blocking.
 
-Phase 19 remains **In Progress** as per-form Blade/Livewire form workflows continue form by form.
+Latest focused result during recovery: **40 Official Forms tests, 251 assertions, 0 failures**. Final repository-wide verification is recorded in the implementation handoff.
+
+## Recovery verification report
+
+| Check | Result |
+| --- | --- |
+| Focused Official Forms suite | Passed: 40 tests, 251 assertions |
+| Full regression suite | 296 tests: 264 passed, 9 failed, 23 skipped; 1,275 assertions |
+| Failure classification | 5 signature tests hit the intentionally disabled (410) Phase 20 routes; 4 failures are in unchanged dashboard UI/data expectations outside the Phase 19 implementation files |
+| Pint | Passed |
+| Vite production build | Passed: 58 modules transformed |
+| Blade compilation | Passed |
+| PostgreSQL migrations | Both recovery migrations applied in batch 12 |
+
+The full suite is therefore not represented as green. The Phase 19 focused suite is green, while unrelated disabled-feature and dashboard assertions remain repository-level blockers.
+
+## Completion accounting
+
+Under the prompt's strict definition, a form is fully implemented only when definition, ownership, payload validation, actor authority, workflow, authorization, UI binding, version persistence, exact print binding, tests, and documentation all exist. None of the 25 forms currently satisfies every item because interactive UI saving and exact institutional print binding are still incomplete.
+
+- Fully implemented forms: **0 of 25 (strict form-completion percentage: 0%)**
+- Partial/foundation forms: **23**
+- Phase 21/22 blocked forms: **2 (RES-036 and RES-037)**
+
+This strict percentage does not mean the persistence/security foundation is absent; it prevents partial forms from being reported as complete without an approved weighting model.
+
+## Remaining blockers
+
+- Institutional approval mappings for forms not listed as active above require signed process evidence.
+- RES-029 needs a verified template.
+- RES-036/037 require authoritative defense/panel/evaluation records from Phases 21/22.
+- Per-form interactive saving and exact institutional print layouts remain incomplete.
+- Class actor assignment needs its final administrator/facilitator UI flow.
+
+Phase 19 therefore remains **In Progress**.

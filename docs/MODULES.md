@@ -18,7 +18,7 @@ The table below distinguishes the intended domain responsibility from the curren
 | ConsultationRecords | Adviser consultation records | Phase 16 completed |
 | RevisionTracker | Revision requests and resolution | Phase 17 completed |
 | ResearchProgress | Group-owned official milestones, weighted derived progress, deadlines, evidence, and audit history | Phase 18 completed; separate from document/review/consultation/revision state |
-| Official Research Forms | Research form workflows, approvals, print/export | Phase 19 planned |
+| Official Research Forms | Evidence-backed form persistence, scoped actors, source binding, approved transitions, and authorized print | Phase 19 in progress |
 | Digital Signatures | Signature enrollment, approval, verification | Phase 20 planned |
 | DefenseScheduling | Rooms, schedules, conflicts, and panels | Phase 21 planned |
 | EvaluationSystem | Rubrics, scores, and access restrictions | Phase 22 planned |

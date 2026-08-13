@@ -65,10 +65,17 @@ class CreateOfficialFormInstance
             ->firstOrFail();
 
         $group = $groupId !== null ? ResearchClassGroup::query()->find($groupId) : null;
-        if ($group !== null && $classId === null) {
-            $classId = $group->research_class_id;
-        }
         $class = $classId !== null ? ResearchClass::query()->find($classId) : null;
+
+        $this->validateOwnershipScope($definition, $groupId, $classId);
+
+        if (($sourceType === null) !== ($sourceId === null)) {
+            throw new InvalidArgumentException('Source type and source ID must be provided together.');
+        }
+
+        if (array_key_exists($formCodeUpper, self::FORM_ALLOWED_SOURCE_TYPES) && $sourceType === null) {
+            throw new InvalidArgumentException("Form {$formCodeUpper} requires its configured authoritative source.");
+        }
 
         if ($sourceType !== null) {
             $allowedSources = self::FORM_ALLOWED_SOURCE_TYPES[$formCodeUpper] ?? null;
@@ -87,8 +94,6 @@ class CreateOfficialFormInstance
         if (! $this->authorization->canInitiate($initiator, $definition, $group, $class)) {
             throw new InvalidArgumentException("User #{$initiator->id} is not authorized to initiate form {$definition->code}.");
         }
-
-        $this->validateOwnershipScope($definition, $groupId, $classId);
 
         return DB::transaction(function () use ($definition, $initiator, $groupId, $classId, $contextKey, $sourceType, $sourceId, $targetActorId, $validatedPayload) {
             // Lock owner record for update to prevent concurrent duplicate creation
@@ -160,10 +165,7 @@ class CreateOfficialFormInstance
                 throw new InvalidArgumentException("Form {$definition->code} requires a research_class_group_id.");
             }
             if ($classId !== null) {
-                $group = ResearchClassGroup::query()->find($groupId);
-                if ($group !== null && (int) $group->research_class_id !== (int) $classId) {
-                    throw new InvalidArgumentException('Mismatch between research_class_id and research_class_group_id.');
-                }
+                throw new InvalidArgumentException("Group-owned form {$definition->code} must not specify a research_class_id.");
             }
         } elseif ($definition->ownership_scope === 'research_class') {
             if ($classId === null) {
@@ -233,19 +235,19 @@ class CreateOfficialFormInstance
 
         if ($sourceType === ConsultationRecord::class) {
             $record = ConsultationRecord::query()->find($sourceId);
-            if (! $record || ($groupId !== null && (int) $record->research_class_group_id !== (int) $groupId)) {
+            if (! $record || $record->consulted_at === null || $record->is_superseded || ($groupId !== null && (int) $record->research_class_group_id !== (int) $groupId)) {
                 throw new InvalidArgumentException('Source ConsultationRecord does not belong to the specified group.');
             }
         } elseif ($sourceType === DocumentReview::class) {
             /** @var DocumentReview|null $review */
             $review = DocumentReview::query()->with('document')->find($sourceId);
             $reviewGroupId = $review?->research_class_group_id ?? $review?->document?->research_class_group_id;
-            if (! $review || ($groupId !== null && (int) $reviewGroupId !== (int) $groupId)) {
+            if (! $review || $review->reviewed_at === null || $review->is_superseded || ($groupId !== null && (int) $reviewGroupId !== (int) $groupId)) {
                 throw new InvalidArgumentException('Source DocumentReview does not belong to the specified group.');
             }
         } elseif ($sourceType === RevisionRequest::class) {
             $request = RevisionRequest::query()->find($sourceId);
-            if (! $request || ($groupId !== null && (int) $request->research_class_group_id !== (int) $groupId)) {
+            if (! $request || $request->invalidated_at !== null || $request->status?->value === 'cancelled' || ($groupId !== null && (int) $request->research_class_group_id !== (int) $groupId)) {
                 throw new InvalidArgumentException('Source RevisionRequest does not belong to the specified group.');
             }
         }

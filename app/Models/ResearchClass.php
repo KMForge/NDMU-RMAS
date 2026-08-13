@@ -35,6 +35,11 @@ class ResearchClass extends Model
         return $this->hasMany(ResearchClassGroup::class);
     }
 
+    public function officialFormActorAssignments(): HasMany
+    {
+        return $this->hasMany(ResearchClassActorAssignment::class);
+    }
+
     public function setJoinCode(string $joinCode): void
     {
         $normalized = self::normalizeJoinCode($joinCode);

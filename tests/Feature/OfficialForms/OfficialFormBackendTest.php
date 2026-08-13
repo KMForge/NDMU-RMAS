@@ -12,6 +12,7 @@ use App\Models\ResearchClassGroup;
 use App\Models\User;
 use App\Modules\OfficialForms\Actions\ApproveOfficialForm;
 use App\Modules\OfficialForms\Actions\AssignOfficialFormActor;
+use App\Modules\OfficialForms\Actions\AssignResearchClassFormActor;
 use App\Modules\OfficialForms\Actions\CertifyOfficialForm;
 use App\Modules\OfficialForms\Actions\CreateOfficialFormInstance;
 use App\Modules\OfficialForms\Actions\SubmitOfficialFormVersion;
@@ -20,6 +21,7 @@ use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use ReflectionMethod;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -61,7 +63,7 @@ class OfficialFormBackendTest extends TestCase
         );
 
         if ($adviser !== null) {
-            $adviser->givePermissionTo('forms.res-033.endorse', 'forms.res-026.approve', 'forms.res-026.view', 'forms.res-040.endorse');
+            $adviser->givePermissionTo('forms.res-033.endorse', 'forms.res-026.view', 'forms.res-040.endorse');
         }
 
         return ResearchClassGroup::query()->create([
@@ -117,7 +119,7 @@ class OfficialFormBackendTest extends TestCase
         );
     }
 
-    public function test_res026_full_lifecycle_create_submit_approve_and_print(): void
+    public function test_res026_can_be_submitted_and_printed_but_has_no_unverified_adviser_approval_workflow(): void
     {
         $student = User::factory()->create(['user_type' => 'student']);
         $adviser = User::factory()->create(['user_type' => 'faculty']);
@@ -145,22 +147,21 @@ class OfficialFormBackendTest extends TestCase
         $this->assertSame(2, $version->version_number);
         $this->assertSame('submitted', $instance->fresh()->status);
 
-        // 3. Approve form
+        // RES-026 has institutional signature lines, but the current template does
+        // not establish an adviser approval action.
         $approveAction = new ApproveOfficialForm;
-        $approvedInstance = $approveAction->handle(
-            approver: $adviser,
-            instance: $instance->fresh(),
-            approvalMetadata: ['approved_title_number' => 1, 'remarks' => 'Approved title 1.'],
-            targetStatus: 'approved'
-        );
-
-        $this->assertSame('approved', $approvedInstance->status);
+        try {
+            $approveAction->handle($adviser, $instance->fresh(), [], 'approved', 'approve');
+            $this->fail('Expected RES-026 adviser approval to fail closed.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('not explicitly configured', $exception->getMessage());
+        }
 
         // 4. Authorized user prints form
         $response = $this->actingAs($student)->get(route('official-forms.print', $instance->id));
         $response->assertStatus(200);
         $response->assertSee('NOTRE DAME OF MARBEL UNIVERSITY');
-        $response->assertSee('APPROVED');
+        $response->assertSee('SUBMITTED');
 
         // 5. Unauthorized user from another group is denied print access
         $otherStudent = User::factory()->create(['user_type' => 'student']);
@@ -220,7 +221,7 @@ class OfficialFormBackendTest extends TestCase
             groupId: $group->id,
             sourceType: ConsultationRecord::class,
             sourceId: $record->id,
-            payload: ['remarks' => 'Valid consultation']
+            payload: []
         );
 
         $this->assertInstanceOf(OfficialFormInstance::class, $instance);
@@ -266,7 +267,7 @@ class OfficialFormBackendTest extends TestCase
             groupId: $group->id,
             sourceType: DocumentReview::class,
             sourceId: $review->id,
-            payload: ['general_notes' => 'Revision matrix created']
+            payload: ['revisions' => [['area' => 'Methodology', 'suggestions' => 'Clarify sampling']]]
         );
 
         $this->assertInstanceOf(OfficialFormInstance::class, $instance);
@@ -276,26 +277,33 @@ class OfficialFormBackendTest extends TestCase
 
     public function test_res047_reproduction_endorsement_flow(): void
     {
-        $group = $this->createGroup();
-        $facilitator = $group->creator;
+        $adviser = User::factory()->create(['user_type' => 'faculty']);
+        $adviser->givePermissionTo('forms.res-047.view', 'forms.res-047.endorse');
+        $dean = User::factory()->create(['user_type' => 'faculty']);
+        $dean->givePermissionTo('forms.res-047.approve');
+        $group = $this->createGroup(adviser: $adviser);
+        (new AssignResearchClassFormActor)->handle($group->creator, $group->researchClass, $dean, 'dean');
 
         $createAction = new CreateOfficialFormInstance;
         $instance = $createAction->handle(
-            initiator: $group->leader,
+            initiator: $adviser,
             formCode: 'RES-047',
             groupId: $group->id,
-            payload: ['manuscript_title' => 'Final Approved Capstone', 'copies_authorized' => 5]
+            payload: ['date' => '2026-08-13', 'salutation' => 'Dear College Dean']
         );
 
         $approveAction = new ApproveOfficialForm;
         $endorsedInstance = $approveAction->handle(
-            approver: $facilitator,
+            approver: $adviser,
             instance: $instance,
-            approvalMetadata: ['copies' => 5],
-            targetStatus: 'endorsed'
+            approvalMetadata: [],
+            targetStatus: 'endorsed',
+            action: 'endorse'
         );
 
         $this->assertSame('endorsed', $endorsedInstance->status);
+        $approved = $approveAction->handle($dean, $endorsedInstance, [], 'approved', 'approve');
+        $this->assertSame('approved', $approved->status);
     }
 
     public function test_admin_users_manage_cannot_certify_res045_without_language_editor_assignment(): void
@@ -368,11 +376,11 @@ class OfficialFormBackendTest extends TestCase
         $approveAction = new ApproveOfficialForm;
 
         // Adviser can endorse
-        $endorsedInstance = $approveAction->handle($adviser, $instance1, ['notes' => 'Endorsed'], 'endorsed');
+        $endorsedInstance = $approveAction->handle($adviser, $instance1, ['notes' => 'Endorsed'], 'endorsed', 'endorse');
         $this->assertSame('endorsed', $endorsedInstance->status);
 
         // Research Instructor can receive
-        $receivedInstance = $approveAction->handle($instructor, $instance1, ['notes' => 'Received'], 'approved');
+        $receivedInstance = $approveAction->handle($instructor, $instance1, ['notes' => 'Received'], 'approved', 'receive');
         $this->assertSame('approved', $receivedInstance->status);
 
         // Instructor CANNOT perform adviser endorsement on a new draft instance
@@ -380,7 +388,7 @@ class OfficialFormBackendTest extends TestCase
         $assignAction->handle($group->creator, $instance2, $instructor->id, 'research_instructor');
 
         try {
-            $approveAction->handle($instructor, $instance2, ['notes' => 'Attempt'], 'endorsed');
+            $approveAction->handle($instructor, $instance2, ['notes' => 'Attempt'], 'endorsed', 'endorse');
             $this->fail('Expected InvalidArgumentException for instructor endorsement.');
         } catch (InvalidArgumentException $e) {
             $this->assertStringContainsString('not contextually authorized', $e->getMessage());
@@ -390,7 +398,7 @@ class OfficialFormBackendTest extends TestCase
     public function test_res041_action_specific_actor_rules(): void
     {
         $instructor = User::factory()->create(['user_type' => 'faculty']);
-        $instructor->givePermissionTo('forms.res-041.fill', 'forms.res-041.endorse');
+        $instructor->givePermissionTo('forms.res-041.fill', 'forms.res-041.endorse', 'forms.res-041.receive');
 
         $coordinator = User::factory()->create(['user_type' => 'faculty']);
         $coordinator->givePermissionTo('forms.res-041.receive');
@@ -399,28 +407,25 @@ class OfficialFormBackendTest extends TestCase
         $class = $group->researchClass;
 
         $createAction = new CreateOfficialFormInstance;
+        $classAssignAction = new AssignResearchClassFormActor;
+        $classAssignAction->handle($class->facilitator, $class, $instructor, 'research_instructor');
+        $classAssignAction->handle($class->facilitator, $class, $coordinator, 'program_coordinator');
         $instance = $createAction->handle($instructor, 'RES-041', classId: $class->id);
-
-        $assignAction = new AssignOfficialFormActor;
-        $assignAction->handle($class->facilitator, $instance, $instructor->id, 'research_instructor');
-        $assignAction->handle($class->facilitator, $instance, $coordinator->id, 'program_coordinator');
 
         $approveAction = new ApproveOfficialForm;
 
         // Instructor can endorse
-        $endorsedInstance = $approveAction->handle($instructor, $instance, ['notes' => 'Instructor endorse'], 'endorsed');
+        $endorsedInstance = $approveAction->handle($instructor, $instance, ['notes' => 'Instructor endorse'], 'endorsed', 'endorse');
         $this->assertSame('endorsed', $endorsedInstance->status);
 
         // Coordinator can receive
-        $receivedInstance = $approveAction->handle($coordinator, $instance, ['notes' => 'Coordinator receive'], 'approved');
+        $receivedInstance = $approveAction->handle($coordinator, $instance, ['notes' => 'Coordinator receive'], 'approved', 'receive');
         $this->assertSame('approved', $receivedInstance->status);
 
         // Coordinator CANNOT perform instructor endorsement on new draft instance
         $instance2 = $createAction->handle($instructor, 'RES-041', classId: $class->id, contextKey: 'second_class_submission');
-        $assignAction->handle($class->facilitator, $instance2, $coordinator->id, 'program_coordinator');
-
         $this->expectException(InvalidArgumentException::class);
-        $approveAction->handle($coordinator, $instance2, ['notes' => 'Coordinator endorse attempt'], 'endorsed');
+        $approveAction->handle($coordinator, $instance2, ['notes' => 'Coordinator endorse attempt'], 'endorsed', 'endorse');
     }
 
     public function test_custom_role_compatibility_with_actor_assignment(): void
@@ -554,6 +559,139 @@ class OfficialFormBackendTest extends TestCase
             sourceType: OfficialFormInstance::class,
             sourceId: $res042->id,
             actorUserId: $validatorB->id
+        );
+    }
+
+    public function test_group_and_class_ownership_are_mutually_exclusive(): void
+    {
+        $group = $this->createGroup();
+        $groupInstance = (new CreateOfficialFormInstance)->handle($group->leader, 'RES-026', $group->id);
+
+        $this->assertSame($group->id, $groupInstance->research_class_group_id);
+        $this->assertNull($groupInstance->research_class_id);
+
+        try {
+            (new CreateOfficialFormInstance)->handle(
+                $group->leader,
+                'RES-030',
+                groupId: $group->id,
+                classId: $group->research_class_id
+            );
+            $this->fail('Expected mixed ownership to be rejected.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('must not specify a research_class_id', $exception->getMessage());
+        }
+
+        $instructor = User::factory()->create(['user_type' => 'faculty']);
+        $instructor->givePermissionTo('forms.res-041.fill');
+        (new AssignResearchClassFormActor)->handle($group->creator, $group->researchClass, $instructor, 'research_instructor');
+        $classInstance = (new CreateOfficialFormInstance)->handle($instructor, 'RES-041', classId: $group->research_class_id);
+
+        $this->assertSame($group->research_class_id, $classInstance->research_class_id);
+        $this->assertNull($classInstance->research_class_group_id);
+    }
+
+    public function test_res041_permission_alone_and_cross_class_assignment_do_not_authorize_initiation(): void
+    {
+        $instructor = User::factory()->create(['user_type' => 'faculty']);
+        $instructor->givePermissionTo('forms.res-041.fill', 'forms.res-041.endorse', 'forms.res-041.receive');
+        $firstGroup = $this->createGroup();
+        $secondGroup = $this->createGroup();
+
+        $action = new CreateOfficialFormInstance;
+        try {
+            $action->handle($instructor, 'RES-041', classId: $firstGroup->research_class_id);
+            $this->fail('Permission alone must not authorize RES-041 initiation.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('not authorized to initiate', $exception->getMessage());
+        }
+
+        (new AssignResearchClassFormActor)->handle(
+            $firstGroup->creator,
+            $firstGroup->researchClass,
+            $instructor,
+            'program_coordinator'
+        );
+        try {
+            $action->handle($instructor, 'RES-041', classId: $firstGroup->research_class_id);
+            $this->fail('A wrong same-class actor type must not authorize RES-041 initiation.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('not authorized to initiate', $exception->getMessage());
+        }
+
+        (new AssignResearchClassFormActor)->handle(
+            $firstGroup->creator,
+            $firstGroup->researchClass,
+            $instructor,
+            'research_instructor'
+        );
+
+        $this->expectException(InvalidArgumentException::class);
+        $action->handle($instructor, 'RES-041', classId: $secondGroup->research_class_id);
+    }
+
+    public function test_approval_action_is_required_and_target_status_cannot_choose_it(): void
+    {
+        $method = new ReflectionMethod(ApproveOfficialForm::class, 'handle');
+        $this->assertSame(5, $method->getNumberOfRequiredParameters());
+
+        $adviser = User::factory()->create(['user_type' => 'faculty']);
+        $adviser->givePermissionTo('forms.res-040.endorse');
+        $group = $this->createGroup(adviser: $adviser);
+        $instance = (new CreateOfficialFormInstance)->handle($adviser, 'RES-040', $group->id);
+
+        $this->expectException(InvalidArgumentException::class);
+        (new ApproveOfficialForm)->handle($adviser, $instance, [], 'approved', 'endorse');
+    }
+
+    public function test_res026_rejects_institutional_decision_and_actor_payload_fields(): void
+    {
+        $group = $this->createGroup();
+
+        foreach (['approved_title_number', 'remarks', 'panel_names', 'students'] as $forbiddenField) {
+            try {
+                (new CreateOfficialFormInstance)->handle(
+                    $group->leader,
+                    'RES-026',
+                    $group->id,
+                    payload: [$forbiddenField => 'spoofed']
+                );
+                $this->fail("Expected {$forbiddenField} to be rejected.");
+            } catch (InvalidArgumentException $exception) {
+                $this->assertStringContainsString('unknown fields', $exception->getMessage());
+            }
+        }
+    }
+
+    public function test_res047_facilitator_cannot_substitute_for_adviser_or_dean(): void
+    {
+        $adviser = User::factory()->create(['user_type' => 'faculty']);
+        $adviser->givePermissionTo('forms.res-047.view', 'forms.res-047.endorse');
+        $group = $this->createGroup(adviser: $adviser);
+        $instance = (new CreateOfficialFormInstance)->handle($adviser, 'RES-047', $group->id);
+        $facilitator = $group->creator;
+
+        $this->expectException(InvalidArgumentException::class);
+        (new ApproveOfficialForm)->handle($facilitator, $instance, [], 'endorsed', 'endorse');
+    }
+
+    public function test_res043_source_must_belong_to_the_same_group(): void
+    {
+        $validator = User::factory()->create(['user_type' => 'faculty']);
+        $validator->givePermissionTo('forms.res-043a.validate');
+        $sourceGroup = $this->createGroup();
+        $otherGroup = $this->createGroup();
+        $source = (new CreateOfficialFormInstance)->handle($sourceGroup->leader, 'RES-042', $sourceGroup->id);
+        (new AssignOfficialFormActor)->handle($sourceGroup->creator, $source, $validator->id, 'instrument_validator');
+
+        $this->expectException(InvalidArgumentException::class);
+        (new CreateOfficialFormInstance)->handle(
+            $otherGroup->leader,
+            'RES-043A',
+            groupId: $otherGroup->id,
+            sourceType: OfficialFormInstance::class,
+            sourceId: $source->id,
+            actorUserId: $validator->id
         );
     }
 }
