@@ -96,22 +96,22 @@ Array values are bounded and recursively limited; strings are trimmed and length
 
 - All located RES-026–049 Blade templates were inspected; RES-029 has no verified dedicated template.
 - RES-026 and RES-047 were checked against their actual signature labels, not inferred role names.
-- The current generic print page is persistence/version display, not proof that a form's institutional layout or signatures are complete.
+- Print now resolves the definition's institutional Blade template against the authorized saved instance and current immutable version. Forms whose templates or workflows remain unverified are still classified as partial.
 - Print access uses `OfficialFormInstancePolicy::view` and the current saved version only.
 
 ## Verification coverage
 
 The focused backend suite covers exclusive ownership, permission-without-assignment denial, exact same-class assignment, cross-class denial, explicit actions, action/status mismatch, RES-026 fail-closed behavior, RES-047 adviser/dean ordering, facilitator denial, system/unknown payload fields, source type/scope/lifecycle rules, RES-043 cross-group denial, print IDOR, specialist assignments, and RES-036/037 blocking.
 
-Latest focused result during recovery: **40 Official Forms tests, 251 assertions, 0 failures**. Final repository-wide verification is recorded in the implementation handoff.
+The completion pass adds immutable V1/V2/V3 draft tests, terminal-state protection, class-actor replacement and deactivation, specialist assignment deactivation, RES-043B validation, and administrator-created specialist shells. Final current counts are recorded after the final verification run.
 
 ## Recovery verification report
 
 | Check | Result |
 | --- | --- |
-| Focused Official Forms suite | Passed: 40 tests, 251 assertions |
-| Full regression suite | 296 tests: 264 passed, 9 failed, 23 skipped; 1,275 assertions |
-| Failure classification | 5 signature tests hit the intentionally disabled (410) Phase 20 routes; 4 failures are in unchanged dashboard UI/data expectations outside the Phase 19 implementation files |
+| Focused Official Forms suite | Passed: 46 tests, 273 assertions |
+| Full regression suite | 302 tests: 270 passed, 9 failed, 23 skipped; 1,298 assertions |
+| Failure classification | 5 signature tests hit the intentionally disabled (410) Phase 20 routes; 4 failures are unchanged admin/student/dashboard UI/data expectations outside the Phase 19 implementation files |
 | Pint | Passed |
 | Vite production build | Passed: 58 modules transformed |
 | Blade compilation | Passed |
@@ -135,6 +135,48 @@ This strict percentage does not mean the persistence/security foundation is abse
 - RES-029 needs a verified template.
 - RES-036/037 require authoritative defense/panel/evaluation records from Phases 21/22.
 - Per-form interactive saving and exact institutional print layouts remain incomplete.
-- Class actor assignment needs its final administrator/facilitator UI flow.
+- Persistence-only templates still need their individual browser fields connected to the authoritative payload workspace before they can be called interactive.
 
 Phase 19 therefore remains **In Progress**.
+
+## Final completion pass architecture
+
+The shared `/official-forms` workspace now lists only policy-visible instances, opens an authoritative `OfficialFormInstance`, binds its `currentVersion` payload to the institutional template, saves edits as a new immutable version, submits through a state-checked action, exposes only verified academic actions, and prints only the saved version. Unexpected top-level browser fields are rejected rather than ignored.
+
+Class-wide Research Instructor, Program Coordinator, and Dean responsibilities are managed through `research_class_actor_assignments`. Authorized class facilitators and administrators can assign, replace, or deactivate eligible faculty. Instance-scoped validators and editors are managed separately through `official_form_actor_assignments`; candidate eligibility requires an active approved Faculty account and the matching Spatie permission. Assignment and deactivation are audited.
+
+### Current 25-form status matrix
+
+`Implemented` below is intentionally strict. `Partial` means the catalog, ownership, payload validator, security foundation, and print routing exist, but a verified workflow, exact connected browser payload, dedicated workflow test, or authoritative dependency is still missing.
+
+| Form | Definition / owner | Payload / source | Actors / workflow | UI / print / tests | Status / blocker |
+| --- | --- | --- | --- | --- | --- |
+| RES-026 | Group; single per group | Date/topics; group-derived identity | Student draft/submit; approval unverified | Saved workspace and institutional print; security/version tests | Partial â€” approval workflow verification |
+| RES-027 | Group; per actor | Invitation payload | Adviser response term not verified | Catalog/template/print foundation | Partial â€” workflow verification |
+| RES-028 | Group; per actor | Invitation/defense payload | Panel response term not verified | Catalog/template/print foundation | Partial â€” workflow verification |
+| RES-029 | Group; per actor | No verified payload | Language-editor response unverified | No authoritative dedicated template | Blocked â€” template verification |
+| RES-030 | Group; repeatable | Personnel-change payload | No automatic reassignment | Persistence foundation only | Partial â€” workflow verification |
+| RES-031 | Group; repeatable | Completed `ConsultationRecord` | Source-bound record | Source lifecycle tests; payload UI not fully connected | Partial |
+| RES-032 | Group; repeatable | Other-consultant payload | Consultant action unverified | Persistence foundation only | Partial â€” workflow verification |
+| RES-033 | Group; per defense context | Defense endorsement payload | Adviser action needs final evidence | Context cardinality foundation | Partial â€” workflow verification |
+| RES-034 | Group; repeatable | Pre-conference payload | Record/complete action unverified | Persistence foundation only | Partial â€” workflow verification |
+| RES-035 | Group; repeatable | Proceedings payload | Record action not fully integrated | Persistence foundation only | Partial |
+| RES-036 | Group; per actor | Evaluation payload | Requires authoritative panel assignment | Runtime creation/action denied | Blocked â€” Phase 21 |
+| RES-037 | Group; single per context | Evaluation summary | Requires defense/evaluation source | Runtime creation/action denied | Blocked â€” Phases 21/22 |
+| RES-038 | Group; single per group | Endorsement payload | Final actor chain unverified | Persistence foundation only | Partial â€” workflow verification |
+| RES-039 | Group; repeatable | `DocumentReview` or `RevisionRequest` | Source lifecycle enforced | Source security tests; UI not fully connected | Partial |
+| RES-040 | Group; single per group | Date; group-derived identity | Adviser endorses, assigned Instructor receives | Interactive workspace, exact saved print, ordered/action tests | Implemented |
+| RES-041 | Class; single per context | Batch entries | Assigned Instructor endorses, assigned Coordinator receives | Interactive workspace, class actor UI, print, cross-class tests | Implemented |
+| RES-042 | Group; repeatable | Validation request payload | Validator assigned to exact request | Persistence/source foundation | Partial |
+| RES-043A | Group; per actor | Problem/items; RES-042 source | Exact assigned validator validates | Interactive specialist workspace and institutional print | Implemented |
+| RES-043B | Group; per actor | Ratings/date; RES-042 source | Exact assigned validator validates | Interactive specialist workspace, computed mean, workflow test | Implemented |
+| RES-044 | Group; repeatable | Endorsement payload | Final endorsement chain unverified | Persistence foundation only | Partial â€” workflow verification |
+| RES-045 | Group; per actor | Certificate date | Exact Language Editor certifies | Interactive workspace, actor UI, print, assignment tests | Implemented |
+| RES-046 | Group; per actor | Certificate date | Exact Technical Editor certifies | Interactive workspace, actor UI, print, positive workflow test | Implemented |
+| RES-047 | Group; single per group | Date/salutation; derived identity | Adviser endorses, assigned class Dean approves | Interactive workspace, exact saved print, ordering tests | Implemented |
+| RES-048 | Group; repeatable | Bounded peer ratings | Final acceptance/sign-off unverified | Persistence foundation only | Partial â€” workflow verification |
+| RES-049 | Group; single per group | Authorship confirmation | Signature belongs to Phase 20 | Persistence foundation only | Partial â€” Phase 20 signature integration |
+
+Strict fully implemented forms: **7 / 25** (`RES-040`, `RES-041`, `RES-043A`, `RES-043B`, `RES-045`, `RES-046`, `RES-047`).
+
+Weighted Phase 19 progress: **approximately 84%**. The shared security/versioning/assignment/print foundation is mature, while the remaining percentage is primarily exact persistence wiring and verified institutional actions for partial forms. Phase 19 remains **In Progress** because safely blocked or persistence-only forms are not counted as complete.
