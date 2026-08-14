@@ -28,6 +28,13 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->status === AccountStatus::Active && $this->approved_at !== null;
     }
 
+    public function isEligibleForSignatureEnrollment(): bool
+    {
+        return $this->isActiveAndApproved()
+            && $this->email_verified_at !== null
+            && in_array($this->user_type, [UserType::Student, UserType::Faculty], true);
+    }
+
     /**
      * @return HasMany<Document, $this>
      */

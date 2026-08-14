@@ -2,11 +2,13 @@
 
 use App\Http\Controllers\AccessPendingController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\DisabledFeatureController;
 use App\Http\Controllers\DocumentAccessController;
 use App\Http\Controllers\Facilitator\ResearchClassFormActorController;
 use App\Http\Controllers\OfficialFormController;
+use App\Http\Controllers\OfficialFormSignatureController;
+use App\Http\Controllers\OfficialFormVerificationController;
 use App\Http\Controllers\OfficialFormWorkspaceController;
+use App\Http\Controllers\UserSignatureController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 
@@ -58,13 +60,16 @@ Route::middleware(['auth', 'verified', 'active'])
     ->prefix('settings/signature')
     ->name('signature.')
     ->group(function (): void {
-        Route::get('/', DisabledFeatureController::class)
+        Route::get('/', [UserSignatureController::class, 'show'])
             ->middleware('throttle:60,1')
             ->name('show');
-        Route::put('/', DisabledFeatureController::class)
+        Route::get('/preview', [UserSignatureController::class, 'preview'])
+            ->middleware('throttle:60,1')
+            ->name('preview');
+        Route::put('/', [UserSignatureController::class, 'store'])
             ->middleware('throttle:signature-enrollment')
             ->name('store');
-        Route::delete('/', DisabledFeatureController::class)
+        Route::delete('/', [UserSignatureController::class, 'destroy'])
             ->middleware('throttle:signature-enrollment')
             ->name('destroy');
     });
@@ -94,11 +99,20 @@ Route::middleware(['auth', 'verified', 'active'])
         Route::post('/instances/{instance}/actions/{action}', [OfficialFormWorkspaceController::class, 'action'])
             ->whereNumber('instance')->whereIn('action', ['endorse', 'receive', 'approve', 'certify', 'validate'])
             ->middleware('throttle:30,1')->name('action');
+        Route::post('/instances/{instance}/actions/{action}/sign', [OfficialFormWorkspaceController::class, 'signAction'])
+            ->whereNumber('instance')->whereIn('action', ['endorse', 'receive', 'approve', 'certify', 'validate', 'sign_authorship'])
+            ->middleware('throttle:30,1')->name('sign-action');
+        Route::get('/signatures/{signature}/image', [OfficialFormSignatureController::class, 'image'])
+            ->whereNumber('signature')->middleware('throttle:120,1')->name('signature-image');
         Route::post('/instances/{instance}/actors', [OfficialFormWorkspaceController::class, 'assignActor'])
             ->whereNumber('instance')->middleware('throttle:30,1')->name('actors.store');
         Route::delete('/instances/{instance}/actors/{assignment}', [OfficialFormWorkspaceController::class, 'deactivateActor'])
             ->whereNumber(['instance', 'assignment'])->middleware('throttle:30,1')->name('actors.destroy');
     });
+
+Route::get('/verify/official-form/{reference}', [OfficialFormVerificationController::class, 'verify'])
+    ->middleware('throttle:60,1')
+    ->name('official-forms.verify');
 
 require __DIR__.'/auth.php';
 require __DIR__.'/admin.php';

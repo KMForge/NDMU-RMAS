@@ -107,11 +107,21 @@
                 <button type="submit" form="official-form-editor" formaction="{{ route('official-forms.workspace.submit', $instance) }}" formmethod="POST" class="rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white">Submit</button>
             @endcan
             @foreach ($availableActions as $action)
-                <form method="POST" action="{{ route('official-forms.workspace.action', [$instance, $action]) }}">
+                <form method="POST" action="{{ route('official-forms.workspace.sign-action', [$instance, $action]) }}">
                     @csrf
-                    <button type="submit" class="rounded-xl bg-amber-500 px-5 py-2.5 text-xs font-bold text-[#0e5c3a]">{{ str($action)->headline() }}</button>
+                    <input type="hidden" name="expected_version_id" value="{{ $instance->current_version_id }}">
+                    <input type="hidden" name="actor_type" value="{{ $instance->actorAssignments->firstWhere('user_id', auth()->id())?->actor_type ?? ($instance->group?->adviser_id === auth()->id() ? 'research_adviser' : 'authorized_actor') }}">
+                    <button type="submit" class="rounded-xl bg-amber-500 px-5 py-2.5 text-xs font-bold text-[#0e5c3a]">Sign & {{ str($action)->headline() }}</button>
                 </form>
             @endforeach
+            @if (strtoupper($instance->definition->code) === 'RES-049' && auth()->user()->hasPermissionTo('forms.res-049.sign'))
+                <form method="POST" action="{{ route('official-forms.workspace.sign-action', [$instance, 'sign_authorship']) }}">
+                    @csrf
+                    <input type="hidden" name="expected_version_id" value="{{ $instance->current_version_id }}">
+                    <input type="hidden" name="actor_type" value="student_researcher">
+                    <button type="submit" class="rounded-xl bg-emerald-800 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-900">Sign Authorship Attestation</button>
+                </form>
+            @endif
             <a href="{{ route('official-forms.print', $instance) }}" target="_blank" rel="noopener" class="ml-auto rounded-xl border border-gray-200 px-5 py-2.5 text-xs font-bold">Print saved version</a>
         </section>
 

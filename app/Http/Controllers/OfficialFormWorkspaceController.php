@@ -13,6 +13,7 @@ use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupMember;
 use App\Models\RevisionRequest;
+use App\Modules\OfficialForms\Actions\ApplyOfficialFormSignature;
 use App\Modules\OfficialForms\Actions\ApproveOfficialForm;
 use App\Modules\OfficialForms\Actions\AssignOfficialFormActor;
 use App\Modules\OfficialForms\Actions\CertifyOfficialForm;
@@ -243,6 +244,34 @@ class OfficialFormWorkspaceController extends Controller
         }
 
         return back()->with('official_form_success', ucfirst($action).' action recorded.');
+    }
+
+    public function signAction(
+        Request $request,
+        OfficialFormInstance $instance,
+        string $action,
+        ApplyOfficialFormSignature $applySignature,
+    ): RedirectResponse {
+        $this->rejectUnexpectedInput($request, ['expected_version_id', 'actor_type']);
+        $validated = $request->validate([
+            'expected_version_id' => ['required', 'integer', 'min:1'],
+            'actor_type' => ['required', 'string', 'max:64'],
+        ]);
+
+        try {
+            $applySignature->handle(
+                $request->user(),
+                $instance->id,
+                (int) $validated['expected_version_id'],
+                $action,
+                $validated['actor_type'],
+                $request
+            );
+        } catch (InvalidArgumentException $exception) {
+            return back()->withErrors(['official_form' => $exception->getMessage()]);
+        }
+
+        return back()->with('official_form_success', 'Digital signature attestation recorded.');
     }
 
     public function assignActor(

@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'official_form_instance_id',
@@ -29,6 +31,16 @@ class OfficialFormVersion extends Model
     public function supersedesVersion(): BelongsTo
     {
         return $this->belongsTo(self::class, 'supersedes_version_id');
+    }
+
+    public function signatures(): HasMany
+    {
+        return $this->hasMany(OfficialFormSignature::class, 'official_form_version_id');
+    }
+
+    public function verification(): HasOne
+    {
+        return $this->hasOne(OfficialFormVerification::class, 'official_form_version_id');
     }
 
     protected function casts(): array

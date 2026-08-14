@@ -17,11 +17,34 @@
     </style>
 </head>
 <body x-data="{ activeOfficialForm: @js($instance->definition->code), activeTab: 'forms' }">
-    <div class="print-toolbar">
-        <p class="mb-2 text-xs font-bold text-[#0e5c3a]">
-            Saved authoritative version {{ $version?->version_number ?? 0 }} · {{ strtoupper($instance->status) }}
-        </p>
-        <button type="button" onclick="window.print()" class="rounded-lg bg-[#0e5c3a] px-5 py-2 text-xs font-bold text-white">Print / Save as PDF</button>
+    @php
+        $verificationRef = $version?->verification?->public_reference;
+        $verifyUrl = $verificationRef ? route('official-forms.verify', ['reference' => $verificationRef]) : null;
+        $qrDataUri = null;
+        if ($verifyUrl) {
+            try {
+                $qrDataUri = app(\App\Services\OfficialFormQrCodeGenerator::class)->generateSvgDataUri($verifyUrl);
+            } catch (\Throwable $e) {}
+        }
+    @endphp
+
+    <div class="print-toolbar flex items-center justify-between px-8">
+        <div>
+            <p class="text-xs font-bold text-[#0e5c3a]">
+                Saved authoritative version {{ $version?->version_number ?? 0 }} · {{ strtoupper($instance->status) }}
+            </p>
+            @if ($verifyUrl)
+                <p class="text-[10px] text-gray-500 font-mono">Verification: {{ $verificationRef }}</p>
+            @endif
+        </div>
+        <div class="flex items-center space-x-4">
+            @if ($qrDataUri)
+                <div class="h-10 w-10 bg-white p-0.5 border border-gray-300 rounded shadow-sm" title="Scan to verify document integrity">
+                    <img src="{{ $qrDataUri }}" alt="QR Code" class="h-full w-full">
+                </div>
+            @endif
+            <button type="button" onclick="window.print()" class="rounded-lg bg-[#0e5c3a] px-5 py-2 text-xs font-bold text-white">Print / Save as PDF</button>
+        </div>
     </div>
 
     @if (view()->exists($instance->definition->template_view))

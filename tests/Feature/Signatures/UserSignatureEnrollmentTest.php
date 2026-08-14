@@ -3,6 +3,7 @@
 namespace Tests\Feature\Signatures;
 
 use App\Enums\AccountStatus;
+use App\Enums\UserType;
 use App\Models\User;
 use App\Models\UserSignature;
 use Database\Seeders\RolePermissionSeeder;
@@ -25,7 +26,7 @@ class UserSignatureEnrollmentTest extends TestCase
 
     public function test_non_administrator_can_register_and_privately_view_a_signature(): void
     {
-        $user = $this->activeUser('student-researcher');
+        $user = $this->activeUser(UserType::Student, 'student');
 
         $this->actingAs($user)
             ->putJson(route('signature.store'), [
@@ -33,7 +34,7 @@ class UserSignatureEnrollmentTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonPath('message', 'Digital signature registered successfully.')
-            ->assertJsonPath('signature.preview_url', route('signature.show'))
+            ->assertJsonPath('signature.preview_url', route('signature.preview'))
             ->assertJsonMissingPath('signature.storage_path');
 
         $signature = UserSignature::query()->sole();
@@ -52,18 +53,18 @@ class UserSignatureEnrollmentTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('signature.show'))
+            ->get(route('signature.preview'))
             ->assertOk()
             ->assertHeader('Content-Type', 'image/png')
             ->assertHeader('X-Content-Type-Options', 'nosniff');
 
         auth()->logout();
-        $this->get(route('signature.show'))->assertRedirect(route('login'));
+        $this->get(route('signature.preview'))->assertRedirect(route('login'));
     }
 
     public function test_registering_again_replaces_the_file_and_preserves_one_active_record(): void
     {
-        $user = $this->activeUser('research-adviser');
+        $user = $this->activeUser(UserType::Faculty, 'thesis-adviser');
 
         $this->actingAs($user)->putJson(route('signature.store'), [
             'signature' => $this->signatureImage('first.png'),
@@ -89,7 +90,7 @@ class UserSignatureEnrollmentTest extends TestCase
 
     public function test_owner_can_remove_a_registered_signature(): void
     {
-        $user = $this->activeUser('panelist');
+        $user = $this->activeUser(UserType::Faculty, 'panel-member');
 
         $this->actingAs($user)->putJson(route('signature.store'), [
             'signature' => $this->signatureImage(),
@@ -112,7 +113,7 @@ class UserSignatureEnrollmentTest extends TestCase
 
     public function test_corrupted_disguised_and_unsupported_signature_files_are_rejected(): void
     {
-        $user = $this->activeUser('research-facilitator');
+        $user = $this->activeUser(UserType::Faculty, 'administrator');
 
         foreach ([
             UploadedFile::fake()->createWithContent('corrupt.png', 'not a real image'),
@@ -130,7 +131,13 @@ class UserSignatureEnrollmentTest extends TestCase
 
     public function test_system_administrator_cannot_register_a_signature(): void
     {
-        $administrator = $this->activeUser('system-administrator');
+        $administrator = User::factory()->create([
+            'user_type' => UserType::Admin,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+        $administrator->assignRole('administrator');
 
         $this->actingAs($administrator)
             ->putJson(route('signature.store'), [
@@ -141,9 +148,10 @@ class UserSignatureEnrollmentTest extends TestCase
         $this->assertDatabaseCount('user_signatures', 0);
     }
 
-    private function activeUser(string $role): User
+    private function activeUser(UserType $userType, string $role): User
     {
         $user = User::factory()->create([
+            'user_type' => $userType,
             'status' => AccountStatus::Active,
             'approved_at' => now(),
             'email_verified_at' => now(),
