@@ -8,22 +8,22 @@
 ## Scope
 Phase 21 establishes authoritative defense scheduling capabilities for NDMU-RMAS:
 1. Room catalog management (`defense_rooms`) with Admin control, uppercase code normalization, and location tracking.
-2. Defense lifecycle entity (`defenses`) bound 1:1 to research class groups with unique active defense status tracking (`pending_schedule`, `scheduled`, `rescheduled`, `cancelled`, `completed`).
-3. Historical and active schedule tracking (`defense_schedules`) with superseded audit trail (`status = current | superseded | cancelled`).
-4. Panel member assignment management (`defense_panel_assignments`) with candidate account eligibility checks (Faculty, Active, approved, verified) and overlap conflict prevention.
+2. Defense aggregate entity (`defenses`) bound to research class groups with active defense status tracking (`scheduled`, `cancelled`).
+3. Historical and active schedule occurrence tracking (`defense_schedules`) with superseded audit trail (`status = current | superseded | cancelled`, `supersedes_schedule_id`).
+4. Panel member assignment management (`defense_panel_assignments`) with candidate account eligibility checks (Faculty, Active, approved, verified, `evaluations.create`) and overlap conflict prevention.
 5. Half-open interval time overlap conflict detection for room, research group, and panelist schedules (`starts_at < proposed_ends_at AND ends_at > proposed_starts_at`).
 6. RES-036 form instance contextual creation linked to active `DefenseSchedule` source, with server-derived immutable `source_snapshot` data.
-7. Strict Phase 21/Phase 22 security boundary: RES-036 payload schema strictly locked to empty array `[]` during Phase 21, and mutation/evaluation policy checks explicitly return `false` (evaluation input deferred to Phase 22 Evaluation Records).
-8. Real-time panelist dashboard schedule integration with dynamic schedule data and eligibility-driven RES-036 creation triggers.
+7. Strict Phase 21/Phase 22 security boundary: RES-036 payload schema strictly locked to empty array `[]` during Phase 21, and form mutation/evaluation policy checks explicitly return `false` (evaluation scoring and verdicts deferred to Phase 22 Evaluation Records).
+8. Real-time dashboard integration rendering live database defense schedules across Panelist, Facilitator, Student, and Adviser interfaces.
 
 ## Architecture Overview
 Defense scheduling is structured as a modular domain in `app/Modules/DefenseScheduling/`:
 - **Models**: `DefenseRoom`, `Defense`, `DefenseSchedule`, `DefensePanelAssignment`.
 - **Actions**:
   - `ScheduleDefense`: Atomically locks group, room, and panelist user records for update; validates time bounds, panel eligibility, and half-open time overlap conflicts; creates Defense, DefenseSchedule, and DefensePanelAssignment records; logs system audit trail.
-  - `RescheduleDefense`: Transactionally marks previous active schedule as `superseded` (`superseded_at = now()`), updates Defense status to `rescheduled`, creates a new `current` schedule record, and records audit trail.
-  - `CancelDefense`: Supersedes current schedule, sets Defense status to `cancelled`, ends active panel assignments (`ended_at = now()`), and logs cancellation reason.
-  - `AssignDefensePanel`: Validates panel user eligibility (Faculty, Active, approved, verified, `evaluations.create`), checks schedule overlap across other scheduled defenses, ends removed assignments, creates new active assignments, and logs audit trail.
+  - `RescheduleDefense`: Transactionally marks previous active schedule `S1` as `superseded` (`status = superseded`), creates new schedule `S2` (`status = current`, `supersedes_schedule_id = S1.id`), updates `Defense.current_schedule_id = S2.id` (while `Defense.status` remains `scheduled`), and records audit trail.
+  - `CancelDefense`: Marks current schedule as `cancelled`, updates `Defense.status` to `cancelled`, ends active panel assignments (`ended_at = now()`), and logs cancellation reason.
+  - `AssignDefensePanel`: Validates panel candidate eligibility (Faculty, Active, approved, verified, `evaluations.create`), checks schedule overlap across other scheduled defenses, ends removed assignments (`ended_at = now()`), creates new active assignments, and logs audit trail.
 - **Queries**:
   - `GetDefenseScheduleCalendar`: Executes role-scoped queries (Student, Faculty facilitator/adviser/panelist, Admin) returning structured schedule DTOs with formatted date/time, room metadata, panelist lists, and RES-036 creation URLs.
 
@@ -40,23 +40,24 @@ Defense scheduling is structured as a modular domain in `app/Modules/DefenseSche
 
 2. **`defenses`**:
    - `id` (bigint, PK)
-   - `research_class_group_id` (bigint, FK to `research_class_groups`, unique per active group)
-   - `defense_type` (enum: `proposal_defense`, `final_defense`)
-   - `status` (enum: `pending_schedule`, `scheduled`, `rescheduled`, `cancelled`, `completed`)
+   - `research_class_group_id` (bigint, FK to `research_class_groups`)
+   - `defense_type` (string, e.g. `proposal_defense`, `final_defense`)
+   - `status` (string, `scheduled` | `cancelled`, default `scheduled`)
    - `current_schedule_id` (bigint, FK to `defense_schedules`, nullable)
    - `created_by` (bigint, FK to `users`)
    - `timestamps`
+   - *Note*: Domain logic prevents creating a second active Defense for the same group and defense type.
 
 3. **`defense_schedules`**:
    - `id` (bigint, PK)
    - `defense_id` (bigint, FK to `defenses`)
-   - `defense_room_id` (bigint, FK to `defense_rooms`)
+   - `room_id` (bigint, FK to `defense_rooms`)
    - `starts_at` (timestamp with time zone)
    - `ends_at` (timestamp with time zone)
-   - `status` (enum: `current`, `superseded`, `cancelled`)
-   - `reason` (text, nullable)
+   - `status` (string, `current` | `superseded` | `cancelled`, default `current`)
    - `scheduled_by` (bigint, FK to `users`)
-   - `superseded_at` (timestamp with time zone, nullable)
+   - `reason` (text, nullable)
+   - `supersedes_schedule_id` (bigint, FK to `defense_schedules`, nullable)
    - `timestamps`
 
 4. **`defense_panel_assignments`**:
@@ -99,12 +100,20 @@ In `CreateOfficialFormInstance::validateSourceLinkage()`:
 - Eligible panel members see an **"Open RES-036 Form"** button triggering contextual form instance creation directly from the schedule source.
 - Evaluation tabs display a clear notice banner stating: *"Evaluation Record scoring forms and verdicts will be active in Phase 22."*
 
+## External / Institutional Dependencies
+The following institutional workflow rules are deferred to subsequent phases or external policy decisions:
+1. **Formal Defense Application / Request Workflow**: Student or adviser formal submission requesting a defense date prior to facilitator scheduling.
+2. **Re-defense & Second Attempt Policy**: Formal rules for permitting a second defense aggregate after a previous defense aggregate was cancelled or failed.
+3. **Panel Chair Designation & Minimum Panel Size**: Specific role designation for Panel Chair vs Panel Members (currently all assigned faculty share equal panelist access).
+4. **Evaluation Scoring & Verdict Workflow**: Panelist evaluation scores, rubrics, ratings, grading summaries, and pass/fail/revision verdicts (owned by **Phase 22: Evaluation Records**).
+5. **Defense Completion Status Transition**: Automatic or manual transition of `defenses.status` to `completed` upon post-defense verdict submission (owned by **Phase 22: Evaluation Records**).
+
 ## Verified Tests & Test Coverage
 Focused Phase 21 test suite:
-- `tests/Feature/DefenseSchedulingTest.php` (8 tests, PASSED)
-- `tests/Feature/DefenseSecurityTest.php` (3 tests, PASSED)
-- `tests/Feature/DefenseFormIntegrationTest.php` (4 tests, PASSED)
-- `tests/Feature/OfficialForms/OfficialFormSignatureTest.php` (includes `test_signature_hasher_includes_source_snapshot`, PASSED)
+- `tests/Feature/DefenseSchedulingTest.php`
+- `tests/Feature/DefenseSecurityTest.php`
+- `tests/Feature/DefenseFormIntegrationTest.php`
+- `tests/Feature/OfficialForms/OfficialFormSignatureTest.php`
 
 ## Definition of Done
 Phase 21 defense scheduling implementation is complete, fully tested, hardened, and verified.

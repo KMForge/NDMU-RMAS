@@ -241,4 +241,278 @@ class DefenseSchedulingTest extends TestCase
             'status' => 'cancelled',
         ]);
     }
+
+    public function test_invalid_defense_type_is_rejected(): void
+    {
+        $action = app(ScheduleDefense::class);
+        $startsAt = Carbon::now()->addDays(2)->setHour(9)->setMinute(0);
+        $endsAt = (clone $startsAt)->addHours(2);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid defense type');
+
+        $action->handle(
+            $this->facilitator,
+            $this->group,
+            'invalid_type',
+            $this->room->id,
+            $startsAt,
+            $endsAt,
+            [$this->panelist->id]
+        );
+    }
+
+    public function test_end_must_be_after_start(): void
+    {
+        $action = app(ScheduleDefense::class);
+        $startsAt = Carbon::now()->addDays(2)->setHour(10)->setMinute(0);
+        $endsAt = (clone $startsAt)->subHour();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('End time must be strictly after start time.');
+
+        $action->handle(
+            $this->facilitator,
+            $this->group,
+            'proposal_defense',
+            $this->room->id,
+            $startsAt,
+            $endsAt,
+            [$this->panelist->id]
+        );
+    }
+
+    public function test_duplicate_panel_ids_are_rejected(): void
+    {
+        $action = app(ScheduleDefense::class);
+        $startsAt = Carbon::now()->addDays(2)->setHour(9)->setMinute(0);
+        $endsAt = (clone $startsAt)->addHours(2);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Duplicate panel user IDs in request.');
+
+        $action->handle(
+            $this->facilitator,
+            $this->group,
+            'proposal_defense',
+            $this->room->id,
+            $startsAt,
+            $endsAt,
+            [$this->panelist->id, $this->panelist->id]
+        );
+    }
+
+    public function test_inactive_room_cannot_be_scheduled(): void
+    {
+        $inactiveRoom = DefenseRoom::create([
+            'code' => 'RM-999',
+            'name' => 'Storage Room',
+            'is_active' => false,
+        ]);
+
+        $action = app(ScheduleDefense::class);
+        $startsAt = Carbon::now()->addDays(2)->setHour(9)->setMinute(0);
+        $endsAt = (clone $startsAt)->addHours(2);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('is inactive and cannot be scheduled.');
+
+        $action->handle(
+            $this->facilitator,
+            $this->group,
+            'proposal_defense',
+            $inactiveRoom->id,
+            $startsAt,
+            $endsAt,
+            [$this->panelist->id]
+        );
+    }
+
+    public function test_second_defense_same_group_and_type_is_denied(): void
+    {
+        $action = app(ScheduleDefense::class);
+        $startsAt1 = Carbon::now()->addDays(2)->setHour(9)->setMinute(0);
+        $endsAt1 = (clone $startsAt1)->addHours(2);
+
+        $action->handle(
+            $this->facilitator,
+            $this->group,
+            'proposal_defense',
+            $this->room->id,
+            $startsAt1,
+            $endsAt1,
+            [$this->panelist->id]
+        );
+
+        $startsAt2 = Carbon::now()->addDays(5)->setHour(9)->setMinute(0);
+        $endsAt2 = (clone $startsAt2)->addHours(2);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('already exists.');
+
+        $action->handle(
+            $this->facilitator,
+            $this->group,
+            'proposal_defense',
+            $this->room->id,
+            $startsAt2,
+            $endsAt2,
+            [$this->panelist->id]
+        );
+    }
+
+    public function test_adjacent_time_slots_are_allowed(): void
+    {
+        $action = app(ScheduleDefense::class);
+        $startsAt1 = Carbon::now()->addDays(2)->setHour(9)->setMinute(0);
+        $endsAt1 = (clone $startsAt1)->addHours(2); // 09:00 - 11:00
+
+        $action->handle(
+            $this->facilitator,
+            $this->group,
+            'proposal_defense',
+            $this->room->id,
+            $startsAt1,
+            $endsAt1,
+            [$this->panelist->id]
+        );
+
+        $group2 = ResearchClassGroup::query()->forceCreate([
+            'research_class_id' => $this->class->id,
+            'creation_token' => (string) Str::uuid(),
+            'name' => 'Group 2',
+            'leader_student_id' => $this->facilitator->id,
+            'created_by' => $this->facilitator->id,
+            'status' => 'active',
+        ]);
+
+        $startsAt2 = (clone $endsAt1); // Exactly 11:00
+        $endsAt2 = (clone $startsAt2)->addHours(2); // 11:00 - 13:00
+
+        $defense2 = $action->handle(
+            $this->facilitator,
+            $group2,
+            'proposal_defense',
+            $this->room->id,
+            $startsAt2,
+            $endsAt2,
+            [$this->panelist->id]
+        );
+
+        $this->assertInstanceOf(Defense::class, $defense2);
+    }
+
+    public function test_custom_role_faculty_can_schedule_owned_class(): void
+    {
+        Permission::firstOrCreate(['name' => 'custom.permission', 'guard_name' => 'web']);
+
+        $customFaculty = User::factory()->create([
+            'user_type' => UserType::Faculty,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+        $customFaculty->givePermissionTo('defenses.manage');
+
+        $customClass = ResearchClass::query()->forceCreate([
+            'facilitator_id' => $customFaculty->id,
+            'creation_token' => (string) Str::uuid(),
+            'name' => 'Custom Class',
+            'join_code_hash' => hash('sha256', 'CAP-'.strtoupper(bin2hex(random_bytes(3)))),
+            'join_code_encrypted' => 'CAP-654321',
+            'is_active' => true,
+        ]);
+
+        $customGroup = ResearchClassGroup::query()->forceCreate([
+            'research_class_id' => $customClass->id,
+            'creation_token' => (string) Str::uuid(),
+            'name' => 'Custom Group',
+            'leader_student_id' => $customFaculty->id,
+            'created_by' => $customFaculty->id,
+            'status' => 'active',
+        ]);
+
+        $action = app(ScheduleDefense::class);
+        $startsAt = Carbon::now()->addDays(2)->setHour(9)->setMinute(0);
+        $endsAt = (clone $startsAt)->addHours(2);
+
+        $defense = $action->handle(
+            $customFaculty,
+            $customGroup,
+            'proposal_defense',
+            $this->room->id,
+            $startsAt,
+            $endsAt,
+            [$this->panelist->id]
+        );
+
+        $this->assertInstanceOf(Defense::class, $defense);
+    }
+
+    public function test_panel_candidate_eligibility_checks(): void
+    {
+        $action = app(ScheduleDefense::class);
+        $startsAt = Carbon::now()->addDays(2)->setHour(9)->setMinute(0);
+        $endsAt = (clone $startsAt)->addHours(2);
+
+        $unverifiedFaculty = User::factory()->create([
+            'user_type' => UserType::Faculty,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+            'email_verified_at' => null,
+        ]);
+        $unverifiedFaculty->givePermissionTo('evaluations.create');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('is not an eligible Defense Panel candidate.');
+
+        $action->handle(
+            $this->facilitator,
+            $this->group,
+            'proposal_defense',
+            $this->room->id,
+            $startsAt,
+            $endsAt,
+            [$unverifiedFaculty->id]
+        );
+    }
+
+    public function test_cancelled_defense_cannot_be_rescheduled(): void
+    {
+        $scheduleAction = app(ScheduleDefense::class);
+        $cancelAction = app(CancelDefense::class);
+        $rescheduleAction = app(RescheduleDefense::class);
+
+        $startsAt = Carbon::now()->addDays(2)->setHour(9)->setMinute(0);
+        $endsAt = (clone $startsAt)->addHours(2);
+
+        $defense = $scheduleAction->handle(
+            $this->facilitator,
+            $this->group,
+            'proposal_defense',
+            $this->room->id,
+            $startsAt,
+            $endsAt,
+            [$this->panelist->id]
+        );
+
+        $scheduleId = $defense->current_schedule_id;
+        $cancelAction->handle($this->facilitator, $defense, $scheduleId, 'Cancelled for test');
+
+        $newStartsAt = Carbon::now()->addDays(4)->setHour(9)->setMinute(0);
+        $newEndsAt = (clone $newStartsAt)->addHours(2);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Cannot reschedule a cancelled defense.');
+
+        $rescheduleAction->handle(
+            $this->facilitator,
+            $defense->fresh(),
+            $scheduleId,
+            $this->room->id,
+            $newStartsAt,
+            $newEndsAt,
+            'Attempt reschedule'
+        );
+    }
 }

@@ -26,6 +26,10 @@ class DefenseRoomController extends Controller
     {
         $this->authorizeAdmin($request);
 
+        if ($request->has('code')) {
+            $request->merge(['code' => strtoupper(trim((string) $request->input('code')))]);
+        }
+
         $validated = $request->validate([
             'code' => ['required', 'string', 'max:50', 'unique:defense_rooms,code'],
             'name' => ['required', 'string', 'max:255'],
@@ -33,7 +37,7 @@ class DefenseRoomController extends Controller
         ]);
 
         $room = DefenseRoom::create([
-            'code' => strtoupper(trim($validated['code'])),
+            'code' => $validated['code'],
             'name' => trim($validated['name']),
             'location_notes' => isset($validated['location_notes']) ? trim($validated['location_notes']) : null,
             'is_active' => true,
@@ -48,6 +52,10 @@ class DefenseRoomController extends Controller
     {
         $this->authorizeAdmin($request);
 
+        if ($request->has('code')) {
+            $request->merge(['code' => strtoupper(trim((string) $request->input('code')))]);
+        }
+
         $validated = $request->validate([
             'code' => ['required', 'string', 'max:50', Rule::unique('defense_rooms', 'code')->ignore($room->id)],
             'name' => ['required', 'string', 'max:255'],
@@ -55,7 +63,7 @@ class DefenseRoomController extends Controller
         ]);
 
         $room->update([
-            'code' => strtoupper(trim($validated['code'])),
+            'code' => $validated['code'],
             'name' => trim($validated['name']),
             'location_notes' => isset($validated['location_notes']) ? trim($validated['location_notes']) : null,
         ]);

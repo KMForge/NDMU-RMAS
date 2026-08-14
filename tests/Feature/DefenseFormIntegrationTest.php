@@ -10,10 +10,14 @@ use App\Models\OfficialFormInstance;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
+use App\Modules\DefenseScheduling\Actions\CancelDefense;
+use App\Modules\DefenseScheduling\Actions\RescheduleDefense;
 use App\Modules\DefenseScheduling\Actions\ScheduleDefense;
 use App\Modules\OfficialForms\Actions\CreateOfficialFormInstance;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
 use App\Modules\OfficialForms\Services\OfficialFormSignatureHasher;
+use App\Modules\OfficialForms\Validators\OfficialFormPayloadValidator;
+use App\Policies\OfficialFormInstancePolicy;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -177,5 +181,161 @@ class DefenseFormIntegrationTest extends TestCase
 
         $this->assertIsString($hash);
         $this->assertEquals(64, strlen($hash));
+    }
+
+    public function test_res036_payload_is_empty_in_phase21(): void
+    {
+        $validator = app(OfficialFormPayloadValidator::class);
+
+        $validatedEmpty = $validator->validate('RES-036', []);
+        $this->assertIsArray($validatedEmpty);
+        $this->assertEmpty($validatedEmpty);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Payload contains unknown fields [score, remarks] for form RES-036.');
+
+        $validator->validate('RES-036', ['score' => 95, 'remarks' => 'Pass']);
+    }
+
+    public function test_res036_policy_blocks_mutations_and_evaluations_in_phase21(): void
+    {
+        $createAction = app(CreateOfficialFormInstance::class);
+        $instance = $createAction->handle(
+            $this->panelist,
+            'RES-036',
+            $this->group->id,
+            null,
+            'general',
+            DefenseSchedule::class,
+            $this->schedule->id
+        );
+
+        $policy = app(OfficialFormInstancePolicy::class);
+
+        $this->assertFalse($policy->updateDraft($this->panelist, $instance));
+        $this->assertFalse($policy->submit($this->panelist, $instance));
+        $this->assertFalse($policy->evaluate($this->panelist, $instance));
+    }
+
+    public function test_superseded_schedule_cannot_create_new_res036(): void
+    {
+        $rescheduleAction = app(RescheduleDefense::class);
+
+        $defense = $this->schedule->defense;
+        $oldScheduleId = $this->schedule->id;
+
+        $newStartsAt = Carbon::now()->addDays(4)->setHour(14)->setMinute(0);
+        $newEndsAt = (clone $newStartsAt)->addHours(2);
+
+        $rescheduleAction->handle(
+            $this->facilitator,
+            $defense,
+            $oldScheduleId,
+            $this->room->id,
+            $newStartsAt,
+            $newEndsAt,
+            'Reschedule reason'
+        );
+
+        $createAction = app(CreateOfficialFormInstance::class);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('is not authorized to initiate RES-036 for defense schedule');
+
+        $createAction->handle(
+            $this->panelist,
+            'RES-036',
+            $this->group->id,
+            null,
+            'general',
+            DefenseSchedule::class,
+            $oldScheduleId
+        );
+    }
+
+    public function test_cancelled_schedule_cannot_create_new_res036(): void
+    {
+        $cancelAction = app(CancelDefense::class);
+
+        $defense = $this->schedule->defense;
+        $cancelAction->handle($this->facilitator, $defense, $this->schedule->id, 'Cancel reason');
+
+        $createAction = app(CreateOfficialFormInstance::class);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('is not authorized to initiate RES-036 for defense schedule');
+
+        $createAction->handle(
+            $this->panelist,
+            'RES-036',
+            $this->group->id,
+            null,
+            'general',
+            DefenseSchedule::class,
+            $this->schedule->id
+        );
+    }
+
+    public function test_historical_res036_snapshot_survives_reschedule(): void
+    {
+        $createAction = app(CreateOfficialFormInstance::class);
+        $instance = $createAction->handle(
+            $this->panelist,
+            'RES-036',
+            $this->group->id,
+            null,
+            'general',
+            DefenseSchedule::class,
+            $this->schedule->id
+        );
+
+        $historicalVersion = $instance->currentVersion;
+        $oldRoomCode = $historicalVersion->source_snapshot['room_code'];
+
+        $rescheduleAction = app(RescheduleDefense::class);
+        $newStartsAt = Carbon::now()->addDays(5)->setHour(10)->setMinute(0);
+        $newEndsAt = (clone $newStartsAt)->addHours(2);
+
+        $rescheduleAction->handle(
+            $this->facilitator,
+            $this->schedule->defense,
+            $this->schedule->id,
+            $this->room->id,
+            $newStartsAt,
+            $newEndsAt,
+            'Rescheduled defense'
+        );
+
+        $historicalVersion->refresh();
+        $this->assertEquals($oldRoomCode, $historicalVersion->source_snapshot['room_code']);
+        $this->assertEquals($this->schedule->id, $instance->source_id);
+    }
+
+    public function test_null_snapshot_preserves_old_hash_algorithm_and_tamper_detection(): void
+    {
+        $createAction = app(CreateOfficialFormInstance::class);
+        $hasher = app(OfficialFormSignatureHasher::class);
+
+        $instance = $createAction->handle(
+            $this->panelist,
+            'RES-036',
+            $this->group->id,
+            null,
+            'general',
+            DefenseSchedule::class,
+            $this->schedule->id
+        );
+
+        $version = $instance->currentVersion;
+
+        $hashWithSnapshot = $hasher->hashVersion($version);
+
+        // Modify snapshot field and verify hash changes (tamper-detection)
+        $tamperedSnapshot = $version->source_snapshot;
+        $tamperedSnapshot['room_code'] = 'TAMPERED-ROOM';
+        $version->source_snapshot = $tamperedSnapshot;
+
+        $hashTampered = $hasher->hashVersion($version);
+        $this->assertNotEquals($hashWithSnapshot, $hashTampered);
     }
 }
