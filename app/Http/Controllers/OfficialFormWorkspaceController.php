@@ -57,7 +57,7 @@ class OfficialFormWorkspaceController extends Controller
         $instance->load([
             'definition', 'currentVersion', 'versions.creator', 'group.members.student', 'group.researchGroup',
             'group.leader', 'group.adviser', 'group.researchClass.officialFormActorAssignments.user',
-            'researchClass.officialFormActorAssignments.user', 'actorAssignments.user',
+            'researchClass.officialFormActorAssignments.user', 'actorAssignments.user', 'source',
         ]);
 
         $canManageActors = Gate::forUser($request->user())->allows('assignActor', $instance);

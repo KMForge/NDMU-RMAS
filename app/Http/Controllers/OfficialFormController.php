@@ -26,6 +26,7 @@ class OfficialFormController extends Controller
             'group.adviser',
             'researchClass.facilitator',
             'actorAssignments.user',
+            'source',
         ]);
 
         $code = strtolower($instance->definition->code);

@@ -9,36 +9,42 @@
             <textarea class="mt-1 min-h-20 w-full" readonly>{{ $officialFormInstance?->group?->members?->pluck('student.name')->filter()->join(', ') }}</textarea>
         </label>
         <div class="space-y-4">
-            <label class="block">Degree Program:<input name="payload[degree_program]" value="{{ $payload['degree_program'] ?? '' }}" class="w-full"></label>
-            <label class="block">Date of Proposal/Final Defense:<input type="date" name="payload[defense_date]" value="{{ $payload['defense_date'] ?? '' }}" class="w-full"></label>
+            <label class="block">Course / Section:<input value="{{ $officialFormInstance?->group?->researchClass?->name ?? 'N/A' }}" class="w-full" readonly></label>
+            <label class="block">Adviser Name:<input value="{{ $officialFormInstance?->group?->adviser?->name ?? $sourceConsultation?->conductedBy?->name ?? 'N/A' }}" class="w-full" readonly></label>
         </div>
     </div>
-    <label class="block">Name of Adviser:<input value="{{ $officialFormInstance?->group?->adviser?->name }}" class="w-full" readonly></label>
-    <label class="block">Research Title:<input value="{{ $officialFormInstance?->group?->title }}" class="w-full" readonly></label>
-    <p class="text-xs italic">Authoritative consultation record entries linked from source.</p>
+    <label class="block">Research Title:<input value="{{ $officialFormInstance?->group?->title ?? 'N/A' }}" class="w-full" readonly></label>
+    <p class="text-xs italic text-gray-600">Authoritative consultation record entries linked from source.</p>
     <table class="official-form-table text-xs">
         <thead>
             <tr>
-                <th class="w-1/5">Number & Date of Consultation</th>
-                <th>Topics Discussed or Concerns</th>
-                <th class="w-1/4">Student / Adviser Signatures</th>
+                <th class="w-1/5">Date & Conducted By</th>
+                <th>Agenda, Discussion & Recommendations</th>
+                <th class="w-1/4">Status & Signature</th>
             </tr>
         </thead>
         <tbody>
             @if ($sourceConsultation)
                 <tr>
-                    <td>Date: {{ $sourceConsultation->consulted_at?->format('M j, Y') ?? 'N/A' }}</td>
                     <td>
-                        <div class="p-2">
-                            <p class="font-bold">Topics:</p>
-                            <p class="mt-1">{{ $sourceConsultation->topics ?? 'N/A' }}</p>
-                            @if ($sourceConsultation->notes)
-                                <p class="mt-2 font-bold">Notes:</p>
-                                <p class="mt-1">{{ $sourceConsultation->notes }}</p>
+                        <p class="font-bold">{{ $sourceConsultation->consulted_at?->format('M j, Y g:i A') ?? 'N/A' }}</p>
+                        <p class="mt-1 text-gray-500">By: {{ $sourceConsultation->conductedBy?->name ?? 'Adviser' }}</p>
+                        <p class="mt-1 text-gray-500">Mode: {{ str($sourceConsultation->consultation_mode?->value ?? $sourceConsultation->consultation_mode)->headline() }}</p>
+                    </td>
+                    <td>
+                        <div class="p-2 space-y-2">
+                            @if ($sourceConsultation->agenda)
+                                <p><span class="font-bold text-[#0e5c3a]">Agenda:</span> {{ $sourceConsultation->agenda }}</p>
+                            @endif
+                            @if ($sourceConsultation->discussion)
+                                <p><span class="font-bold text-[#0e5c3a]">Discussion:</span> {{ $sourceConsultation->discussion }}</p>
+                            @endif
+                            @if ($sourceConsultation->recommendations)
+                                <p><span class="font-bold text-[#0e5c3a]">Recommendations:</span> {{ $sourceConsultation->recommendations }}</p>
                             @endif
                         </div>
                     </td>
-                    <td><x-official-signature-field label="Consultation verified" /></td>
+                    <td><x-official-signature-field label="Consultation Verified" /></td>
                 </tr>
             @else
                 @for ($i=1;$i<=3;$i++)

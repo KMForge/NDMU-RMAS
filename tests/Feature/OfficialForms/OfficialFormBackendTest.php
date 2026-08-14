@@ -9,6 +9,7 @@ use App\Models\DocumentReview;
 use App\Models\OfficialFormInstance;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
+use App\Models\RevisionRequest;
 use App\Models\User;
 use App\Modules\OfficialForms\Actions\ApproveOfficialForm;
 use App\Modules\OfficialForms\Actions\AssignOfficialFormActor;
@@ -967,5 +968,199 @@ class OfficialFormBackendTest extends TestCase
         $printResponse = $this->actingAs($student)->get(route('official-forms.print', $instance));
         $printResponse->assertStatus(200);
         $printResponse->assertSee('Institutional print view template under verification');
+    }
+
+    public function test_res031_workspace_and_print_renders_authoritative_consultation_record_data(): void
+    {
+        $group = $this->createGroup();
+        $request = ConsultationRequest::query()->create([
+            'research_class_group_id' => $group->id,
+            'requested_by' => $group->leader->id,
+            'adviser_id' => $group->creator->id,
+            'request_token' => (string) Str::uuid(),
+            'preferred_date' => now()->addDays(2)->toDateString(),
+            'preferred_at' => now()->addDays(2),
+            'consultation_mode' => 'in_person',
+            'agenda' => 'Methodology & Instruments',
+            'status' => 'approved',
+        ]);
+
+        $record = ConsultationRecord::query()->create([
+            'consultation_request_id' => $request->id,
+            'research_class_group_id' => $group->id,
+            'conducted_by' => $group->creator->id,
+            'consultation_date' => now()->toDateString(),
+            'consulted_at' => now(),
+            'consultation_mode' => 'in_person',
+            'agenda' => 'Validate survey questionnaire',
+            'discussion' => 'Reviewed Likert scale items with adviser',
+            'recommendations' => 'Revise item 4 for clarity',
+            'status' => 'completed',
+        ]);
+
+        $instance = (new CreateOfficialFormInstance)->handle(
+            initiator: $group->leader,
+            formCode: 'RES-031',
+            groupId: $group->id,
+            sourceType: ConsultationRecord::class,
+            sourceId: $record->id,
+            payload: []
+        );
+
+        $showResponse = $this->actingAs($group->leader)->get(route('official-forms.workspace.show', $instance));
+        $showResponse->assertStatus(200);
+        $showResponse->assertSee('Validate survey questionnaire');
+        $showResponse->assertSee('Reviewed Likert scale items with adviser');
+        $showResponse->assertSee('Revise item 4 for clarity');
+
+        $printResponse = $this->actingAs($group->leader)->get(route('official-forms.print', $instance));
+        $printResponse->assertStatus(200);
+        $printResponse->assertSee('Validate survey questionnaire');
+        $printResponse->assertSee('Reviewed Likert scale items with adviser');
+    }
+
+    public function test_res039_revision_request_source_linkage_rendering_and_print(): void
+    {
+        $group = $this->createGroup();
+        $doc = Document::query()->create([
+            'research_class_group_id' => $group->id,
+            'user_id' => $group->leader->id,
+            'uploaded_by' => $group->leader->id,
+            'title' => 'Chapter 3 Manuscript',
+            'storage_path' => 'documents/ch3.pdf',
+            'original_filename' => 'ch3.pdf',
+            'stored_filename' => 'ch3.pdf',
+            'file_hash' => 'hash456',
+            'content_sha256' => hash('sha256', 'ch3'),
+            'file_size' => 2048,
+            'mime_type' => 'application/pdf',
+            'file_type' => 'proposal_manuscript',
+            'storage_disk' => 'private',
+            'submission_token' => (string) Str::uuid(),
+            'submitted_at' => now(),
+            'status' => 'submitted',
+        ]);
+
+        $revRequest = RevisionRequest::query()->create([
+            'research_class_group_id' => $group->id,
+            'document_id' => $doc->id,
+            'requested_by' => $group->creator->id,
+            'source_type' => 'adviser',
+            'title' => 'Sampling Technique Clarification',
+            'instructions' => 'Explain stratified sampling procedure in Chapter 3',
+            'status' => 'open',
+        ]);
+
+        $instance = (new CreateOfficialFormInstance)->handle(
+            initiator: $group->leader,
+            formCode: 'RES-039',
+            groupId: $group->id,
+            sourceType: RevisionRequest::class,
+            sourceId: $revRequest->id,
+            payload: ['revisions' => ['method' => ['suggestions' => 'Explain stratified sampling', 'revision_made' => 'Added Section 3.2', 'pages' => '45-47']], 'recommendation' => 'proposal', 'date' => '2026-08-14']
+        );
+
+        $this->assertInstanceOf(OfficialFormInstance::class, $instance);
+        $this->assertSame(RevisionRequest::class, $instance->source_type);
+        $this->assertSame($revRequest->id, $instance->source_id);
+
+        $showResponse = $this->actingAs($group->leader)->get(route('official-forms.workspace.show', $instance));
+        $showResponse->assertStatus(200);
+        $showResponse->assertSee('Sampling Technique Clarification');
+        $showResponse->assertSee('Explain stratified sampling procedure in Chapter 3');
+
+        $printResponse = $this->actingAs($group->leader)->get(route('official-forms.print', $instance));
+        $printResponse->assertStatus(200);
+        $printResponse->assertSee('Sampling Technique Clarification');
+    }
+
+    public function test_res042_instrument_validator_assignment_security_matrix(): void
+    {
+        $group = $this->createGroup();
+        $res042ReqA = (new CreateOfficialFormInstance)->handle($group->leader, 'RES-042', $group->id);
+        $res042ReqB = (new CreateOfficialFormInstance)->handle($group->leader, 'RES-042', $group->id, contextKey: 'req_b');
+
+        $validatorCandidate = User::factory()->create(['user_type' => 'faculty']);
+        $validatorCandidate->givePermissionTo('forms.res-043a.validate');
+
+        // 1. Ineligible candidate without permission fails assignment
+        $unqualifiedFaculty = User::factory()->create(['user_type' => 'faculty']);
+        $this->expectException(InvalidArgumentException::class);
+        (new AssignOfficialFormActor)->handle($group->creator, $res042ReqA, $unqualifiedFaculty->id, 'instrument_validator');
+    }
+
+    public function test_res042_validator_assignment_isolation_and_deactivation(): void
+    {
+        $group = $this->createGroup();
+        $res042ReqA = (new CreateOfficialFormInstance)->handle($group->leader, 'RES-042', $group->id);
+        $res042ReqB = (new CreateOfficialFormInstance)->handle($group->leader, 'RES-042', $group->id, contextKey: 'req_b');
+
+        $validatorA = User::factory()->create(['user_type' => 'faculty']);
+        $validatorA->givePermissionTo('forms.res-043a.validate');
+
+        // Assign Validator A to Request A
+        $assignment = (new AssignOfficialFormActor)->handle($group->creator, $res042ReqA, $validatorA->id, 'instrument_validator');
+
+        // Validator A assignment on Request A CANNOT authorize RES-043A linked to Request B
+        $createAction = new CreateOfficialFormInstance;
+        try {
+            $createAction->handle(
+                initiator: $group->leader,
+                formCode: 'RES-043A',
+                groupId: $group->id,
+                sourceType: OfficialFormInstance::class,
+                sourceId: $res042ReqB->id,
+                actorUserId: $validatorA->id
+            );
+            $this->fail('Expected assignment A to NOT authorize request B.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertStringContainsString('is not an assigned instrument validator for the source RES-042 validation request', $e->getMessage());
+        }
+
+        // Deactivating assignment on Request A denies subsequent RES-043A creation on Request A
+        (new DeactivateOfficialFormActor)->handle($group->creator, $res042ReqA, $assignment);
+        $this->expectException(InvalidArgumentException::class);
+        $createAction->handle(
+            initiator: $group->leader,
+            formCode: 'RES-043A',
+            groupId: $group->id,
+            sourceType: OfficialFormInstance::class,
+            sourceId: $res042ReqA->id,
+            actorUserId: $validatorA->id
+        );
+    }
+
+    public function test_res049_authorship_declaration_phase19_persistence_and_print(): void
+    {
+        $student = User::factory()->create(['user_type' => 'student']);
+        $student->givePermissionTo('forms.res-049.sign', 'forms.res-049.view');
+        $group = $this->createGroup(leader: $student);
+
+        $instance = (new CreateOfficialFormInstance)->handle($student, 'RES-049', $group->id);
+
+        $savedVersion = (new SaveOfficialFormDraft)->handle($student, $instance, [
+            'authorship_confirmed' => true,
+        ]);
+        $this->assertTrue($savedVersion->payload['authorship_confirmed']);
+
+        $submitAction = new SubmitOfficialFormVersion;
+        $submittedVersion = $submitAction->handle(
+            actor: $student,
+            instance: $instance,
+            payload: ['authorship_confirmed' => true],
+            nextStatus: 'submitted'
+        );
+        $this->assertSame('submitted', $instance->fresh()->status);
+
+        $printResponse = $this->actingAs($student)->get(route('official-forms.print', $instance));
+        $printResponse->assertStatus(200);
+        $printResponse->assertSee('Certificate of Authentic Authorship');
+
+        // IDOR: Unrelated student cannot print RES-049
+        $otherStudent = User::factory()->create(['user_type' => 'student']);
+        $otherStudent->givePermissionTo('forms.res-049.view');
+        $this->actingAs($otherStudent)
+            ->get(route('official-forms.print', $instance))
+            ->assertStatus(403);
     }
 }

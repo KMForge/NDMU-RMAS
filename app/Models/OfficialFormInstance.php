@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 #[Fillable([
     'official_form_definition_id',
@@ -53,5 +54,10 @@ class OfficialFormInstance extends Model
     public function actorAssignments(): HasMany
     {
         return $this->hasMany(OfficialFormActorAssignment::class, 'official_form_instance_id');
+    }
+
+    public function source(): MorphTo
+    {
+        return $this->morphTo();
     }
 }

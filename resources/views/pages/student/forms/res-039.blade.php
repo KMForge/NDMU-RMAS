@@ -1,7 +1,9 @@
 @php
     $officialFormInstance = $officialFormInstance ?? null;
     $payload = $payload ?? [];
-    $sourceReview = $officialFormInstance?->source;
+    $source = $officialFormInstance?->source;
+    $isDocReview = $source instanceof \App\Models\DocumentReview;
+    $isRevRequest = $source instanceof \App\Models\RevisionRequest;
 @endphp
 <div x-show="activeOfficialForm === 'RES-039'" x-cloak><x-student-official-form code="RES-Form-039" title="Research Revision Chart" guidebook-page="123">
     <label class="block">Research Title:<input value="{{ $officialFormInstance?->group?->title }}" class="w-full" readonly></label>
@@ -11,10 +13,26 @@
         </label>
         <div class="space-y-3">
             <label class="block">Course:<input value="{{ $officialFormInstance?->group?->researchClass?->name }}" class="w-full" readonly></label>
-            <label class="block">Chairman of the Panel:<input placeholder="Panel Chairman" class="w-full" readonly></label>
-            <label class="block">Panel Members:<input placeholder="Panel Members" class="w-full" readonly></label>
+            @if ($isDocReview)
+                <label class="block">Source Reviewer:<input value="{{ $source->reviewer?->name }} (Decision: {{ str($source->decision)->headline() }})" class="w-full" readonly></label>
+            @elseif ($isRevRequest)
+                <label class="block">Source Requester:<input value="{{ $source->requester?->name }} (Title: {{ $source->title }})" class="w-full" readonly></label>
+            @else
+                <label class="block">Chairman of the Panel:<input placeholder="Panel Chairman" class="w-full" readonly></label>
+            @endif
         </div>
     </div>
+    @if ($isDocReview && $source->review_notes)
+        <div class="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs">
+            <p class="font-bold text-[#0e5c3a]">Source Review Notes:</p>
+            <p class="mt-1 text-gray-700">{{ $source->review_notes }}</p>
+        </div>
+    @elseif ($isRevRequest && $source->instructions)
+        <div class="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs">
+            <p class="font-bold text-[#0e5c3a]">Source Revision Instructions:</p>
+            <p class="mt-1 text-gray-700">{{ $source->instructions }}</p>
+        </div>
+    @endif
     <table class="official-form-table text-xs">
         <thead>
             <tr>
