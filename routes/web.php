@@ -88,7 +88,7 @@ Route::middleware(['auth', 'verified', 'active'])
             ->whereNumber('definition')->middleware('throttle:30,1')->name('store');
         Route::post('/definitions/{definition}/sources/{sourceKind}/{source}', [OfficialFormWorkspaceController::class, 'storeFromSource'])
             ->whereNumber(['definition', 'source'])
-            ->whereIn('sourceKind', ['consultation-record', 'document-review', 'revision-request', 'res-042'])
+            ->whereIn('sourceKind', ['consultation-record', 'document-review', 'revision-request', 'res-042', 'defense-schedule'])
             ->middleware('throttle:30,1')->name('store-from-source');
         Route::get('/instances/{instance}', [OfficialFormWorkspaceController::class, 'show'])
             ->whereNumber('instance')->name('show');

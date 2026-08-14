@@ -130,5 +130,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('progress-actions', fn (Request $request) => Limit::perMinute(30)->by(
             'progress-action|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
         ));
+
+        RateLimiter::for('defense-actions', fn (Request $request) => Limit::perMinute(30)->by(
+            'defense-action|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
+        ));
     }
 }

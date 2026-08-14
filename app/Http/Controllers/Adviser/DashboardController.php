@@ -8,6 +8,7 @@ use App\Models\Document;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupAdviserRequest;
 use App\Modules\Consultations\Queries\GetAdviserConsultationData;
+use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Documents\Queries\GetAdviserDocumentReviewData;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\Research\Queries\GetAdviserDashboardOverview;
@@ -27,6 +28,7 @@ class DashboardController extends Controller
         GetAdviserConsultationData $consultationData,
         GetResearchGroupProgress $groupProgress,
         GetAdviserDashboardOverview $overviewData,
+        GetDefenseScheduleCalendar $defenseCalendar,
     ): View {
         $allowedTabs = [
             'dashboard',
@@ -88,6 +90,7 @@ class DashboardController extends Controller
         $viewData['pendingConsultationsCount'] = $pendingConsultationsCount;
         $viewData['pendingDocReviewsCount'] = $pendingDocReviewsCount;
         $viewData['assignedGroups'] = $assignedGroups;
+        $viewData['adviserDefenses'] = $defenseCalendar->execute($user);
         $viewData['officialFormPhases'] = config('official-forms.phases', []);
         $viewData['officialForms'] = collect(config('official-forms.adviser', []))
             ->filter(fn (array $form, string $code) => $user->getAllPermissions()

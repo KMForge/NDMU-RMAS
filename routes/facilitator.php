@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Facilitator\ClassJoinRequestController;
 use App\Http\Controllers\Facilitator\DashboardController;
+use App\Http\Controllers\Facilitator\DefenseController;
 use App\Http\Controllers\Facilitator\ResearchClassController;
 use App\Http\Controllers\Facilitator\ResearchClassFormActorController;
 use App\Http\Controllers\Facilitator\ResearchClassGroupController;
@@ -12,6 +13,15 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
     'auth', 'verified', 'active', 'permission:dashboards.facilitator.view', 'workspace.context',
 ])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    Route::prefix('/defenses')
+        ->middleware(['permission:defenses.manage', 'throttle:defense-actions'])
+        ->group(function (): void {
+            Route::post('/', [DefenseController::class, 'store'])->name('defenses.store');
+            Route::patch('/{defense}/reschedule', [DefenseController::class, 'reschedule'])->whereNumber('defense')->name('defenses.reschedule');
+            Route::patch('/{defense}/cancel', [DefenseController::class, 'cancel'])->whereNumber('defense')->name('defenses.cancel');
+            Route::post('/{defense}/panel', [DefenseController::class, 'assignPanel'])->whereNumber('defense')->name('defenses.panel');
+        });
 
     Route::post('/classes', [ResearchClassController::class, 'store'])
         ->middleware(['permission:classes.create', 'throttle:class-creation'])

@@ -4,6 +4,7 @@ namespace App\Modules\OfficialForms\Actions;
 
 use App\Models\AuditLog;
 use App\Models\ConsultationRecord;
+use App\Models\DefenseSchedule;
 use App\Models\DocumentReview;
 use App\Models\OfficialFormActorAssignment;
 use App\Models\OfficialFormDefinition;
@@ -31,6 +32,7 @@ class CreateOfficialFormInstance
     /** @var array<string, list<string>> */
     public const FORM_ALLOWED_SOURCE_TYPES = [
         'RES-031' => [ConsultationRecord::class],
+        'RES-036' => [DefenseSchedule::class],
         'RES-039' => [DocumentReview::class, RevisionRequest::class],
         'RES-043A' => [OfficialFormInstance::class],
         'RES-043B' => [OfficialFormInstance::class],
@@ -49,12 +51,8 @@ class CreateOfficialFormInstance
     ): OfficialFormInstance {
         $formCodeUpper = strtoupper($formCode);
 
-        // Block RES-036 and RES-037 pending Phase 21/22 Defense Panel Assignment sources
-        if ($formCodeUpper === 'RES-036') {
-            throw new InvalidArgumentException('RES-036 is blocked pending the authoritative Defense Panel Assignment source from Phase 21.');
-        }
         if ($formCodeUpper === 'RES-037') {
-            throw new InvalidArgumentException('RES-037 is blocked pending the authoritative Defense Panel/Evaluation source from Phase 21/22.');
+            throw new InvalidArgumentException('RES-037 is blocked pending the authoritative Defense Panel/Evaluation source from Phase 22.');
         }
 
         $validatedPayload = $this->payloadValidator->validate($formCodeUpper, $payload);
@@ -63,6 +61,33 @@ class CreateOfficialFormInstance
             ->where('code', $formCodeUpper)
             ->where('is_active', true)
             ->firstOrFail();
+
+        $sourceSnapshot = null;
+
+        if ($formCodeUpper === 'RES-036' && $sourceType === DefenseSchedule::class) {
+            /** @var DefenseSchedule|null $defenseSchedule */
+            $defenseSchedule = DefenseSchedule::query()->with(['defense.group', 'room'])->find($sourceId);
+            if (! $defenseSchedule) {
+                throw new InvalidArgumentException('Target DefenseSchedule source does not exist.');
+            }
+
+            if (! $this->authorization->canInitiateDefenseEvaluation($initiator, $defenseSchedule)) {
+                throw new InvalidArgumentException("User #{$initiator->id} is not authorized to initiate RES-036 for defense schedule #{$sourceId}.");
+            }
+
+            $groupId = (int) $defenseSchedule->defense->research_class_group_id;
+
+            $sourceSnapshot = [
+                'defense_type' => $defenseSchedule->defense->defense_type,
+                'starts_at' => $defenseSchedule->starts_at?->toIso8601String(),
+                'ends_at' => $defenseSchedule->ends_at?->toIso8601String(),
+                'room_code' => $defenseSchedule->room?->code,
+                'room_name' => $defenseSchedule->room?->name,
+                'location_notes' => $defenseSchedule->room?->location_notes,
+                'research_title' => $defenseSchedule->defense->group?->title ?? $defenseSchedule->defense->group?->name ?? 'Untitled Research',
+                'group_name' => $defenseSchedule->defense->group?->name ?? 'Group #'.$defenseSchedule->defense->group?->id,
+            ];
+        }
 
         $group = $groupId !== null ? ResearchClassGroup::query()->find($groupId) : null;
         $class = $classId !== null ? ResearchClass::query()->find($classId) : null;
@@ -91,11 +116,11 @@ class CreateOfficialFormInstance
             $targetActorId = $this->validateValidationRequestSourceAndValidator($groupId, $sourceType, $sourceId, $targetActorId);
         }
 
-        if (! $this->authorization->canInitiate($initiator, $definition, $group, $class)) {
+        if ($formCodeUpper !== 'RES-036' && ! $this->authorization->canInitiate($initiator, $definition, $group, $class)) {
             throw new InvalidArgumentException("User #{$initiator->id} is not authorized to initiate form {$definition->code}.");
         }
 
-        return DB::transaction(function () use ($definition, $initiator, $groupId, $classId, $contextKey, $sourceType, $sourceId, $targetActorId, $validatedPayload) {
+        return DB::transaction(function () use ($definition, $initiator, $groupId, $classId, $contextKey, $sourceType, $sourceId, $targetActorId, $validatedPayload, $sourceSnapshot) {
             // Lock owner record for update to prevent concurrent duplicate creation
             if ($groupId !== null) {
                 ResearchClassGroup::query()->lockForUpdate()->find($groupId);
@@ -121,6 +146,7 @@ class CreateOfficialFormInstance
                 'official_form_instance_id' => $instance->id,
                 'version_number' => 1,
                 'payload' => $validatedPayload,
+                'source_snapshot' => $sourceSnapshot,
                 'created_by' => $initiator->id,
                 'is_current' => true,
             ]);

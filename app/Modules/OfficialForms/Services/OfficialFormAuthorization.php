@@ -2,6 +2,10 @@
 
 namespace App\Modules\OfficialForms\Services;
 
+use App\Enums\AccountStatus;
+use App\Enums\UserType;
+use App\Models\DefensePanelAssignment;
+use App\Models\DefenseSchedule;
 use App\Models\OfficialFormDefinition;
 use App\Models\OfficialFormInstance;
 use App\Models\ResearchClass;
@@ -79,6 +83,35 @@ class OfficialFormAuthorization
             'approve' => ['from' => ['endorsed'], 'to' => 'approved'],
         ],
     ];
+
+    public function canInitiateDefenseEvaluation(User $user, DefenseSchedule $schedule): bool
+    {
+        if ($user->user_type !== UserType::Faculty) {
+            return false;
+        }
+
+        if ($user->status !== AccountStatus::Active || $user->approved_at === null || $user->email_verified_at === null) {
+            return false;
+        }
+
+        if (! $user->hasPermissionTo('forms.res-036.evaluate')) {
+            return false;
+        }
+
+        if ($schedule->status !== 'current') {
+            return false;
+        }
+
+        $defense = $schedule->defense;
+        if (! $defense || $defense->status !== 'scheduled' || (int) $defense->current_schedule_id !== (int) $schedule->id) {
+            return false;
+        }
+
+        return DefensePanelAssignment::where('defense_id', $defense->id)
+            ->where('user_id', $user->id)
+            ->whereNull('ended_at')
+            ->exists();
+    }
 
     public function canInitiate(User $user, OfficialFormDefinition $definition, ?ResearchClassGroup $group = null, ?ResearchClass $class = null): bool
     {

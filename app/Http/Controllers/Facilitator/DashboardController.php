@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Facilitator;
 
 use App\Http\Controllers\Controller;
+use App\Models\DefenseRoom;
 use App\Modules\Classes\Queries\GetFacilitatorClassData;
+use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\ResearchProgress\Queries\GetFacilitatorProgressData;
 use Illuminate\Contracts\View\View;
@@ -16,6 +18,7 @@ class DashboardController extends Controller
         GetFacilitatorClassData $classData,
         GetDocumentRepositoryData $repositoryData,
         GetFacilitatorProgressData $progressData,
+        GetDefenseScheduleCalendar $defenseCalendar,
     ): View {
         $repository = $request->query('tab') === 'repository'
             ? $repositoryData->for($request->user(), $request->query())
@@ -29,6 +32,9 @@ class DashboardController extends Controller
             )
             : [];
 
+        $defenses = $defenseCalendar->execute($request->user());
+        $defenseRooms = DefenseRoom::where('is_active', true)->get();
+
         return view('pages.facilitator-dashboard', [
             'area' => 'Research Facilitator',
             'facilitator' => $request->user(),
@@ -37,6 +43,8 @@ class DashboardController extends Controller
                 ->filter(fn (array $form, string $code) => $request->user()->getAllPermissions()
                     ->contains(fn ($permission) => str_starts_with($permission->name, 'forms.'.strtolower($code).'.')))
                 ->all(),
+            'defenses' => $defenses,
+            'defenseRooms' => $defenseRooms,
             ...$classData->for(
                 $request->user(),
                 $request->query('request_q'),

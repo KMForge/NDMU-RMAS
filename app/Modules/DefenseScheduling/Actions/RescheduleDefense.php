@@ -1,0 +1,175 @@
+<?php
+
+namespace App\Modules\DefenseScheduling\Actions;
+
+use App\Enums\AccountStatus;
+use App\Enums\UserType;
+use App\Models\AuditLog;
+use App\Models\Defense;
+use App\Models\DefensePanelAssignment;
+use App\Models\DefenseRoom;
+use App\Models\DefenseSchedule;
+use App\Models\ResearchClassGroup;
+use App\Models\User;
+use Carbon\CarbonInterface;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
+
+class RescheduleDefense
+{
+    public function handle(
+        User $actor,
+        Defense $defense,
+        int $expectedCurrentScheduleId,
+        int $newRoomId,
+        CarbonInterface $newStartsAt,
+        CarbonInterface $newEndsAt,
+        string $reason
+    ): DefenseSchedule {
+        if ($actor->user_type !== UserType::Faculty || $actor->status !== AccountStatus::Active || ! $actor->can('defenses.manage')) {
+            throw new AuthorizationException('Unauthorized to manage defense schedules.');
+        }
+
+        $group = $defense->group;
+        if (! $group || ! $group->researchClass || (int) $group->researchClass->facilitator_id !== (int) $actor->id) {
+            throw new AuthorizationException('Unauthorized: You do not own the research class for this defense.');
+        }
+
+        if ($newEndsAt->lessThanOrEqualTo($newStartsAt)) {
+            throw new InvalidArgumentException('End time must be strictly after start time.');
+        }
+
+        if (trim($reason) === '') {
+            throw new InvalidArgumentException('A valid reason is required for rescheduling.');
+        }
+
+        return DB::transaction(function () use ($actor, $defense, $expectedCurrentScheduleId, $newRoomId, $newStartsAt, $newEndsAt, $reason) {
+            // 1. Lock Group & Defense
+            $lockedGroup = ResearchClassGroup::where('id', $defense->research_class_group_id)->lockForUpdate()->firstOrFail();
+            $lockedDefense = Defense::where('id', $defense->id)->lockForUpdate()->firstOrFail();
+
+            if ($lockedDefense->status === 'cancelled' || $lockedDefense->current_schedule_id === null) {
+                throw new InvalidArgumentException('Cannot reschedule a cancelled defense.');
+            }
+
+            if ((int) $lockedDefense->current_schedule_id !== (int) $expectedCurrentScheduleId) {
+                throw new InvalidArgumentException('Stale schedule reference: Current defense schedule has changed.');
+            }
+
+            $oldSchedule = DefenseSchedule::where('id', $expectedCurrentScheduleId)->lockForUpdate()->firstOrFail();
+            if ((int) $oldSchedule->defense_id !== (int) $lockedDefense->id) {
+                throw new InvalidArgumentException('Schedule does not belong to specified defense.');
+            }
+
+            // 2. Lock Rooms sorted by ID ASC
+            $roomIds = array_values(array_unique([$oldSchedule->room_id, $newRoomId]));
+            sort($roomIds);
+            $rooms = DefenseRoom::whereIn('id', $roomIds)->orderBy('id', 'asc')->lockForUpdate()->get();
+            $newRoom = $rooms->firstWhere('id', $newRoomId);
+
+            if (! $newRoom || ! $newRoom->is_active) {
+                throw new InvalidArgumentException('Selected new room is inactive or invalid.');
+            }
+
+            // 3. Lock Panel Members sorted by ID ASC
+            $panelUserIds = DefensePanelAssignment::where('defense_id', $lockedDefense->id)
+                ->whereNull('ended_at')
+                ->pluck('user_id')
+                ->sort()
+                ->values()
+                ->toArray();
+
+            if (! empty($panelUserIds)) {
+                User::whereIn('id', $panelUserIds)->orderBy('id', 'asc')->lockForUpdate()->get();
+            }
+
+            // 4. Overlap Checks excluding current schedule ID
+            // Group conflict
+            $groupConflict = DefenseSchedule::whereHas('defense', function ($q) use ($lockedGroup) {
+                $q->where('research_class_group_id', $lockedGroup->id);
+            })
+                ->where('id', '!=', $oldSchedule->id)
+                ->where('status', 'current')
+                ->where('starts_at', '<', $newEndsAt)
+                ->where('ends_at', '>', $newStartsAt)
+                ->exists();
+
+            if ($groupConflict) {
+                throw new InvalidArgumentException('Group already has another defense schedule during the requested time interval.');
+            }
+
+            // Room conflict
+            $roomConflict = DefenseSchedule::where('room_id', $newRoomId)
+                ->where('id', '!=', $oldSchedule->id)
+                ->where('status', 'current')
+                ->where('starts_at', '<', $newEndsAt)
+                ->where('ends_at', '>', $newStartsAt)
+                ->exists();
+
+            if ($roomConflict) {
+                throw new InvalidArgumentException('Room already has a defense schedule during the requested time interval.');
+            }
+
+            // Panelist conflict
+            if (! empty($panelUserIds)) {
+                $panelConflict = DefensePanelAssignment::whereIn('user_id', $panelUserIds)
+                    ->whereNull('ended_at')
+                    ->where('defense_id', '!=', $lockedDefense->id)
+                    ->whereHas('defense.currentSchedule', function ($q) use ($oldSchedule, $newStartsAt, $newEndsAt) {
+                        $q->where('id', '!=', $oldSchedule->id)
+                            ->where('status', 'current')
+                            ->where('starts_at', '<', $newEndsAt)
+                            ->where('ends_at', '>', $newStartsAt);
+                    })
+                    ->exists();
+
+                if ($panelConflict) {
+                    throw new InvalidArgumentException('One or more assigned panel members have a schedule conflict during the requested time interval.');
+                }
+            }
+
+            // 5. Create new Schedule S2
+            $newSchedule = DefenseSchedule::create([
+                'defense_id' => $lockedDefense->id,
+                'room_id' => $newRoomId,
+                'starts_at' => $newStartsAt,
+                'ends_at' => $newEndsAt,
+                'status' => 'current',
+                'scheduled_by' => $actor->id,
+                'reason' => $reason,
+                'supersedes_schedule_id' => $oldSchedule->id,
+            ]);
+
+            // 6. Mark old schedule S1 as superseded
+            $oldSchedule->status = 'superseded';
+            $oldSchedule->reason = $reason;
+            $oldSchedule->save();
+
+            // 7. Update defense pointer
+            $lockedDefense->current_schedule_id = $newSchedule->id;
+            $lockedDefense->save();
+
+            // 8. Audit Log
+            AuditLog::query()->create([
+                'user_id' => $actor->id,
+                'actor_name' => $actor->name,
+                'actor_email' => $actor->email,
+                'event' => 'defense.rescheduled',
+                'auditable_type' => Defense::class,
+                'auditable_id' => $lockedDefense->id,
+                'description' => "Rescheduled defense #{$lockedDefense->id}.",
+                'subject_snapshot' => [
+                    'old_schedule_id' => $oldSchedule->id,
+                    'new_schedule_id' => $newSchedule->id,
+                    'starts_at' => $newStartsAt->toIso8601String(),
+                    'ends_at' => $newEndsAt->toIso8601String(),
+                    'room_id' => $newRoomId,
+                    'reason' => $reason,
+                ],
+            ]);
+
+            return $newSchedule->fresh(['room', 'defense']);
+        });
+    }
+}

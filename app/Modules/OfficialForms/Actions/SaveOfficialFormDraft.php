@@ -61,6 +61,7 @@ class SaveOfficialFormDraft
                 'official_form_instance_id' => $locked->id,
                 'version_number' => $nextNumber,
                 'payload' => $validatedPayload,
+                'source_snapshot' => $previous?->source_snapshot,
                 'created_by' => $actor->id,
                 'supersedes_version_id' => $previous?->id,
                 'is_current' => true,

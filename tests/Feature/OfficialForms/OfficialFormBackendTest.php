@@ -477,7 +477,7 @@ class OfficialFormBackendTest extends TestCase
         $assignAction->handle($group->creator, $instance, $group->creator->id, 'consultant');
     }
 
-    public function test_res036_creation_blocked_pending_phase21_panel_assignment(): void
+    public function test_res036_requires_authoritative_defense_schedule_source(): void
     {
         $panelist = User::factory()->create(['user_type' => 'faculty']);
         $panelist->givePermissionTo('forms.res-036.evaluate');
@@ -489,7 +489,7 @@ class OfficialFormBackendTest extends TestCase
             $action->handle($panelist, 'RES-036', $group->id, actorUserId: $panelist->id);
             $this->fail('Expected InvalidArgumentException for RES-036 creation.');
         } catch (InvalidArgumentException $e) {
-            $this->assertStringContainsString('RES-036 is blocked pending the authoritative Defense Panel Assignment source from Phase 21', $e->getMessage());
+            $this->assertStringContainsString('Form RES-036 requires its configured authoritative source', $e->getMessage());
         }
 
         $this->assertDatabaseMissing('official_form_instances', [

@@ -127,6 +127,10 @@ class GetStudentDashboardData
         $activeGroupMember = $this->documentGroupAccess->activeMembershipFor($user);
         $activeGroup = $activeGroupMember?->researchClassGroup;
 
+        if (($isDashboard || $activeTab === 'defense') && $activeGroup !== null && $defenses->isEmpty()) {
+            $defenses = $this->defensesFor((int) $activeGroup->id);
+        }
+
         if (($isDashboard || $activeTab === 'progress') && $activeGroup !== null) {
             $progressSummary = $this->groupProgress->for($activeGroup);
             $milestones = $progressSummary['milestones']->map(fn ($milestone): object => (object) [
@@ -438,30 +442,29 @@ class GetStudentDashboardData
     /**
      * @return Collection<int, object>
      */
-    private function defensesFor(int $researchProjectId): Collection
+    private function defensesFor(int $groupId): Collection
     {
-        if (! $this->tablesExist(['defense_requests', 'defense_schedules', 'defense_rooms'])) {
+        if (! $this->tablesExist(['defenses', 'defense_schedules', 'defense_rooms'])) {
             return collect();
         }
 
-        return DB::table('defense_requests as requests')
-            ->leftJoin('defense_schedules as schedules', 'schedules.defense_request_id', '=', 'requests.id')
+        return DB::table('defenses')
+            ->join('defense_schedules as schedules', 'schedules.defense_id', '=', 'defenses.id')
             ->leftJoin('defense_rooms as rooms', 'rooms.id', '=', 'schedules.room_id')
-            ->where('requests.research_project_id', $researchProjectId)
+            ->where('defenses.research_class_group_id', $groupId)
+            ->where('schedules.status', 'current')
             ->orderByDesc('schedules.starts_at')
             ->select([
-                'requests.id as request_id',
-                'requests.defense_type',
-                'requests.status as request_status',
-                'requests.preferred_date',
+                'defenses.id as defense_id',
+                'defenses.defense_type',
+                'defenses.status as defense_status',
                 'schedules.id as schedule_id',
                 'schedules.starts_at',
                 'schedules.ends_at',
                 'schedules.status as schedule_status',
-                'schedules.meeting_url',
+                'rooms.code as room_code',
                 'rooms.name as room_name',
-                'rooms.building',
-                'rooms.location',
+                'rooms.location_notes',
             ])
             ->get();
     }

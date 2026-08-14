@@ -19,6 +19,7 @@ class OfficialFormSignatureHasher
             'official_form_version_id' => (int) $version->id,
             'version_number' => (int) $version->version_number,
             'payload' => $this->sortKeysRecursive($version->payload ?? []),
+            'source_snapshot' => $this->sortKeysRecursive($version->source_snapshot ?? []),
         ];
 
         $canonicalJson = json_encode($canonicalStructure, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);

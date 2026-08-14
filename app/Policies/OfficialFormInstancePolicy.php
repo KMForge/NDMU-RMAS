@@ -78,6 +78,11 @@ class OfficialFormInstancePolicy
         return $this->authorization->canPerformAction($user, $instance, 'validate');
     }
 
+    public function evaluate(User $user, OfficialFormInstance $instance): bool
+    {
+        return $this->authorization->canPerformAction($user, $instance, 'evaluate');
+    }
+
     public function assignActor(User $user, OfficialFormInstance $instance): bool
     {
         return $this->authorization->canAssignActor($user, $instance);

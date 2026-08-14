@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'official_form_instance_id',
     'version_number',
     'payload',
+    'source_snapshot',
     'created_by',
     'supersedes_version_id',
     'is_current',
@@ -48,6 +49,7 @@ class OfficialFormVersion extends Model
         return [
             'version_number' => 'integer',
             'payload' => 'array',
+            'source_snapshot' => 'array',
             'is_current' => 'boolean',
         ];
     }

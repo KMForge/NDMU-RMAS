@@ -106,7 +106,7 @@ class OfficialFormWorkspaceController extends Controller
             'group_id' => ['nullable', 'integer', 'exists:research_class_groups,id'],
             'class_id' => ['nullable', 'integer', 'exists:research_classes,id'],
             'context_key' => ['nullable', 'string', 'max:100', 'regex:/\A[a-z0-9_-]+\z/'],
-            'source_kind' => ['nullable', Rule::in(['consultation_record', 'document_review', 'revision_request', 'res_042'])],
+            'source_kind' => ['nullable', Rule::in(['consultation_record', 'document_review', 'revision_request', 'res_042', 'defense_schedule'])],
             'source_id' => ['nullable', 'integer', 'min:1'],
             'payload' => ['sometimes', 'array'],
         ]);
@@ -117,6 +117,7 @@ class OfficialFormWorkspaceController extends Controller
             'document_review' => DocumentReview::class,
             'revision_request' => RevisionRequest::class,
             'res_042' => OfficialFormInstance::class,
+            'defense_schedule' => DefenseSchedule::class,
             default => null,
         };
 
@@ -153,11 +154,13 @@ class OfficialFormWorkspaceController extends Controller
             'document-review' => DocumentReview::query()->with('document')->findOrFail($source),
             'revision-request' => RevisionRequest::query()->findOrFail($source),
             'res-042' => OfficialFormInstance::query()->with('definition')->findOrFail($source),
+            'defense-schedule' => DefenseSchedule::query()->with('defense')->findOrFail($source),
             default => abort(404),
         };
 
         $groupId = match (true) {
             $sourceModel instanceof DocumentReview => $sourceModel->research_class_group_id ?? $sourceModel->document?->research_class_group_id,
+            $sourceModel instanceof DefenseSchedule => $sourceModel->defense?->research_class_group_id,
             default => $sourceModel->research_class_group_id,
         };
 

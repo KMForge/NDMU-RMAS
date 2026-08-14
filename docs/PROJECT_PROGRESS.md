@@ -15,12 +15,12 @@ This tracker records the backend rebuild progress after the baseline reset. GitH
 | Phase 14 foundation commit | `a8320f9 feat: implement document group access and update policies for research class group ownership` |
 | Phase 14 implementation commit | `173e8f2 feat: Implement Phase 14 Research Repository` |
 | Phase 15 implementation commit | `5aa438f feat: Implement adviser document review workflow with correction capabilities` |
-| Latest completed feature phase | `Phase 20 — Digital Signature Verification` |
-| Current active feature phase | `Phase 21 — Defense Scheduling` |
+| Latest completed feature phase | `Phase 21 — Defense Scheduling` |
+| Current active feature phase | `Phase 22 — Evaluation Records` |
 | Backend strategy | Rebuild feature modules one at a time |
 | UI strategy | Keep existing UI while reconnecting verified backend modules |
 
-> **Baseline note:** Commit `f701324` remains the functional rebuild baseline. Phases 10 through 20 are complete. Strict roadmap progress: 20 / 27 phases completed (~74.1%). Phase 20 added secure Student/Faculty signature enrollment, normalized transparent PNG specimens, transaction-locked applied signatures, server-derived academic actor identity, deterministic SHA-256/HMAC attestation, QR-backed public document verification, and full regression coverage.
+> **Baseline note:** Commit `f701324` remains the functional rebuild baseline. Phases 10 through 21 are complete. Strict roadmap progress: 21 / 27 phases completed (~77.8%). Phase 21 added defense scheduling (proposal/final), room management, panelist assignments, multi-criteria calendar querying, fail-closed concurrency locking, PostgreSQL RLS, RES-036 authoritative defense schedule source binding, and complete regression test coverage.
 
 ## Phase Tracker
 
@@ -46,7 +46,7 @@ This tracker records the backend rebuild progress after the baseline reset. GitH
 | Phase 18 | Research Progress Milestones | Completed | Implemented 13 canonical official research writing phases (aligned with the NDMU Research Guidebook flowchart), group-owned state, weighted server-derived percentages, sequential transitions, authorized overrides/corrections, N/A handling, due dates, same-group evidence, immutable event history, student/adviser read-only views, facilitator-owned management, PostgreSQL RLS, and safe legacy history preservation. Verified by 20-scenario Phase 18 test suite (94 assertions, 0 failures), Pint code style, and production Vite build. |
 | Phase 19 | Official Research Forms | Implemented with External Dependencies | Phase 19-owned technical development complete (100%). Authoritative workspace, payload validation, immutable draft/submission versioning, saved-version printing, safe fallbacks, source binding, and actor security matrix fully verified (58 tests, 313 assertions, 0 failures). Remaining incomplete items belong exclusively to external institutional workflow evidence (Category B) or future phase dependencies (Category C). Single overall weighted progress is 92%. See `PHASE_19_OFFICIAL_RESEARCH_FORMS.md`. |
 | Phase 20 | Digital Signature Verification | Completed | Secure Student/Faculty signature enrollment, normalized private PNG specimens, immutable version-bound applied signatures, server-derived academic actor identity, deterministic SHA-256/HMAC attestation, QR-backed public verification, historical signature preservation, RES-049 researcher authorship attestation, print integration, concurrency/IDOR hardening, and verified regression coverage (338 tests, 314 passed, 24 skipped, 0 failures, 1465 assertions). See `PHASE_20_DIGITAL_SIGNATURE_VERIFICATION.md`. |
-| Phase 21 | Defense Scheduling | Planned | Rebuild defense requests, schedules, rooms, and calendar integration. |
+| Phase 21 | Defense Scheduling | Completed | Rebuilt defense scheduling (proposal/final), room management, panelist assignments, multi-criteria calendar querying, fail-closed concurrency locking, PostgreSQL RLS, RES-036 authoritative defense schedule source binding, and complete test coverage. |
 | Phase 22 | Evaluation Records | Planned | Rebuild panelist evaluation forms, summaries, and student-visible results. |
 | Phase 23 | Notifications | Planned | Rebuild system notifications for requests, reviews, revisions, consultations, and approvals. Sidebar presence does not mean the notification backend is complete. |
 | Phase 24 | Audit Logs | Planned | Rebuild feature-level audit logs beyond the admin/auth and feature-specific audit foundations already present. |
