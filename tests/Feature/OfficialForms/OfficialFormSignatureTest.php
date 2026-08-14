@@ -4,6 +4,7 @@ namespace Tests\Feature\OfficialForms;
 
 use App\Enums\AccountStatus;
 use App\Enums\UserType;
+use App\Models\OfficialFormVersion;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
@@ -13,6 +14,7 @@ use App\Modules\OfficialForms\Actions\ApplyOfficialFormSignature;
 use App\Modules\OfficialForms\Actions\CreateOfficialFormInstance;
 use App\Modules\OfficialForms\Actions\SaveOfficialFormDraft;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
+use App\Modules\OfficialForms\Services\OfficialFormSignatureHasher;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -382,6 +384,39 @@ class OfficialFormSignatureTest extends TestCase
         $this->actingAs($unauthorizedUser)
             ->get(route('official-forms.workspace.signature-image', ['signature' => $sig1->id]))
             ->assertForbidden();
+    }
+
+    public function test_signature_hasher_includes_source_snapshot(): void
+    {
+        [$adviser, $instance] = $this->createFormInstanceForAdviser('RES-040');
+        /** @var OfficialFormVersion $version */
+        $version = $instance->currentVersion;
+
+        $hasher = app(OfficialFormSignatureHasher::class);
+
+        // 1. Version without source_snapshot
+        $version->source_snapshot = null;
+        $hash1 = $hasher->hashVersion($version);
+
+        // 2. Version with source_snapshot
+        $version->source_snapshot = [
+            'schedule_id' => 10,
+            'defense_type' => 'proposal_defense',
+            'room' => 'RM-101',
+        ];
+        $hash2 = $hasher->hashVersion($version);
+
+        $this->assertNotEquals($hash1, $hash2);
+
+        // 3. Key order variation produces identical hash due to recursive key sorting
+        $version->source_snapshot = [
+            'room' => 'RM-101',
+            'schedule_id' => 10,
+            'defense_type' => 'proposal_defense',
+        ];
+        $hash3 = $hasher->hashVersion($version);
+
+        $this->assertSame($hash2, $hash3);
     }
 
     private function createFormInstanceForAdviser(string $code = 'RES-040'): array

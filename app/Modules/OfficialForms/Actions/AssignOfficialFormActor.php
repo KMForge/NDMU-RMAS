@@ -4,6 +4,8 @@ namespace App\Modules\OfficialForms\Actions;
 
 use App\Enums\AccountStatus;
 use App\Models\AuditLog;
+use App\Models\DefensePanelAssignment;
+use App\Models\DefenseSchedule;
 use App\Models\OfficialFormActorAssignment;
 use App\Models\OfficialFormInstance;
 use App\Models\User;
@@ -92,6 +94,17 @@ class AssignOfficialFormActor
             fn (string $permission): bool => $user->hasPermissionTo($permission)
         )) {
             throw new InvalidArgumentException("User #{$user->id} lacks the required permission for actor type [{$actorType}] on {$formCode}.");
+        }
+
+        if ($formCode === 'RES-036' && $instance->source_type === DefenseSchedule::class) {
+            $schedule = DefenseSchedule::query()->find($instance->source_id);
+            $isPanelist = $schedule && DefensePanelAssignment::where('defense_id', $schedule->defense_id)
+                ->where('user_id', $user->id)
+                ->whereNull('ended_at')
+                ->exists();
+            if (! $isPanelist) {
+                throw new InvalidArgumentException("User #{$user->id} is not an active Defense Panelist for this defense schedule.");
+            }
         }
 
         return DB::transaction(function () use ($assigner, $instance, $user, $actorType) {

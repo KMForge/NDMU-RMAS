@@ -33,7 +33,7 @@ class DefenseRoomController extends Controller
         ]);
 
         $room = DefenseRoom::create([
-            'code' => trim($validated['code']),
+            'code' => strtoupper(trim($validated['code'])),
             'name' => trim($validated['name']),
             'location_notes' => isset($validated['location_notes']) ? trim($validated['location_notes']) : null,
             'is_active' => true,
@@ -55,7 +55,7 @@ class DefenseRoomController extends Controller
         ]);
 
         $room->update([
-            'code' => trim($validated['code']),
+            'code' => strtoupper(trim($validated['code'])),
             'name' => trim($validated['name']),
             'location_notes' => isset($validated['location_notes']) ? trim($validated['location_notes']) : null,
         ]);

@@ -33,7 +33,7 @@ class OfficialFormPayloadValidator
         'RES-033' => ['date' => 'string', 'defense_type' => 'string', 'defense_date' => 'string', 'time' => 'string'],
         'RES-034' => ['date' => 'string', 'time' => 'string', 'defense_type' => 'string', 'issues' => 'array', 'pages' => 'array'],
         'RES-035' => ['date' => 'string', 'defense_type' => 'string', 'comments' => 'array'],
-        'RES-036' => ['ratings' => 'array', 'comments' => 'string', 'recommendation' => 'string', 'date' => 'string'],
+        'RES-036' => [],
         'RES-038' => ['date' => 'string', 'day' => 'string', 'month_year' => 'string'],
         'RES-039' => ['revisions' => 'array', 'recommendation' => 'string', 'date' => 'string'],
         'RES-040' => ['date' => 'string'],

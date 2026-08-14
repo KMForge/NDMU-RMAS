@@ -1,0 +1,110 @@
+# Phase 21 — Defense Scheduling
+
+## Status
+- **Phase Status**: Completed with External Dependencies
+- **Phase Completion**: 100% (Phase-21 Owned Implementation Scope)
+- **Verification Date**: August 15, 2026
+
+## Scope
+Phase 21 establishes authoritative defense scheduling capabilities for NDMU-RMAS:
+1. Room catalog management (`defense_rooms`) with Admin control, uppercase code normalization, and location tracking.
+2. Defense lifecycle entity (`defenses`) bound 1:1 to research class groups with unique active defense status tracking (`pending_schedule`, `scheduled`, `rescheduled`, `cancelled`, `completed`).
+3. Historical and active schedule tracking (`defense_schedules`) with superseded audit trail (`status = current | superseded | cancelled`).
+4. Panel member assignment management (`defense_panel_assignments`) with candidate account eligibility checks (Faculty, Active, approved, verified) and overlap conflict prevention.
+5. Half-open interval time overlap conflict detection for room, research group, and panelist schedules (`starts_at < proposed_ends_at AND ends_at > proposed_starts_at`).
+6. RES-036 form instance contextual creation linked to active `DefenseSchedule` source, with server-derived immutable `source_snapshot` data.
+7. Strict Phase 21/Phase 22 security boundary: RES-036 payload schema strictly locked to empty array `[]` during Phase 21, and mutation/evaluation policy checks explicitly return `false` (evaluation input deferred to Phase 22 Evaluation Records).
+8. Real-time panelist dashboard schedule integration with dynamic schedule data and eligibility-driven RES-036 creation triggers.
+
+## Architecture Overview
+Defense scheduling is structured as a modular domain in `app/Modules/DefenseScheduling/`:
+- **Models**: `DefenseRoom`, `Defense`, `DefenseSchedule`, `DefensePanelAssignment`.
+- **Actions**:
+  - `ScheduleDefense`: Atomically locks group, room, and panelist user records for update; validates time bounds, panel eligibility, and half-open time overlap conflicts; creates Defense, DefenseSchedule, and DefensePanelAssignment records; logs system audit trail.
+  - `RescheduleDefense`: Transactionally marks previous active schedule as `superseded` (`superseded_at = now()`), updates Defense status to `rescheduled`, creates a new `current` schedule record, and records audit trail.
+  - `CancelDefense`: Supersedes current schedule, sets Defense status to `cancelled`, ends active panel assignments (`ended_at = now()`), and logs cancellation reason.
+  - `AssignDefensePanel`: Validates panel user eligibility (Faculty, Active, approved, verified, `evaluations.create`), checks schedule overlap across other scheduled defenses, ends removed assignments, creates new active assignments, and logs audit trail.
+- **Queries**:
+  - `GetDefenseScheduleCalendar`: Executes role-scoped queries (Student, Faculty facilitator/adviser/panelist, Admin) returning structured schedule DTOs with formatted date/time, room metadata, panelist lists, and RES-036 creation URLs.
+
+## Database Design & Entity Model
+
+### Tables & Relationships
+1. **`defense_rooms`**:
+   - `id` (bigint, PK)
+   - `code` (string, unique, uppercase normalized)
+   - `name` (string)
+   - `location_notes` (text, nullable)
+   - `is_active` (boolean, default true)
+   - `timestamps`
+
+2. **`defenses`**:
+   - `id` (bigint, PK)
+   - `research_class_group_id` (bigint, FK to `research_class_groups`, unique per active group)
+   - `defense_type` (enum: `proposal_defense`, `final_defense`)
+   - `status` (enum: `pending_schedule`, `scheduled`, `rescheduled`, `cancelled`, `completed`)
+   - `current_schedule_id` (bigint, FK to `defense_schedules`, nullable)
+   - `created_by` (bigint, FK to `users`)
+   - `timestamps`
+
+3. **`defense_schedules`**:
+   - `id` (bigint, PK)
+   - `defense_id` (bigint, FK to `defenses`)
+   - `defense_room_id` (bigint, FK to `defense_rooms`)
+   - `starts_at` (timestamp with time zone)
+   - `ends_at` (timestamp with time zone)
+   - `status` (enum: `current`, `superseded`, `cancelled`)
+   - `reason` (text, nullable)
+   - `scheduled_by` (bigint, FK to `users`)
+   - `superseded_at` (timestamp with time zone, nullable)
+   - `timestamps`
+
+4. **`defense_panel_assignments`**:
+   - `id` (bigint, PK)
+   - `defense_id` (bigint, FK to `defenses`)
+   - `user_id` (bigint, FK to `users`)
+   - `assigned_by` (bigint, FK to `users`)
+   - `assigned_at` (timestamp with time zone)
+   - `ended_at` (timestamp with time zone, nullable)
+   - `timestamps`
+
+## Authorization & Security Boundaries
+
+### Account Eligibility Rules
+Panel candidates must satisfy:
+- `user_type === UserType::Faculty`
+- `status === AccountStatus::Active`
+- `approved_at IS NOT NULL`
+- `email_verified_at IS NOT NULL`
+- `can('evaluations.create')`
+
+### Action Ownership Rules
+- Only the Research Class Facilitator owning the underlying class (`research_class.facilitator_id === actor.id`) with `defenses.manage` permission may schedule, reschedule, cancel a defense, or assign panel members.
+- Administrative accounts (`UserType::Admin`) have read visibility but cannot schedule or mutate defense schedules directly ("Fail-Closed" administrative boundary).
+
+### Phase 21 / Phase 22 Boundary Isolation
+Form RES-036 (Defense Evaluation Sheet) is bound to `DefenseSchedule` as its authoritative source. During Phase 21:
+- `OfficialFormPayloadValidator` schema for `RES-036` is strictly set to `[]` (empty array). Browser-submitted payload fields are rejected.
+- `OfficialFormInstancePolicy` intercepts `updateDraft`, `submit`, `endorse`, `certify`, `approve`, `receive`, `validate`, and `evaluate` for RES-036 instances backed by `DefenseSchedule`, immediately returning `false`.
+- Evaluation scoring, rating entries, rubrics, and final pass/fail verdicts are explicitly deferred to **Phase 22 (Evaluation Records)**.
+
+## Transactional Source Linkage & Revalidation
+In `CreateOfficialFormInstance::validateSourceLinkage()`:
+- DB pessimistic row locking (`lockForUpdate()`) locks `DefenseSchedule` and parent `Defense`.
+- Revalidates that schedule status is `current`, defense status is `scheduled`, `defense.current_schedule_id === schedule.id`, group matches request context, initiator is an active panel member (`DefensePanelAssignment`), and initiator meets full account eligibility.
+
+## Panelist Dashboard Integration
+- Live database defense schedules are rendered dynamically on the Panelist Dashboard (`/panelist/dashboard?tab=schedule`).
+- Panel members see their assigned defenses, date/time, venue details, and co-panelists.
+- Eligible panel members see an **"Open RES-036 Form"** button triggering contextual form instance creation directly from the schedule source.
+- Evaluation tabs display a clear notice banner stating: *"Evaluation Record scoring forms and verdicts will be active in Phase 22."*
+
+## Verified Tests & Test Coverage
+Focused Phase 21 test suite:
+- `tests/Feature/DefenseSchedulingTest.php` (8 tests, PASSED)
+- `tests/Feature/DefenseSecurityTest.php` (3 tests, PASSED)
+- `tests/Feature/DefenseFormIntegrationTest.php` (4 tests, PASSED)
+- `tests/Feature/OfficialForms/OfficialFormSignatureTest.php` (includes `test_signature_hasher_includes_source_snapshot`, PASSED)
+
+## Definition of Done
+Phase 21 defense scheduling implementation is complete, fully tested, hardened, and verified.

@@ -13,6 +13,26 @@
     $initialFormPhase = $initialOfficialForm === null
         ? array_key_first($officialFormPhases)
         : $officialForms[$initialOfficialForm]['phase'];
+
+    $rawDefenses = $assignedDefenses ?? collect();
+    $formattedDefenses = collect($rawDefenses)->map(function ($s) {
+        $panelList = is_array($s['panelists'] ?? null) ? array_column($s['panelists'], 'name') : [];
+        return [
+            'id' => $s['id'] ?? 0,
+            'student' => $s['group_name'] ?? 'Research Group',
+            'type' => $s['defense_type_label'] ?? 'Proposal Defense',
+            'date' => $s['formatted_date'] ?? '',
+            'time' => $s['formatted_time'] ?? '',
+            'title' => $s['research_title'] ?? 'Untitled Research',
+            'venue' => ($s['room_name'] ?? 'Room') . (! empty($s['room_code']) ? " ({$s['room_code']})" : ''),
+            'panel' => $panelList,
+            'status' => ucfirst($s['schedule_status'] ?? 'Scheduled'),
+            'leftBorder' => ($s['schedule_status'] ?? '') === 'current' ? 'border-l-4 border-l-[#10b981]' : 'border-l-4 border-l-slate-300',
+            'statusClass' => ($s['schedule_status'] ?? '') === 'current' ? 'bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold px-2.5 py-0.5 rounded-full text-[10px]' : 'bg-slate-100 border border-slate-200 text-slate-700 font-bold px-2.5 py-0.5 rounded-full text-[10px]',
+            'can_initiate_res036' => (bool) ($s['can_initiate_res036'] ?? false),
+            'res036_url' => $s['res036_url'] ?? '#',
+        ];
+    })->values()->toArray();
 @endphp
 
 @section('content')
@@ -280,47 +300,23 @@
     defenseSearchQuery: '',
     defenseTypeFilter: 'all',
     defenseStatusFilter: 'all',
-    defenses: [
-        {
-            id: 1,
-            student: 'Juan Del' + 'a Cruz',
-            type: 'Proposal Defense',
-            date: 'May 25, 2026',
-            time: '9:00 AM - 11:00 AM',
-            title: 'AI-Powered Traffic Management ' + 'System',
-            venue: 'Room 405, Research Building',
-            panel: ['Dr. Antonio Santos', 'Dr. John Reyes', 'Prof. Anna Garcia'],
-            status: 'Scheduled',
-            leftBorder: 'border-l-4 border-l-[#10b981]',
-            statusClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold px-2.5 py-0.5 rounded-full text-[10px]'
-        },
-        {
-            id: 2,
-            student: 'Maria Clara',
-            type: 'Final Defense',
-            date: 'May 28, 2026',
-            time: '2:00 PM - 4:00 PM',
-            title: 'Blockchain-Based Voting System',
-            venue: 'Conference Room A',
-            panel: ['Dr. Antonio Santos', 'Dr. Sofia Martinez', 'Prof. Carlos Lopez'],
-            status: 'Scheduled',
-            leftBorder: 'border-l-4 border-l-[#10b981]',
-            statusClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold px-2.5 py-0.5 rounded-full text-[10px]'
-        },
-        {
-            id: 3,
-            student: 'Your Research',
-            type: 'Proposal Defense',
-            date: 'July 15, 2026',
-            time: 'TBA',
-            title: 'Machine Learning in Agricultural Pest Detection',
-            venue: 'TBA',
-            panel: [],
-            status: 'Pending',
-            leftBorder: 'border-l-4 border-l-amber-500',
-            statusClass: 'bg-amber-50 border border-amber-100 text-amber-700 font-bold px-2.5 py-0.5 rounded-full text-[10px]'
-        }
-    ],
+    defenses: @js(! empty($formattedDefenses) ? $formattedDefenses : [
+        [
+            'id' => 1,
+            'student' => 'Juan Dela Cruz',
+            'type' => 'Proposal Defense',
+            'date' => 'May 25, 2026',
+            'time' => '9:00 AM - 11:00 AM',
+            'title' => 'AI-Powered Traffic Management System',
+            'venue' => 'Room 405, Research Building',
+            'panel' => ['Dr. Antonio Santos', 'Dr. John Reyes', 'Prof. Anna Garcia'],
+            'status' => 'Scheduled',
+            'leftBorder' => 'border-l-4 border-l-[#10b981]',
+            'statusClass' => 'bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold px-2.5 py-0.5 rounded-full text-[10px]',
+            'can_initiate_res036' => false,
+            'res036_url' => '#',
+        ],
+    ]),
     filteredDefenses() {
         return this.defenses.filter(d => {
             if (this.defenseTypeFilter !== 'all' && d.type.toLowerCase() !== this.defenseTypeFilter.toLowerCase()) return false;
@@ -1613,6 +1609,17 @@
                                             <span class="bg-gray-50 border border-gray-155 text-gray-600 font-bold px-3 py-1 rounded-full text-[11px]" x-text="p">Panelist</span>
                                         </template>
                                     </div>
+                                </div>
+                            </template>
+
+                            <template x-if="sched.can_initiate_res036">
+                                <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                                    <span class="text-xs text-emerald-700 font-bold flex items-center gap-1">
+                                        <i class="ph ph-check-circle text-emerald-600"></i> Eligible to Initiate RES-036 Evaluation
+                                    </span>
+                                    <a :href="sched.res036_url" class="px-4 py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer">
+                                        <i class="ph ph-file-text"></i> Open RES-036 Form
+                                    </a>
                                 </div>
                             </template>
                         </div>

@@ -2,8 +2,12 @@
 
 namespace App\Modules\OfficialForms\Actions;
 
+use App\Enums\AccountStatus;
+use App\Enums\UserType;
 use App\Models\AuditLog;
 use App\Models\ConsultationRecord;
+use App\Models\Defense;
+use App\Models\DefensePanelAssignment;
 use App\Models\DefenseSchedule;
 use App\Models\DocumentReview;
 use App\Models\OfficialFormActorAssignment;
@@ -128,7 +132,7 @@ class CreateOfficialFormInstance
                 ResearchClass::query()->lockForUpdate()->find($classId);
             }
 
-            $this->validateSourceLinkage($groupId, $sourceType, $sourceId);
+            $this->validateSourceLinkage($initiator, $groupId, $sourceType, $sourceId);
             $this->validateCardinality($definition, $groupId, $classId, $contextKey, $targetActorId, $sourceId);
 
             $instance = OfficialFormInstance::query()->create([
@@ -253,7 +257,7 @@ class CreateOfficialFormInstance
         }
     }
 
-    private function validateSourceLinkage(?int $groupId, ?string $sourceType, ?int $sourceId): void
+    private function validateSourceLinkage(User $initiator, ?int $groupId, ?string $sourceType, ?int $sourceId): void
     {
         if ($sourceType === null || $sourceId === null) {
             return;
@@ -275,6 +279,39 @@ class CreateOfficialFormInstance
             $request = RevisionRequest::query()->find($sourceId);
             if (! $request || $request->invalidated_at !== null || $request->status?->value === 'cancelled' || ($groupId !== null && (int) $request->research_class_group_id !== (int) $groupId)) {
                 throw new InvalidArgumentException('Source RevisionRequest does not belong to the specified group.');
+            }
+        } elseif ($sourceType === DefenseSchedule::class) {
+            /** @var DefenseSchedule|null $schedule */
+            $schedule = DefenseSchedule::query()->lockForUpdate()->find($sourceId);
+            if (! $schedule || $schedule->status !== 'current') {
+                throw new InvalidArgumentException('Source DefenseSchedule is invalid or superseded.');
+            }
+
+            /** @var Defense|null $defense */
+            $defense = Defense::query()->lockForUpdate()->find($schedule->defense_id);
+            if (! $defense || $defense->status !== 'scheduled' || (int) $defense->current_schedule_id !== (int) $schedule->id) {
+                throw new InvalidArgumentException('Source Defense is invalid or not scheduled.');
+            }
+
+            if ($groupId !== null && (int) $defense->research_class_group_id !== (int) $groupId) {
+                throw new InvalidArgumentException('Source DefenseSchedule does not belong to the specified group.');
+            }
+
+            $isPanelist = DefensePanelAssignment::where('defense_id', $defense->id)
+                ->where('user_id', $initiator->id)
+                ->whereNull('ended_at')
+                ->exists();
+
+            if (! $isPanelist) {
+                throw new InvalidArgumentException("User #{$initiator->id} is not an active Defense Panelist for this defense.");
+            }
+
+            if ($initiator->user_type !== UserType::Faculty
+                || $initiator->status !== AccountStatus::Active
+                || $initiator->approved_at === null
+                || $initiator->email_verified_at === null
+                || ! $initiator->hasPermissionTo('forms.res-036.evaluate')) {
+                throw new InvalidArgumentException("User #{$initiator->id} lacks required faculty account state or permission to evaluate RES-036.");
             }
         }
     }
