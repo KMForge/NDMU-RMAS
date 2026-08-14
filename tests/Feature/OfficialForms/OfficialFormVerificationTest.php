@@ -81,8 +81,7 @@ class OfficialFormVerificationTest extends TestCase
             $student,
             $instance->id,
             $instance->current_version_id,
-            'sign_authorship',
-            'student_researcher'
+            'sign_authorship'
         );
         $instance->refresh();
 
@@ -194,8 +193,7 @@ class OfficialFormVerificationTest extends TestCase
             $adviser,
             $instance->id,
             $instance->current_version_id,
-            'endorse',
-            'research_adviser'
+            'endorse'
         );
 
         return [$adviser, $instance->fresh()];

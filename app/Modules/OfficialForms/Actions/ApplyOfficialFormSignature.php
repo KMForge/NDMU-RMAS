@@ -32,7 +32,6 @@ class ApplyOfficialFormSignature
         int $instanceId,
         int $expectedVersionId,
         string $academicAction,
-        string $actorType,
         ?Request $request = null
     ): OfficialFormSignature {
         if (! $actor->isEligibleForSignatureEnrollment()) {
@@ -41,7 +40,7 @@ class ApplyOfficialFormSignature
 
         $disk = config('signatures.disk', 'local');
 
-        return DB::transaction(function () use ($actor, $instanceId, $expectedVersionId, $academicAction, $actorType, $request, $disk): OfficialFormSignature {
+        return DB::transaction(function () use ($actor, $instanceId, $expectedVersionId, $academicAction, $request, $disk): OfficialFormSignature {
             /** @var OfficialFormInstance $lockedInstance */
             $lockedInstance = OfficialFormInstance::query()
                 ->with(['definition', 'currentVersion', 'group.members'])
@@ -54,19 +53,20 @@ class ApplyOfficialFormSignature
                 throw new InvalidArgumentException("Stale form version. Expected version v{$expectedVersionId}, but instance current version is v{$actualVersionId}.");
             }
 
+            // Derive authoritative actor type server-side
+            $actorType = $this->authorization->requiredActorType($lockedInstance, $academicAction);
+            if ($actorType === null) {
+                throw new InvalidArgumentException("Action '{$academicAction}' is not supported for form {$lockedInstance->definition->code}.");
+            }
+
             // Authorization check
             if ($academicAction === 'sign_authorship') {
                 $formCode = strtoupper($lockedInstance->definition->code);
                 if ($formCode !== 'RES-049') {
                     throw new InvalidArgumentException('Authorship signature attestation is only valid for RES-049.');
                 }
-                if (! $actor->hasPermissionTo('forms.res-049.sign')) {
-                    throw new InvalidArgumentException('You do not have permission to sign RES-049 authorship.');
-                }
-                $isGroupMember = $lockedInstance->group !== null
-                    && $lockedInstance->group->members->contains('id', $actor->id);
-                if (! $isGroupMember) {
-                    throw new InvalidArgumentException('Only active research group members can sign RES-049 authorship.');
+                if (! $this->authorization->canSignAuthorship($actor, $lockedInstance)) {
+                    throw new InvalidArgumentException('You are not authorized to sign RES-049 authorship attestation.');
                 }
             } else {
                 if (! $this->authorization->canPerformAction($actor, $lockedInstance, $academicAction)) {
@@ -110,13 +110,11 @@ class ApplyOfficialFormSignature
                 if ($academicAction === 'certify') {
                     app(CertifyOfficialForm::class)->handle($actor, $lockedInstance);
                 } else {
-                    $targetStatus = match ($academicAction) {
-                        'endorse' => 'endorsed',
-                        'receive', 'approve' => 'approved',
-                        'validate' => 'completed',
-                        default => 'approved',
-                    };
-                    app(ApproveOfficialForm::class)->handle($actor, $lockedInstance, [], $targetStatus, $academicAction);
+                    $transition = $this->authorization->transitionFor($lockedInstance, $academicAction);
+                    if ($transition === null) {
+                        throw new InvalidArgumentException("No valid workflow transition defined for action '{$academicAction}' on form {$lockedInstance->definition->code}.");
+                    }
+                    app(ApproveOfficialForm::class)->handle($actor, $lockedInstance, [], $transition['to'], $academicAction);
                 }
                 $lockedInstance->refresh();
             }

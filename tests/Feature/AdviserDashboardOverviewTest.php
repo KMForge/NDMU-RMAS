@@ -57,11 +57,15 @@ class AdviserDashboardOverviewTest extends TestCase
             ->assertOk()
             ->assertSee('Database Adviser')
             ->assertSee('Database Student')
-            ->assertSee($document->original_filename)
             ->assertSee('Database Notification')
             ->assertDontSee('Juan Dela Cruz')
             ->assertDontSee('AI-Powered Traffic Management System')
             ->assertDontSee('Chapter 3 - Methodology');
+
+        $this->actingAs($adviser)
+            ->get(route('adviser.dashboard', ['tab' => 'docreview']))
+            ->assertOk()
+            ->assertSee($document->original_filename);
     }
 
     private function enroll(User $adviser, User $student): void
@@ -106,8 +110,11 @@ class AdviserDashboardOverviewTest extends TestCase
 
     private function document(User $student, string $filename): Document
     {
+        $group = ResearchClassGroup::query()->first();
+
         return Document::query()->create([
             'user_id' => $student->getKey(),
+            'research_class_group_id' => $group?->getKey(),
             'submission_token' => (string) Str::uuid(),
             'original_filename' => $filename,
             'stored_filename' => Str::uuid().'.pdf',

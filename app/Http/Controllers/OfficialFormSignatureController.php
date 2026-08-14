@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\OfficialFormSignature;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OfficialFormSignatureController extends Controller
 {
+    use AuthorizesRequests;
+
     public function image(Request $request, OfficialFormSignature $signature): StreamedResponse
     {
         $this->authorize('view', $signature->instance);

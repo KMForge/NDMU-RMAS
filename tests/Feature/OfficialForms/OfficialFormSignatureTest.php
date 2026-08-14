@@ -49,8 +49,7 @@ class OfficialFormSignatureTest extends TestCase
             $adviser,
             $instance->id,
             $instance->current_version_id,
-            'endorse',
-            'research_adviser'
+            'endorse'
         );
 
         $this->assertDatabaseHas('official_form_signatures', [
@@ -58,7 +57,7 @@ class OfficialFormSignatureTest extends TestCase
             'official_form_instance_id' => $instance->id,
             'official_form_version_id' => $instance->current_version_id,
             'signer_user_id' => $adviser->id,
-            'actor_type' => 'research_adviser',
+            'actor_type' => 'adviser',
             'academic_action' => 'endorse',
         ]);
 
@@ -80,8 +79,7 @@ class OfficialFormSignatureTest extends TestCase
             $adviser,
             $instance->id,
             $instance->current_version_id,
-            'endorse',
-            'research_adviser'
+            'endorse'
         );
     }
 
@@ -99,8 +97,7 @@ class OfficialFormSignatureTest extends TestCase
             $adviser,
             $instance->id,
             $staleVersionId,
-            'endorse',
-            'research_adviser'
+            'endorse'
         );
     }
 
@@ -134,8 +131,7 @@ class OfficialFormSignatureTest extends TestCase
             $student,
             $instance->id,
             $instance->current_version_id,
-            'sign_authorship',
-            'student_researcher'
+            'sign_authorship'
         );
 
         $v1Id = $instance->current_version_id;
@@ -173,8 +169,7 @@ class OfficialFormSignatureTest extends TestCase
             $adviser,
             $instance->id,
             $instance->current_version_id,
-            'endorse',
-            'research_adviser'
+            'endorse'
         );
     }
 
@@ -194,8 +189,7 @@ class OfficialFormSignatureTest extends TestCase
             $adviser,
             $instance->id,
             $instance->current_version_id,
-            'endorse',
-            'research_adviser'
+            'endorse'
         );
     }
 
@@ -229,8 +223,7 @@ class OfficialFormSignatureTest extends TestCase
             $student,
             $instance->id,
             $instance->current_version_id,
-            'sign_authorship',
-            'student_researcher'
+            'sign_authorship'
         );
 
         $instance->refresh();
@@ -242,7 +235,153 @@ class OfficialFormSignatureTest extends TestCase
             'official_form_version_id' => $instance->current_version_id,
             'signer_user_id' => $student->id,
             'academic_action' => 'sign_authorship',
+            'actor_type' => 'student_researcher',
         ]);
+    }
+
+    public function test_actor_type_is_derived_server_side_and_browser_input_is_ignored(): void
+    {
+        [$adviser, $instance] = $this->createFormInstanceForAdviser('RES-040');
+        $this->enrollSignature($adviser);
+
+        // 1. Attempting to post actor_type in workspace sign route is rejected by rejectUnexpectedInput
+        $this->actingAs($adviser)
+            ->post(route('official-forms.workspace.sign-action', ['instance' => $instance->id, 'action' => 'endorse']), [
+                'expected_version_id' => $instance->current_version_id,
+                'actor_type' => 'dean', // Forgery attempt in payload
+            ])
+            ->assertSessionHasErrors();
+
+        // 2. Legitimate request with ONLY expected_version_id succeeds and derives actor_type server-side
+        $this->actingAs($adviser)
+            ->post(route('official-forms.workspace.sign-action', ['instance' => $instance->id, 'action' => 'endorse']), [
+                'expected_version_id' => $instance->current_version_id,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('official_form_signatures', [
+            'official_form_instance_id' => $instance->id,
+            'signer_user_id' => $adviser->id,
+            'actor_type' => 'adviser', // Derived server-side!
+        ]);
+    }
+
+    public function test_res049_student_researcher_does_not_require_official_form_actor_assignment(): void
+    {
+        $student = User::factory()->create([
+            'user_type' => UserType::Student,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+        $student->assignRole('student');
+        Permission::findOrCreate('forms.res-049.sign');
+        $student->givePermissionTo('forms.res-049.sign');
+
+        $group = $this->createGroup(leader: $student);
+
+        $instance = app(CreateOfficialFormInstance::class)->handle(
+            $student,
+            'RES-049',
+            $group->id,
+            null,
+            'general'
+        );
+
+        $this->enrollSignature($student);
+
+        // Prove no OfficialFormActorAssignment exists
+        $this->assertDatabaseMissing('official_form_actor_assignments', [
+            'official_form_instance_id' => $instance->id,
+            'user_id' => $student->id,
+        ]);
+
+        $sigRecord = app(ApplyOfficialFormSignature::class)->handle(
+            $student,
+            $instance->id,
+            $instance->current_version_id,
+            'sign_authorship'
+        );
+
+        $this->assertSame('student_researcher', $sigRecord->actor_type);
+    }
+
+    public function test_non_member_cannot_sign_res049(): void
+    {
+        $student1 = User::factory()->create([
+            'user_type' => UserType::Student,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+        $student1->assignRole('student');
+        Permission::findOrCreate('forms.res-049.sign');
+        $student1->givePermissionTo('forms.res-049.sign');
+
+        $student2 = User::factory()->create([
+            'user_type' => UserType::Student,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+        $student2->assignRole('student');
+        $student2->givePermissionTo('forms.res-049.sign');
+
+        $group = $this->createGroup(leader: $student1);
+
+        $instance = app(CreateOfficialFormInstance::class)->handle(
+            $student1,
+            'RES-049',
+            $group->id,
+            null,
+            'general'
+        );
+
+        $this->enrollSignature($student2);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('You are not authorized to sign RES-049 authorship attestation.');
+
+        app(ApplyOfficialFormSignature::class)->handle(
+            $student2,
+            $instance->id,
+            $instance->current_version_id,
+            'sign_authorship'
+        );
+    }
+
+    public function test_unknown_academic_action_fails_closed(): void
+    {
+        [$adviser, $instance] = $this->createFormInstanceForAdviser('RES-040');
+        $this->enrollSignature($adviser);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("Action 'invalid_action' is not supported");
+
+        app(ApplyOfficialFormSignature::class)->handle(
+            $adviser,
+            $instance->id,
+            $instance->current_version_id,
+            'invalid_action'
+        );
+    }
+
+    public function test_idor_on_applied_signature_image_route_is_blocked(): void
+    {
+        [$adviser1, $instance1] = $this->createFormInstanceForAdviser('RES-040');
+        $this->enrollSignature($adviser1);
+        $sig1 = app(ApplyOfficialFormSignature::class)->handle(
+            $adviser1,
+            $instance1->id,
+            $instance1->current_version_id,
+            'endorse'
+        );
+
+        $unauthorizedUser = User::factory()->create(['user_type' => UserType::Student]);
+
+        $this->actingAs($unauthorizedUser)
+            ->get(route('official-forms.workspace.signature-image', ['signature' => $sig1->id]))
+            ->assertForbidden();
     }
 
     private function createFormInstanceForAdviser(string $code = 'RES-040'): array

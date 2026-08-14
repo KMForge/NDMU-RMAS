@@ -217,9 +217,9 @@ class StudentDashboardDataTest extends TestCase
             ->assertOk()
             ->assertViewHas('dashboardOverview', fn (array $overview): bool => $overview['progress_percentage'] === 8
                 && $overview['completed_milestones'] === 1
-                && $overview['total_milestones'] === 12
-                && $overview['urgent_task_count'] === 11)
-            ->assertSee('1 of 12 milestones')
+                && $overview['total_milestones'] === 13
+                && $overview['urgent_task_count'] === 12)
+            ->assertSee('1 of 13 milestones')
             ->assertSee($milestones->first()->definition->name)
             ->assertSee($milestones->get(1)->definition->name);
     }

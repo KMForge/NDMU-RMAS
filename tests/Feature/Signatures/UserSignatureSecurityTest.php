@@ -9,6 +9,7 @@ use App\Models\UserSignature;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -150,6 +151,31 @@ class UserSignatureSecurityTest extends TestCase
         // Other user calling preview gets 404 because preview streams THEIR signature
         $this->actingAs($other)->get(route('signature.preview'))
             ->assertNotFound();
+    }
+
+    public function test_db_failure_during_enrollment_deletes_orphan_final_file(): void
+    {
+        $user = User::factory()->create([
+            'user_type' => UserType::Student,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+
+        // Break DB table signature_audits to force transaction failure after file move
+        Schema::dropIfExists('signature_audits');
+
+        try {
+            $this->actingAs($user)->putJson(route('signature.store'), [
+                'signature' => $this->validPngImage(),
+            ]);
+        } catch (\Throwable $e) {
+            // Expected database exception
+        }
+
+        // Verify no orphan files remain in signatures directory
+        $files = Storage::disk('local')->allFiles("signatures/{$user->id}");
+        $this->assertEmpty($files, 'Orphan signature file remained after DB transaction failure.');
     }
 
     private function validPngImage(): UploadedFile

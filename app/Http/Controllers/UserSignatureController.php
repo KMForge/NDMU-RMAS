@@ -165,6 +165,9 @@ class UserSignatureController extends Controller
             if (Storage::disk($disk)->exists($tempPath)) {
                 Storage::disk($disk)->delete($tempPath);
             }
+            if (Storage::disk($disk)->exists($finalPath)) {
+                Storage::disk($disk)->delete($finalPath);
+            }
             throw $e;
         }
 

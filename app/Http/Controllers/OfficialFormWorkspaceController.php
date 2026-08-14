@@ -252,10 +252,9 @@ class OfficialFormWorkspaceController extends Controller
         string $action,
         ApplyOfficialFormSignature $applySignature,
     ): RedirectResponse {
-        $this->rejectUnexpectedInput($request, ['expected_version_id', 'actor_type']);
+        $this->rejectUnexpectedInput($request, ['expected_version_id']);
         $validated = $request->validate([
             'expected_version_id' => ['required', 'integer', 'min:1'],
-            'actor_type' => ['required', 'string', 'max:64'],
         ]);
 
         try {
@@ -264,7 +263,6 @@ class OfficialFormWorkspaceController extends Controller
                 $instance->id,
                 (int) $validated['expected_version_id'],
                 $action,
-                $validated['actor_type'],
                 $request
             );
         } catch (InvalidArgumentException $exception) {

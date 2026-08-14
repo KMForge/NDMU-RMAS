@@ -38,7 +38,7 @@ class OfficialFormAuthorization
         'res-046' => ['view' => ['forms.res-046.view'], 'fill' => ['forms.res-046.certify'], 'certify' => ['forms.res-046.certify']],
         'res-047' => ['fill' => ['forms.res-047.endorse'], 'approve' => ['forms.res-047.approve'], 'endorse' => ['forms.res-047.endorse']],
         'res-048' => ['fill' => ['forms.res-048.fill']],
-        'res-049' => ['fill' => ['forms.res-049.sign']],
+        'res-049' => ['fill' => ['forms.res-049.sign'], 'sign_authorship' => ['forms.res-049.sign']],
     ];
 
     /** @var array<string, array<string, string>> */
@@ -52,6 +52,7 @@ class OfficialFormAuthorization
         'res-045' => ['fill' => 'language_editor', 'certify' => 'language_editor'],
         'res-046' => ['fill' => 'technical_editor', 'certify' => 'technical_editor'],
         'res-047' => ['fill' => 'adviser', 'endorse' => 'adviser', 'approve' => 'dean'],
+        'res-049' => ['sign_authorship' => 'student_researcher'],
     ];
 
     /**
@@ -160,6 +161,11 @@ class OfficialFormAuthorization
         return $this->canPerformAction($user, $instance, $action);
     }
 
+    public function canSignAuthorship(User $user, OfficialFormInstance $instance): bool
+    {
+        return $this->canPerformAction($user, $instance, 'sign_authorship');
+    }
+
     public function canAssignActor(User $assigner, OfficialFormInstance $instance): bool
     {
         if ($this->isSystemAdmin($assigner)) {
@@ -236,6 +242,10 @@ class OfficialFormAuthorization
                 && $this->hasClassActorAssignment($user, $instance->group->researchClass, 'dean');
         }
 
+        if ($requiredActorType === 'student_researcher') {
+            return $instance->group !== null && $this->isCurrentGroupMember($user, $instance->group);
+        }
+
         return $instance->actorAssignments()
             ->where('user_id', $user->id)
             ->where('actor_type', $requiredActorType)
@@ -303,7 +313,7 @@ class OfficialFormAuthorization
             ->exists();
     }
 
-    private function isCurrentGroupMember(User $user, ResearchClassGroup $group): bool
+    public function isCurrentGroupMember(User $user, ResearchClassGroup $group): bool
     {
         return ResearchClassGroupMember::query()
             ->where('research_class_group_id', $group->id)

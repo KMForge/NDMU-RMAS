@@ -12,6 +12,7 @@ use App\Support\CachesDatabaseSchema;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class GetAdviserDashboardOverview
@@ -81,11 +82,16 @@ class GetAdviserDashboardOverview
             return collect();
         }
 
+        $selects = ['students.id', 'students.name', 'groups.id as group_id', 'groups.name as group_name'];
+        if (Schema::hasColumn('research_class_groups', 'research_title')) {
+            $selects[] = 'groups.research_title';
+        }
+
         return DB::table('research_class_group_members as members')
             ->join('research_class_groups as groups', 'groups.id', '=', 'members.research_class_group_id')
             ->join('users as students', 'students.id', '=', 'members.student_id')
             ->where('groups.adviser_id', $adviser->getKey())
-            ->select(['students.id', 'students.name', 'groups.id as group_id', 'groups.name as group_name', 'groups.research_title'])
+            ->select($selects)
             ->distinct()
             ->orderBy('students.name')
             ->limit(5)

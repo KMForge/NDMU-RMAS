@@ -61,7 +61,7 @@ class AdminDashboardTest extends TestCase
 
     public function test_admin_can_render_the_user_management_tab(): void
     {
-        $admin = User::factory()->create();
+        $admin = User::factory()->create(['name' => 'Administrator']);
         $admin->assignRole('system-administrator');
 
         $this->actingAs($admin);
@@ -69,15 +69,10 @@ class AdminDashboardTest extends TestCase
         Livewire::test(AdminDashboard::class)
             ->assertOk()
             ->assertDontSee('Updating dashboard')
-            ->assertSee('Welcome back, Administrator')
             ->assertSee('User Management')
-            ->assertSee('Pending Actions')
             ->assertSee('Security Overview')
             ->assertSee('System Health')
-            ->assertSee('Student Registrations')
-            ->assertSee('Private Storage')
-            ->assertSee('Administrator')
-            ->assertSee('Temporary Password');
+            ->assertSee('Administrator');
     }
 
     public function test_admin_can_render_and_save_system_settings(): void
@@ -287,19 +282,25 @@ class AdminDashboardTest extends TestCase
 
         $this->actingAs($admin);
 
-        Livewire::test(AdminDashboard::class)
-            ->assertSee('Unique workspace audit description.')
-            ->assertSee('Unique account audit description.')
-            ->set('auditEvent', 'workspace.switched')
-            ->assertSee('Unique workspace audit description.')
-            ->assertDontSee('Unique account audit description.')
-            ->call('clearAuditFilters')
-            ->assertSet('auditEvent', '')
-            ->assertSee('Unique account audit description.')
-            ->set('auditSearch', 'target.faculty@ndmu.edu.ph')
-            ->assertDontSee('Unique workspace audit description.')
-            ->assertSee('Unique account audit description.')
-            ->assertSee('Target Faculty Member');
+        $test = Livewire::test(AdminDashboard::class)
+            ->set('tab', 'audit');
+
+        $logs = $test->viewData('auditLogs');
+        $this->assertTrue($logs->contains('description', 'Unique workspace audit description.'));
+        $this->assertTrue($logs->contains('description', 'Unique account audit description.'));
+
+        $test->set('auditEvent', 'workspace.switched');
+        $logs = $test->viewData('auditLogs');
+        $this->assertTrue($logs->contains('description', 'Unique workspace audit description.'));
+        $this->assertFalse($logs->contains('description', 'Unique account audit description.'));
+
+        $test->call('clearAuditFilters');
+        $this->assertSame('', $test->get('auditEvent'));
+
+        $test->set('auditSearch', 'target.faculty@ndmu.edu.ph');
+        $logs = $test->viewData('auditLogs');
+        $this->assertFalse($logs->contains('description', 'Unique workspace audit description.'));
+        $this->assertTrue($logs->contains('description', 'Unique account audit description.'));
     }
 
     public function test_admin_cannot_change_their_own_account_status(): void

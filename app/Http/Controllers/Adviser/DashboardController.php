@@ -10,6 +10,7 @@ use App\Models\ResearchClassGroupAdviserRequest;
 use App\Modules\Consultations\Queries\GetAdviserConsultationData;
 use App\Modules\Documents\Queries\GetAdviserDocumentReviewData;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
+use App\Modules\Research\Queries\GetAdviserDashboardOverview;
 use App\Modules\ResearchProgress\Queries\GetResearchGroupProgress;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -25,6 +26,7 @@ class DashboardController extends Controller
         GetAdviserDocumentReviewData $reviewData,
         GetAdviserConsultationData $consultationData,
         GetResearchGroupProgress $groupProgress,
+        GetAdviserDashboardOverview $overviewData,
     ): View {
         $allowedTabs = [
             'dashboard',
@@ -91,6 +93,10 @@ class DashboardController extends Controller
             ->filter(fn (array $form, string $code) => $user->getAllPermissions()
                 ->contains(fn ($permission) => str_starts_with($permission->name, 'forms.'.strtolower($code).'.')))
             ->all();
+
+        if (in_array($activeTab, ['dashboard', 'notifications'], true)) {
+            $viewData = [...$viewData, ...$overviewData->for($user, $activeTab === 'dashboard')];
+        }
 
         if ($activeTab === 'repository') {
             $viewData = [...$viewData, ...$repositoryData->for($user, $request->query())];
