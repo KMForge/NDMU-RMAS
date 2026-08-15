@@ -419,6 +419,30 @@ class OfficialFormSignatureTest extends TestCase
         $this->assertSame($hash2, $hash3);
     }
 
+    public function test_signature_hasher_preserves_exact_phase20_hash_for_null_source_snapshot(): void
+    {
+        [$adviser, $instance] = $this->createFormInstanceForAdviser('RES-040');
+        /** @var OfficialFormVersion $version */
+        $version = $instance->currentVersion;
+        $version->source_snapshot = null;
+
+        $hasher = app(OfficialFormSignatureHasher::class);
+        $actualHash = $hasher->hashVersion($version);
+
+        // Construct expected Phase 20 canonical JSON structure (without source_snapshot key)
+        $expectedPhase20Structure = [
+            'form_code' => 'RES-040',
+            'official_form_instance_id' => (int) $instance->id,
+            'official_form_version_id' => (int) $version->id,
+            'version_number' => (int) $version->version_number,
+            'payload' => [],
+        ];
+        $expectedCanonicalJson = json_encode($expectedPhase20Structure, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $expectedHash = hash('sha256', (string) $expectedCanonicalJson);
+
+        $this->assertSame($expectedHash, $actualHash);
+    }
+
     private function createFormInstanceForAdviser(string $code = 'RES-040'): array
     {
         $adviser = User::factory()->create([
