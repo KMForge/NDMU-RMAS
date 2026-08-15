@@ -2,8 +2,6 @@
 
 namespace App\Modules\Evaluations\Actions;
 
-use App\Enums\AccountStatus;
-use App\Enums\UserType;
 use App\Models\AuditLog;
 use App\Models\DefenseEvaluation;
 use App\Models\DefenseEvaluationRound;
@@ -15,12 +13,23 @@ use App\Models\OfficialFormDefinition;
 use App\Models\OfficialFormInstance;
 use App\Models\OfficialFormVersion;
 use App\Models\User;
-use Illuminate\Auth\Access\AuthorizationException;
+use App\Modules\Evaluations\Services\EvaluationAuthorization;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class SubmitDefenseEvaluation
 {
+    private const PROHIBITED_KEYS = [
+        'panelist_user_id', 'defense_id', 'defense_schedule_id', 'research_class_group_id',
+        'round_status', 'evaluation_status', 'research_paper_total', 'presentation_total',
+        'panel_average', 'submitted_at', 'released_at', 'released_by', 'finalized_at',
+        'summary_signer_user_id', 'completed_at', 'completed_by', 'source_type', 'source_id', 'status',
+    ];
+
+    public function __construct(
+        private readonly EvaluationAuthorization $auth = new EvaluationAuthorization
+    ) {}
+
     /**
      * @param  array{
      *     research_quality_score: float|int,
@@ -37,26 +46,22 @@ class SubmitDefenseEvaluation
      */
     public function handle(User $panelist, DefenseEvaluationRound $round, array $data): DefenseEvaluation
     {
-        if ($panelist->user_type !== UserType::Faculty
-            || $panelist->status !== AccountStatus::Active
-            || $panelist->approved_at === null
-            || $panelist->email_verified_at === null
-            || ! $panelist->can('evaluations.create')
-            || ! $panelist->can('forms.res-036.evaluate')) {
-            throw new AuthorizationException('Unauthorized: You lack faculty credentials or permission to evaluate defenses.');
+        $this->auth->assertFacultyActor($panelist);
+
+        foreach (self::PROHIBITED_KEYS as $prohibitedKey) {
+            if (array_key_exists($prohibitedKey, $data)) {
+                throw new InvalidArgumentException("Prohibited field [{$prohibitedKey}] in evaluation submission payload.");
+            }
         }
 
         return DB::transaction(function () use ($panelist, $round, $data) {
             /** @var DefenseEvaluationRound $lockedRound */
             $lockedRound = DefenseEvaluationRound::query()->lockForUpdate()->with(['roundPanelists', 'roundStudents', 'defense.group'])->findOrFail($round->id);
 
+            $roundPanelist = $this->auth->assertEligiblePanelist($panelist, $lockedRound, 'evaluations.create');
+
             if (! in_array($lockedRound->status, ['open', 'in_progress'], true)) {
                 throw new InvalidArgumentException('Cannot submit evaluation for a round that is not open or in progress.');
-            }
-
-            $roundPanelist = $lockedRound->roundPanelists->firstWhere('panelist_user_id', $panelist->id);
-            if (! $roundPanelist) {
-                throw new AuthorizationException('Unauthorized: You are not a frozen panelist for this evaluation round.');
             }
 
             $existingEval = DefenseEvaluation::query()
@@ -93,17 +98,29 @@ class SubmitDefenseEvaluation
                 ]
             );
 
-            // Require scores for every frozen student
-            $studentScoresInput = $data['student_scores'] ?? [];
-            if ($lockedRound->roundStudents->isEmpty()) {
+            // Require scores for every frozen student roster member (exact match, no extra/unknown keys)
+            $frozenStudentIds = $lockedRound->roundStudents->pluck('student_id')->map(fn ($id) => (int) $id)->all();
+            if (empty($frozenStudentIds)) {
                 throw new InvalidArgumentException('Evaluation round has no frozen student roster.');
             }
 
-            foreach ($lockedRound->roundStudents as $roundStudent) {
-                $studentInput = $studentScoresInput[$roundStudent->student_id] ?? null;
-                if (! $studentInput) {
-                    throw new InvalidArgumentException("Missing evaluation scores for student #{$roundStudent->student_id}.");
+            $studentScoresInput = $data['student_scores'] ?? [];
+            $submittedStudentIds = array_map(fn ($id) => (int) $id, array_keys($studentScoresInput));
+
+            foreach ($submittedStudentIds as $submittedStudentId) {
+                if (! in_array($submittedStudentId, $frozenStudentIds, true)) {
+                    throw new InvalidArgumentException("Unknown student ID [{$submittedStudentId}] in submitted evaluation scores.");
                 }
+            }
+
+            foreach ($frozenStudentIds as $frozenStudentId) {
+                if (! in_array($frozenStudentId, $submittedStudentIds, true)) {
+                    throw new InvalidArgumentException("Missing evaluation scores for student #{$frozenStudentId}.");
+                }
+            }
+
+            foreach ($lockedRound->roundStudents as $roundStudent) {
+                $studentInput = $studentScoresInput[$roundStudent->student_id];
 
                 $comm = $this->requireScore($studentInput['communication_score'] ?? null, "student #{$roundStudent->student_id} communication_score");
                 $org = $this->requireScore($studentInput['organization_score'] ?? null, "student #{$roundStudent->student_id} organization_score");
@@ -125,6 +142,8 @@ class SubmitDefenseEvaluation
                     ]
                 );
             }
+
+            $evaluation->load('studentScores');
 
             // Create RES-036 form instance for panelist evaluation record
             $this->createRes036Instance($panelist, $lockedRound, $evaluation);
@@ -181,6 +200,15 @@ class SubmitDefenseEvaluation
             return;
         }
 
+        $existing036 = OfficialFormInstance::query()
+            ->where('official_form_definition_id', $def->id)
+            ->where('defense_evaluation_id', $evaluation->id)
+            ->first();
+
+        if ($existing036) {
+            return;
+        }
+
         $schedule = DefenseSchedule::query()->with('room')->find($round->defense_schedule_id);
 
         $instance = OfficialFormInstance::query()->create([
@@ -205,6 +233,13 @@ class SubmitDefenseEvaluation
                 'research_paper_total' => $evaluation->research_paper_total,
                 'general_comments' => $evaluation->general_comments,
                 'recommendations' => $evaluation->recommendations,
+                'student_scores' => $evaluation->studentScores->map(fn ($s) => [
+                    'student_id' => $s->student_id,
+                    'communication_score' => $s->communication_score,
+                    'organization_score' => $s->organization_score,
+                    'effectiveness_score' => $s->effectiveness_score,
+                    'presentation_total' => $s->presentation_total,
+                ])->toArray(),
             ],
             'source_snapshot' => [
                 'defense_type' => $round->defense->defense_type,
@@ -298,6 +333,14 @@ class SubmitDefenseEvaluation
                             'student_id' => $s->student_id,
                             'student_name' => $s->student?->name ?? "Student #{$s->student_id}",
                             'presentation_average' => $s->presentation_average,
+                        ])->toArray(),
+                        'panelist_evaluations' => $evaluations->map(fn ($e) => [
+                            'panelist_user_id' => $e->panelist_user_id,
+                            'research_paper_total' => $e->research_paper_total,
+                            'student_scores' => $e->studentScores->map(fn ($s) => [
+                                'student_id' => $s->student_id,
+                                'presentation_total' => $s->presentation_total,
+                            ])->toArray(),
                         ])->toArray(),
                     ],
                     'source_snapshot' => [

@@ -7,30 +7,25 @@ use App\Enums\UserType;
 use App\Models\AuditLog;
 use App\Models\DefenseEvaluationRound;
 use App\Models\User;
-use Illuminate\Auth\Access\AuthorizationException;
+use App\Modules\Evaluations\Services\EvaluationAuthorization;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class DesignateEvaluationSummarySigner
 {
+    public function __construct(
+        private readonly EvaluationAuthorization $auth = new EvaluationAuthorization
+    ) {}
+
     public function handle(User $actor, DefenseEvaluationRound $round, int $signerUserId): DefenseEvaluationRound
     {
-        if ($actor->user_type !== UserType::Faculty
-            || $actor->status !== AccountStatus::Active
-            || $actor->approved_at === null
-            || $actor->email_verified_at === null
-            || ! $actor->can('defenses.manage')) {
-            throw new AuthorizationException('Unauthorized: You lack faculty credentials or permission to manage defenses.');
-        }
+        $this->auth->assertFacultyActor($actor);
 
         return DB::transaction(function () use ($actor, $round, $signerUserId) {
             /** @var DefenseEvaluationRound $lockedRound */
             $lockedRound = DefenseEvaluationRound::query()->lockForUpdate()->with(['defense.group.researchClass', 'roundPanelists.panelist'])->findOrFail($round->id);
 
-            $group = $lockedRound->defense->group;
-            if (! $group || ! $group->researchClass || (int) $group->researchClass->facilitator_id !== (int) $actor->id) {
-                throw new AuthorizationException('Unauthorized: You do not own the research class for this defense.');
-            }
+            $this->auth->assertFacilitatorOwnsRound($actor, $lockedRound, 'defenses.manage');
 
             if (in_array($lockedRound->status, ['finalized', 'released'], true)) {
                 throw new InvalidArgumentException('Cannot change summary signer on a finalized or released evaluation round.');

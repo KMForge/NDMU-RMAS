@@ -2,19 +2,28 @@
 
 namespace App\Modules\Evaluations\Actions;
 
-use App\Enums\AccountStatus;
-use App\Enums\UserType;
 use App\Models\AuditLog;
 use App\Models\DefenseEvaluation;
 use App\Models\DefenseEvaluationRound;
 use App\Models\DefenseEvaluationStudentScore;
 use App\Models\User;
-use Illuminate\Auth\Access\AuthorizationException;
+use App\Modules\Evaluations\Services\EvaluationAuthorization;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class SaveDefenseEvaluationDraft
 {
+    private const PROHIBITED_KEYS = [
+        'panelist_user_id', 'defense_id', 'defense_schedule_id', 'research_class_group_id',
+        'round_status', 'evaluation_status', 'research_paper_total', 'presentation_total',
+        'panel_average', 'submitted_at', 'released_at', 'released_by', 'finalized_at',
+        'summary_signer_user_id', 'completed_at', 'completed_by', 'source_type', 'source_id', 'status',
+    ];
+
+    public function __construct(
+        private readonly EvaluationAuthorization $auth = new EvaluationAuthorization
+    ) {}
+
     /**
      * @param  array{
      *     research_quality_score?: float|int|null,
@@ -31,26 +40,22 @@ class SaveDefenseEvaluationDraft
      */
     public function handle(User $panelist, DefenseEvaluationRound $round, array $data): DefenseEvaluation
     {
-        if ($panelist->user_type !== UserType::Faculty
-            || $panelist->status !== AccountStatus::Active
-            || $panelist->approved_at === null
-            || $panelist->email_verified_at === null
-            || ! $panelist->can('evaluations.create')
-            || ! $panelist->can('forms.res-036.evaluate')) {
-            throw new AuthorizationException('Unauthorized: You lack faculty credentials or permission to evaluate defenses.');
+        $this->auth->assertFacultyActor($panelist);
+
+        foreach (self::PROHIBITED_KEYS as $prohibitedKey) {
+            if (array_key_exists($prohibitedKey, $data)) {
+                throw new InvalidArgumentException("Prohibited field [{$prohibitedKey}] in draft evaluation payload.");
+            }
         }
 
         return DB::transaction(function () use ($panelist, $round, $data) {
             /** @var DefenseEvaluationRound $lockedRound */
             $lockedRound = DefenseEvaluationRound::query()->lockForUpdate()->with(['roundPanelists', 'roundStudents'])->findOrFail($round->id);
 
+            $roundPanelist = $this->auth->assertEligiblePanelist($panelist, $lockedRound, 'evaluations.create');
+
             if (! in_array($lockedRound->status, ['open', 'in_progress'], true)) {
                 throw new InvalidArgumentException('Cannot save draft for an evaluation round that is not open or in progress.');
-            }
-
-            $roundPanelist = $lockedRound->roundPanelists->firstWhere('panelist_user_id', $panelist->id);
-            if (! $roundPanelist) {
-                throw new AuthorizationException('Unauthorized: You are not a frozen panelist for this evaluation round.');
             }
 
             $existingEval = DefenseEvaluation::query()
@@ -90,7 +95,16 @@ class SaveDefenseEvaluationDraft
             );
 
             // Clean & validate Student Presentation scores
+            $frozenStudentIds = $lockedRound->roundStudents->pluck('student_id')->map(fn ($id) => (int) $id)->all();
             $studentScoresInput = $data['student_scores'] ?? [];
+
+            // Reject unknown student IDs
+            foreach (array_keys($studentScoresInput) as $submittedStudentId) {
+                if (! in_array((int) $submittedStudentId, $frozenStudentIds, true)) {
+                    throw new InvalidArgumentException("Unknown student ID [{$submittedStudentId}] in draft evaluation scores.");
+                }
+            }
+
             foreach ($lockedRound->roundStudents as $roundStudent) {
                 $studentInput = $studentScoresInput[$roundStudent->student_id] ?? null;
 

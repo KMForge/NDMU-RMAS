@@ -3,21 +3,27 @@
 namespace Tests\Feature\Evaluations;
 
 use App\Models\Defense;
+use App\Models\DefenseEvaluationRound;
 use App\Models\DefensePanelAssignment;
 use App\Models\DefenseRoom;
 use App\Models\DefenseSchedule;
+use App\Models\OfficialFormInstance;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupMember;
 use App\Models\User;
+use App\Models\UserSignature;
 use App\Modules\DefenseScheduling\Actions\AssignDefensePanel;
 use App\Modules\DefenseScheduling\Actions\CancelDefense;
 use App\Modules\DefenseScheduling\Actions\RescheduleDefense;
 use App\Modules\Evaluations\Actions\OpenDefenseEvaluationRound;
+use App\Modules\Evaluations\Actions\SaveDefenseEvaluationDraft;
 use App\Modules\Evaluations\Actions\SubmitDefenseEvaluation;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
+use App\Modules\OfficialForms\Actions\ApplyOfficialFormSignature;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -301,5 +307,188 @@ class DefenseEvaluationSecurityTest extends TestCase
         } catch (InvalidArgumentException $e) {
             $this->assertStringContainsString('evaluation round is active', $e->getMessage());
         }
+    }
+
+    public function test_draft_rejects_unknown_student_id(): void
+    {
+        $openAction = new OpenDefenseEvaluationRound;
+        $round = $openAction->handle($this->facilitator, $this->defense, $this->panelist1->id);
+
+        $draftAction = new SaveDefenseEvaluationDraft;
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown student ID [999] in draft evaluation scores.');
+
+        $draftAction->handle($this->panelist1, $round, [
+            'research_quality_score' => 80,
+            'student_scores' => [
+                $this->student1->id => ['communication_score' => 80, 'organization_score' => 80, 'effectiveness_score' => 80],
+                999 => ['communication_score' => 80, 'organization_score' => 80, 'effectiveness_score' => 80],
+            ],
+        ]);
+    }
+
+    public function test_submit_rejects_unknown_student_id(): void
+    {
+        $openAction = new OpenDefenseEvaluationRound;
+        $round = $openAction->handle($this->facilitator, $this->defense, $this->panelist1->id);
+
+        $submitAction = new SubmitDefenseEvaluation;
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown student ID [999] in submitted evaluation scores.');
+
+        $submitAction->handle($this->panelist1, $round, [
+            'research_quality_score' => 85,
+            'originality_score' => 85,
+            'relevance_score' => 85,
+            'student_scores' => [
+                $this->student1->id => ['communication_score' => 80, 'organization_score' => 80, 'effectiveness_score' => 80],
+                $this->student2->id => ['communication_score' => 80, 'organization_score' => 80, 'effectiveness_score' => 80],
+                999 => ['communication_score' => 80, 'organization_score' => 80, 'effectiveness_score' => 80],
+            ],
+        ]);
+    }
+
+    public function test_submit_requires_exact_frozen_student_roster(): void
+    {
+        $openAction = new OpenDefenseEvaluationRound;
+        $round = $openAction->handle($this->facilitator, $this->defense, $this->panelist1->id);
+
+        $submitAction = new SubmitDefenseEvaluation;
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("Missing evaluation scores for student #{$this->student2->id}.");
+
+        $submitAction->handle($this->panelist1, $round, [
+            'research_quality_score' => 85,
+            'originality_score' => 85,
+            'relevance_score' => 85,
+            'student_scores' => [
+                $this->student1->id => ['communication_score' => 80, 'organization_score' => 80, 'effectiveness_score' => 80],
+            ],
+        ]);
+    }
+
+    public function test_submit_rejects_prohibited_overposting_fields(): void
+    {
+        $openAction = new OpenDefenseEvaluationRound;
+        $round = $openAction->handle($this->facilitator, $this->defense, $this->panelist1->id);
+
+        $submitAction = new SubmitDefenseEvaluation;
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Prohibited field [research_paper_total] in evaluation submission payload.');
+
+        $submitAction->handle($this->panelist1, $round, [
+            'research_quality_score' => 85,
+            'originality_score' => 85,
+            'relevance_score' => 85,
+            'research_paper_total' => 99.99,
+            'student_scores' => [
+                $this->student1->id => ['communication_score' => 80, 'organization_score' => 80, 'effectiveness_score' => 80],
+                $this->student2->id => ['communication_score' => 80, 'organization_score' => 80, 'effectiveness_score' => 80],
+            ],
+        ]);
+    }
+
+    public function test_custom_role_faculty_can_evaluate_without_canonical_role_name(): void
+    {
+        // Custom Faculty user with explicit permissions, NO canonical panel-member role
+        $customPanelist = User::factory()->create([
+            'user_type' => 'faculty',
+            'status' => 'active',
+            'email_verified_at' => now(),
+            'approved_at' => now(),
+        ]);
+        $customPanelist->givePermissionTo(['evaluations.create', 'forms.res-036.evaluate']);
+
+        // Replace panelist3 with customPanelist in defense panel assignments
+        DefensePanelAssignment::where('defense_id', $this->defense->id)->where('user_id', $this->panelist3->id)->delete();
+        DefensePanelAssignment::create(['defense_id' => $this->defense->id, 'user_id' => $customPanelist->id, 'assigned_by' => $this->facilitator->id, 'assigned_at' => now()]);
+
+        $openAction = new OpenDefenseEvaluationRound;
+        $round = $openAction->handle($this->facilitator, $this->defense, $this->panelist1->id);
+
+        $submitAction = new SubmitDefenseEvaluation;
+        $eval = $submitAction->handle($customPanelist, $round, [
+            'research_quality_score' => 90,
+            'originality_score' => 90,
+            'relevance_score' => 90,
+            'student_scores' => [
+                $this->student1->id => ['communication_score' => 90, 'organization_score' => 90, 'effectiveness_score' => 90],
+                $this->student2->id => ['communication_score' => 90, 'organization_score' => 90, 'effectiveness_score' => 90],
+            ],
+        ]);
+
+        $this->assertEquals('submitted', $eval->status);
+        $this->assertEquals($customPanelist->id, $eval->panelist_user_id);
+    }
+
+    public function test_panelist_signer_permission_differentiation(): void
+    {
+        // P1 has evaluate + sign, P2 has evaluate ONLY, P3 has evaluate ONLY
+        $this->panelist2->revokePermissionTo('forms.res-037.sign');
+        $this->panelist3->revokePermissionTo('forms.res-037.sign');
+
+        $openAction = new OpenDefenseEvaluationRound;
+        // Designate P1 as signer
+        $round = $openAction->handle($this->facilitator, $this->defense, $this->panelist1->id);
+
+        $submitAction = new SubmitDefenseEvaluation;
+        $payload = [
+            'research_quality_score' => 90,
+            'originality_score' => 90,
+            'relevance_score' => 90,
+            'student_scores' => [
+                $this->student1->id => ['communication_score' => 90, 'organization_score' => 90, 'effectiveness_score' => 90],
+                $this->student2->id => ['communication_score' => 90, 'organization_score' => 90, 'effectiveness_score' => 90],
+            ],
+        ];
+
+        // All three submit successfully
+        $submitAction->handle($this->panelist1, $round, $payload);
+        $submitAction->handle($this->panelist2, $round, $payload);
+        $submitAction->handle($this->panelist3, $round, $payload);
+
+        $round->refresh();
+        $this->assertEquals('complete', $round->status);
+
+        // P2 tries to sign RES-037 -> DENIED
+        $res037 = OfficialFormInstance::where('source_type', DefenseEvaluationRound::class)->where('source_id', $round->id)->first();
+        UserSignature::create([
+            'user_id' => $this->panelist2->id,
+            'storage_disk' => 'local',
+            'storage_path' => 'signatures/p2.png',
+            'original_filename' => 'p2.png',
+            'content_sha256' => hash('sha256', 'p2-signature'),
+            'file_size' => 100,
+            'mime_type' => 'image/png',
+            'registered_at' => now(),
+        ]);
+        Storage::disk('local')->put('signatures/p2.png', 'p2-signature');
+
+        $applySig = app(ApplyOfficialFormSignature::class);
+        try {
+            $applySig->handle($this->panelist2, $res037->id, $res037->current_version_id, 'sign');
+            $this->fail('P2 signature on RES-037 did not throw exception.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertStringContainsString('not authorized', $e->getMessage());
+        }
+    }
+
+    public function test_admin_denied_academic_evaluations(): void
+    {
+        $admin = User::factory()->create([
+            'user_type' => 'admin',
+            'status' => 'active',
+            'email_verified_at' => now(),
+            'approved_at' => now(),
+        ]);
+
+        $openAction = new OpenDefenseEvaluationRound;
+
+        $this->expectException(AuthorizationException::class);
+        $openAction->handle($admin, $this->defense);
     }
 }

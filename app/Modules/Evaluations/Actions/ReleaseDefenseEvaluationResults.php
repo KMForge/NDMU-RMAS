@@ -2,35 +2,30 @@
 
 namespace App\Modules\Evaluations\Actions;
 
-use App\Enums\AccountStatus;
-use App\Enums\UserType;
 use App\Models\AuditLog;
 use App\Models\DefenseEvaluationRound;
+use App\Models\OfficialFormInstance;
+use App\Models\OfficialFormSignature;
 use App\Models\User;
-use Illuminate\Auth\Access\AuthorizationException;
+use App\Modules\Evaluations\Services\EvaluationAuthorization;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class ReleaseDefenseEvaluationResults
 {
+    public function __construct(
+        private readonly EvaluationAuthorization $auth = new EvaluationAuthorization
+    ) {}
+
     public function handle(User $actor, DefenseEvaluationRound $round): DefenseEvaluationRound
     {
-        if ($actor->user_type !== UserType::Faculty
-            || $actor->status !== AccountStatus::Active
-            || $actor->approved_at === null
-            || $actor->email_verified_at === null
-            || ! $actor->can('evaluations.release')) {
-            throw new AuthorizationException('Unauthorized: You lack faculty credentials or permission to release evaluation results.');
-        }
+        $this->auth->assertFacultyActor($actor);
 
         return DB::transaction(function () use ($actor, $round) {
             /** @var DefenseEvaluationRound $lockedRound */
             $lockedRound = DefenseEvaluationRound::query()->lockForUpdate()->with(['defense.group.researchClass', 'summary'])->findOrFail($round->id);
 
-            $group = $lockedRound->defense->group;
-            if (! $group || ! $group->researchClass || (int) $group->researchClass->facilitator_id !== (int) $actor->id) {
-                throw new AuthorizationException('Unauthorized: You do not own the research class for this defense.');
-            }
+            $this->auth->assertFacilitatorOwnsRound($actor, $lockedRound, 'evaluations.release');
 
             if ($lockedRound->status === 'released') {
                 return $lockedRound; // Idempotent
@@ -38,6 +33,26 @@ class ReleaseDefenseEvaluationResults
 
             if ($lockedRound->status !== 'finalized') {
                 throw new InvalidArgumentException('Cannot release evaluation results: Round must be finalized with a signed RES-037.');
+            }
+
+            // In-depth verification of valid Phase 20 digital signature relation
+            $inst037 = OfficialFormInstance::query()
+                ->where('source_type', DefenseEvaluationRound::class)
+                ->where('source_id', $lockedRound->id)
+                ->first();
+
+            if (! $inst037 || ! $inst037->current_version_id) {
+                throw new InvalidArgumentException('Cannot release evaluation results: RES-037 form instance is missing.');
+            }
+
+            $hasSignature = OfficialFormSignature::query()
+                ->where('official_form_version_id', $inst037->current_version_id)
+                ->where('signer_user_id', $lockedRound->summary_signer_user_id)
+                ->where('academic_action', 'sign')
+                ->exists();
+
+            if (! $hasSignature) {
+                throw new InvalidArgumentException('Cannot release evaluation results: RES-037 missing verified digital signature.');
             }
 
             $now = now();

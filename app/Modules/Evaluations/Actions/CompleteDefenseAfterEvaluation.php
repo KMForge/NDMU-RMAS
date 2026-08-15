@@ -2,36 +2,29 @@
 
 namespace App\Modules\Evaluations\Actions;
 
-use App\Enums\AccountStatus;
-use App\Enums\UserType;
 use App\Models\AuditLog;
 use App\Models\Defense;
 use App\Models\DefenseEvaluationRound;
 use App\Models\User;
-use Illuminate\Auth\Access\AuthorizationException;
+use App\Modules\Evaluations\Services\EvaluationAuthorization;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class CompleteDefenseAfterEvaluation
 {
+    public function __construct(
+        private readonly EvaluationAuthorization $auth = new EvaluationAuthorization
+    ) {}
+
     public function handle(User $actor, Defense $defense): Defense
     {
-        if ($actor->user_type !== UserType::Faculty
-            || $actor->status !== AccountStatus::Active
-            || $actor->approved_at === null
-            || $actor->email_verified_at === null
-            || ! $actor->can('defenses.manage')) {
-            throw new AuthorizationException('Unauthorized: You lack faculty credentials or permission to manage defenses.');
-        }
+        $this->auth->assertFacultyActor($actor);
 
         return DB::transaction(function () use ($actor, $defense) {
             /** @var Defense $lockedDefense */
             $lockedDefense = Defense::query()->lockForUpdate()->with(['group.researchClass', 'evaluationRounds.summary'])->findOrFail($defense->id);
 
-            $group = $lockedDefense->group;
-            if (! $group || ! $group->researchClass || (int) $group->researchClass->facilitator_id !== (int) $actor->id) {
-                throw new AuthorizationException('Unauthorized: You do not own the research class for this defense.');
-            }
+            $this->auth->assertFacilitatorOwnsDefense($actor, $lockedDefense, 'defenses.manage');
 
             if ($lockedDefense->status === 'completed') {
                 return $lockedDefense; // Idempotent

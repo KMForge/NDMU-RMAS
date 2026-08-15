@@ -2,8 +2,6 @@
 
 namespace App\Modules\Evaluations\Actions;
 
-use App\Enums\AccountStatus;
-use App\Enums\UserType;
 use App\Models\AuditLog;
 use App\Models\Defense;
 use App\Models\DefenseEvaluationRound;
@@ -11,30 +9,25 @@ use App\Models\DefenseEvaluationRoundPanelist;
 use App\Models\DefenseEvaluationRoundStudent;
 use App\Models\DefenseSchedule;
 use App\Models\User;
-use Illuminate\Auth\Access\AuthorizationException;
+use App\Modules\Evaluations\Services\EvaluationAuthorization;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class OpenDefenseEvaluationRound
 {
+    public function __construct(
+        private readonly EvaluationAuthorization $auth = new EvaluationAuthorization
+    ) {}
+
     public function handle(User $actor, Defense $defense, ?int $designatedSignerUserId = null): DefenseEvaluationRound
     {
-        if ($actor->user_type !== UserType::Faculty
-            || $actor->status !== AccountStatus::Active
-            || $actor->approved_at === null
-            || $actor->email_verified_at === null
-            || ! $actor->can('defenses.manage')) {
-            throw new AuthorizationException('Unauthorized: You lack faculty credentials or permission to manage defenses.');
-        }
+        $this->auth->assertFacultyActor($actor);
 
         return DB::transaction(function () use ($actor, $defense, $designatedSignerUserId) {
             /** @var Defense $lockedDefense */
             $lockedDefense = Defense::query()->lockForUpdate()->with(['group.researchClass', 'activePanelAssignments.user'])->findOrFail($defense->id);
 
-            $group = $lockedDefense->group;
-            if (! $group || ! $group->researchClass || (int) $group->researchClass->facilitator_id !== (int) $actor->id) {
-                throw new AuthorizationException('Unauthorized: You do not own the research class for this defense.');
-            }
+            $this->auth->assertFacilitatorOwnsDefense($actor, $lockedDefense, 'defenses.manage');
 
             if ($lockedDefense->status !== 'scheduled' || $lockedDefense->current_schedule_id === null) {
                 throw new InvalidArgumentException('Cannot open an evaluation round for a defense that is not scheduled.');
@@ -59,69 +52,47 @@ class OpenDefenseEvaluationRound
             // Verify exactly 3 active panel assignments
             $activeAssignments = $lockedDefense->activePanelAssignments;
             if ($activeAssignments->count() !== 3) {
-                throw new InvalidArgumentException('Evaluation round requires exactly 3 active panel assignments.');
+                throw new InvalidArgumentException("Defense evaluation round requires exactly 3 active panel assignments (found {$activeAssignments->count()}).");
             }
 
-            // Verify all 3 panelists eligibility
-            foreach ($activeAssignments as $assignment) {
-                $p = $assignment->user;
-                if (! $p || $p->user_type !== UserType::Faculty
-                    || $p->status !== AccountStatus::Active
-                    || $p->approved_at === null
-                    || $p->email_verified_at === null
-                    || ! $p->can('evaluations.create')
-                    || ! $p->can('forms.res-036.evaluate')) {
-                    throw new InvalidArgumentException("Panelist #{$assignment->user_id} is not eligible to participate in defense evaluation.");
-                }
-            }
+            // Determine summary signer
+            $signerUserId = $designatedSignerUserId ?? $activeAssignments->first()?->user_id;
 
-            // Verify designated signer if provided
-            $signerUser = null;
-            if ($designatedSignerUserId !== null) {
-                $signerAssignment = $activeAssignments->firstWhere('user_id', $designatedSignerUserId);
-                if (! $signerAssignment) {
-                    throw new InvalidArgumentException('Designated summary signer must be one of the assigned evaluation panelists.');
-                }
-                $signerUser = $signerAssignment->user;
-                if (! $signerUser->can('forms.res-037.sign')) {
-                    throw new InvalidArgumentException("Designated signer #{$designatedSignerUserId} lacks forms.res-037.sign permission.");
-                }
-            }
-
-            // Freeze student roster
-            $members = $group->members()->with('student')->get();
-            if ($members->isEmpty()) {
-                throw new InvalidArgumentException('Cannot open evaluation round for a research group with no members.');
+            if (! $activeAssignments->pluck('user_id')->contains($signerUserId)) {
+                throw new InvalidArgumentException("Designated summary signer user #{$signerUserId} is not an assigned panelist for this defense.");
             }
 
             $round = DefenseEvaluationRound::query()->create([
                 'defense_id' => $lockedDefense->id,
                 'defense_schedule_id' => $schedule->id,
-                'research_class_group_id' => $group->id,
+                'research_class_group_id' => $lockedDefense->research_class_group_id,
                 'status' => 'open',
-                'summary_signer_user_id' => $signerUser?->id,
+                'summary_signer_user_id' => $signerUserId,
                 'opened_by' => $actor->id,
                 'opened_at' => now(),
             ]);
 
             // Freeze panelist roster
-            $position = 1;
-            foreach ($activeAssignments as $assignment) {
+            foreach ($activeAssignments as $index => $assignment) {
                 DefenseEvaluationRoundPanelist::query()->create([
                     'defense_evaluation_round_id' => $round->id,
                     'defense_panel_assignment_id' => $assignment->id,
                     'panelist_user_id' => $assignment->user_id,
-                    'position' => $position++,
+                    'position' => $index + 1,
                 ]);
             }
 
             // Freeze student roster
+            $members = $lockedDefense->group?->members ?? collect();
+            if ($members->isEmpty()) {
+                throw new InvalidArgumentException('Cannot open evaluation round: Research group has no enrolled student members.');
+            }
+
             foreach ($members as $member) {
                 DefenseEvaluationRoundStudent::query()->create([
                     'defense_evaluation_round_id' => $round->id,
                     'student_id' => $member->student_id,
-                    'student_name_snapshot' => $member->student?->name ?? 'Student #'.$member->student_id,
-                    'group_member_id' => $member->id,
+                    'student_name_snapshot' => $member->student?->name ?? "Student #{$member->student_id}",
                 ]);
             }
 
@@ -132,10 +103,10 @@ class OpenDefenseEvaluationRound
                 'event' => 'evaluation_round.opened',
                 'auditable_type' => DefenseEvaluationRound::class,
                 'auditable_id' => $round->id,
-                'description' => "Opened evaluation round #{$round->id} for defense #{$lockedDefense->id}.",
+                'description' => "Opened defense evaluation round #{$round->id} for defense #{$lockedDefense->id}.",
             ]);
 
-            return $round->load(['roundPanelists.panelist', 'roundStudents.student', 'summarySigner']);
+            return $round->load(['roundPanelists', 'roundStudents']);
         });
     }
 }
