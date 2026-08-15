@@ -25,7 +25,7 @@ class OpenDefenseEvaluationRound
 
         return DB::transaction(function () use ($actor, $defense, $designatedSignerUserId) {
             /** @var Defense $lockedDefense */
-            $lockedDefense = Defense::query()->lockForUpdate()->with(['group.researchClass', 'activePanelAssignments.user'])->findOrFail($defense->id);
+            $lockedDefense = Defense::query()->lockForUpdate()->with(['group.researchClass', 'activePanelAssignments'])->findOrFail($defense->id);
 
             $this->auth->assertFacilitatorOwnsDefense($actor, $lockedDefense, 'defenses.manage');
 
@@ -55,11 +55,44 @@ class OpenDefenseEvaluationRound
                 throw new InvalidArgumentException("Defense evaluation round requires exactly 3 active panel assignments (found {$activeAssignments->count()}).");
             }
 
-            // Determine summary signer
-            $signerUserId = $designatedSignerUserId ?? $activeAssignments->first()?->user_id;
+            // Query fresh User instances inside transaction to ensure fresh eligibility state
+            $panelistUserIds = $activeAssignments->pluck('user_id')->map(fn ($id) => (int) $id)->all();
+            $freshPanelists = User::query()->whereIn('id', $panelistUserIds)->get()->keyBy('id');
 
-            if (! $activeAssignments->pluck('user_id')->contains($signerUserId)) {
-                throw new InvalidArgumentException("Designated summary signer user #{$signerUserId} is not an assigned panelist for this defense.");
+            // Pre-freeze candidate eligibility check: EVERY assigned panelist must pass
+            foreach ($activeAssignments as $assignment) {
+                $panelistUser = $freshPanelists->get((int) $assignment->user_id);
+                if (! $panelistUser) {
+                    throw new InvalidArgumentException("Assigned panelist user #{$assignment->user_id} not found.");
+                }
+
+                $this->auth->assertEligiblePanelCandidate($panelistUser);
+            }
+
+            // Determine and validate summary signer
+            $signerUserId = null;
+
+            if ($designatedSignerUserId !== null) {
+                if (! in_array((int) $designatedSignerUserId, $panelistUserIds, true)) {
+                    throw new InvalidArgumentException("Designated summary signer user #{$designatedSignerUserId} is not an assigned panelist for this defense.");
+                }
+
+                $designatedUser = $freshPanelists->get((int) $designatedSignerUserId);
+                $this->auth->assertSummarySignerCandidate($designatedUser);
+                $signerUserId = (int) $designatedSignerUserId;
+            } else {
+                // Default signer selection: pick first eligible candidate with forms.res-037.sign
+                foreach ($activeAssignments as $assignment) {
+                    $candidateUser = $freshPanelists->get((int) $assignment->user_id);
+                    if ($candidateUser && $candidateUser->can('forms.res-037.sign')) {
+                        $signerUserId = (int) $candidateUser->id;
+                        break;
+                    }
+                }
+
+                if ($signerUserId === null) {
+                    throw new InvalidArgumentException('No assigned panelist holds forms.res-037.sign permission to sign RES-037 summary.');
+                }
             }
 
             $round = DefenseEvaluationRound::query()->create([

@@ -26,6 +26,30 @@ class EvaluationAuthorization
     }
 
     /**
+     * Assert a user candidate is eligible to be frozen as an evaluation panelist BEFORE round creation.
+     */
+    public function assertEligiblePanelCandidate(User $candidate): void
+    {
+        $this->assertFacultyActor($candidate);
+
+        if (! $candidate->can('evaluations.create') || ! $candidate->can('forms.res-036.evaluate')) {
+            throw new AuthorizationException("Assigned panelist user #{$candidate->id} lacks required evaluation permissions (evaluations.create, forms.res-036.evaluate).");
+        }
+    }
+
+    /**
+     * Assert a user candidate is eligible to be designated as the summary signer BEFORE round creation.
+     */
+    public function assertSummarySignerCandidate(User $candidate): void
+    {
+        $this->assertEligiblePanelCandidate($candidate);
+
+        if (! $candidate->can('forms.res-037.sign')) {
+            throw new AuthorizationException("Summary signer candidate user #{$candidate->id} lacks forms.res-037.sign permission.");
+        }
+    }
+
+    /**
      * Assert actor is facilitator owning the research class for the defense.
      */
     public function assertFacilitatorOwnsDefense(User $actor, Defense $defense, string $permission = 'defenses.manage'): void
