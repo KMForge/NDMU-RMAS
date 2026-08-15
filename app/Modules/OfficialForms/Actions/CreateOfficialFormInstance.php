@@ -37,6 +37,7 @@ class CreateOfficialFormInstance
     public const FORM_ALLOWED_SOURCE_TYPES = [
         'RES-031' => [ConsultationRecord::class],
         'RES-036' => [DefenseSchedule::class],
+        'RES-037' => [DefenseEvaluationRound::class],
         'RES-039' => [DocumentReview::class, RevisionRequest::class],
         'RES-043A' => [OfficialFormInstance::class],
         'RES-043B' => [OfficialFormInstance::class],
@@ -54,10 +55,6 @@ class CreateOfficialFormInstance
         array $payload = [],
     ): OfficialFormInstance {
         $formCodeUpper = strtoupper($formCode);
-
-        if ($formCodeUpper === 'RES-037') {
-            throw new InvalidArgumentException('RES-037 is blocked pending the authoritative Defense Panel/Evaluation source from Phase 22.');
-        }
 
         $validatedPayload = $this->payloadValidator->validate($formCodeUpper, $payload);
 

@@ -3,11 +3,13 @@
 namespace App\Modules\OfficialForms\Actions;
 
 use App\Models\AuditLog;
+use App\Models\DefenseEvaluationRound;
 use App\Models\OfficialFormInstance;
 use App\Models\OfficialFormSignature;
 use App\Models\OfficialFormVerification;
 use App\Models\User;
 use App\Models\UserSignature;
+use App\Modules\Evaluations\Actions\FinalizeDefenseEvaluationRound;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use App\Modules\OfficialForms\Services\OfficialFormSignatureHasher;
 use Illuminate\Http\Request;
@@ -191,6 +193,10 @@ class ApplyOfficialFormSignature
                         'attestation_hash' => $attestationHash,
                     ],
                 ]);
+
+                if (strtoupper($lockedInstance->definition->code) === 'RES-037' && $lockedInstance->source_type === DefenseEvaluationRound::class && $lockedInstance->source) {
+                    app(FinalizeDefenseEvaluationRound::class)->handle($lockedInstance->source);
+                }
 
                 return $signatureRecord;
             } catch (Throwable $e) {

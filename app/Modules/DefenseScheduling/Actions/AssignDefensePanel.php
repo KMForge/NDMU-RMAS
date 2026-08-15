@@ -6,6 +6,7 @@ use App\Enums\AccountStatus;
 use App\Enums\UserType;
 use App\Models\AuditLog;
 use App\Models\Defense;
+use App\Models\DefenseEvaluationRound;
 use App\Models\DefensePanelAssignment;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
@@ -46,8 +47,17 @@ class AssignDefensePanel
                 throw new AuthorizationException('Unauthorized: You do not own the research class for this defense.');
             }
 
-            if ($lockedDefense->status === 'cancelled') {
-                throw new InvalidArgumentException('Cannot assign panel members to a cancelled defense.');
+            if (in_array($lockedDefense->status, ['cancelled', 'completed'], true)) {
+                throw new InvalidArgumentException("Cannot assign panel members to a {$lockedDefense->status} defense.");
+            }
+
+            $activeRound = DefenseEvaluationRound::query()
+                ->where('defense_id', $lockedDefense->id)
+                ->whereIn('status', ['open', 'in_progress', 'complete', 'finalized', 'released'])
+                ->first();
+
+            if ($activeRound) {
+                throw new InvalidArgumentException('Cannot modify panel roster: An evaluation round is active or completed for this defense.');
             }
 
             // 2. Existing active panel members

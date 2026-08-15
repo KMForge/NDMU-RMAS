@@ -11,6 +11,7 @@ use App\Modules\Consultations\Queries\GetAdviserConsultationData;
 use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Documents\Queries\GetAdviserDocumentReviewData;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
+use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
 use App\Modules\Research\Queries\GetAdviserDashboardOverview;
 use App\Modules\ResearchProgress\Queries\GetResearchGroupProgress;
 use Illuminate\Contracts\View\View;
@@ -91,6 +92,9 @@ class DashboardController extends Controller
         $viewData['pendingDocReviewsCount'] = $pendingDocReviewsCount;
         $viewData['assignedGroups'] = $assignedGroups;
         $viewData['adviserDefenses'] = $defenseCalendar->execute($user);
+        $evalQuery = app(GetEvaluationRoundData::class);
+        $evalData = $evalQuery->forAdviser($user);
+        $viewData['adviserEvaluations'] = $evalData['rounds'] ?? [];
         $viewData['officialFormPhases'] = config('official-forms.phases', []);
         $viewData['officialForms'] = collect(config('official-forms.adviser', []))
             ->filter(fn (array $form, string $code) => $user->getAllPermissions()

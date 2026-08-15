@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
     'initiated_by',
     'status',
     'current_version_id',
+    'defense_evaluation_id',
 ])]
 class OfficialFormInstance extends Model
 {
@@ -54,6 +55,11 @@ class OfficialFormInstance extends Model
     public function actorAssignments(): HasMany
     {
         return $this->hasMany(OfficialFormActorAssignment::class, 'official_form_instance_id');
+    }
+
+    public function defenseEvaluation(): BelongsTo
+    {
+        return $this->belongsTo(DefenseEvaluation::class, 'defense_evaluation_id');
     }
 
     public function source(): MorphTo

@@ -4,6 +4,7 @@ namespace App\Modules\OfficialForms\Services;
 
 use App\Enums\AccountStatus;
 use App\Enums\UserType;
+use App\Models\DefenseEvaluationRound;
 use App\Models\DefensePanelAssignment;
 use App\Models\DefenseSchedule;
 use App\Models\OfficialFormDefinition;
@@ -29,7 +30,7 @@ class OfficialFormAuthorization
         'res-034' => ['fill' => ['forms.res-034.fill']],
         'res-035' => ['fill' => ['forms.res-035.record']],
         'res-036' => ['fill' => ['forms.res-036.evaluate']],
-        'res-037' => ['fill' => ['forms.res-037.sign']],
+        'res-037' => ['fill' => ['forms.res-037.sign'], 'sign' => ['forms.res-037.sign']],
         'res-038' => ['fill' => ['forms.res-038.endorse']],
         'res-039' => ['fill' => ['forms.res-039.fill']],
         'res-040' => ['view' => ['forms.res-040.view'], 'fill' => ['forms.res-040.endorse'], 'endorse' => ['forms.res-040.endorse'], 'receive' => ['forms.res-040.receive']],
@@ -66,6 +67,7 @@ class OfficialFormAuthorization
      * @var array<string, array<string, array{from: list<string>, to: string}>>
      */
     public const FORM_WORKFLOWS = [
+        'res-037' => ['sign' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'signed']],
         'res-040' => [
             'endorse' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'endorsed'],
             'receive' => ['from' => ['endorsed'], 'to' => 'approved'],
@@ -277,6 +279,12 @@ class OfficialFormAuthorization
 
         if ($requiredActorType === 'student_researcher') {
             return $instance->group !== null && $this->isCurrentGroupMember($user, $instance->group);
+        }
+
+        if ($requiredActorType === 'panelist') {
+            if ($instance->source_type === DefenseEvaluationRound::class && $instance->source) {
+                return (int) $instance->source->summary_signer_user_id === (int) $user->id;
+            }
         }
 
         return $instance->actorAssignments()

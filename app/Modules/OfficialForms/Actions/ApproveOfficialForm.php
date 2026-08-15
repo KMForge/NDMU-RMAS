@@ -16,7 +16,7 @@ class ApproveOfficialForm
     ) {}
 
     /** @var list<string> */
-    private const ALLOWED_ACTIONS = ['approve', 'endorse', 'receive', 'validate'];
+    private const ALLOWED_ACTIONS = ['approve', 'endorse', 'receive', 'validate', 'sign'];
 
     /**
      * @param  array<string, mixed>  $approvalMetadata

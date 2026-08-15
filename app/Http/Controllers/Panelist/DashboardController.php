@@ -4,16 +4,18 @@ namespace App\Http\Controllers\Panelist;
 
 use App\Http\Controllers\Controller;
 use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
+use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request, GetDefenseScheduleCalendar $defenseCalendar): View
+    public function __invoke(Request $request, GetDefenseScheduleCalendar $defenseCalendar, GetEvaluationRoundData $evaluationQuery): View
     {
         $officialForms = config('official-forms.panelist', []);
         $assignedPhases = array_flip(array_unique(array_column($officialForms, 'phase')));
         $assignedDefenses = $defenseCalendar->execute($request->user());
+        $evaluationData = $evaluationQuery->forPanelist($request->user());
 
         return view('pages.panelist-dashboard', [
             'area' => 'Panelist',
@@ -24,6 +26,7 @@ class DashboardController extends Controller
             ),
             'officialForms' => $officialForms,
             'assignedDefenses' => $assignedDefenses,
+            'evaluationRounds' => $evaluationData['rounds'] ?? [],
         ]);
     }
 }

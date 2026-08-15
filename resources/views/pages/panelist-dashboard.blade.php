@@ -59,6 +59,7 @@
     activeFormPhase: @js($initialFormPhase),
     activeOfficialForm: @js($initialOfficialForm),
     officialForms: @js($officialForms),
+    evaluationRounds: @js($evaluationRounds ?? []),
     formsExpanded: @js($initialTab === 'forms'),
     notificationsFilter: 'all',
     selectedDefense: null,

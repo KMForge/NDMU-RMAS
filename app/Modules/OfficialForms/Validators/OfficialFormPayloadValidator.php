@@ -171,7 +171,7 @@ class OfficialFormPayloadValidator
             }
         }
 
-        if (in_array($code, ['RES-036', 'RES-043B', 'RES-048'], true)) {
+        if (in_array($code, ['RES-043B', 'RES-048'], true)) {
             foreach ($payload['ratings'] ?? [] as $rating) {
                 if (! is_numeric($rating) || (float) $rating < 1 || (float) $rating > 5) {
                     throw new InvalidArgumentException("Ratings for {$code} must be between 1 and 5.");

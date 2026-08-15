@@ -6,6 +6,7 @@ use App\Enums\AccountStatus;
 use App\Enums\UserType;
 use App\Models\AuditLog;
 use App\Models\Defense;
+use App\Models\DefenseEvaluationRound;
 use App\Models\DefensePanelAssignment;
 use App\Models\DefenseRoom;
 use App\Models\DefenseSchedule;
@@ -57,8 +58,17 @@ class RescheduleDefense
                 throw new AuthorizationException('Unauthorized: You do not own the research class for this defense.');
             }
 
-            if ($lockedDefense->status === 'cancelled' || $lockedDefense->current_schedule_id === null) {
-                throw new InvalidArgumentException('Cannot reschedule a cancelled defense.');
+            if (in_array($lockedDefense->status, ['cancelled', 'completed'], true) || $lockedDefense->current_schedule_id === null) {
+                throw new InvalidArgumentException("Cannot reschedule a {$lockedDefense->status} defense.");
+            }
+
+            $activeRound = DefenseEvaluationRound::query()
+                ->where('defense_id', $lockedDefense->id)
+                ->whereIn('status', ['open', 'in_progress', 'complete', 'finalized', 'released'])
+                ->first();
+
+            if ($activeRound) {
+                throw new InvalidArgumentException('Cannot reschedule defense: An evaluation round exists for this defense.');
             }
 
             if ((int) $lockedDefense->current_schedule_id !== (int) $expectedCurrentScheduleId) {

@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'status',
     'current_schedule_id',
     'created_by',
+    'completed_at',
+    'completed_by',
 ])]
 class Defense extends Model
 {
@@ -41,8 +43,25 @@ class Defense extends Model
         return $this->hasMany(DefensePanelAssignment::class, 'defense_id')->whereNull('ended_at');
     }
 
+    public function evaluationRounds(): HasMany
+    {
+        return $this->hasMany(DefenseEvaluationRound::class, 'defense_id');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function completedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'completed_by');
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'completed_at' => 'datetime',
+        ];
     }
 }

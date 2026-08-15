@@ -6,6 +6,7 @@ use App\Enums\AccountStatus;
 use App\Enums\UserType;
 use App\Models\AuditLog;
 use App\Models\Defense;
+use App\Models\DefenseEvaluationRound;
 use App\Models\DefensePanelAssignment;
 use App\Models\DefenseSchedule;
 use App\Models\ResearchClassGroup;
@@ -47,8 +48,17 @@ class CancelDefense
                 throw new AuthorizationException('Unauthorized: You do not own the research class for this defense.');
             }
 
-            if ($lockedDefense->status === 'cancelled' || $lockedDefense->current_schedule_id === null) {
-                throw new InvalidArgumentException('Defense is already cancelled.');
+            if (in_array($lockedDefense->status, ['cancelled', 'completed'], true) || $lockedDefense->current_schedule_id === null) {
+                throw new InvalidArgumentException("Cannot cancel a {$lockedDefense->status} defense.");
+            }
+
+            $activeRound = DefenseEvaluationRound::query()
+                ->where('defense_id', $lockedDefense->id)
+                ->whereIn('status', ['open', 'in_progress', 'complete', 'finalized', 'released'])
+                ->first();
+
+            if ($activeRound) {
+                throw new InvalidArgumentException('Cannot cancel defense: An evaluation round exists for this defense.');
             }
 
             if ((int) $lockedDefense->current_schedule_id !== (int) $expectedCurrentScheduleId) {

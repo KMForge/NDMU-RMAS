@@ -3,6 +3,7 @@
 use App\Http\Controllers\Facilitator\ClassJoinRequestController;
 use App\Http\Controllers\Facilitator\DashboardController;
 use App\Http\Controllers\Facilitator\DefenseController;
+use App\Http\Controllers\Facilitator\EvaluationRoundController;
 use App\Http\Controllers\Facilitator\ResearchClassController;
 use App\Http\Controllers\Facilitator\ResearchClassFormActorController;
 use App\Http\Controllers\Facilitator\ResearchClassGroupController;
@@ -21,6 +22,15 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
             Route::patch('/{defense}/reschedule', [DefenseController::class, 'reschedule'])->whereNumber('defense')->name('defenses.reschedule');
             Route::patch('/{defense}/cancel', [DefenseController::class, 'cancel'])->whereNumber('defense')->name('defenses.cancel');
             Route::post('/{defense}/panel', [DefenseController::class, 'assignPanel'])->whereNumber('defense')->name('defenses.panel');
+            Route::post('/{defense}/evaluation-round', [EvaluationRoundController::class, 'open'])->whereNumber('defense')->name('defenses.evaluation-round.open');
+            Route::post('/{defense}/complete', [EvaluationRoundController::class, 'complete'])->whereNumber('defense')->name('defenses.complete');
+        });
+
+    Route::prefix('/evaluation-rounds')
+        ->middleware(['permission:defenses.manage', 'throttle:defense-actions'])
+        ->group(function (): void {
+            Route::patch('/{round}/summary-signer', [EvaluationRoundController::class, 'designateSigner'])->whereNumber('round')->name('evaluation-rounds.summary-signer');
+            Route::post('/{round}/release', [EvaluationRoundController::class, 'release'])->middleware('permission:evaluations.release')->whereNumber('round')->name('evaluation-rounds.release');
         });
 
     Route::post('/classes', [ResearchClassController::class, 'store'])

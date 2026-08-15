@@ -7,6 +7,7 @@ use App\Models\DefenseRoom;
 use App\Modules\Classes\Queries\GetFacilitatorClassData;
 use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
+use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
 use App\Modules\ResearchProgress\Queries\GetFacilitatorProgressData;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -34,6 +35,8 @@ class DashboardController extends Controller
 
         $defenses = $defenseCalendar->execute($request->user());
         $defenseRooms = DefenseRoom::where('is_active', true)->get();
+        $evalQuery = app(GetEvaluationRoundData::class);
+        $evalData = $evalQuery->forFacilitator($request->user());
 
         return view('pages.facilitator-dashboard', [
             'area' => 'Research Facilitator',
@@ -45,6 +48,7 @@ class DashboardController extends Controller
                 ->all(),
             'defenses' => $defenses,
             'defenseRooms' => $defenseRooms,
+            'evaluationRounds' => $evalData['rounds'] ?? [],
             ...$classData->for(
                 $request->user(),
                 $request->query('request_q'),
