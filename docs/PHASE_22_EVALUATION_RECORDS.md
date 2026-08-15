@@ -29,8 +29,24 @@ Scores are strictly calculated server-side using the institutional weighted scor
 - **Authoritative Student Presentation Average**:
   $$\text{Presentation Average} = \text{round}\left(\frac{\sum \text{Presentation Total}}{3}, 2\right)$$
 
-### 3. Immutability, Authorization & Fail-Closed Protections
-- **Centralized In-Transaction Authorization**: Unified via `EvaluationAuthorization` service, enforcing active faculty account status, verified email, approved profile, research class facilitator ownership, frozen panelist roster membership, and permission check without canonical role dependencies (`$actor->can(...)`).
+### 3. Pre-Freeze Panel Candidate & Summary Signer Eligibility Rules
+Before an evaluation round is created or frozen in database transaction:
+- **Panel Candidate Eligibility**: Every single one of the exactly 3 assigned panelists must independently satisfy:
+  - `user_type === UserType::Faculty`
+  - `status === AccountStatus::Active`
+  - `approved_at !== null`
+  - `email_verified_at !== null`
+  - `evaluations.create` permission
+  - `forms.res-036.evaluate` permission
+  If any assigned panelist fails any requirement, the transaction aborts and rolls back completely (no partial round or frozen roster is created).
+- **Summary Signer Eligibility & Default Signer Logic**:
+  - The summary signer must be one of the 3 frozen panel candidates and must additionally hold `forms.res-037.sign` permission.
+  - Non-signing panelists do **not** require `forms.res-037.sign` to submit their RES-036 evaluations.
+  - If a designated summary signer user ID is provided, the system verifies candidate eligibility and `forms.res-037.sign` permission. If invalid, the transaction aborts.
+  - If no summary signer user ID is provided, the system deterministically selects the first candidate among the 3 frozen panelists who holds `forms.res-037.sign`. If no assigned panelist holds `forms.res-037.sign`, round creation is denied with an explicit validation error.
+
+### 4. Immutability, Authorization & Fail-Closed Protections
+- **Centralized In-Transaction Authorization**: Unified via `EvaluationAuthorization` service (`assertEligiblePanelCandidate`, `assertSummarySignerCandidate`, `assertFacilitatorOwnsDefense`, `assertEligiblePanelist`, `assertSummarySigner`).
 - **Submission Immutability**: Submitted evaluations (`DefenseEvaluation`) are strictly immutable and cannot be updated or superseded in Phase 22.
 - **Fail-Closed Payload Integrity & IDOR Protection**:
   - Overposting protection: System-controlled fields (`research_paper_total`, `presentation_total`, `status`, `submitted_at`, `summary_signer_user_id`, etc.) passed in request payloads are rejected.
@@ -40,14 +56,21 @@ Scores are strictly calculated server-side using the institutional weighted scor
 - **Phase 20 Digital Signature Gate**: Round finalization is strictly gated on the designated panelist signing the generated RES-037 official form instance via Phase 20 digital signature architecture (`academic_action = 'sign'`).
 - **Phase 21 Scheduling Guard Rails**: Defenses cannot be rescheduled or cancelled, and panel rosters cannot be modified once an evaluation round exists.
 
+### 5. Project Design Rules Context
+The following business rules operate as verified project design rules for NDMU-RMAS:
+- Exactly 3 active faculty panel assignments required for round opening.
+- Weighted score distributions: 50% Quality / 25% Originality / 25% Relevance and 20% Communication / 30% Organization / 50% Effectiveness.
+- Single designated Summary Signatory model for RES-037 summary attestation.
+- Facilitator-owned result release and defense completion triggers.
+
 ---
 
 ## Evaluation Lifecycle & State Transitions
 
 1. **Open Round (`open`)**
    - Initiated by Facilitator owning the research class.
-   - Defense must be `scheduled`. Exactly 3 active faculty panelists must be assigned.
-   - Snapshots panelists and student group members. Designated summary signer is set.
+   - Defense must be `scheduled`. Exactly 3 active faculty panelists must be assigned and pass candidate eligibility.
+   - Snapshots panelists and student group members. Designated summary signer is validated and stored.
 
 2. **Save Draft / Submit (`in_progress` -> `complete`)**
    - Panelist saves draft or submits scores (RES-036).
@@ -68,7 +91,24 @@ Scores are strictly calculated server-side using the institutional weighted scor
 
 ---
 
-## Verification & Test Matrix
+## Final Closure Verification Evidence
 
-- `tests/Feature/Evaluations/DefenseEvaluationTest.php`: Complete end-to-end evaluation flow, calculations, scoring bounds, round completion, RES-037 generation, digital signature finalization, release, and defense completion.
-- `tests/Feature/Evaluations/DefenseEvaluationSecurityTest.php`: Submission immutability, RBAC authorization, strict student privacy, fail-closed student IDOR protections, overposting guards, custom role faculty evaluation, signer permission differentiation, admin academic evaluation denial, and Phase 21 scheduling guard rails.
+### Verification Matrix Summary
+
+| Suite / Test Group | Command | Total | Passed | Failed | Skipped | Assertions |
+| --- | --- | --- | --- | --- | --- | --- |
+| **Focused Phase 22** | `php artisan test --filter DefenseEvaluation` | 26 | 26 | 0 | 0 | 84 |
+| **Phase 21 Scheduling** | `php artisan test tests/Feature/DefenseSchedulingTest.php ...` | 27 | 27 | 0 | 0 | 65 |
+| **Official Forms** | `php artisan test tests/Feature/OfficialForms/` | 78 | 78 | 0 | 0 | 379 |
+| **Signatures** | `php artisan test tests/Feature/Signatures/` | 11 | 10 | 0 | 1 | 55 |
+| **Research Progress** | `php artisan test tests/Feature/ResearchProgress/` | 20 | 20 | 0 | 0 | 94 |
+| **Dashboard Views** | `php artisan test --filter Dashboard` | 52 | 49 | 0 | 3 | 289 |
+| **Full Application Suite** | `php artisan test` | 393 | 369 | 0 | 24 | 1,617 |
+
+### Quality Gates Execution
+
+- **Pint Code Style**: `vendor/bin/pint --test` — **PASS**
+- **Vite Production Build**: `npm run build` — **PASS** (built in 1.32s)
+- **Blade Template Cache**: `php artisan view:clear; php artisan view:cache` — **PASS**
+- **Database Migrations**: `php artisan migrate:status` — **PASS** (49/49 ran)
+- **Git Diff & Whitespace Check**: `git diff --check` — **PASS** (Clean)
