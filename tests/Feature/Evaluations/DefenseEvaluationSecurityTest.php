@@ -2,8 +2,11 @@
 
 namespace Tests\Feature\Evaluations;
 
+use App\Enums\AccountStatus;
 use App\Models\Defense;
 use App\Models\DefenseEvaluationRound;
+use App\Models\DefenseEvaluationRoundPanelist;
+use App\Models\DefenseEvaluationRoundStudent;
 use App\Models\DefensePanelAssignment;
 use App\Models\DefenseRoom;
 use App\Models\DefenseSchedule;
@@ -490,5 +493,225 @@ class DefenseEvaluationSecurityTest extends TestCase
 
         $this->expectException(AuthorizationException::class);
         $openAction->handle($admin, $this->defense);
+    }
+
+    public function test_round_opens_with_exactly_three_eligible_panelists(): void
+    {
+        $openAction = new OpenDefenseEvaluationRound;
+        $round = $openAction->handle($this->facilitator, $this->defense, $this->panelist1->id);
+
+        $this->assertEquals('open', $round->status);
+        $this->assertEquals(3, $round->roundPanelists->count());
+        $this->assertEquals($this->defense->current_schedule_id, $round->defense_schedule_id);
+        $this->assertEquals($this->defense->research_class_group_id, $round->research_class_group_id);
+        $this->assertEquals($this->panelist1->id, $round->summary_signer_user_id);
+    }
+
+    public function test_round_opening_denied_if_panelist_missing_evaluations_create(): void
+    {
+        $this->panelist3->revokePermissionTo('evaluations.create');
+
+        $openAction = new OpenDefenseEvaluationRound;
+
+        try {
+            $openAction->handle($this->facilitator, $this->defense, $this->panelist1->id);
+            $this->fail('Round opening did not throw AuthorizationException for missing evaluations.create.');
+        } catch (AuthorizationException $e) {
+            $this->assertStringContainsString('lacks required evaluation permissions', $e->getMessage());
+        }
+
+        $this->assertEquals(0, DefenseEvaluationRound::count());
+        $this->assertEquals(0, DefenseEvaluationRoundPanelist::count());
+        $this->assertEquals(0, DefenseEvaluationRoundStudent::count());
+    }
+
+    public function test_round_opening_denied_if_panelist_missing_res036_evaluate(): void
+    {
+        $this->panelist3->revokePermissionTo('forms.res-036.evaluate');
+
+        $openAction = new OpenDefenseEvaluationRound;
+
+        try {
+            $openAction->handle($this->facilitator, $this->defense, $this->panelist1->id);
+            $this->fail('Round opening did not throw AuthorizationException for missing forms.res-036.evaluate.');
+        } catch (AuthorizationException $e) {
+            $this->assertStringContainsString('lacks required evaluation permissions', $e->getMessage());
+        }
+
+        $this->assertEquals(0, DefenseEvaluationRound::count());
+        $this->assertEquals(0, DefenseEvaluationRoundPanelist::count());
+        $this->assertEquals(0, DefenseEvaluationRoundStudent::count());
+    }
+
+    public function test_round_opening_denied_if_panelist_inactive(): void
+    {
+        $this->panelist3->status = AccountStatus::Suspended;
+        $this->panelist3->save();
+
+        $openAction = new OpenDefenseEvaluationRound;
+
+        try {
+            $openAction->handle($this->facilitator, $this->defense, $this->panelist1->id);
+            $this->fail('Round opening did not throw AuthorizationException for inactive panelist.');
+        } catch (AuthorizationException $e) {
+            $this->assertStringContainsString('active, verified faculty credentials', $e->getMessage());
+        }
+
+        $this->assertEquals(0, DefenseEvaluationRound::count());
+        $this->assertEquals(0, DefenseEvaluationRoundPanelist::count());
+    }
+
+    public function test_round_opening_denied_if_panelist_unapproved(): void
+    {
+        $this->panelist3->approved_at = null;
+        $this->panelist3->save();
+
+        $openAction = new OpenDefenseEvaluationRound;
+
+        try {
+            $openAction->handle($this->facilitator, $this->defense, $this->panelist1->id);
+            $this->fail('Round opening did not throw AuthorizationException for unapproved panelist.');
+        } catch (AuthorizationException $e) {
+            $this->assertStringContainsString('active, verified faculty credentials', $e->getMessage());
+        }
+
+        $this->assertEquals(0, DefenseEvaluationRound::count());
+    }
+
+    public function test_round_opening_denied_if_panelist_unverified(): void
+    {
+        $this->panelist3->email_verified_at = null;
+        $this->panelist3->save();
+
+        $openAction = new OpenDefenseEvaluationRound;
+
+        try {
+            $openAction->handle($this->facilitator, $this->defense, $this->panelist1->id);
+            $this->fail('Round opening did not throw AuthorizationException for unverified panelist.');
+        } catch (AuthorizationException $e) {
+            $this->assertStringContainsString('active, verified faculty credentials', $e->getMessage());
+        }
+
+        $this->assertEquals(0, DefenseEvaluationRound::count());
+    }
+
+    public function test_round_opening_denied_if_non_faculty_panel_assignment(): void
+    {
+        $studentPanelist = User::factory()->create([
+            'user_type' => 'student',
+            'status' => 'active',
+            'email_verified_at' => now(),
+            'approved_at' => now(),
+        ]);
+
+        DefensePanelAssignment::where('defense_id', $this->defense->id)->where('user_id', $this->panelist3->id)->delete();
+        DefensePanelAssignment::create(['defense_id' => $this->defense->id, 'user_id' => $studentPanelist->id, 'assigned_by' => $this->facilitator->id, 'assigned_at' => now()]);
+
+        $openAction = new OpenDefenseEvaluationRound;
+
+        try {
+            $openAction->handle($this->facilitator, $this->defense, $this->panelist1->id);
+            $this->fail('Round opening did not throw AuthorizationException for non-faculty assignment.');
+        } catch (AuthorizationException $e) {
+            $this->assertStringContainsString('active, verified faculty credentials', $e->getMessage());
+        }
+
+        $this->assertEquals(0, DefenseEvaluationRound::count());
+    }
+
+    public function test_round_opens_when_only_designated_signer_has_res037_sign(): void
+    {
+        $this->panelist2->revokePermissionTo('forms.res-037.sign');
+        $this->panelist3->revokePermissionTo('forms.res-037.sign');
+
+        $openAction = new OpenDefenseEvaluationRound;
+        $round = $openAction->handle($this->facilitator, $this->defense, $this->panelist1->id);
+
+        $this->assertEquals('open', $round->status);
+
+        $submitAction = new SubmitDefenseEvaluation;
+        $payload = [
+            'research_quality_score' => 88,
+            'originality_score' => 88,
+            'relevance_score' => 88,
+            'student_scores' => [
+                $this->student1->id => ['communication_score' => 88, 'organization_score' => 88, 'effectiveness_score' => 88],
+                $this->student2->id => ['communication_score' => 88, 'organization_score' => 88, 'effectiveness_score' => 88],
+            ],
+        ];
+
+        // Non-signers P2 and P3 can evaluate RES-036 without issue
+        $eval2 = $submitAction->handle($this->panelist2, $round, $payload);
+        $eval3 = $submitAction->handle($this->panelist3, $round, $payload);
+
+        $this->assertEquals('submitted', $eval2->status);
+        $this->assertEquals('submitted', $eval3->status);
+    }
+
+    public function test_round_opening_denied_if_designated_signer_missing_sign_permission(): void
+    {
+        $this->panelist1->revokePermissionTo('forms.res-037.sign');
+
+        $openAction = new OpenDefenseEvaluationRound;
+
+        try {
+            $openAction->handle($this->facilitator, $this->defense, $this->panelist1->id);
+            $this->fail('Round opening did not throw AuthorizationException when designated signer lacks forms.res-037.sign.');
+        } catch (AuthorizationException $e) {
+            $this->assertStringContainsString('lacks forms.res-037.sign permission', $e->getMessage());
+        }
+
+        $this->assertEquals(0, DefenseEvaluationRound::count());
+    }
+
+    public function test_round_opening_denied_if_designated_signer_not_on_panel(): void
+    {
+        $outsideFaculty = User::factory()->create([
+            'user_type' => 'faculty',
+            'status' => 'active',
+            'email_verified_at' => now(),
+            'approved_at' => now(),
+        ]);
+        $outsideFaculty->givePermissionTo(['evaluations.create', 'forms.res-036.evaluate', 'forms.res-037.sign']);
+
+        $openAction = new OpenDefenseEvaluationRound;
+
+        try {
+            $openAction->handle($this->facilitator, $this->defense, $outsideFaculty->id);
+            $this->fail('Round opening did not throw InvalidArgumentException for outside designated signer.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertStringContainsString('not an assigned panelist', $e->getMessage());
+        }
+
+        $this->assertEquals(0, DefenseEvaluationRound::count());
+    }
+
+    public function test_round_opening_selects_default_signer_with_res037_sign(): void
+    {
+        $this->panelist1->revokePermissionTo('forms.res-037.sign');
+
+        $openAction = new OpenDefenseEvaluationRound;
+        // Omit designated signer parameter -> selects P2 (first eligible panelist with forms.res-037.sign)
+        $round = $openAction->handle($this->facilitator, $this->defense);
+
+        $this->assertEquals($this->panelist2->id, $round->summary_signer_user_id);
+    }
+
+    public function test_round_opening_denied_if_no_panelist_has_res037_sign(): void
+    {
+        $this->panelist1->revokePermissionTo('forms.res-037.sign');
+        $this->panelist2->revokePermissionTo('forms.res-037.sign');
+        $this->panelist3->revokePermissionTo('forms.res-037.sign');
+
+        $openAction = new OpenDefenseEvaluationRound;
+
+        try {
+            $openAction->handle($this->facilitator, $this->defense);
+            $this->fail('Round opening did not throw InvalidArgumentException when no panelist has forms.res-037.sign.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertStringContainsString('No assigned panelist holds forms.res-037.sign permission', $e->getMessage());
+        }
+
+        $this->assertEquals(0, DefenseEvaluationRound::count());
     }
 }
