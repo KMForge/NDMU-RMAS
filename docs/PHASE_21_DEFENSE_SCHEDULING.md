@@ -108,27 +108,63 @@ The following institutional workflow rules are deferred to subsequent phases or 
 4. **Evaluation Scoring & Verdict Workflow**: Panelist evaluation scores, rubrics, ratings, grading summaries, and pass/fail/revision verdicts (owned by **Phase 22: Evaluation Records**).
 5. **Defense Completion Status Transition**: Automatic or manual transition of `defenses.status` to `completed` upon post-defense verdict submission (owned by **Phase 22: Evaluation Records**).
 
-## Verification Evidence
-Actual execution outputs recorded from the codebase:
+## Final Post-Reopen Verification Evidence
 
-- **Focused Phase 21 Test Suite**:
-  - `tests/Feature/DefenseSchedulingTest.php` (13 tests, PASSED)
-  - `tests/Feature/DefenseSecurityTest.php` (4 tests, PASSED)
-  - `tests/Feature/DefenseFormIntegrationTest.php` (8 tests, PASSED)
-  - `tests/Feature/DefenseDashboardIntegrationTest.php` (2 tests, PASSED)
-  - **Summary**: 27 tests, 27 passed, 0 failures, 65 assertions (Duration: ~57.2s).
-- **Research Progress Regression**: 20 tests, 20 passed, 0 failures, 94 assertions (PASSED).
-- **Official Forms Regression**: 78 tests, 78 passed, 0 failures, 379 assertions (PASSED).
-- **Signature Regression**: 31 tests, 30 passed, 1 skipped, 0 failures, 121 assertions (PASSED).
-- **Dashboard Regression**: 8 tests, 8 passed, 0 failures, 49 assertions (PASSED).
-- **Full Application Test Suite**: 367 tests total, 343 passed, 24 skipped, 0 failures, 1,533 assertions (PASSED).
-- **Quality Gates**:
-  - `vendor/bin/pint --test`: **PASS** (0 style violations)
-  - `npm run build`: **PASS** (Vite build completed in 10.44s)
-  - `php artisan view:cache`: **PASS** (Blade templates cached successfully)
-  - `php artisan migrate:status`: **PASS** (All 45 migrations Ran)
-  - `composer validate`: **PASS** (`./composer.json is valid`)
-  - `git diff --check`: **PASS** (0 whitespace errors)
+Re-verification executed against HEAD `b3d26fe` on August 15, 2026.
+
+### Reopened Fixes Confirmed in Source
+- CancelDefense ends active panel assignments (`ended_at = now()` where `ended_at IS NULL`), preserves historical rows, cancels current schedule, clears `Defense.current_schedule_id`, sets `Defense.status = cancelled`, reauthorizes inside transaction.
+- AssignDefensePanel reauthorizes inside transaction, validates facilitator-owned class, blocks cancelled Defense panel mutation.
+- ScheduleDefense reauthorizes locked/fresh group context inside transaction.
+- RescheduleDefense reauthorizes locked/fresh group/Defense context inside transaction.
+- GetDefenseScheduleCalendar Student scope uses `defense.group.members` with `student_id` (no `group.enrollments`).
+- Student DashboardController injects `GetDefenseScheduleCalendar` and passes `$data['defenses']`.
+- Adviser dashboard Blade consumes `$adviserDefenses` via `@forelse`.
+- Facilitator dashboard live Defense list uses `@json($defenseListData)` computed from server-provided `$defenses`.
+- Panelist dashboard transforms `$assignedDefenses` into `$formattedDefenses` from database.
+
+### Source Defects Found During Re-Verification
+- None.
+
+### Focused Phase 21 Test Suite
+- `tests/Feature/DefenseSchedulingTest.php`: 13 tests, PASSED
+- `tests/Feature/DefenseSecurityTest.php`: 4 tests, PASSED
+- `tests/Feature/DefenseFormIntegrationTest.php`: 8 tests, PASSED
+- `tests/Feature/DefenseDashboardIntegrationTest.php`: 2 tests, PASSED
+- **Summary**: 27 tests, 27 passed, 0 failed, 0 skipped, 65 assertions.
+
+### Research Progress Regression
+- 20 tests, 20 passed, 0 failed, 0 skipped, 94 assertions (PASSED).
+
+### Official Forms Regression
+- 78 tests, 78 passed, 0 failed, 0 skipped, 379 assertions (PASSED).
+
+### Signature Regression
+- `tests/Feature/Signatures/`: 11 tests, 10 passed, 1 skipped, 0 failed, 55 assertions (PASSED).
+- `OfficialFormSignatureTest.php` + `OfficialFormVerificationTest.php`: 20 tests, 20 passed, 0 failed, 0 skipped, 66 assertions (PASSED).
+
+### Dashboard Regression
+- `AdminDashboardTest.php`, `AdviserDashboardOverviewTest.php`, `DefenseDashboardIntegrationTest.php`, `StudentDashboardDataTest.php`: 29 tests, 29 passed, 0 failed, 0 skipped, 153 assertions (PASSED).
+
+### Consultation / Source Regression
+- `tests/Feature/Consultations/`: 19 tests, 17 passed, 2 skipped, 0 failed, 67 assertions (PASSED).
+
+### Full Application Test Suite
+- 367 tests total, 343 passed, 24 skipped, 0 failed, 1,533 assertions (PASSED, exit code 0).
+
+### Quality Gates
+- `vendor/bin/pint --test`: **PASS** (0 style violations)
+- `npm run build`: **PASS** (Vite v8.1.5 build completed in 1.50s)
+- `php artisan view:clear && view:cache`: **PASS** (Blade templates cached successfully)
+- `php artisan migrate:status`: **PASS** (All 45 migrations Ran)
+- `composer.json`: **PASS** (valid JSON)
+- `git diff --check`: **PASS** (0 whitespace errors)
+
+### Static Defense Data Audit
+- Facilitator dashboard overview tab contains demo `defenses` array (L171-175) for the overview widget — **not** used by the live Phase 21 Defense Scheduling tab which uses `defenseList` from `@json($defenseListData)`.
+- Panelist dashboard uses `$formattedDefenses` from `$assignedDefenses` (database-backed) with a static fallback array only when empty.
+- Dean dashboard contains overview demo data — not part of Phase 21 scope.
+- No invalid `group.enrollments` relationship exists anywhere in `app/`.
 
 ## Definition of Done
-Phase 21 defense scheduling implementation is complete, fully tested, hardened, and verified.
+Phase 21 defense scheduling implementation is complete with verified focused and regression coverage for the documented Phase 21 invariants. All reopened corrections (cancellation panel cleanup, cancelled roster mutation block, transactional reauthorization, Student group-membership scope, and dashboard integrations) are confirmed present in source and passing tests.
