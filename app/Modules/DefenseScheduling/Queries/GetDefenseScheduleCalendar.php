@@ -24,8 +24,8 @@ class GetDefenseScheduleCalendar
             ]);
 
         if ($user->user_type === UserType::Student) {
-            $query->whereHas('defense.group.enrollments', function ($q) use ($user) {
-                $q->where('student_id', $user->id)->where('status', 'active');
+            $query->whereHas('defense.group.members', function ($q) use ($user) {
+                $q->where('student_id', $user->id);
             });
         } elseif ($user->user_type === UserType::Faculty) {
             $query->where(function ($q) use ($user) {

@@ -51,6 +51,14 @@ class ScheduleDefense
             // 1. Lock Group
             $lockedGroup = ResearchClassGroup::where('id', $group->id)->lockForUpdate()->firstOrFail();
 
+            if ($actor->user_type !== UserType::Faculty || $actor->status !== AccountStatus::Active || ! $actor->can('defenses.manage')) {
+                throw new AuthorizationException('Unauthorized to manage defense schedules.');
+            }
+
+            if (! $lockedGroup->researchClass || (int) $lockedGroup->researchClass->facilitator_id !== (int) $actor->id) {
+                throw new AuthorizationException('Unauthorized: You do not own the research class for this group.');
+            }
+
             // Fail-Closed Initial Defense Rule: Only 1 initial defense aggregate per group and defense type
             $hasHistorical = Defense::where('research_class_group_id', $lockedGroup->id)
                 ->where('defense_type', $defenseType)

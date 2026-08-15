@@ -1218,11 +1218,20 @@
                 <x-student-section-heading title="My Defense Schedule" description="Defense requests and confirmed schedules." />
                 <div class="space-y-4">
                     @forelse ($defenses as $defense)
+                        @php
+                            $d = (object) $defense;
+                            $title = $d->defense_type_label ?? (isset($d->defense_type) ? \Illuminate\Support\Str::headline($d->defense_type) : 'Research Defense');
+                            $status = $d->schedule_status ?? ($d->defense_status ?? ($d->request_status ?? 'Scheduled'));
+                            $date = $d->formatted_date ?? ($d->starts_at ?? ($d->preferred_date ?? 'TBA'));
+                            $venue = ($d->room_name ?? $d->room_code)
+                                ? trim(($d->room_name ?? $d->room_code).' '.($d->location_notes ?? $d->building ?? ''))
+                                : ($d->meeting_url ?? 'Venue not assigned');
+                        @endphp
                         <x-student-record-card
-                            :title="\Illuminate\Support\Str::headline($defense->defense_type)"
-                            :status="$defense->schedule_status ?: $defense->request_status"
-                            :date="$defense->starts_at ?: $defense->preferred_date"
-                            :description="$defense->room_name ? trim($defense->room_name.' '.$defense->building) : ($defense->meeting_url ? 'Online defense' : 'Venue not assigned')"
+                            :title="$title"
+                            :status="$status"
+                            :date="$date"
+                            :description="$venue"
                         />
                     @empty
                         <x-student-empty-state message="No defense request or schedule is available." />

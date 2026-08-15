@@ -49,6 +49,14 @@ class RescheduleDefense
             $lockedGroup = ResearchClassGroup::where('id', $defense->research_class_group_id)->lockForUpdate()->firstOrFail();
             $lockedDefense = Defense::where('id', $defense->id)->lockForUpdate()->firstOrFail();
 
+            if ($actor->user_type !== UserType::Faculty || $actor->status !== AccountStatus::Active || ! $actor->can('defenses.manage')) {
+                throw new AuthorizationException('Unauthorized to manage defense schedules.');
+            }
+
+            if (! $lockedGroup->researchClass || (int) $lockedGroup->researchClass->facilitator_id !== (int) $actor->id) {
+                throw new AuthorizationException('Unauthorized: You do not own the research class for this defense.');
+            }
+
             if ($lockedDefense->status === 'cancelled' || $lockedDefense->current_schedule_id === null) {
                 throw new InvalidArgumentException('Cannot reschedule a cancelled defense.');
             }

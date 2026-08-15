@@ -1169,7 +1169,18 @@
 
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
                     <i class="ph ph-seal-check text-4xl text-gray-300"></i>
-                    <p class="mt-3 text-sm text-gray-500">Defense endorsement backend will be implemented during the defense workflow phase.</p>
+                    @forelse ($adviserDefenses ?? [] as $defense)
+                        <div class="mt-3 p-4 rounded-xl border border-gray-200 bg-white text-left flex justify-between items-center">
+                            <div>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">{{ data_get($defense, 'defense_type_label', 'Research Defense') }}</span>
+                                <h4 class="font-bold text-gray-800 text-sm mt-1">{{ data_get($defense, 'research_title', data_get($defense, 'group_name', 'Research Project')) }}</h4>
+                                <p class="text-xs text-gray-500">📅 {{ data_get($defense, 'formatted_date', data_get($defense, 'starts_at', 'TBA')) }} · 📍 {{ data_get($defense, 'room_name', data_get($defense, 'room_code', 'Venue Pending')) }}</p>
+                            </div>
+                            <span class="text-xs font-semibold text-gray-600">{{ ucfirst(data_get($defense, 'schedule_status', 'scheduled')) }}</span>
+                        </div>
+                    @empty
+                        <p class="mt-3 text-sm text-gray-500">No defense schedules recorded for your advisees.</p>
+                    @endforelse
                 </div>
             </div>
 

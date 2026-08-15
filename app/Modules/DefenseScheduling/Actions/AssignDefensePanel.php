@@ -38,6 +38,18 @@ class AssignDefensePanel
             $lockedGroup = ResearchClassGroup::where('id', $defense->research_class_group_id)->lockForUpdate()->firstOrFail();
             $lockedDefense = Defense::where('id', $defense->id)->lockForUpdate()->firstOrFail();
 
+            if ($actor->user_type !== UserType::Faculty || $actor->status !== AccountStatus::Active || ! $actor->can('defenses.manage')) {
+                throw new AuthorizationException('Unauthorized to manage defense panel assignments.');
+            }
+
+            if (! $lockedGroup->researchClass || (int) $lockedGroup->researchClass->facilitator_id !== (int) $actor->id) {
+                throw new AuthorizationException('Unauthorized: You do not own the research class for this defense.');
+            }
+
+            if ($lockedDefense->status === 'cancelled') {
+                throw new InvalidArgumentException('Cannot assign panel members to a cancelled defense.');
+            }
+
             // 2. Existing active panel members
             $existingActiveAssignments = DefensePanelAssignment::where('defense_id', $lockedDefense->id)
                 ->whereNull('ended_at')

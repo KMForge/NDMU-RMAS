@@ -15,6 +15,21 @@
     $initialFormPhase = $initialOfficialForm === null
         ? array_key_first($officialFormPhases)
         : $officialForms[$initialOfficialForm]['phase'];
+
+    $defenseListData = collect($defenses ?? [])->map(fn($d) => [
+        'id' => $d['id'] ?? null,
+        'defense_id' => $d['defense_id'] ?? null,
+        'type' => $d['defense_type_label'] ?? 'Research Defense',
+        'status' => ucfirst($d['schedule_status'] ?? 'Scheduled'),
+        'title' => $d['research_title'] ?? ($d['group_name'] ?? 'Research Title'),
+        'student' => $d['group_name'] ?? ('Group #' . ($d['group_id'] ?? '')),
+        'date' => $d['formatted_date'] ?? 'TBA',
+        'time' => $d['formatted_time'] ?? 'TBA',
+        'venue' => $d['room_name'] ?? ($d['room_code'] ?? 'TBA'),
+        'panel' => array_map(fn($p) => $p['name'], $d['panelists'] ?? []),
+        'expected_current_schedule_id' => $d['id'] ?? null,
+        'can_manage' => $d['can_manage'] ?? false,
+    ])->values()->all();
 @endphp
 
 @section('content')
@@ -408,41 +423,7 @@
         venue: '',
         panel: ''
     },
-    defenseList: [
-        { 
-            id: 1, 
-            type: 'Proposal Defense', 
-            status: 'Scheduled', 
-            title: 'AI-Powered Traffic Management System', 
-            student: 'Juan Dela Cruz', 
-            date: 'May 25, 2026', 
-            time: '9:00 AM - 11:00 AM', 
-            venue: 'Room 405, Research Building', 
-            panel: ['Dr. Maria Santos', 'Dr. John Reyes', 'Prof. Anna Garcia'] 
-        },
-        { 
-            id: 2, 
-            type: 'Final Defense', 
-            status: 'Scheduled', 
-            title: 'Blockchain-Based Voting System', 
-            student: 'Maria Clara', 
-            date: 'May 28, 2026', 
-            time: '2:00 PM - 4:00 PM', 
-            venue: 'Conference Room A', 
-            panel: ['Dr. Pedro Cruz', 'Dr. Sofia Martinez', 'Prof. Carlos Lopez'] 
-        },
-        { 
-            id: 3, 
-            type: 'Proposal Defense', 
-            status: 'Pending', 
-            title: 'Machine Learning in Agricultural Pest Detection', 
-            student: 'Carlo Mendoza', 
-            date: 'July 15, 2026', 
-            time: 'TBA', 
-            venue: 'TBA', 
-            panel: [] 
-        }
-    ],
+    defenseList: @json($defenseListData),
 
     get totalScheduledCount() {
         return this.defenseList.filter(d => d.status !== 'Completed').length;
