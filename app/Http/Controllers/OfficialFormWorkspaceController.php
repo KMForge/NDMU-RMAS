@@ -13,6 +13,7 @@ use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupMember;
 use App\Models\RevisionRequest;
+use App\Models\UserSignature;
 use App\Modules\OfficialForms\Actions\ApplyOfficialFormSignature;
 use App\Modules\OfficialForms\Actions\ApproveOfficialForm;
 use App\Modules\OfficialForms\Actions\AssignOfficialFormActor;
@@ -44,8 +45,11 @@ class OfficialFormWorkspaceController extends Controller
             ->sortByDesc('updated_at')
             ->values();
 
+        $pendingInstances = $this->pendingInstances($request);
+
         return view('pages.official-forms.workspace-index', [
             'instances' => $instances,
+            'pendingInstances' => $pendingInstances,
             'contexts' => $this->availableContexts($request),
             'definitions' => OfficialFormDefinition::query()->where('is_active', true)->orderBy('sort_order')->get(),
         ]);
@@ -226,21 +230,35 @@ class OfficialFormWorkspaceController extends Controller
         string $action,
         ApproveOfficialForm $approve,
         CertifyOfficialForm $certify,
+        ApplyOfficialFormSignature $applySignature,
     ): RedirectResponse {
         abort_unless(in_array($action, ['endorse', 'receive', 'approve', 'certify', 'validate'], true), 404);
-        $this->rejectUnexpectedInput($request, []);
+        $this->rejectUnexpectedInput($request, ['payload']);
         $this->authorize($action, $instance);
 
         try {
-            if ($action === 'certify') {
-                $certify->handle($request->user(), $instance);
+            $user = $request->user();
+            $hasSignatureSpecimen = UserSignature::query()->where('user_id', $user->id)->exists();
+
+            if ($hasSignatureSpecimen && $instance->currentVersion) {
+                $applySignature->handle(
+                    $user,
+                    $instance->id,
+                    (int) $instance->currentVersion->id,
+                    $action,
+                    $request
+                );
             } else {
-                $target = match ($action) {
-                    'endorse' => 'endorsed',
-                    'receive', 'approve' => 'approved',
-                    'validate' => 'completed',
-                };
-                $approve->handle($request->user(), $instance, [], $target, $action);
+                if ($action === 'certify') {
+                    $certify->handle($user, $instance);
+                } else {
+                    $target = match ($action) {
+                        'endorse' => 'endorsed',
+                        'receive', 'approve' => 'approved',
+                        'validate' => 'completed',
+                    };
+                    $approve->handle($user, $instance, [], $target, $action);
+                }
             }
         } catch (InvalidArgumentException $exception) {
             return back()->withErrors(['official_form' => $exception->getMessage()]);
@@ -315,6 +333,30 @@ class OfficialFormWorkspaceController extends Controller
     }
 
     /** @return Collection<int, OfficialFormInstance> */
+    public function pendingInstances(Request $request): Collection
+    {
+        $user = $request->user();
+        if (! $user) {
+            return collect();
+        }
+
+        $authorization = app(OfficialFormAuthorization::class);
+
+        return $this->visibleInstances($request)
+            ->filter(function (OfficialFormInstance $instance) use ($user, $authorization): bool {
+                return collect(['endorse', 'receive', 'approve', 'certify', 'validate'])
+                    ->contains(function (string $action) use ($user, $instance, $authorization): bool {
+                        $transition = $authorization->transitionFor($instance, $action);
+
+                        return $transition !== null
+                            && in_array($instance->status, $transition['from'], true)
+                            && Gate::forUser($user)->allows($action, $instance);
+                    });
+            })
+            ->values();
+    }
+
+    /** @return Collection<int, OfficialFormInstance> */
     private function visibleInstances(Request $request): Collection
     {
         return OfficialFormInstance::query()
@@ -331,7 +373,7 @@ class OfficialFormWorkspaceController extends Controller
                     ->orWhereHas('researchClass', fn ($q) => $q->where('facilitator_id', $userId)
                         ->orWhereHas('officialFormActorAssignments', fn ($actors) => $actors->where('user_id', $userId)->where('status', 'active')));
 
-                if ($request->user()->can('users.manage')) {
+                if ($request->user()->can('users.manage') || $request->user()->can('dashboards.dean.view') || $request->user()->hasRole('college-dean') || $request->user()->hasRole('dean')) {
                     $query->orWhereNotNull('id');
                 }
             })

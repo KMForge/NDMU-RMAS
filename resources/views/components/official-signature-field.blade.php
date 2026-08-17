@@ -28,13 +28,22 @@
         $authoritativeName = null;
         if ($appliedSignature) {
             $authoritativeName = $appliedSignature->signer_name_snapshot;
-        } elseif ($officialFormInstance instanceof \App\Models\OfficialFormInstance && $actorType) {
+        } elseif ($officialFormInstance instanceof \App\Models\OfficialFormInstance) {
+            $effectiveActorType = $actorType ?? \Illuminate\Support\Str::snake(\Illuminate\Support\Str::lower($label));
             $classAssignments = $officialFormInstance->researchClass?->officialFormActorAssignments
                 ?? $officialFormInstance->group?->researchClass?->officialFormActorAssignments;
-            $authoritativeName = $actorType === 'research_adviser'
-                ? $officialFormInstance->group?->adviser?->name
-                : ($officialFormInstance->actorAssignments->firstWhere('actor_type', $actorType)?->user?->name
-                    ?? $classAssignments?->firstWhere('actor_type', $actorType)?->user?->name);
+
+            $authoritativeName = match ($effectiveActorType) {
+                'research_adviser', 'adviser' => $officialFormInstance->group?->adviser?->name,
+                'facilitator' => $officialFormInstance->researchClass?->facilitator?->name
+                    ?? $officialFormInstance->group?->researchClass?->facilitator?->name,
+                'program_coordinator' => $officialFormInstance->actorAssignments->firstWhere('actor_type', 'program_coordinator')?->user?->name
+                    ?? $classAssignments?->firstWhere('actor_type', 'program_coordinator')?->user?->name
+                    ?? $officialFormInstance->researchClass?->facilitator?->name
+                    ?? $officialFormInstance->group?->researchClass?->facilitator?->name,
+                default => $officialFormInstance->actorAssignments->firstWhere('actor_type', $effectiveActorType)?->user?->name
+                    ?? $classAssignments?->firstWhere('actor_type', $effectiveActorType)?->user?->name,
+            };
         }
     @endphp
 

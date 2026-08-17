@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Adviser;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\OfficialFormWorkspaceController;
 use App\Models\ConsultationRequest;
 use App\Models\Document;
 use App\Models\ResearchClassGroup;
@@ -90,6 +91,7 @@ class DashboardController extends Controller
         $viewData['pendingAdviserRequestsCount'] = $pendingAdviserRequests->count();
         $viewData['pendingConsultationsCount'] = $pendingConsultationsCount;
         $viewData['pendingDocReviewsCount'] = $pendingDocReviewsCount;
+        $viewData['pendingFormInstances'] = app(OfficialFormWorkspaceController::class)->pendingInstances($request);
         $viewData['assignedGroups'] = $assignedGroups;
         $viewData['adviserDefenses'] = $defenseCalendar->execute($user);
         $evalQuery = app(GetEvaluationRoundData::class);

@@ -145,11 +145,9 @@ class DocumentReviewerAccess
         return Cache::remember(
             'schema:document-review-assignment-tables:v1',
             now()->addHour(),
-            fn (): bool => DB::table('information_schema.tables')
-                ->where('table_schema', 'public')
-                ->whereIn('table_name', $tables)
-                ->distinct()
-                ->count('table_name') === count($tables),
+            fn (): bool => collect($tables)->every(
+                fn (string $table): bool => Schema::hasTable($table),
+            ),
         );
     }
 }

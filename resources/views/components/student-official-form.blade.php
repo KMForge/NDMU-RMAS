@@ -70,12 +70,32 @@
 
     <div class="official-form-actions flex flex-wrap gap-3 border-t border-[#173c30]/20 pt-3">
         @if ($workspaceInstance instanceof \App\Models\OfficialFormInstance)
-            <button type="submit" form="official-form-editor" class="rounded-lg bg-[#009b67] px-5 py-2.5 text-xs font-bold text-white">Save Form</button>
+            @can('updateDraft', $workspaceInstance)
+                <button type="submit" form="official-form-editor" class="rounded-lg bg-[#009b67] px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-[#008256] transition-colors">Save Draft Form</button>
+            @endcan
+            @can('submit', $workspaceInstance)
+                <button type="submit" form="official-form-editor" formaction="{{ route('official-forms.workspace.submit', $workspaceInstance) }}" formmethod="POST" class="rounded-lg bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-blue-700 transition-colors">Submit Form</button>
+            @endcan
+            @can('endorse', $workspaceInstance)
+                <button type="submit" form="official-form-editor" formaction="{{ route('official-forms.workspace.action', [$workspaceInstance, 'endorse']) }}" formmethod="POST" class="rounded-lg bg-amber-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-amber-700 transition-colors">Sign & Endorse Form</button>
+            @endcan
+            @can('receive', $workspaceInstance)
+                <button type="submit" form="official-form-editor" formaction="{{ route('official-forms.workspace.action', [$workspaceInstance, 'receive']) }}" formmethod="POST" class="rounded-lg bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-colors">Receive & Endorse</button>
+            @endcan
+            @can('approve', $workspaceInstance)
+                <button type="submit" form="official-form-editor" formaction="{{ route('official-forms.workspace.action', [$workspaceInstance, 'approve']) }}" formmethod="POST" class="rounded-lg bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-colors">Sign & Approve Form</button>
+            @endcan
+            @can('certify', $workspaceInstance)
+                <button type="submit" form="official-form-editor" formaction="{{ route('official-forms.workspace.action', [$workspaceInstance, 'certify']) }}" formmethod="POST" class="rounded-lg bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition-colors">Certify Form</button>
+            @endcan
+            @can('validate', $workspaceInstance)
+                <button type="submit" form="official-form-editor" formaction="{{ route('official-forms.workspace.action', [$workspaceInstance, 'validate']) }}" formmethod="POST" class="rounded-lg bg-teal-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-teal-700 transition-colors">Validate Form</button>
+            @endcan
         @else
-            <a href="{{ route('official-forms.workspace.index') }}" class="rounded-lg bg-[#009b67] px-5 py-2.5 text-xs font-bold text-white">Open Saved Form</a>
+            <a href="{{ route('official-forms.workspace.index') }}" class="rounded-lg bg-[#009b67] px-5 py-2.5 text-xs font-bold text-white">Open Workspace to Edit & Save</a>
         @endif
         @if ($workspaceInstance instanceof \App\Models\OfficialFormInstance)
-            <a href="{{ route('official-forms.print', $workspaceInstance) }}" target="_blank" rel="noopener" class="rounded-lg bg-blue-600 px-5 py-2.5 text-xs font-bold text-white">Print Saved Form</a>
+            <a href="{{ route('official-forms.print', $workspaceInstance) }}" target="_blank" rel="noopener" class="rounded-lg bg-sky-600 px-5 py-2.5 text-xs font-bold text-white">Print Saved Form</a>
             <a href="{{ route('official-forms.print', $workspaceInstance) }}" target="_blank" rel="noopener" class="rounded-lg bg-purple-600 px-5 py-2.5 text-xs font-bold text-white">Export Saved PDF</a>
         @else
             <button type="button" disabled class="rounded-lg bg-blue-600 px-5 py-2.5 text-xs font-bold text-white opacity-50">Print Saved Form</button>

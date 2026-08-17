@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -16,5 +17,7 @@ class DatabaseSeeder extends Seeder
             AllUsersSeeder::class,
             ResearchProgressSeeder::class,
         ]);
+
+        app(SyncOfficialFormCatalog::class)->handle();
     }
 }
