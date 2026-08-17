@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Panelist;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\OfficialFormWorkspaceController;
 use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
 use Illuminate\Contracts\View\View;
@@ -20,6 +21,7 @@ class DashboardController extends Controller
         return view('pages.panelist-dashboard', [
             'area' => 'Panelist',
             'panelist' => $request->user(),
+            'pendingFormInstances' => app(OfficialFormWorkspaceController::class)->pendingInstances($request),
             'officialFormPhases' => array_intersect_key(
                 config('official-forms.phases', []),
                 $assignedPhases,

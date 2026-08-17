@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\DefenseRoomController;
 use App\Http\Controllers\Facilitator\ClassJoinRequestController;
 use App\Http\Controllers\Facilitator\DashboardController;
 use App\Http\Controllers\Facilitator\DefenseController;
@@ -14,6 +15,15 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
     'auth', 'verified', 'active', 'permission:dashboards.facilitator.view', 'workspace.context',
 ])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    Route::prefix('/defense-rooms')
+        ->middleware(['permission:defenses.manage', 'throttle:30,1'])
+        ->group(function (): void {
+            Route::post('/', [DefenseRoomController::class, 'store'])->name('defense-rooms.store');
+            Route::patch('/{room}', [DefenseRoomController::class, 'update'])->whereNumber('room')->name('defense-rooms.update');
+            Route::patch('/{room}/activate', [DefenseRoomController::class, 'activate'])->whereNumber('room')->name('defense-rooms.activate');
+            Route::patch('/{room}/deactivate', [DefenseRoomController::class, 'deactivate'])->whereNumber('room')->name('defense-rooms.deactivate');
+        });
 
     Route::prefix('/defenses')
         ->middleware(['permission:defenses.manage', 'throttle:defense-actions'])

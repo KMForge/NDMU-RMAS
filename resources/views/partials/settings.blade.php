@@ -1,5 +1,15 @@
 @php
     $settingsUser = auth()->user();
+    $userName = $settingsUser?->name ?? ($userName ?? 'User Account');
+    $emailAddress = $settingsUser?->email ?? ($emailAddress ?? '');
+    $department = $settingsUser?->department ?? ($department ?? 'College of Information Technology');
+    $userId = $settingsUser?->student_id ?? ($settingsUser?->id ? 'ID-' . str_pad($settingsUser->id, 4, '0', STR_PAD_LEFT) : ($userId ?? 'N/A'));
+    $userRole = $userRole ?? ($settingsUser ? ucfirst($settingsUser->user_type->value ?? 'User') : 'User');
+    $userRoleBadge = $userRoleBadge ?? strtoupper($userRole);
+    $portalType = $portalType ?? ($userRole . ' Portal');
+    $accessLevel = $accessLevel ?? ($userRole . ' Access');
+    $avatarInitials = strtoupper(substr(trim($userName), 0, 1));
+
     $canManageDigitalSignature = $settingsUser
         && Illuminate\Support\Facades\Gate::allows('create', App\Models\UserSignature::class);
     $registeredSignature = $canManageDigitalSignature ? $settingsUser->signature : null;

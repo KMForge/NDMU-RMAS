@@ -416,6 +416,21 @@
                     <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
                 
+                <!-- Pending Form Approvals Queue -->
+                <a
+                   href="{{ route('official-forms.workspace.index') }}"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer text-white/90 hover:text-white hover:bg-white/5 font-semibold">
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-check-square-offset text-lg text-amber-300"></i>
+                        <span>Pending Form Approvals</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        @if (isset($pendingFormInstances) && $pendingFormInstances->count() > 0)
+                            <span class="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[10px] font-black text-white shadow-sm">{{ $pendingFormInstances->count() }}</span>
+                        @endif
+                    </div>
+                </a>
+                
                 <!-- Assigned Research Papers -->
                 <button 
                    type="button" 
@@ -809,19 +824,8 @@
                 </div>
             </div>
 
-            <!-- TAB: Settings -->
             <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
-                @include('partials.settings', [
-                    'avatarInitials' => 'D',
-                    'userName' => 'Dr. Antonio Santos',
-                    'emailAddress' => 'a.santos@ndmu.edu.ph',
-                    'userRole' => 'Panelist',
-                    'userRoleBadge' => 'PANELIST',
-                    'department' => 'College of Information Technology',
-                    'userId' => 'PAN-2015-0004',
-                    'portalType' => 'Faculty Portal',
-                    'accessLevel' => 'Faculty & Guidance Access'
-                ])
+                @include('partials.settings')
             </div>
 
             <!-- TAB: Assigned Research Papers -->

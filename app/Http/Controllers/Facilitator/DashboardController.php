@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Facilitator;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\OfficialFormWorkspaceController;
 use App\Models\DefenseRoom;
 use App\Modules\Classes\Queries\GetFacilitatorClassData;
 use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
@@ -41,6 +42,7 @@ class DashboardController extends Controller
         return view('pages.facilitator-dashboard', [
             'area' => 'Research Facilitator',
             'facilitator' => $request->user(),
+            'pendingFormInstances' => app(OfficialFormWorkspaceController::class)->pendingInstances($request),
             'officialFormPhases' => config('official-forms.phases', []),
             'officialForms' => collect(config('official-forms.facilitator', []))
                 ->filter(fn (array $form, string $code) => $request->user()->getAllPermissions()

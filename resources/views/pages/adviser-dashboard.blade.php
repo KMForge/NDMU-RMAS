@@ -249,6 +249,19 @@
                         <span>Research Repository</span>
                     </div>
                     <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                <!-- Pending Form Approvals Queue -->
+                <a
+                   href="{{ route('official-forms.workspace.index') }}"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer text-white/90 hover:text-white hover:bg-white/5 font-semibold">
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-check-square-offset text-lg text-amber-300"></i>
+                        <span>Pending Form Approvals</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        @if (isset($pendingFormInstances) && $pendingFormInstances->count() > 0)
+                            <span class="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[10px] font-black text-white shadow-sm">{{ $pendingFormInstances->count() }}</span>
+                        @endif
+                    </div>
                 </a>
             </div>
 

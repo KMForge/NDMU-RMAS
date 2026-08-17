@@ -1,7 +1,7 @@
 @extends('layouts.blank')
 
 @php
-    $allowedTabs = ['dashboard', 'classes', 'join-requests', 'monitoring', 'screening', 'defenses', 'statistics', 'reports', 'repository', 'forms', 'notifications', 'settings'];
+    $allowedTabs = ['dashboard', 'approvals', 'classes', 'join-requests', 'monitoring', 'screening', 'defenses', 'statistics', 'reports', 'repository', 'forms', 'notifications', 'settings'];
     $initialTab = in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard';
     $classes = $classes ?? $researchClasses ?? collect();
     $classRequestStats = $classRequestStats ?? ['pending' => 0, 'approved' => 0, 'rejected' => 0, 'total' => 0];
@@ -735,7 +735,7 @@
                     <i class="ph ph-user"></i>
                 </div>
                 <div class="flex flex-col leading-tight overflow-hidden">
-                    <span class="font-semibold text-sm text-white truncate">Facilitator</span>
+                    <span class="font-semibold text-sm text-white truncate">{{ auth()->user()->name ?? 'Facilitator' }}</span>
                     <span class="text-[10px] text-white/60 font-medium mt-0.5">Research Facilitator</span>
                 </div>
             </div>
@@ -758,6 +758,21 @@
                     </div>
                     <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
+
+                <!-- Pending Form Approvals Queue -->
+                <a
+                   href="{{ route('official-forms.workspace.index') }}"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer text-white/90 hover:text-white hover:bg-white/5 font-semibold">
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-check-square-offset text-lg text-amber-300"></i>
+                        <span>Pending Form Approvals</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        @if (isset($pendingFormInstances) && $pendingFormInstances->count() > 0)
+                            <span class="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[10px] font-black text-white shadow-sm">{{ $pendingFormInstances->count() }}</span>
+                        @endif
+                    </div>
+                </a>
 
                 <!-- Capstone Classes -->
                 <button
@@ -985,7 +1000,7 @@
                         <i class="ph ph-user"></i>
                     </div>
                     <div class="flex flex-col leading-none">
-                        <span class="font-bold text-xs text-gray-800">Facilitator</span>
+                        <span class="font-bold text-xs text-gray-800">{{ auth()->user()->name ?? 'Facilitator' }}</span>
                         <span class="text-[9px] font-bold text-gray-400 mt-0.5">Facilitator Portal</span>
                     </div>
                 </div>
@@ -1032,8 +1047,8 @@
                             <span>•</span>
                             <span class="text-[#0e5c3a] font-bold">Research Facilitator Portal</span>
                         </div>
-                        <h1 class="text-2xl md:text-3xl font-extrabold font-heading text-slate-900 tracking-tight">Welcome back, Dr. Rosario Dela Paz</h1>
-                        <p class="text-xs text-slate-500 max-w-xl">Department Research Oversight & Monitoring • College of Information Technology</p>
+                        <h1 class="text-2xl md:text-3xl font-extrabold font-heading text-slate-900 tracking-tight">Welcome back, {{ auth()->user()->name }}</h1>
+                        <p class="text-xs text-slate-500 max-w-xl">Department Research Oversight & Monitoring • {{ auth()->user()->department ?? 'College of Information Technology' }}</p>
                     </div>
 
                     <div class="relative z-10 flex items-center gap-3">
@@ -2570,15 +2585,8 @@
             <!-- TAB: Settings -->
             <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
                 @include('partials.settings', [
-                    'avatarInitials' => 'D',
-                    'userName' => 'Dr. Rosario Dela Paz',
-                    'emailAddress' => 'r.dela-paz@ndmu.edu.ph',
-                    'userRole' => 'Research Facilitator',
-                    'userRoleBadge' => 'RESEARCH FACILITATOR',
-                    'department' => 'College of Information Technology',
-                    'userId' => 'FAC-2015-0001',
-                    'portalType' => 'Faculty Portal',
-                    'accessLevel' => 'Faculty & Guidance Access'
+                    'portalType' => 'Facilitator Portal',
+                    'accessLevel' => 'Research Facilitator Access'
                 ])
             </div>
 

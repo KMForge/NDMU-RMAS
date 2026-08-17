@@ -343,7 +343,12 @@
                         <i class="ph ph-clipboard text-lg"></i>
                         <span>Pending Approvals</span>
                     </div>
-                    <span x-show="activeTab === 'pending'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <div class="flex items-center gap-2">
+                        @if (isset($pendingFormInstances) && $pendingFormInstances->count() > 0)
+                            <span class="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[10px] font-black text-white shadow-sm">{{ $pendingFormInstances->count() }}</span>
+                        @endif
+                        <span x-show="activeTab === 'pending'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    </div>
                 </button>
 
                 <!-- Manuscript Approvals -->
@@ -416,17 +421,21 @@
             <div class="space-y-1.5 pt-4 border-t border-white/10">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Research Forms</span>
                 
-                <button 
-                    type="button"
-                    @click="alert('Official NDMU Forms are ready for download')"
+                <a 
+                    href="{{ route('official-forms.workspace.index') }}"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200 text-left cursor-pointer"
                 >
                     <div class="flex items-center gap-3">
                         <i class="ph ph-file-pdf text-lg"></i>
-                        <span>Official Forms</span>
+                        <span>Official Forms Workspace</span>
                     </div>
-                    <i class="ph ph-caret-right text-xs text-white/60"></i>
-                </button>
+                    <div class="flex items-center gap-2">
+                        @if (isset($pendingFormInstances) && $pendingFormInstances->count() > 0)
+                            <span class="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[10px] font-black text-white shadow-sm">{{ $pendingFormInstances->count() }}</span>
+                        @endif
+                        <i class="ph ph-caret-right text-xs text-white/60"></i>
+                    </div>
+                </a>
             </div>
         </div>
 
@@ -802,19 +811,8 @@
                 </div>
             </div>
 
-            <!-- TAB: Settings -->
             <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
-                @include('partials.settings', [
-                    'avatarInitials' => 'D',
-                    'userName' => 'Dr. Lourdes Castillo',
-                    'emailAddress' => 'l.castillo@ndmu.edu.ph',
-                    'userRole' => 'College Dean',
-                    'userRoleBadge' => 'COLLEGE DEAN',
-                    'department' => 'College of Information Technology',
-                    'userId' => 'EXE-2015-0003',
-                    'portalType' => 'Executive Portal',
-                    'accessLevel' => 'Executive & Approval Access'
-                ])
+                @include('partials.settings')
             </div>
 
             <!-- TAB: Pending Approvals -->

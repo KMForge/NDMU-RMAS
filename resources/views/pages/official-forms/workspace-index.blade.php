@@ -25,6 +25,39 @@
             <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $errors->first('official_form') }}</div>
         @endif
 
+        @if (isset($pendingInstances) && $pendingInstances->isNotEmpty())
+            <section class="rounded-3xl border-2 border-amber-400 bg-amber-500 p-6 text-white shadow-xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="rounded-full bg-white/20 px-3 py-1 text-xs font-black uppercase tracking-wider text-white">Action Required</span>
+                        <h2 class="mt-2 text-xl font-black">Requires Your Approval or Signature ({{ $pendingInstances->count() }})</h2>
+                        <p class="mt-1 text-xs text-white/80">The following forms have been submitted and are awaiting your endorsement or approval.</p>
+                    </div>
+                </div>
+                <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    @foreach ($pendingInstances as $pending)
+                        <a href="{{ route('official-forms.workspace.show', $pending) }}" class="rounded-2xl bg-white p-5 text-gray-900 shadow-md transition hover:-translate-y-0.5 hover:shadow-lg">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <p class="text-xs font-black text-[#0e5c3a]">{{ $pending->definition->code }}</p>
+                                    <h3 class="mt-1 font-bold text-gray-900">{{ $pending->definition->title }}</h3>
+                                </div>
+                                <span class="rounded-full bg-red-100 px-2.5 py-1 text-[10px] font-extrabold uppercase text-red-700">Needs Review</span>
+                            </div>
+                            <p class="mt-3 text-xs text-gray-500">
+                                {{ $pending->group?->name ?? $pending->researchClass?->name ?? 'Academic Context' }}
+                                · Initiated by {{ $pending->initiatedBy?->name ?? 'Student' }}
+                            </p>
+                            <div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-xs font-bold text-[#0e5c3a]">
+                                <span>Open for Review & Signing</span>
+                                <span>→</span>
+                            </div>
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
         <section class="rounded-3xl bg-[#0e5c3a] p-7 text-white shadow-lg">
             <h2 class="text-xl font-black">Saved authoritative records</h2>
             <p class="mt-1 text-sm text-white/70">Every edit is stored as an immutable version. Access is restricted by permission and academic assignment.</p>

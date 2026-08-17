@@ -116,7 +116,9 @@ class ApplyOfficialFormSignature
                     if ($transition === null) {
                         throw new InvalidArgumentException("No valid workflow transition defined for action '{$academicAction}' on form {$lockedInstance->definition->code}.");
                     }
-                    app(ApproveOfficialForm::class)->handle($actor, $lockedInstance, [], $transition['to'], $academicAction);
+                    if ($lockedInstance->status !== $transition['to']) {
+                        app(ApproveOfficialForm::class)->handle($actor, $lockedInstance, [], $transition['to'], $academicAction);
+                    }
                 }
                 $lockedInstance->refresh();
             }

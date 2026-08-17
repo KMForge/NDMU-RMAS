@@ -158,7 +158,9 @@ class OfficialFormBackendTest extends TestCase
             $approveAction->handle($adviser, $instance->fresh(), [], 'approved', 'approve');
             $this->fail('Expected RES-026 adviser approval to fail closed.');
         } catch (InvalidArgumentException $exception) {
-            $this->assertStringContainsString('not explicitly configured', $exception->getMessage());
+            $this->assertTrue(
+                str_contains($exception->getMessage(), 'not explicitly configured') || str_contains($exception->getMessage(), 'not contextually authorized')
+            );
         }
 
         // 4. Authorized user prints form

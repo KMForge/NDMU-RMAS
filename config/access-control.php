@@ -37,13 +37,13 @@ return [
             'label' => 'Research Facilitator',
             'description' => 'Coordinates research classes, groups, reviews, defenses, and reporting.',
             'user_type' => 'faculty',
-            'permissions' => ['dashboards.facilitator.view', 'research.view-all', 'progress.view-owned-classes', 'progress.manage-owned-classes', 'progress.override-order', 'proposal.review', 'proposal.approve', 'documents.review', 'documents.download', 'revisions.create', 'defenses.view', 'defenses.manage', 'evaluations.create', 'evaluations.release', 'evaluations.view-assigned', 'reports.view', 'reports.export', 'notifications.broadcast', 'classes.create', 'classes.view-own', 'classes.manage-join-requests', 'classes.manage-groups', 'classes.assign-advisers', 'forms.res-026.view', 'forms.res-027.view', 'forms.res-028.view', 'forms.res-030.view', 'forms.res-030.approve', 'forms.res-031.view', 'forms.res-032.view', 'forms.res-033.view', 'forms.res-034.view', 'forms.res-035.view', 'forms.res-036.view', 'forms.res-037.view', 'forms.res-038.view', 'forms.res-038.endorse', 'forms.res-039.view', 'forms.res-040.view', 'forms.res-041.view', 'forms.res-042.view', 'forms.res-044.view', 'forms.res-047.view', 'forms.res-048.view', 'forms.res-049.view'],
+            'permissions' => ['dashboards.facilitator.view', 'research.view-all', 'progress.view-owned-classes', 'progress.manage-owned-classes', 'progress.override-order', 'proposal.review', 'proposal.approve', 'documents.review', 'documents.download', 'revisions.create', 'defenses.view', 'defenses.manage', 'evaluations.create', 'evaluations.release', 'evaluations.view-assigned', 'reports.view', 'reports.export', 'notifications.broadcast', 'classes.create', 'classes.view-own', 'classes.manage-join-requests', 'classes.manage-groups', 'classes.assign-advisers', 'forms.res-026.view', 'forms.res-026.approve', 'forms.res-027.view', 'forms.res-028.view', 'forms.res-030.view', 'forms.res-030.approve', 'forms.res-031.view', 'forms.res-032.view', 'forms.res-033.view', 'forms.res-034.view', 'forms.res-035.view', 'forms.res-036.view', 'forms.res-037.view', 'forms.res-038.view', 'forms.res-038.endorse', 'forms.res-039.view', 'forms.res-040.view', 'forms.res-041.view', 'forms.res-042.view', 'forms.res-044.view', 'forms.res-047.view', 'forms.res-048.view', 'forms.res-049.view'],
         ],
         'program-coordinator' => [
             'label' => 'Program Coordinator',
             'description' => 'Coordinates program-level research activity and approvals.',
             'user_type' => 'faculty',
-            'permissions' => ['dashboards.facilitator.view', 'research.view-college', 'research.approve', 'proposal.approve', 'documents.review', 'documents.download', 'defenses.view', 'reports.view', 'reports.export', 'forms.res-041.view', 'forms.res-041.receive'],
+            'permissions' => ['dashboards.facilitator.view', 'research.view-college', 'research.approve', 'proposal.approve', 'documents.review', 'documents.download', 'defenses.view', 'reports.view', 'reports.export', 'forms.res-026.view', 'forms.res-026.approve', 'forms.res-041.view', 'forms.res-041.receive'],
         ],
         'thesis-adviser' => [
             'label' => 'Thesis Adviser',
@@ -175,6 +175,7 @@ return [
             'forms.res-026.view' => ['label' => 'View RES-026 Title Approval', 'description' => 'View Title Approval form instance.', 'scope' => 'Group scope'],
             'forms.res-026.fill' => ['label' => 'Fill RES-026 Title Approval', 'description' => 'Draft proposed topics for Title Approval.', 'scope' => 'Group scope'],
             'forms.res-026.submit' => ['label' => 'Submit RES-026 Title Approval', 'description' => 'Submit Title Approval for review.', 'scope' => 'Group scope'],
+            'forms.res-026.approve' => ['label' => 'Approve RES-026 Title Approval', 'description' => 'Approve or sign the Research Title Approval form.', 'scope' => 'Program Coordinator scope'],
             'forms.res-027.view' => ['label' => 'View RES-027 Adviser Invitation', 'description' => 'View Adviser Invitation form.', 'scope' => 'Assigned scope'],
             'forms.res-027.respond' => ['label' => 'Respond to RES-027 Adviser Invitation', 'description' => 'Accept or decline adviser invitation.', 'scope' => 'Assigned scope'],
             'forms.res-028.view' => ['label' => 'View RES-028 Panelist Invitation', 'description' => 'View Panelist Invitation form.', 'scope' => 'Assigned scope'],

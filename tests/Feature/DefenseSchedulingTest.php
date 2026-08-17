@@ -13,6 +13,7 @@ use App\Modules\DefenseScheduling\Actions\CancelDefense;
 use App\Modules\DefenseScheduling\Actions\RescheduleDefense;
 use App\Modules\DefenseScheduling\Actions\ScheduleDefense;
 use Carbon\Carbon;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -37,10 +38,7 @@ class DefenseSchedulingTest extends TestCase
     {
         parent::setUp();
 
-        Permission::firstOrCreate(['name' => 'defenses.manage', 'guard_name' => 'web']);
-        Permission::firstOrCreate(['name' => 'dashboards.facilitator.view', 'guard_name' => 'web']);
-        Permission::firstOrCreate(['name' => 'settings.manage', 'guard_name' => 'web']);
-        Permission::firstOrCreate(['name' => 'evaluations.create', 'guard_name' => 'web']);
+        $this->seed(RolePermissionSeeder::class);
 
         $this->facilitator = User::factory()->create([
             'user_type' => UserType::Faculty,
@@ -514,5 +512,47 @@ class DefenseSchedulingTest extends TestCase
             $newEndsAt,
             'Attempt reschedule'
         );
+    }
+
+    public function test_facilitator_can_create_defense_room(): void
+    {
+        $response = $this->actingAs($this->facilitator)
+            ->post(route('facilitator.defense-rooms.store'), [
+                'code' => 'RM-202',
+                'name' => 'AVR Room 2',
+                'location_notes' => '2nd Floor Science Building',
+            ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('defense_rooms', [
+            'code' => 'RM-202',
+            'name' => 'AVR Room 2',
+            'is_active' => 1,
+        ]);
+    }
+
+    public function test_admin_can_create_defense_room(): void
+    {
+        $admin = User::factory()->create([
+            'user_type' => UserType::Admin,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+        $admin->givePermissionTo(['settings.manage', 'dashboards.admin.view']);
+
+        $response = $this->actingAs($admin)
+            ->post(route('admin.defense-rooms.store'), [
+                'code' => 'RM-303',
+                'name' => 'Main Auditorium',
+                'location_notes' => 'Ground Floor Admin Building',
+            ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('defense_rooms', [
+            'code' => 'RM-303',
+            'name' => 'Main Auditorium',
+            'is_active' => 1,
+        ]);
     }
 }

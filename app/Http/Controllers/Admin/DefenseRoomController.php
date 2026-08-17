@@ -14,17 +14,24 @@ use Illuminate\Validation\Rule;
 
 class DefenseRoomController extends Controller
 {
-    private function authorizeAdmin(Request $request): void
+    private function authorizeRoomManager(Request $request): void
     {
         $user = $request->user();
-        if (! $user || $user->user_type !== UserType::Admin || $user->status !== AccountStatus::Active || ! $user->can('settings.manage')) {
-            throw new AuthorizationException('Unauthorized: Room catalog management requires Admin role with settings.manage capability.');
+        if (! $user || $user->status !== AccountStatus::Active) {
+            throw new AuthorizationException('Unauthorized access.');
+        }
+
+        $isAdmin = $user->user_type === UserType::Admin && $user->can('settings.manage');
+        $isFacilitator = $user->user_type === UserType::Faculty && $user->can('defenses.manage');
+
+        if (! $isAdmin && ! $isFacilitator) {
+            throw new AuthorizationException('Unauthorized: Defense room catalog management requires System Admin or Research Facilitator permissions.');
         }
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $this->authorizeAdmin($request);
+        $this->authorizeRoomManager($request);
 
         if ($request->has('code')) {
             $request->merge(['code' => strtoupper(trim((string) $request->input('code')))]);
@@ -43,14 +50,23 @@ class DefenseRoomController extends Controller
             'is_active' => true,
         ]);
 
-        AuditLog::record($request->user(), 'defense_room.created', $room, $validated);
+        AuditLog::query()->create([
+            'user_id' => $request->user()?->id,
+            'actor_name' => $request->user()?->name ?? 'System',
+            'actor_email' => $request->user()?->email ?? '',
+            'event' => 'defense_room.created',
+            'auditable_type' => DefenseRoom::class,
+            'auditable_id' => $room->id,
+            'description' => "Created defense room {$room->code}.",
+            'new_values' => $validated,
+        ]);
 
         return back()->with('status', 'Defense room created successfully.');
     }
 
     public function update(Request $request, DefenseRoom $room): RedirectResponse
     {
-        $this->authorizeAdmin($request);
+        $this->authorizeRoomManager($request);
 
         if ($request->has('code')) {
             $request->merge(['code' => strtoupper(trim((string) $request->input('code')))]);
@@ -68,29 +84,54 @@ class DefenseRoomController extends Controller
             'location_notes' => isset($validated['location_notes']) ? trim($validated['location_notes']) : null,
         ]);
 
-        AuditLog::record($request->user(), 'defense_room.updated', $room, $validated);
+        AuditLog::query()->create([
+            'user_id' => $request->user()?->id,
+            'actor_name' => $request->user()?->name ?? 'System',
+            'actor_email' => $request->user()?->email ?? '',
+            'event' => 'defense_room.updated',
+            'auditable_type' => DefenseRoom::class,
+            'auditable_id' => $room->id,
+            'description' => "Updated defense room {$room->code}.",
+            'new_values' => $validated,
+        ]);
 
         return back()->with('status', 'Defense room updated successfully.');
     }
 
     public function activate(Request $request, DefenseRoom $room): RedirectResponse
     {
-        $this->authorizeAdmin($request);
+        $this->authorizeRoomManager($request);
 
         $room->update(['is_active' => true]);
 
-        AuditLog::record($request->user(), 'defense_room.activated', $room);
+        AuditLog::query()->create([
+            'user_id' => $request->user()?->id,
+            'actor_name' => $request->user()?->name ?? 'System',
+            'actor_email' => $request->user()?->email ?? '',
+            'event' => 'defense_room.activated',
+            'auditable_type' => DefenseRoom::class,
+            'auditable_id' => $room->id,
+            'description' => "Activated defense room {$room->code}.",
+        ]);
 
         return back()->with('status', 'Defense room activated successfully.');
     }
 
     public function deactivate(Request $request, DefenseRoom $room): RedirectResponse
     {
-        $this->authorizeAdmin($request);
+        $this->authorizeRoomManager($request);
 
         $room->update(['is_active' => false]);
 
-        AuditLog::record($request->user(), 'defense_room.deactivated', $room);
+        AuditLog::query()->create([
+            'user_id' => $request->user()?->id,
+            'actor_name' => $request->user()?->name ?? 'System',
+            'actor_email' => $request->user()?->email ?? '',
+            'event' => 'defense_room.deactivated',
+            'auditable_type' => DefenseRoom::class,
+            'auditable_id' => $room->id,
+            'description' => "Deactivated defense room {$room->code}.",
+        ]);
 
         return back()->with('status', 'Defense room deactivated successfully.');
     }
