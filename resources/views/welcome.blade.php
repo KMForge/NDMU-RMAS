@@ -93,11 +93,7 @@
                 <!-- Desktop Menu -->
                 <div data-scrollspy-nav class="hidden md:flex items-center space-x-8">
                     <a href="#home" data-section-link="home" class="welcome-nav-link is-active text-sm font-semibold">Home</a>
-                    <a href="#home" data-section-link="about" class="welcome-nav-link text-sm font-semibold">About</a>
-                    <a href="#home" data-section-link="achievements" class="welcome-nav-link text-sm font-semibold">Achievements</a>
                     <a href="#process" data-section-link="process" class="welcome-nav-link text-sm font-semibold">Process</a>
-                    <a href="#process" data-section-link="events" class="welcome-nav-link text-sm font-semibold">Events</a>
-                    <a href="#process" data-section-link="contact" class="welcome-nav-link text-sm font-semibold">Contact</a>
                 </div>
 
                 <!-- Auth Buttons -->
