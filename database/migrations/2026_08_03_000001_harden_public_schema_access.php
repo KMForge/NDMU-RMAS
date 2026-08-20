@@ -13,6 +13,11 @@ return new class extends Migration
 
         $this->setRowLevelSecurity(true);
 
+        $rolesExist = DB::select("SELECT count(*) as cnt FROM pg_roles WHERE rolname IN ('anon', 'authenticated')");
+        if ((int) ($rolesExist[0]->cnt ?? 0) < 2) {
+            return;
+        }
+
         DB::unprepared(<<<'SQL'
             REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
             REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
@@ -35,8 +40,12 @@ return new class extends Migration
 
         $this->setRowLevelSecurity(false);
 
+        $rolesExist = DB::select("SELECT count(*) as cnt FROM pg_roles WHERE rolname IN ('anon', 'authenticated')");
+        if ((int) ($rolesExist[0]->cnt ?? 0) < 2) {
+            return;
+        }
+
         DB::unprepared(<<<'SQL'
-            GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated;
             GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
             GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated;
 
