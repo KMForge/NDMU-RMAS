@@ -26,7 +26,10 @@ class OfficialFormInstancePolicy
     {
         $code = strtolower($instance->definition->code);
         $hasViewPermission = $user->hasPermissionTo("forms.{$code}.view")
-            || $user->getAllPermissions()->contains(fn ($p) => str_starts_with($p->name, "forms.{$code}."));
+            || $user->getAllPermissions()->contains(fn ($p) => str_starts_with($p->name, "forms.{$code}."))
+            || $user->can('dashboards.dean.view')
+            || $user->hasRole('college-dean')
+            || $user->hasRole('dean');
 
         if (! $hasViewPermission && ! $user->can('users.manage')) {
             return false;

@@ -9,6 +9,7 @@ use App\Modules\Classes\Queries\GetFacilitatorClassData;
 use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
+use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use App\Modules\ResearchProgress\Queries\GetFacilitatorProgressData;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class DashboardController extends Controller
         GetDocumentRepositoryData $repositoryData,
         GetFacilitatorProgressData $progressData,
         GetDefenseScheduleCalendar $defenseCalendar,
+        GetPendingAcademicActionsForUser $pendingActionsService,
     ): View {
         $repository = $request->query('tab') === 'repository'
             ? $repositoryData->for($request->user(), $request->query())
@@ -43,6 +45,7 @@ class DashboardController extends Controller
             'area' => 'Research Facilitator',
             'facilitator' => $request->user(),
             'pendingFormInstances' => app(OfficialFormWorkspaceController::class)->pendingInstances($request),
+            'pendingAcademicActions' => $pendingActionsService->execute($request->user()),
             'officialFormPhases' => config('official-forms.phases', []),
             'officialForms' => collect(config('official-forms.facilitator', []))
                 ->filter(fn (array $form, string $code) => $request->user()->getAllPermissions()

@@ -8,7 +8,9 @@ use App\Modules\Consultations\Queries\GetStudentConsultationData;
 use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
+use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use App\Modules\Research\Queries\GetStudentDashboardData;
+use App\Modules\ResearchProgress\Services\ResearchJourneyService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -22,6 +24,8 @@ class DashboardController extends Controller
         GetStudentConsultationData $consultationData,
         GetDefenseScheduleCalendar $defenseCalendar,
         GetEvaluationRoundData $evaluationQuery,
+        ResearchJourneyService $journeyService,
+        GetPendingAcademicActionsForUser $pendingActionsService,
     ): View {
         $allowedTabs = [
             'dashboard',
@@ -81,10 +85,16 @@ class DashboardController extends Controller
             })
             ->all();
 
+        $activeGroup = $data['activeGroup'] ?? $request->user()->researchGroups()->first();
+        $journey = $activeGroup ? $journeyService->getJourneyForGroup($activeGroup, $request->user()) : null;
+        $pendingAcademicActions = $pendingActionsService->execute($request->user());
+
         return view('pages.student-dashboard', [
             'area' => 'Student Portal',
             'student' => $request->user(),
             'activeDashboardTab' => $activeTab,
+            'journey' => $journey,
+            'pendingAcademicActions' => $pendingAcademicActions,
             ...$data,
         ]);
     }

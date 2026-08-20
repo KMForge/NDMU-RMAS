@@ -336,6 +336,10 @@
 
                 </div>
 
+                <x-pending-academic-actions-card :pendingActions="$pendingAcademicActions ?? []" />
+
+                <x-research-journey-card :journey="$journey ?? null" />
+
                 @if ($dashboardSearchQuery !== '')
                     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                         <div class="flex items-center justify-between gap-4">

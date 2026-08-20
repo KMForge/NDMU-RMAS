@@ -13,6 +13,7 @@ use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Documents\Queries\GetAdviserDocumentReviewData;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
+use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use App\Modules\Research\Queries\GetAdviserDashboardOverview;
 use App\Modules\ResearchProgress\Queries\GetResearchGroupProgress;
 use Illuminate\Contracts\View\View;
@@ -92,6 +93,7 @@ class DashboardController extends Controller
         $viewData['pendingConsultationsCount'] = $pendingConsultationsCount;
         $viewData['pendingDocReviewsCount'] = $pendingDocReviewsCount;
         $viewData['pendingFormInstances'] = app(OfficialFormWorkspaceController::class)->pendingInstances($request);
+        $viewData['pendingAcademicActions'] = app(GetPendingAcademicActionsForUser::class)->execute($user);
         $viewData['assignedGroups'] = $assignedGroups;
         $viewData['adviserDefenses'] = $defenseCalendar->execute($user);
         $evalQuery = app(GetEvaluationRoundData::class);
