@@ -433,6 +433,8 @@
                     <h1 class="text-2xl font-bold font-heading text-gray-850">Welcome back, {{ $adviser->name }}</h1>
                     <p class="text-xs text-gray-500 mt-1">Research Adviser Dashboard Overview</p>
                 </div>
+
+                <x-pending-academic-actions-card :pendingActions="$pendingAcademicActions ?? []" />
                 <!-- Metrics Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-2">

@@ -1063,6 +1063,8 @@
                     </div>
                 </div>
 
+                <x-pending-academic-actions-card :pendingActions="$pendingAcademicActions ?? []" />
+
                 <!-- Stats Cards Row (4 Columns matching widgets) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Active Research -->

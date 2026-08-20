@@ -19,23 +19,23 @@ class OfficialFormAuthorization
 {
     /** @var array<string, array<string, list<string>>> */
     public const FORM_ACTION_PERMISSIONS = [
-        'res-026' => ['fill' => ['forms.res-026.fill', 'forms.res-026.submit'], 'approve' => ['forms.res-026.approve', 'forms.res-041.receive', 'dashboards.facilitator.view']],
-        'res-027' => ['fill' => ['forms.res-027.respond']],
-        'res-028' => ['fill' => ['forms.res-028.respond']],
-        'res-029' => ['fill' => ['forms.res-029.respond']],
+        'res-026' => ['fill' => ['forms.res-026.fill', 'forms.res-026.submit'], 'review' => ['dashboards.facilitator.view'], 'endorse' => ['forms.res-026.approve', 'forms.res-041.receive'], 'approve' => ['dashboards.dean.view', 'forms.res-047.approve']],
+        'res-027' => ['fill' => ['forms.res-027.respond'], 'respond' => ['forms.res-027.respond']],
+        'res-028' => ['fill' => ['forms.res-028.respond'], 'respond' => ['forms.res-028.respond']],
+        'res-029' => ['fill' => ['forms.res-029.respond'], 'respond' => ['forms.res-029.respond']],
         'res-030' => ['fill' => ['forms.res-030.submit'], 'approve' => ['forms.res-030.approve', 'dashboards.facilitator.view']],
-        'res-031' => ['fill' => ['forms.res-031.fill']],
-        'res-032' => ['fill' => ['forms.res-032.fill']],
+        'res-031' => ['fill' => ['forms.res-031.fill'], 'sign' => ['forms.res-031.fill']],
+        'res-032' => ['fill' => ['forms.res-032.fill'], 'sign' => ['forms.res-032.fill']],
         'res-033' => ['fill' => ['forms.res-033.endorse'], 'endorse' => ['forms.res-033.endorse'], 'approve' => ['dashboards.facilitator.view']],
         'res-034' => ['fill' => ['forms.res-034.fill']],
-        'res-035' => ['fill' => ['forms.res-035.record']],
-        'res-036' => ['fill' => ['forms.res-036.evaluate']],
+        'res-035' => ['fill' => ['forms.res-035.record'], 'record' => ['forms.res-035.record']],
+        'res-036' => ['fill' => ['forms.res-036.evaluate'], 'evaluate' => ['forms.res-036.evaluate']],
         'res-037' => ['fill' => ['forms.res-037.sign'], 'sign' => ['forms.res-037.sign']],
         'res-038' => ['fill' => ['forms.res-038.endorse'], 'endorse' => ['forms.res-038.endorse'], 'approve' => ['dashboards.facilitator.view']],
-        'res-039' => ['fill' => ['forms.res-039.fill']],
+        'res-039' => ['fill' => ['forms.res-039.fill'], 'sign' => ['forms.res-039.fill']],
         'res-040' => ['view' => ['forms.res-040.view'], 'fill' => ['forms.res-040.endorse'], 'endorse' => ['forms.res-040.endorse'], 'receive' => ['forms.res-040.receive', 'dashboards.facilitator.view']],
         'res-041' => ['view' => ['forms.res-041.view'], 'fill' => ['forms.res-041.fill'], 'endorse' => ['forms.res-041.endorse'], 'receive' => ['forms.res-041.receive']],
-        'res-042' => ['fill' => ['forms.res-042.submit']],
+        'res-042' => ['fill' => ['forms.res-042.submit'], 'approve' => ['forms.res-042.submit']],
         'res-043a' => ['view' => ['forms.res-043a.view'], 'fill' => ['forms.res-043a.validate'], 'validate' => ['forms.res-043a.validate']],
         'res-043b' => ['view' => ['forms.res-043b.view'], 'fill' => ['forms.res-043b.validate'], 'validate' => ['forms.res-043b.validate']],
         'res-044' => ['fill' => ['forms.res-044.endorse'], 'endorse' => ['forms.res-044.endorse'], 'approve' => ['dashboards.facilitator.view']],
@@ -48,17 +48,26 @@ class OfficialFormAuthorization
 
     /** @var array<string, array<string, string>> */
     public const FORM_ACTION_ACTOR_TYPES = [
-        'res-026' => ['approve' => 'program_coordinator'],
+        'res-026' => ['review' => 'facilitator', 'endorse' => 'program_coordinator', 'approve' => 'dean'],
+        'res-027' => ['respond' => 'adviser'],
+        'res-028' => ['respond' => 'panelist'],
+        'res-029' => ['respond' => 'language_editor'],
         'res-030' => ['approve' => 'facilitator'],
-        'res-033' => ['approve' => 'facilitator'],
-        'res-038' => ['approve' => 'facilitator'],
-        'res-044' => ['approve' => 'facilitator'],
+        'res-031' => ['sign' => 'adviser'],
+        'res-032' => ['sign' => 'specialist'],
+        'res-033' => ['endorse' => 'adviser', 'approve' => 'facilitator'],
+        'res-034' => ['fill' => 'panel_chair'],
+        'res-035' => ['record' => 'panel_chair'],
         'res-036' => ['evaluate' => 'panelist'],
-        'res-037' => ['sign' => 'panelist'],
+        'res-037' => ['sign' => 'panel_chair'],
+        'res-038' => ['endorse' => 'facilitator', 'approve' => 'adviser'],
+        'res-039' => ['sign' => 'adviser'],
         'res-040' => ['fill' => 'adviser', 'endorse' => 'adviser', 'receive' => 'research_instructor'],
         'res-041' => ['fill' => 'research_instructor', 'endorse' => 'research_instructor', 'receive' => 'program_coordinator'],
+        'res-042' => ['approve' => 'facilitator'],
         'res-043a' => ['fill' => 'instrument_validator', 'validate' => 'instrument_validator'],
         'res-043b' => ['fill' => 'instrument_validator', 'validate' => 'instrument_validator'],
+        'res-044' => ['endorse' => 'adviser', 'approve' => 'facilitator'],
         'res-045' => ['fill' => 'language_editor', 'certify' => 'language_editor'],
         'res-046' => ['fill' => 'technical_editor', 'certify' => 'technical_editor'],
         'res-047' => ['fill' => 'adviser', 'endorse' => 'adviser', 'approve' => 'dean'],
@@ -73,20 +82,45 @@ class OfficialFormAuthorization
      */
     public const FORM_WORKFLOWS = [
         'res-026' => [
-            'endorse' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'endorsed'],
-            'approve' => ['from' => ['draft', 'submitted', 'endorsed', 'in_progress'], 'to' => 'approved'],
+            'review' => ['from' => ['submitted'], 'to' => 'in_progress'],
+            'endorse' => ['from' => ['in_progress', 'submitted'], 'to' => 'endorsed'],
+            'approve' => ['from' => ['endorsed', 'in_progress'], 'to' => 'approved'],
+        ],
+        'res-027' => [
+            'respond' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'approved'],
+        ],
+        'res-028' => [
+            'respond' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'approved'],
+        ],
+        'res-029' => [
+            'respond' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'approved'],
         ],
         'res-030' => [
             'approve' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'approved'],
+        ],
+        'res-031' => [
+            'sign' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'signed'],
+        ],
+        'res-032' => [
+            'sign' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'completed'],
         ],
         'res-033' => [
             'endorse' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'endorsed'],
             'approve' => ['from' => ['draft', 'submitted', 'endorsed', 'in_progress'], 'to' => 'approved'],
         ],
+        'res-034' => [
+            'fill' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'completed'],
+        ],
+        'res-035' => [
+            'record' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'completed'],
+        ],
         'res-037' => ['sign' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'signed']],
         'res-038' => [
             'endorse' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'endorsed'],
             'approve' => ['from' => ['draft', 'submitted', 'endorsed', 'in_progress'], 'to' => 'approved'],
+        ],
+        'res-039' => [
+            'sign' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'approved'],
         ],
         'res-040' => [
             'endorse' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'endorsed'],
@@ -95,6 +129,9 @@ class OfficialFormAuthorization
         'res-041' => [
             'endorse' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'endorsed'],
             'receive' => ['from' => ['draft', 'submitted', 'endorsed', 'in_progress'], 'to' => 'approved'],
+        ],
+        'res-042' => [
+            'approve' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'approved'],
         ],
         'res-043a' => ['validate' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'completed']],
         'res-043b' => ['validate' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'completed']],
@@ -107,6 +144,9 @@ class OfficialFormAuthorization
         'res-047' => [
             'endorse' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'endorsed'],
             'approve' => ['from' => ['draft', 'submitted', 'endorsed', 'in_progress'], 'to' => 'approved'],
+        ],
+        'res-049' => [
+            'sign_authorship' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'completed'],
         ],
     ];
 
@@ -345,6 +385,10 @@ class OfficialFormAuthorization
 
     private function checkAcademicContextualAccess(User $user, OfficialFormInstance $instance): bool
     {
+        if ($this->isSystemAdmin($user) || $user->can('users.manage') || $user->can('dashboards.dean.view') || $user->hasRole('college-dean') || $user->hasRole('dean')) {
+            return true;
+        }
+
         if ($instance->research_class_group_id !== null) {
             $group = $instance->group;
             if ($group !== null) {
@@ -412,9 +456,13 @@ class OfficialFormAuthorization
     /** @param list<string> $permissions */
     private function hasAnyPermission(User $user, array $permissions): bool
     {
+        if ($user->can('users.manage') || $user->hasRole('college-dean') || $user->hasRole('dean')) {
+            return true;
+        }
+
         foreach ($permissions as $permission) {
             try {
-                if ($user->hasPermissionTo($permission)) {
+                if ($user->hasPermissionTo($permission) || $user->can($permission)) {
                     return true;
                 }
             } catch (\Throwable) {

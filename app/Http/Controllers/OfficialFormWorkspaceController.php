@@ -88,7 +88,7 @@ class OfficialFormWorkspaceController extends Controller
             'payload' => $instance->currentVersion?->payload ?? [],
             'canManageActors' => $canManageActors,
             'actorOptions' => $actorOptions,
-            'availableActions' => collect(['endorse', 'receive', 'approve', 'certify', 'validate'])
+            'availableActions' => collect(['endorse', 'receive', 'approve', 'certify', 'validate', 'review', 'sign'])
                 ->filter(function (string $action) use ($request, $instance): bool {
                     $transition = app(OfficialFormAuthorization::class)->transitionFor($instance, $action);
 

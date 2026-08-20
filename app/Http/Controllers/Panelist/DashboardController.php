@@ -6,12 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\OfficialFormWorkspaceController;
 use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
+use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request, GetDefenseScheduleCalendar $defenseCalendar, GetEvaluationRoundData $evaluationQuery): View
+    public function __invoke(Request $request, GetDefenseScheduleCalendar $defenseCalendar, GetEvaluationRoundData $evaluationQuery, GetPendingAcademicActionsForUser $pendingActionsService): View
     {
         $officialForms = config('official-forms.panelist', []);
         $assignedPhases = array_flip(array_unique(array_column($officialForms, 'phase')));
@@ -22,6 +23,7 @@ class DashboardController extends Controller
             'area' => 'Panelist',
             'panelist' => $request->user(),
             'pendingFormInstances' => app(OfficialFormWorkspaceController::class)->pendingInstances($request),
+            'pendingAcademicActions' => $pendingActionsService->execute($request->user()),
             'officialFormPhases' => array_intersect_key(
                 config('official-forms.phases', []),
                 $assignedPhases,
