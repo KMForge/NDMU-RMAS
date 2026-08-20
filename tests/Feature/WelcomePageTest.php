@@ -6,20 +6,19 @@ use Tests\TestCase;
 
 class WelcomePageTest extends TestCase
 {
-    public function test_welcome_page_contains_scrollspy_navigation_and_sections(): void
+    public function test_welcome_page_contains_research_system_sections_without_marketing_navigation(): void
     {
         $response = $this->get(route('home'));
 
         $response->assertOk()
-            ->assertSee('data-welcome-page', false)
-            ->assertSee('data-site-header', false)
-            ->assertSee('data-scroll-progress', false);
+            ->assertSee('NDMU Research Management System')
+            ->assertSee('Manage research from', false)
+            ->assertSee('How research moves')
+            ->assertSee('Everything your research needs')
+            ->assertSee('Ready to manage your research?');
 
         foreach (['home', 'about', 'achievements', 'process', 'events', 'contact'] as $section) {
-            $response
-                ->assertSee("data-section-link=\"{$section}\"", false)
-                ->assertSee("id=\"{$section}\"", false)
-                ->assertSee('data-scroll-section', false);
+            $response->assertDontSee("data-section-link=\"{$section}\"", false);
         }
     }
 }
