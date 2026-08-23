@@ -47,26 +47,38 @@
                                 </p>
                                 @if ($milestone->remarks)<p class="text-sm text-gray-600 mt-2">{{ $milestone->remarks }}</p>@endif
                                 @if ($milestone->not_applicable_reason)<p class="text-sm text-gray-600 mt-2">Reason: {{ $milestone->not_applicable_reason }}</p>@endif
+                                @if ($milestone->evidences->isNotEmpty())
+                                    <div class="mt-3 flex flex-wrap gap-2">
+                                        @foreach ($milestone->evidences as $evidence)
+                                            <span class="rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-[10px] font-bold text-emerald-700"
+                                                  title="{{ $evidence->summary }}">
+                                                <i class="ph ph-seal-check mr-1"></i>{{ str($evidence->evidence_type)->headline() }} verified
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                @endif
                             </div>
-                            @if ($group->isActive())
-                                <div class="flex flex-wrap gap-2">
-                                    @if ($milestone->status->value === 'pending')
-                                        <form method="POST" action="{{ route('facilitator.progress.start', $milestone) }}">@csrf @method('PATCH')
-                                            <button class="rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-white">Start</button>
-                                        </form>
-                                    @elseif ($milestone->status->value === 'in_progress')
-                                        <form method="POST" action="{{ route('facilitator.progress.complete', $milestone) }}">@csrf @method('PATCH')
-                                            <button class="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Complete</button>
-                                        </form>
-                                    @endif
-                                </div>
-                            @endif
                         </div>
 
                         @if ($group->isActive())
                             <details class="mt-4 border-t border-gray-200 pt-3">
-                                <summary class="cursor-pointer text-xs font-bold text-emerald-700">More controls</summary>
+                                <summary class="cursor-pointer text-xs font-bold text-gray-500">Administrative override</summary>
                                 <div class="grid gap-3 mt-3 md:grid-cols-3">
+                                    <div class="space-y-2 rounded-xl border border-amber-100 bg-amber-50/60 p-3">
+                                        <p class="text-xs font-bold text-amber-800">Manual status correction</p>
+                                        <p class="text-[10px] text-amber-700">Normal progress is synchronized automatically from verified forms, documents, defenses, and evaluations.</p>
+                                        @if ($milestone->status->value === 'pending')
+                                            <form method="POST" action="{{ route('facilitator.progress.start', $milestone) }}">@csrf @method('PATCH')
+                                                <button class="text-xs font-bold text-amber-800">Start manually</button>
+                                            </form>
+                                        @elseif ($milestone->status->value === 'in_progress')
+                                            <form method="POST" action="{{ route('facilitator.progress.complete', $milestone) }}">@csrf @method('PATCH')
+                                                <button class="text-xs font-bold text-emerald-700">Complete manually</button>
+                                            </form>
+                                        @else
+                                            <p class="text-[10px] text-gray-500">No manual transition is currently required.</p>
+                                        @endif
+                                    </div>
                                     <form method="POST" action="{{ route('facilitator.progress.due-date', $milestone) }}" class="space-y-2">@csrf @method('PATCH')
                                         <label class="text-xs font-bold">Due date</label>
                                         <input type="date" name="due_at" value="{{ $milestone->due_at?->format('Y-m-d') }}" class="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs">
@@ -94,14 +106,6 @@
                                             <button class="text-xs font-bold text-blue-700">Return to Pending</button>
                                         </form>
                                     @endif
-                                    <form method="POST" action="{{ route('facilitator.progress.evidence', $milestone) }}" class="space-y-2">@csrf
-                                        <label class="text-xs font-bold">Link existing evidence</label>
-                                        <select name="evidence_type" class="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs">
-                                            @foreach (config('research-progress.evidence_types') as $type)<option value="{{ $type }}">{{ str($type)->headline() }}</option>@endforeach
-                                        </select>
-                                        <input required type="number" min="1" name="evidence_id" placeholder="Record ID" class="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs">
-                                        <button class="text-xs font-bold text-purple-700">Link evidence</button>
-                                    </form>
                                 </div>
                             </details>
                         @endif

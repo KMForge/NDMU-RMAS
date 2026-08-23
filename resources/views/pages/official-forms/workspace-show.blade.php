@@ -34,6 +34,61 @@
             <div><p class="text-[9px] font-black uppercase text-gray-400">Actors</p><p class="mt-1 text-xs font-semibold">{{ $instance->actorAssignments->where('status', 'active')->map(fn ($a) => $a->user?->name.' ('.str($a->actor_type)->headline().')')->filter()->join(', ') ?: 'Derived from academic context' }}</p></div>
         </section>
 
+        @if (strtoupper($instance->definition->code) === 'RES-026' && $isOwningFacilitator)
+            @php
+                $titlePresentation = $instance->titlePresentation;
+                $titlePresentationNextStep = match ($titlePresentation?->status) {
+                    null => 'Schedule the Title Presentation and select its venue and time slot.',
+                    'scheduled' => 'Assign one Chairperson and two Panel Members.',
+                    'panel_assigned' => 'After the presentation has been conducted, mark it completed. The Approved Research Title No. remains locked until then.',
+                    'presented' => 'Select the approved title number from the three titles in the submitted RES-026.',
+                    'awaiting_panel_signatures' => 'The assigned Chairperson and two Panel Members must apply their signatures in their exact panel positions.',
+                    'awaiting_program_coordinator' => 'The Program Coordinator assigned to this Capstone class must sign and endorse RES-026.',
+                    'awaiting_dean' => 'The College Dean assigned to this Capstone class must provide final approval.',
+                    'finalized' => 'RES-026 is finalized and the approved title is now the canonical research title.',
+                    default => 'Continue the verified RES-026 workflow.',
+                };
+            @endphp
+            <section class="rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm">
+                <p class="text-[10px] font-black uppercase tracking-[.18em] text-amber-500">Acting as Research Facilitator</p>
+                <h2 class="mt-1 text-lg font-black text-[#0e5c3a]">Title Presentation Workflow</h2>
+                <p class="mt-1 text-xs text-gray-500">Group: {{ $instance->group?->name }} · State: {{ str($titlePresentation?->status ?? 'awaiting_schedule')->headline() }}</p>
+                <div class="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-800">
+                    <span class="font-black">Next required action:</span> {{ $titlePresentationNextStep }}
+                </div>
+
+                @if ($instance->status === 'submitted' && $titlePresentation === null)
+                    <form method="POST" action="{{ route('facilitator.title-presentations.store', $instance) }}" class="mt-4 grid gap-3 md:grid-cols-4">
+                        @csrf
+                        <select name="room_id" required class="rounded-xl border border-gray-200 px-3 py-2 text-xs">
+                            <option value="">Select venue</option>
+                            @foreach ($defenseRooms as $room)<option value="{{ $room->id }}">{{ $room->code }} · {{ $room->name }}</option>@endforeach
+                        </select>
+                        <input type="datetime-local" name="starts_at" required class="rounded-xl border border-gray-200 px-3 py-2 text-xs">
+                        <input type="datetime-local" name="ends_at" required class="rounded-xl border border-gray-200 px-3 py-2 text-xs">
+                        <button class="rounded-xl bg-[#0e5c3a] px-4 py-2 text-xs font-bold text-white">Schedule Title Presentation</button>
+                    </form>
+                @elseif ($titlePresentation?->status === 'scheduled')
+                    <form method="POST" action="{{ route('facilitator.title-presentations.panel', $titlePresentation) }}" class="mt-4 grid gap-3 md:grid-cols-4">
+                        @csrf @method('PUT')
+                        @foreach (['chairperson_user_id' => 'Chairperson', 'member_1_user_id' => 'Panel Member 1', 'member_2_user_id' => 'Panel Member 2'] as $field => $label)
+                            <select name="{{ $field }}" required class="rounded-xl border border-gray-200 px-3 py-2 text-xs"><option value="">{{ $label }}</option>@foreach ($titlePanelCandidates as $candidate)<option value="{{ $candidate->id }}">{{ $candidate->name }}</option>@endforeach</select>
+                        @endforeach
+                        <button class="rounded-xl bg-[#0e5c3a] px-4 py-2 text-xs font-bold text-white">Assign Chair & Panel</button>
+                    </form>
+                @elseif ($titlePresentation?->status === 'panel_assigned')
+                    <form method="POST" action="{{ route('facilitator.title-presentations.complete', $titlePresentation) }}" class="mt-4">@csrf @method('PATCH')<button class="rounded-xl bg-[#0e5c3a] px-5 py-2.5 text-xs font-bold text-white">Mark Presentation Completed</button></form>
+                @elseif ($titlePresentation?->status === 'presented')
+                    <form method="POST" action="{{ route('facilitator.title-presentations.result', $titlePresentation) }}" class="mt-4 grid gap-3 md:grid-cols-[12rem_1fr_auto]">
+                        @csrf @method('PATCH')
+                        <select name="approved_title_number" required class="rounded-xl border border-gray-200 px-3 py-2 text-xs"><option value="">Approved Title No.</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+                        <input name="remarks" maxlength="2000" placeholder="Official remarks (optional)" class="rounded-xl border border-gray-200 px-3 py-2 text-xs">
+                        <button class="rounded-xl bg-[#0e5c3a] px-5 py-2.5 text-xs font-bold text-white">Record Result</button>
+                    </form>
+                @endif
+            </section>
+        @endif
+
         @if ($canManageActors && $actorOptions->isNotEmpty())
             <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                 <div class="flex flex-wrap items-start justify-between gap-3">
@@ -110,8 +165,14 @@
                 <form method="POST" action="{{ route('official-forms.workspace.sign-action', [$instance, $action]) }}">
                     @csrf
                     <input type="hidden" name="expected_version_id" value="{{ $instance->current_version_id }}">
-                    <input type="hidden" name="actor_type" value="{{ $instance->actorAssignments->firstWhere('user_id', auth()->id())?->actor_type ?? ($instance->group?->adviser_id === auth()->id() ? 'research_adviser' : 'authorized_actor') }}">
-                    <button type="submit" class="rounded-xl bg-amber-500 px-5 py-2.5 text-xs font-bold text-[#0e5c3a]">Sign & {{ str($action)->headline() }}</button>
+                    <button type="submit" class="rounded-xl bg-amber-500 px-5 py-2.5 text-xs font-bold text-[#0e5c3a]">
+                        {{ match ($action) {
+                            'sign_chairperson' => 'Sign as Chairperson',
+                            'sign_member_1' => 'Sign as Panel Member 1',
+                            'sign_member_2' => 'Sign as Panel Member 2',
+                            default => 'Sign & '.str($action)->headline(),
+                        } }}
+                    </button>
                 </form>
             @endforeach
             @if (strtoupper($instance->definition->code) === 'RES-049' && auth()->user()->hasPermissionTo('forms.res-049.sign'))

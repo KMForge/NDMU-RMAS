@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Adviser;
 
+use App\Enums\DocumentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\OfficialFormWorkspaceController;
 use App\Models\ConsultationRequest;
@@ -85,7 +86,12 @@ class DashboardController extends Controller
 
         $pendingDocReviewsCount = Document::query()
             ->whereHas('researchClassGroup', fn ($g) => $g->where('adviser_id', $user->getKey())->where('status', 'active')->whereNull('disbanded_at'))
-            ->where('status', 'needs_attention')
+            ->where('is_current', true)
+            ->whereIn('status', [
+                DocumentStatus::Pending->value,
+                DocumentStatus::Submitted->value,
+                DocumentStatus::UnderReview->value,
+            ])
             ->count();
 
         $viewData['pendingAdviserRequests'] = $pendingAdviserRequests;
@@ -94,6 +100,15 @@ class DashboardController extends Controller
         $viewData['pendingDocReviewsCount'] = $pendingDocReviewsCount;
         $viewData['pendingFormInstances'] = app(OfficialFormWorkspaceController::class)->pendingInstances($request);
         $viewData['pendingAcademicActions'] = app(GetPendingAcademicActionsForUser::class)->execute($user);
+        $viewData['sidebarBadges'] = [
+            'classes' => $pendingAdviserRequests->count(),
+            'docreview' => $pendingDocReviewsCount,
+            'consultation' => $pendingConsultationsCount,
+            'forms' => $viewData['pendingFormInstances']->count(),
+            'notifications' => Schema::hasTable('notifications')
+                ? $user->unreadNotifications()->count()
+                : 0,
+        ];
         $viewData['assignedGroups'] = $assignedGroups;
         $viewData['adviserDefenses'] = $defenseCalendar->execute($user);
         $evalQuery = app(GetEvaluationRoundData::class);

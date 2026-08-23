@@ -9,6 +9,7 @@ use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
 use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class DashboardController extends Controller
 {
@@ -18,11 +19,17 @@ class DashboardController extends Controller
         $assignedPhases = array_flip(array_unique(array_column($officialForms, 'phase')));
         $assignedDefenses = $defenseCalendar->execute($request->user());
         $evaluationData = $evaluationQuery->forPanelist($request->user());
+        $pendingFormInstances = app(OfficialFormWorkspaceController::class)->pendingInstances($request);
+        $evaluationRounds = collect($evaluationData['rounds'] ?? []);
+        $pendingEvaluations = $evaluationRounds->filter(
+            fn (array $round): bool => in_array($round['status'] ?? null, ['open', 'in_progress'], true)
+                && data_get($round, 'evaluation.status') !== 'submitted',
+        );
 
         return view('pages.panelist-dashboard', [
             'area' => 'Panelist',
             'panelist' => $request->user(),
-            'pendingFormInstances' => app(OfficialFormWorkspaceController::class)->pendingInstances($request),
+            'pendingFormInstances' => $pendingFormInstances,
             'pendingAcademicActions' => $pendingActionsService->execute($request->user()),
             'officialFormPhases' => array_intersect_key(
                 config('official-forms.phases', []),
@@ -30,7 +37,19 @@ class DashboardController extends Controller
             ),
             'officialForms' => $officialForms,
             'assignedDefenses' => $assignedDefenses,
-            'evaluationRounds' => $evaluationData['rounds'] ?? [],
+            'evaluationRounds' => $evaluationRounds->all(),
+            'sidebarBadges' => [
+                'forms' => $pendingFormInstances->count(),
+                'proposal-eval' => $pendingEvaluations
+                    ->whereIn('defense_type', ['title_presentation', 'proposal_defense'])
+                    ->count(),
+                'final-eval' => $pendingEvaluations
+                    ->whereIn('defense_type', ['pre_final_defense', 'final_defense'])
+                    ->count(),
+                'notifications' => Schema::hasTable('notifications')
+                    ? $request->user()->unreadNotifications()->count()
+                    : 0,
+            ],
         ]);
     }
 }

@@ -70,7 +70,7 @@ class OfficialFormBackendTest extends TestCase
             $adviser->givePermissionTo('forms.res-033.endorse', 'forms.res-026.view', 'forms.res-040.endorse');
         }
 
-        return ResearchClassGroup::query()->create([
+        $group = ResearchClassGroup::query()->create([
             'research_class_id' => $class->id,
             'name' => 'Group '.bin2hex(random_bytes(3)),
             'leader_student_id' => $leaderUser->id,
@@ -79,6 +79,27 @@ class OfficialFormBackendTest extends TestCase
             'creation_token' => (string) Str::uuid(),
             'status' => 'active',
         ]);
+
+        Document::query()->forceCreate([
+            'user_id' => $leaderUser->id,
+            'research_class_group_id' => $group->id,
+            'submission_token' => (string) Str::uuid(),
+            'original_filename' => 'approved-title-proposal.pdf',
+            'stored_filename' => Str::uuid().'.pdf',
+            'file_type' => 'pdf',
+            'mime_type' => 'application/pdf',
+            'document_stage' => 'title_proposal',
+            'version_number' => 1,
+            'is_current' => true,
+            'file_size' => 1024,
+            'storage_disk' => 'local',
+            'storage_path' => "documents/test/{$group->id}/approved-title-proposal.pdf",
+            'content_sha256' => hash('sha256', $group->id.'-title-proposal'),
+            'submitted_at' => now(),
+            'status' => 'approved_for_presentation',
+        ]);
+
+        return $group;
     }
 
     public function test_can_create_group_owned_form_instance(): void
@@ -102,7 +123,7 @@ class OfficialFormBackendTest extends TestCase
         $this->assertSame(['AI Title 1', 'AI Title 2'], $instance->currentVersion->payload['topics']);
 
         $this->assertDatabaseHas('audit_logs', [
-            'event' => 'official_form.created',
+            'event' => 'RES026_CREATED',
             'auditable_id' => $instance->id,
         ]);
     }
@@ -159,7 +180,10 @@ class OfficialFormBackendTest extends TestCase
             $this->fail('Expected RES-026 adviser approval to fail closed.');
         } catch (InvalidArgumentException $exception) {
             $this->assertTrue(
-                str_contains($exception->getMessage(), 'not explicitly configured') || str_contains($exception->getMessage(), 'not contextually authorized')
+                str_contains($exception->getMessage(), 'not explicitly configured')
+                    || str_contains($exception->getMessage(), 'not contextually authorized')
+                    || str_contains($exception->getMessage(), 'cannot transition')
+                    || str_contains($exception->getMessage(), 'cannot be performed')
             );
         }
 

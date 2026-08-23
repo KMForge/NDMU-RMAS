@@ -26,6 +26,7 @@ class PanelistOfficialFormsTest extends TestCase
         $response = $this->actingAs($panelist)
             ->get(route('panelist.dashboard', ['tab' => 'forms', 'form' => 'RES-036']))
             ->assertOk()
+            ->assertSee("activeTab: 'forms'", false)
             ->assertSee("activeOfficialForm = 'RES-036'", false);
 
         foreach (array_keys(config('official-forms.panelist')) as $code) {

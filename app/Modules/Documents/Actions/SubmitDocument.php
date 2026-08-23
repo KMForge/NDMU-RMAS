@@ -212,7 +212,6 @@ class SubmitDocument
                 $latestVersion = (int) Document::query()
                     ->where('research_class_group_id', $lockedGroup->getKey())
                     ->where('document_stage', $documentStage->value)
-                    ->lockForUpdate()
                     ->max('version_number');
                 $nextVersion = max(1, $latestVersion + 1);
 
@@ -241,7 +240,9 @@ class SubmitDocument
                     'storage_path' => $storedPath,
                     'content_sha256' => $hash,
                     'submitted_at' => now(),
-                    'status' => DocumentStatus::Pending,
+                    'status' => $documentStage === DocumentStage::TitleProposal
+                        ? DocumentStatus::Draft
+                        : DocumentStatus::Pending,
                 ]);
 
                 $this->audit->success($document, $user, $file, $ipAddress, $lockedGroup);

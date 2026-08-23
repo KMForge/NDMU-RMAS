@@ -40,7 +40,7 @@ class AdviserOfficialFormsTest extends TestCase
             ->assertSee('Official Research Forms')
             ->assertSee('Invitation to Research Adviser')
             ->assertSee('Certificate of Authentic Authorship')
-            ->assertSee('Open Saved Form');
+            ->assertSee('Open Workspace to Edit & Save', false);
     }
 
     public function test_only_adviser_specific_forms_have_adviser_blade_files(): void

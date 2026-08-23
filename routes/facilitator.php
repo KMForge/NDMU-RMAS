@@ -9,12 +9,26 @@ use App\Http\Controllers\Facilitator\ResearchClassController;
 use App\Http\Controllers\Facilitator\ResearchClassFormActorController;
 use App\Http\Controllers\Facilitator\ResearchClassGroupController;
 use App\Http\Controllers\Facilitator\ResearchProgressController;
+use App\Http\Controllers\Facilitator\TitlePresentationController;
+use App\Http\Controllers\Facilitator\TitleProposalScreeningController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('facilitator')->name('facilitator.')->middleware([
     'auth', 'verified', 'active', 'permission:dashboards.facilitator.view', 'workspace.context',
 ])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    Route::post('/title-proposals/{document}/screen', TitleProposalScreeningController::class)
+        ->middleware(['permission:documents.review', 'throttle:defense-actions'])
+        ->whereNumber('document')
+        ->name('title-proposals.screen');
+
+    Route::prefix('/title-presentations')->middleware(['permission:defenses.manage', 'throttle:defense-actions'])->group(function (): void {
+        Route::post('/forms/{instance}', [TitlePresentationController::class, 'store'])->whereNumber('instance')->name('title-presentations.store');
+        Route::put('/{presentation}/panel', [TitlePresentationController::class, 'assignPanel'])->whereNumber('presentation')->name('title-presentations.panel');
+        Route::patch('/{presentation}/complete', [TitlePresentationController::class, 'complete'])->whereNumber('presentation')->name('title-presentations.complete');
+        Route::patch('/{presentation}/result', [TitlePresentationController::class, 'recordResult'])->whereNumber('presentation')->name('title-presentations.result');
+    });
 
     Route::prefix('/defense-rooms')
         ->middleware(['permission:defenses.manage', 'throttle:30,1'])
@@ -94,6 +108,10 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
                 ->middleware(['permission:classes.manage-groups', 'throttle:class-join-decisions'])
                 ->whereNumber(['group', 'enrollment'])
                 ->name('classes.groups.students.assign');
+
+            Route::post('/groups/assign-students', [ResearchClassGroupController::class, 'bulkAssignStudents'])
+                ->middleware(['permission:classes.manage-groups', 'throttle:class-join-decisions'])
+                ->name('classes.groups.students.bulk-assign');
 
             Route::put('/groups/{group}/leader', [ResearchClassGroupController::class, 'assignLeader'])
                 ->middleware(['permission:classes.manage-groups', 'throttle:class-creation'])

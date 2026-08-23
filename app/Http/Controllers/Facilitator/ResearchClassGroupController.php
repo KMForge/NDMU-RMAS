@@ -10,6 +10,7 @@ use App\Models\ResearchClassGroupAdviserRequest;
 use App\Models\User;
 use App\Modules\Classes\Actions\AssignResearchClassGroupLeader;
 use App\Modules\Classes\Actions\AssignStudentToResearchClassGroup;
+use App\Modules\Classes\Actions\BulkAssignStudentsToResearchClassGroup;
 use App\Modules\Classes\Actions\CancelResearchClassGroupAdviserRequest;
 use App\Modules\Classes\Actions\CreateResearchClassGroup;
 use App\Modules\Classes\Actions\DisbandResearchClassGroup;
@@ -69,8 +70,17 @@ class ResearchClassGroupController extends Controller
         ResearchClassEnrollment $enrollment,
         AssignStudentToResearchClassGroup $action,
     ): JsonResponse|RedirectResponse {
+        $targetGroup = $group;
+
+        if ($request->filled('group_id')) {
+            $targetGroup = ResearchClassGroup::query()
+                ->where('research_class_id', $researchClass->getKey())
+                ->where('status', 'active')
+                ->find($request->integer('group_id')) ?? $group;
+        }
+
         try {
-            $member = $action->handle($request->user(), $researchClass, $group, $enrollment);
+            $member = $action->handle($request->user(), $researchClass, $targetGroup, $enrollment);
         } catch (ClassOperationException $exception) {
             return $this->errorResponse($request, $researchClass, $exception->getMessage(), 422);
         }
@@ -88,6 +98,39 @@ class ResearchClassGroupController extends Controller
 
         return to_route('facilitator.classes.show', $researchClass)
             ->with('class_success', 'Student assigned to group successfully.');
+    }
+
+    public function bulkAssignStudents(
+        Request $request,
+        ResearchClass $researchClass,
+        BulkAssignStudentsToResearchClassGroup $action,
+    ): JsonResponse|RedirectResponse {
+        $validated = $request->validate([
+            'group_id' => ['required', 'integer', 'exists:research_class_groups,id'],
+            'enrollment_ids' => ['required', 'array', 'min:1'],
+            'enrollment_ids.*' => ['required', 'integer', 'exists:research_class_enrollments,id'],
+        ]);
+
+        try {
+            $members = $action->handle(
+                $request->user(),
+                $researchClass,
+                (int) $validated['group_id'],
+                $validated['enrollment_ids'],
+            );
+        } catch (ClassOperationException $exception) {
+            return $this->errorResponse($request, $researchClass, $exception->getMessage(), 422);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => count($members).' student(s) assigned to group successfully.',
+                'assigned_count' => count($members),
+            ]);
+        }
+
+        return to_route('facilitator.classes.show', $researchClass)
+            ->with('class_success', count($members).' student(s) assigned to group successfully.');
     }
 
     public function rename(

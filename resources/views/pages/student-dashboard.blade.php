@@ -62,18 +62,34 @@
         formsExpanded: @js($initialTab === 'forms'),
         showConsultationModal: @js($showConsultationModal),
         showJoinClassModal: @js($showJoinClassModal),
-        dashboardUrl: @js(route('student.dashboard'))
+        dashboardUrl: @js(route('student.dashboard')),
+        persistTabTimer: null,
+        queuePersistTab(tab) {
+            window.clearTimeout(this.persistTabTimer);
+            this.persistTabTimer = window.setTimeout(() => this.persistTab(tab), 0);
+        },
+        persistTab(tab) {
+            const url = new URL(this.dashboardUrl, window.location.origin);
+            url.searchParams.set('tab', tab);
+            if (tab === 'forms' && this.activeOfficialForm) {
+                url.searchParams.set('form', this.activeOfficialForm);
+            }
+
+            if (`${url.pathname}${url.search}` === `${window.location.pathname}${window.location.search}`) return;
+
+            window.Livewire?.navigate
+                ? window.Livewire.navigate(url.toString())
+                : window.location.assign(url.toString());
+        }
     }"
-    x-init="$watch('activeTab', (tab, previousTab) => {
-        if (tab === previousTab) return;
-
-        const url = new URL(dashboardUrl, window.location.origin);
-        url.searchParams.set('tab', tab);
-
-        window.Livewire?.navigate
-            ? window.Livewire.navigate(url.toString())
-            : window.location.assign(url.toString());
-    })"
+    x-init="
+        $watch('activeTab', (tab, previousTab) => {
+            if (tab !== previousTab) queuePersistTab(tab);
+        });
+        $watch('activeOfficialForm', (form, previousForm) => {
+            if (activeTab === 'forms' && form !== previousForm) queuePersistTab('forms');
+        });
+    "
 >
     <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5 overflow-y-auto">
         <div class="flex-shrink-0">
@@ -125,11 +141,10 @@
                             <span>{{ $label }}</span>
                         </div>
                         <div class="flex items-center gap-2">
-                            @if ($tab === 'consultation' && ($pendingConsultationsCount ?? 0) > 0)
-                                <span class="px-2 py-0.5 text-[10px] font-black rounded-full bg-amber-400 text-amber-950 shadow-xs">
-                                    {{ $pendingConsultationsCount }}
-                                </span>
-                            @endif
+                            <x-sidebar-count-badge
+                                :count="$sidebarBadges[$tab] ?? 0"
+                                :label="strtolower($label).' requiring attention'"
+                            />
                             <span x-show="activeTab === '{{ $tab }}'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                         </div>
                     </a>
@@ -149,7 +164,10 @@
                         <i class="ph ph-file-pdf text-lg"></i>
                         <span>Official Forms</span>
                     </div>
-                    <i class="ph ph-caret-right text-xs transition-transform duration-200" :class="formsExpanded && 'rotate-90'"></i>
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['forms'] ?? 0" label="official form actions requiring attention" />
+                        <i class="ph ph-caret-right text-xs transition-transform duration-200" :class="formsExpanded && 'rotate-90'"></i>
+                    </div>
                 </button>
 
                 <div x-show="formsExpanded" x-cloak x-transition class="mt-1 space-y-0.5">
@@ -207,10 +225,13 @@
                     href="{{ route('student.dashboard', ['tab' => 'notifications']) }}"
                     wire:navigate
                     :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold' : 'text-white/90 hover:bg-white/5 font-semibold'"
-                    class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] text-left transition-all"
+                    class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-[13px] text-left transition-all"
                 >
-                    <i class="ph ph-bell text-lg"></i>
-                    <span>Notifications</span>
+                    <span class="flex items-center gap-3">
+                        <i class="ph ph-bell text-lg"></i>
+                        <span>Notifications</span>
+                    </span>
+                    <x-sidebar-count-badge :count="$sidebarBadges['notifications'] ?? 0" label="unread notifications" />
                 </a>
                 <a
                     href="{{ route('student.dashboard', ['tab' => 'settings']) }}"
@@ -880,7 +901,8 @@
                                                 </p>
                                             </div>
                                         </div>
-                                        <div>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <span class="px-3 py-1 bg-slate-100 text-slate-700 text-[10px] font-black rounded-full uppercase tracking-wider border border-slate-200">{{ str($doc->status->value)->headline() }}</span>
                                             @if ($doc->is_current)
                                                 <span class="px-3 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-full uppercase tracking-wider border border-emerald-200">
                                                     CURRENT
@@ -889,6 +911,9 @@
                                                 <span class="px-3 py-1 bg-gray-100 text-gray-500 text-[10px] font-bold rounded-full uppercase tracking-wider border border-gray-200">
                                                     VOID
                                                 </span>
+                                            @endif
+                                            @if ($activeGroup->isLeader(auth()->user()) && $doc->is_current && $doc->document_stage === \App\Enums\DocumentStage::TitleProposal && $doc->status === \App\Enums\DocumentStatus::Draft)
+                                                <form method="POST" action="{{ route('student.documents.title-proposal.submit', $doc) }}">@csrf<button class="rounded-lg bg-[#0e5c3a] px-3 py-2 text-[10px] font-black uppercase tracking-wide text-white">Submit for Screening</button></form>
                                             @endif
                                         </div>
                                     </div>

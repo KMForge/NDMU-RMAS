@@ -11,7 +11,9 @@ use App\Models\ResearchClassGroup;
 use App\Models\User;
 use App\Modules\DefenseScheduling\Actions\ScheduleDefense;
 use Carbon\Carbon;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
@@ -37,6 +39,8 @@ class DefenseDashboardIntegrationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->seed(RolePermissionSeeder::class);
 
         Permission::firstOrCreate(['name' => 'defenses.manage', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'dashboards.facilitator.view', 'guard_name' => 'web']);
@@ -83,7 +87,7 @@ class DefenseDashboardIntegrationTest extends TestCase
             'creation_token' => (string) Str::uuid(),
             'name' => 'Capstone 1',
             'join_code_hash' => hash('sha256', 'CAP-'.strtoupper(bin2hex(random_bytes(3)))),
-            'join_code_encrypted' => 'CAP-123456',
+            'join_code_encrypted' => Crypt::encryptString('CAP-123456'),
             'is_active' => true,
         ]);
 
@@ -144,5 +148,15 @@ class DefenseDashboardIntegrationTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertDontSee('Group Beta');
+    }
+
+    public function test_facilitator_dashboard_safely_serializes_populated_defense_data(): void
+    {
+        $response = $this->actingAs($this->facilitator)->get('/facilitator/dashboard?tab=defenses');
+
+        $response->assertOk();
+        $response->assertSee('defenseList: JSON.parse(', false);
+        $response->assertSee('Group Beta');
+        $response->assertSee('Innovation Lab');
     }
 }

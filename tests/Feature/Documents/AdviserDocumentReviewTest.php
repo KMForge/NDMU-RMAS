@@ -56,6 +56,25 @@ class AdviserDocumentReviewTest extends TestCase
             ->assertSee(route('documents.download', $visibleDoc));
     }
 
+    public function test_adviser_sidebar_badge_counts_only_current_documents_awaiting_review(): void
+    {
+        $adviser = $this->adviser();
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Badge Group');
+
+        $this->document($leader, $group, 'pending.pdf');
+        $this->document($leader, $group, 'submitted.pdf')
+            ->update(['status' => DocumentStatus::Submitted]);
+        $this->document($leader, $group, 'accepted.pdf')
+            ->update(['status' => DocumentStatus::Accepted]);
+        $this->document($leader, $group, 'old-version.pdf')
+            ->update(['is_current' => false]);
+
+        $this->actingAs($adviser)
+            ->get(route('adviser.dashboard'))
+            ->assertOk()
+            ->assertSee('aria-label="2 documents awaiting review"', false);
+    }
+
     public function test_user_with_research_view_all_cannot_see_unrelated_groups_in_review_queue(): void
     {
         $adviser = $this->adviser();

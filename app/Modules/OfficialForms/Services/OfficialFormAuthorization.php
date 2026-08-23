@@ -19,7 +19,14 @@ class OfficialFormAuthorization
 {
     /** @var array<string, array<string, list<string>>> */
     public const FORM_ACTION_PERMISSIONS = [
-        'res-026' => ['fill' => ['forms.res-026.fill', 'forms.res-026.submit'], 'review' => ['dashboards.facilitator.view'], 'endorse' => ['forms.res-026.approve', 'forms.res-041.receive'], 'approve' => ['dashboards.dean.view', 'forms.res-047.approve']],
+        'res-026' => [
+            'fill' => ['forms.res-026.fill', 'forms.res-026.submit'],
+            'sign_chairperson' => ['evaluations.create'],
+            'sign_member_1' => ['evaluations.create'],
+            'sign_member_2' => ['evaluations.create'],
+            'endorse' => ['forms.res-026.approve', 'forms.res-041.receive'],
+            'approve' => ['dashboards.dean.view', 'forms.res-047.approve'],
+        ],
         'res-027' => ['fill' => ['forms.res-027.respond'], 'respond' => ['forms.res-027.respond']],
         'res-028' => ['fill' => ['forms.res-028.respond'], 'respond' => ['forms.res-028.respond']],
         'res-029' => ['fill' => ['forms.res-029.respond'], 'respond' => ['forms.res-029.respond']],
@@ -48,7 +55,13 @@ class OfficialFormAuthorization
 
     /** @var array<string, array<string, string>> */
     public const FORM_ACTION_ACTOR_TYPES = [
-        'res-026' => ['review' => 'facilitator', 'endorse' => 'program_coordinator', 'approve' => 'dean'],
+        'res-026' => [
+            'sign_chairperson' => 'title_panel_chairperson',
+            'sign_member_1' => 'title_panel_member_1',
+            'sign_member_2' => 'title_panel_member_2',
+            'endorse' => 'program_coordinator',
+            'approve' => 'dean',
+        ],
         'res-027' => ['respond' => 'adviser'],
         'res-028' => ['respond' => 'panelist'],
         'res-029' => ['respond' => 'language_editor'],
@@ -82,9 +95,11 @@ class OfficialFormAuthorization
      */
     public const FORM_WORKFLOWS = [
         'res-026' => [
-            'review' => ['from' => ['submitted'], 'to' => 'in_progress'],
-            'endorse' => ['from' => ['in_progress', 'submitted'], 'to' => 'endorsed'],
-            'approve' => ['from' => ['endorsed', 'in_progress'], 'to' => 'approved'],
+            'sign_chairperson' => ['from' => ['submitted'], 'to' => 'submitted'],
+            'sign_member_1' => ['from' => ['submitted'], 'to' => 'submitted'],
+            'sign_member_2' => ['from' => ['submitted'], 'to' => 'submitted'],
+            'endorse' => ['from' => ['submitted'], 'to' => 'endorsed'],
+            'approve' => ['from' => ['endorsed'], 'to' => 'approved'],
         ],
         'res-027' => [
             'respond' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'approved'],
@@ -237,7 +252,11 @@ class OfficialFormAuthorization
         $code = strtolower($instance->definition->code);
         $allowedPermissions = self::FORM_ACTION_PERMISSIONS[$code]['fill'] ?? null;
 
-        if ($allowedPermissions === null || ! $this->hasAnyPermission($user, $allowedPermissions)) {
+        $hasRequiredPermission = $code === 'res-026'
+            ? $this->hasExplicitPermission($user, $allowedPermissions ?? [])
+            : $this->hasAnyPermission($user, $allowedPermissions ?? []);
+
+        if ($allowedPermissions === null || ! $hasRequiredPermission) {
             return false;
         }
 
@@ -290,14 +309,41 @@ class OfficialFormAuthorization
 
     public function canPerformAction(User $user, OfficialFormInstance $instance, string $action): bool
     {
+        if ($user->status !== AccountStatus::Active || $user->approved_at === null || $user->email_verified_at === null) {
+            return false;
+        }
+
         $code = strtolower($instance->definition->code);
+        if ($code === 'res-026' && $user->user_type !== UserType::Faculty) {
+            return false;
+        }
         $allowedPermissions = self::FORM_ACTION_PERMISSIONS[$code][$action] ?? null;
 
-        if ($allowedPermissions === null || ! $this->hasAnyPermission($user, $allowedPermissions)) {
+        $hasRequiredPermission = $code === 'res-026'
+            ? $this->hasExplicitPermission($user, $allowedPermissions ?? [])
+            : $this->hasAnyPermission($user, $allowedPermissions ?? []);
+
+        if ($allowedPermissions === null || ! $hasRequiredPermission) {
             return false;
         }
 
         $requiredActorType = self::FORM_ACTION_ACTOR_TYPES[$code][$action] ?? null;
+
+        if ($code === 'res-026') {
+            $presentation = $instance->titlePresentation;
+            if ($presentation === null) {
+                return false;
+            }
+            if (str_starts_with($action, 'sign_') && $presentation->status !== 'awaiting_panel_signatures') {
+                return false;
+            }
+            if ($action === 'endorse' && $presentation->status !== 'awaiting_program_coordinator') {
+                return false;
+            }
+            if ($action === 'approve' && $presentation->status !== 'awaiting_dean') {
+                return false;
+            }
+        }
 
         if ($requiredActorType !== null) {
             return $this->checkSpecificActorTypeContext($user, $instance, $requiredActorType);
@@ -338,6 +384,20 @@ class OfficialFormAuthorization
 
     private function checkSpecificActorTypeContext(User $user, OfficialFormInstance $instance, string $requiredActorType): bool
     {
+        $titlePanelPosition = match ($requiredActorType) {
+            'title_panel_chairperson' => 'chairperson',
+            'title_panel_member_1' => 'member_1',
+            'title_panel_member_2' => 'member_2',
+            default => null,
+        };
+        if ($titlePanelPosition !== null) {
+            return $instance->titlePresentation !== null
+                && $instance->titlePresentation->defense->activePanelAssignments()
+                    ->where('user_id', $user->id)
+                    ->where('panel_position', $titlePanelPosition)
+                    ->exists();
+        }
+
         if ($requiredActorType === 'adviser') {
             return $instance->group !== null && (int) $instance->group->adviser_id === (int) $user->id;
         }
@@ -348,24 +408,22 @@ class OfficialFormAuthorization
         }
 
         if ($requiredActorType === 'program_coordinator') {
-            return $user->hasRole('program-coordinator')
-                || $this->hasAnyPermission($user, ['forms.res-026.approve', 'forms.res-041.receive'])
-                || ($instance->researchClass !== null && (int) $instance->researchClass->facilitator_id === (int) $user->id)
-                || ($instance->group !== null && $instance->group->researchClass !== null && (int) $instance->group->researchClass->facilitator_id === (int) $user->id);
+            $class = $instance->researchClass ?? $instance->group?->researchClass;
+
+            return $class !== null && $this->hasClassActorAssignment($user, $class, 'program_coordinator');
         }
 
         if ($requiredActorType === 'dean') {
-            return $user->hasRole('college-dean')
-                || $user->hasRole('dean')
-                || $this->hasAnyPermission($user, ['forms.res-047.approve', 'dashboards.dean.view'])
-                || ($instance->group !== null && $this->hasClassActorAssignment($user, $instance->group->researchClass, 'dean'));
+            $class = $instance->researchClass ?? $instance->group?->researchClass;
+
+            return $class !== null && $this->hasClassActorAssignment($user, $class, 'dean');
         }
 
         if ($requiredActorType === 'student_researcher') {
             return $instance->group !== null && $this->isCurrentGroupMember($user, $instance->group);
         }
 
-        if ($requiredActorType === 'panelist') {
+        if (in_array($requiredActorType, ['panelist', 'panel_chair'], true)) {
             if ($instance->source_type === DefenseEvaluationRound::class && $instance->source) {
                 return (int) $instance->source->summary_signer_user_id === (int) $user->id;
             }
@@ -385,6 +443,23 @@ class OfficialFormAuthorization
 
     private function checkAcademicContextualAccess(User $user, OfficialFormInstance $instance): bool
     {
+        if (strtoupper($instance->definition->code) === 'RES-026') {
+            if ($this->isSystemAdmin($user)) {
+                return true;
+            }
+
+            $group = $instance->group;
+            $class = $instance->researchClass ?? $group?->researchClass;
+
+            return $group !== null && (
+                $this->isCurrentGroupMember($user, $group)
+                || (int) $group->adviser_id === (int) $user->id
+                || (int) $class?->facilitator_id === (int) $user->id
+                || ($instance->titlePresentation !== null && $instance->titlePresentation->defense->activePanelAssignments()->where('user_id', $user->id)->exists())
+                || ($class !== null && ResearchClassActorAssignment::query()->where('research_class_id', $class->id)->where('user_id', $user->id)->where('status', 'active')->exists())
+            );
+        }
+
         if ($this->isSystemAdmin($user) || $user->can('users.manage') || $user->can('dashboards.dean.view') || $user->hasRole('college-dean') || $user->hasRole('dean')) {
             return true;
         }
@@ -399,6 +474,9 @@ class OfficialFormAuthorization
                     return true;
                 }
                 if ($group->researchClass !== null && (int) $group->researchClass->facilitator_id === (int) $user->id) {
+                    return true;
+                }
+                if ($instance->titlePresentation !== null && $instance->titlePresentation->defense->activePanelAssignments()->where('user_id', $user->id)->exists()) {
                     return true;
                 }
             }
@@ -451,6 +529,22 @@ class OfficialFormAuthorization
             ->where('research_class_group_id', $group->id)
             ->where('student_id', $user->id)
             ->exists();
+    }
+
+    /** @param list<string> $permissions */
+    private function hasExplicitPermission(User $user, array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            try {
+                if ($user->hasPermissionTo($permission)) {
+                    return true;
+                }
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        return false;
     }
 
     /** @param list<string> $permissions */

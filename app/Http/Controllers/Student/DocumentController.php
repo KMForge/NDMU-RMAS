@@ -8,16 +8,40 @@ use App\Http\Requests\Documents\StoreDocumentRequest;
 use App\Models\Document;
 use App\Modules\Documents\Actions\RecordDocumentUploadAttempt;
 use App\Modules\Documents\Actions\SubmitDocument;
+use App\Modules\Documents\Actions\SubmitTitleProposalForScreening;
 use App\Modules\Documents\Exceptions\DocumentUploadFailed;
 use App\Modules\Documents\Exceptions\DuplicateDocumentSubmission;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Throwable;
 
 class DocumentController extends Controller
 {
+    public function submitTitleProposal(
+        Request $request,
+        Document $document,
+        SubmitTitleProposalForScreening $submit,
+    ): JsonResponse|RedirectResponse {
+        try {
+            $submitted = $submit->handle($request->user(), $document);
+        } catch (AuthorizationException $exception) {
+            return $request->expectsJson()
+                ? response()->json(['message' => $exception->getMessage()], 403)
+                : back()->withErrors(['document' => $exception->getMessage()]);
+        } catch (\InvalidArgumentException $exception) {
+            return $request->expectsJson()
+                ? response()->json(['message' => $exception->getMessage()], 422)
+                : back()->withErrors(['document' => $exception->getMessage()]);
+        }
+
+        return $request->expectsJson()
+            ? response()->json(['message' => 'Title Proposal submitted for screening.', 'document' => $this->safeDocumentPayload($submitted)])
+            : back()->with('document_success', 'Title Proposal submitted for facilitator screening.');
+    }
+
     public function store(
         StoreDocumentRequest $request,
         SubmitDocument $submitDocument,
@@ -52,13 +76,17 @@ class DocumentController extends Controller
 
         if ($request->expectsJson()) {
             return response()->json([
-                'message' => 'Document submitted successfully.',
+                'message' => $document->document_stage === DocumentStage::TitleProposal
+                    ? 'Title Proposal uploaded as a draft. Submit it when ready for facilitator screening.'
+                    : 'Document submitted successfully.',
                 'document' => $payload,
             ], 201);
         }
 
         return to_route('student.dashboard', ['tab' => 'proposal'])
-            ->with('document_success', 'Document submitted successfully and is pending review.');
+            ->with('document_success', $document->document_stage === DocumentStage::TitleProposal
+                ? 'Title Proposal uploaded as a draft. Submit it when ready for facilitator screening.'
+                : 'Document submitted successfully and is pending review.');
     }
 
     /**

@@ -55,7 +55,7 @@ return [
             'label' => 'Panel Member',
             'description' => 'Reviews and evaluates assigned research defenses.',
             'user_type' => 'faculty',
-            'permissions' => ['dashboards.panelist.view', 'research.view-assigned', 'documents.download', 'defenses.view', 'evaluations.create', 'evaluations.view-own', 'evaluations.view-assigned', 'forms.res-028.view', 'forms.res-028.respond', 'forms.res-034.view', 'forms.res-035.view', 'forms.res-036.view', 'forms.res-036.evaluate', 'forms.res-037.view', 'forms.res-037.sign', 'forms.res-039.view', 'forms.res-039.approve', 'forms.res-044.view'],
+            'permissions' => ['dashboards.panelist.view', 'research.view-assigned', 'documents.download', 'defenses.view', 'evaluations.create', 'evaluations.view-own', 'evaluations.view-assigned', 'forms.res-026.view', 'forms.res-028.view', 'forms.res-028.respond', 'forms.res-034.view', 'forms.res-035.view', 'forms.res-036.view', 'forms.res-036.evaluate', 'forms.res-037.view', 'forms.res-037.sign', 'forms.res-039.view', 'forms.res-039.approve', 'forms.res-044.view'],
         ],
         'department-chair' => [
             'label' => 'Department Chair',
@@ -67,7 +67,7 @@ return [
             'label' => 'Dean',
             'description' => 'Provides college-level research oversight, approval, and reporting.',
             'user_type' => 'faculty',
-            'permissions' => ['dashboards.dean.view', 'research.view-college', 'research.approve', 'proposal.approve', 'documents.download', 'defenses.view', 'evaluations.view-assigned', 'reports.view', 'reports.export', 'forms.res-047.view', 'forms.res-047.approve'],
+            'permissions' => ['dashboards.dean.view', 'research.view-college', 'research.approve', 'proposal.approve', 'documents.download', 'defenses.view', 'evaluations.view-assigned', 'reports.view', 'reports.export', 'forms.res-026.view', 'forms.res-047.view', 'forms.res-047.approve'],
         ],
         'research-instructor' => [
             'label' => 'Research Instructor',

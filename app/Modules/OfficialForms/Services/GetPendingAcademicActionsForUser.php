@@ -15,7 +15,7 @@ class GetPendingAcademicActionsForUser
         $authorization = app(OfficialFormAuthorization::class);
 
         $visibleInstances = OfficialFormInstance::query()
-            ->with(['definition', 'group.researchClass', 'researchClass', 'actorAssignments'])
+            ->with(['definition', 'currentVersion.signatures', 'group.researchClass', 'researchClass', 'actorAssignments', 'titlePresentation.defense.activePanelAssignments'])
             ->get()
             ->filter(fn (OfficialFormInstance $instance) => Gate::forUser($user)->allows('view', $instance));
 
@@ -39,6 +39,13 @@ class GetPendingAcademicActionsForUser
                 }
 
                 if (! Gate::forUser($user)->allows($actionKey, $instance)) {
+                    continue;
+                }
+
+                if ($instance->currentVersion?->signatures->contains(
+                    fn ($signature): bool => (int) $signature->signer_user_id === (int) $user->id
+                        && $signature->academic_action === $actionKey,
+                )) {
                     continue;
                 }
 
@@ -77,6 +84,9 @@ class GetPendingAcademicActionsForUser
             'adviser' => 'Thesis Adviser',
             'panelist' => 'Panel Member',
             'panel_chair' => 'Panel Chair',
+            'title_panel_chairperson' => 'Title Panel Chairperson',
+            'title_panel_member_1' => 'Title Panel Member 1',
+            'title_panel_member_2' => 'Title Panel Member 2',
             'dean' => 'College Dean',
             'instrument_validator' => 'Instrument Validator',
             'language_editor' => 'Language Editor',

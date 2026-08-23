@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'research_class_group_id',
@@ -46,6 +47,11 @@ class Defense extends Model
     public function evaluationRounds(): HasMany
     {
         return $this->hasMany(DefenseEvaluationRound::class, 'defense_id');
+    }
+
+    public function titlePresentation(): HasOne
+    {
+        return $this->hasOne(TitlePresentation::class);
     }
 
     public function creator(): BelongsTo

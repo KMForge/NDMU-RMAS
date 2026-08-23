@@ -14,9 +14,11 @@ use App\Modules\Dashboard\Queries\GetAdminDashboardData;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\UserManagement\Actions\ManageRoleAccess;
 use App\Modules\UserManagement\Actions\ManageUserAccount;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -81,6 +83,14 @@ class AdminDashboard extends Component
     public ?int $settingsAcademicYearId = null;
 
     public ?int $settingsAcademicTermId = null;
+
+    public bool $showAcademicYearModal = false;
+
+    public string $newAcademicYearName = '';
+
+    public string $newAcademicYearStartDate = '';
+
+    public string $newAcademicYearEndDate = '';
 
     public string $tab = 'dashboard';
 
@@ -439,6 +449,102 @@ class AdminDashboard extends Component
         $this->resetValidation();
     }
 
+    public function seedAcademicCycle(): void
+    {
+        abort_unless($this->administrator()->can('settings.manage'), 403);
+
+        $ay2025 = AcademicYear::query()->firstOrCreate(
+            ['name' => '2025–2026'],
+            ['starts_at' => '2025-08-01', 'ends_at' => '2026-05-31', 'is_current' => false]
+        );
+
+        AcademicTerm::query()->firstOrCreate(
+            ['academic_year_id' => $ay2025->id, 'name' => 'First Semester'],
+            ['starts_at' => '2025-08-01', 'ends_at' => '2025-12-20', 'is_current' => false]
+        );
+        AcademicTerm::query()->firstOrCreate(
+            ['academic_year_id' => $ay2025->id, 'name' => 'Second Semester'],
+            ['starts_at' => '2026-01-12', 'ends_at' => '2026-05-31', 'is_current' => false]
+        );
+
+        $ay2026 = AcademicYear::query()->firstOrCreate(
+            ['name' => '2026–2027'],
+            ['starts_at' => '2026-08-01', 'ends_at' => '2027-05-31', 'is_current' => true]
+        );
+
+        $term1 = AcademicTerm::query()->firstOrCreate(
+            ['academic_year_id' => $ay2026->id, 'name' => 'First Semester'],
+            ['starts_at' => '2026-08-01', 'ends_at' => '2026-12-20', 'is_current' => true]
+        );
+        AcademicTerm::query()->firstOrCreate(
+            ['academic_year_id' => $ay2026->id, 'name' => 'Second Semester'],
+            ['starts_at' => '2027-01-11', 'ends_at' => '2027-05-31', 'is_current' => false]
+        );
+        AcademicTerm::query()->firstOrCreate(
+            ['academic_year_id' => $ay2026->id, 'name' => 'Summer Term'],
+            ['starts_at' => '2027-06-07', 'ends_at' => '2027-07-16', 'is_current' => false]
+        );
+
+        $this->settingsAcademicYearId = $ay2026->id;
+        $this->settingsAcademicTermId = $term1->id;
+        $this->successMessage = 'Academic cycle seeded successfully.';
+        $this->resetValidation();
+    }
+
+    public function openAcademicYearModal(): void
+    {
+        abort_unless($this->administrator()->can('settings.manage'), 403);
+        $this->reset(['newAcademicYearName', 'newAcademicYearStartDate', 'newAcademicYearEndDate']);
+        $this->showAcademicYearModal = true;
+        $this->resetValidation();
+    }
+
+    public function closeAcademicYearModal(): void
+    {
+        $this->reset(['newAcademicYearName', 'newAcademicYearStartDate', 'newAcademicYearEndDate']);
+        $this->showAcademicYearModal = false;
+        $this->resetValidation();
+    }
+
+    public function createAcademicYear(): void
+    {
+        abort_unless($this->administrator()->can('settings.manage'), 403);
+
+        $this->newAcademicYearName = trim(strip_tags($this->newAcademicYearName));
+        $this->validate([
+            'newAcademicYearName' => ['required', 'string', 'max:50', 'unique:academic_years,name'],
+            'newAcademicYearStartDate' => ['required', 'date'],
+            'newAcademicYearEndDate' => ['required', 'date', 'after:newAcademicYearStartDate'],
+        ]);
+
+        $ay = AcademicYear::query()->create([
+            'name' => $this->newAcademicYearName,
+            'starts_at' => $this->newAcademicYearStartDate,
+            'ends_at' => $this->newAcademicYearEndDate,
+            'is_current' => false,
+        ]);
+
+        $term1 = AcademicTerm::query()->create([
+            'academic_year_id' => $ay->id,
+            'name' => 'First Semester',
+            'starts_at' => $ay->starts_at,
+            'ends_at' => Carbon::parse($ay->starts_at)->addMonths(4)->endOfMonth(),
+            'is_current' => false,
+        ]);
+        AcademicTerm::query()->create([
+            'academic_year_id' => $ay->id,
+            'name' => 'Second Semester',
+            'starts_at' => Carbon::parse($ay->starts_at)->addMonths(5)->startOfMonth(),
+            'ends_at' => $ay->ends_at,
+            'is_current' => false,
+        ]);
+
+        $this->settingsAcademicYearId = $ay->id;
+        $this->settingsAcademicTermId = $term1->id;
+        $this->successMessage = "Academic Year {$ay->name} created successfully.";
+        $this->closeAcademicYearModal();
+    }
+
     public function render(GetAdminDashboardData $getAdminDashboardData, GetDocumentRepositoryData $repositoryData)
     {
         $data = [
@@ -465,6 +571,13 @@ class AdminDashboard extends Component
             $this->systemSettingsData(),
             $repositoryData->for($this->administrator(), request()->query()),
         );
+
+        $data['sidebarBadges'] = [
+            'users' => (int) ($data['pendingApprovalCount'] ?? 0),
+            'notifications' => Schema::hasTable('notifications')
+                ? $data['administrator']->unreadNotifications()->count()
+                : 0,
+        ];
 
         return view('livewire.admin-dashboard-content', $data);
     }

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AcademicYear extends Model
 {
+    protected $guarded = [];
+
     public function terms(): HasMany
     {
         return $this->hasMany(AcademicTerm::class);

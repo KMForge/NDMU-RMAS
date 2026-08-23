@@ -61,6 +61,25 @@
     officialForms: @js($officialForms),
     evaluationRounds: @js($evaluationRounds ?? []),
     formsExpanded: @js($initialTab === 'forms'),
+    dashboardUrl: @js(route('panelist.dashboard')),
+    persistTabTimer: null,
+    queuePersistTab(tab) {
+        window.clearTimeout(this.persistTabTimer);
+        this.persistTabTimer = window.setTimeout(() => this.persistTab(tab), 0);
+    },
+    persistTab(tab) {
+        const url = new URL(this.dashboardUrl, window.location.origin);
+        url.searchParams.set('tab', tab);
+        if (tab === 'forms' && this.activeOfficialForm) {
+            url.searchParams.set('form', this.activeOfficialForm);
+        }
+
+        if (`${url.pathname}${url.search}` === `${window.location.pathname}${window.location.search}`) return;
+
+        window.Livewire?.navigate
+            ? window.Livewire.navigate(url.toString())
+            : window.location.assign(url.toString());
+    },
     notificationsFilter: 'all',
     selectedDefense: null,
     assignedPapersSearchQuery: '',
@@ -371,7 +390,16 @@
             unread: false
         }
     ]
-}">
+}"
+    x-init="
+        $watch('activeTab', (tab, previousTab) => {
+            if (tab !== previousTab) queuePersistTab(tab);
+        });
+        $watch('activeOfficialForm', (form, previousForm) => {
+            if (activeTab === 'forms' && form !== previousForm) queuePersistTab('forms');
+        });
+    "
+>
     <!-- Left Sidebar: Navigation -->
     <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5 overflow-y-auto">
         <div class="flex-shrink-0">
@@ -425,9 +453,7 @@
                         <span>Pending Form Approvals</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        @if (isset($pendingFormInstances) && $pendingFormInstances->count() > 0)
-                            <span class="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[10px] font-black text-white shadow-sm">{{ $pendingFormInstances->count() }}</span>
-                        @endif
+                        <x-sidebar-count-badge :count="$sidebarBadges['forms'] ?? 0" label="forms awaiting approval" />
                     </div>
                 </a>
                 
@@ -454,7 +480,10 @@
                         <i class="ph ph-scroll text-lg"></i>
                         <span>Proposal Evaluation</span>
                     </div>
-                    <span x-show="activeTab === 'proposal-eval'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['proposal-eval'] ?? 0" label="proposal evaluations requiring attention" />
+                        <span x-show="activeTab === 'proposal-eval'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    </div>
                 </button>
 
                 <!-- Final Defense Evaluation -->
@@ -467,7 +496,10 @@
                         <i class="ph ph-clipboard-text text-lg"></i>
                         <span>Final Defense Evaluation</span>
                     </div>
-                    <span x-show="activeTab === 'final-eval'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['final-eval'] ?? 0" label="final defense evaluations requiring attention" />
+                        <span x-show="activeTab === 'final-eval'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    </div>
                 </button>
 
                 <!-- My Recommendations -->
@@ -580,7 +612,10 @@
                         <i class="ph ph-bell text-lg"></i>
                         <span>Notifications</span>
                     </div>
-                    <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['notifications'] ?? 0" label="unread notifications" />
+                        <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    </div>
                 </a>
                 
                 <!-- Settings -->

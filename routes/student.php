@@ -22,6 +22,10 @@ Route::prefix('student')->name('student.')->middleware([
     Route::post('/documents', [DocumentController::class, 'store'])
         ->middleware(['permission:documents.upload', 'throttle:document-uploads'])
         ->name('documents.store');
+    Route::post('/documents/{document}/title-proposal/submit', [DocumentController::class, 'submitTitleProposal'])
+        ->middleware(['permission:documents.upload', 'throttle:document-uploads'])
+        ->whereNumber('document')
+        ->name('documents.title-proposal.submit');
 
     Route::post('/consultations', [ConsultationController::class, 'store'])
         ->middleware(['permission:consultations.request', 'throttle:consultation-bookings'])

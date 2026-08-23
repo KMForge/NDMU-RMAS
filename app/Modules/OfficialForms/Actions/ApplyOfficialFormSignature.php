@@ -7,11 +7,15 @@ use App\Models\DefenseEvaluationRound;
 use App\Models\OfficialFormInstance;
 use App\Models\OfficialFormSignature;
 use App\Models\OfficialFormVerification;
+use App\Models\ResearchClassGroup;
+use App\Models\TitlePresentation;
 use App\Models\User;
 use App\Models\UserSignature;
 use App\Modules\Evaluations\Actions\FinalizeDefenseEvaluationRound;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use App\Modules\OfficialForms\Services\OfficialFormSignatureHasher;
+use App\Modules\Research\Actions\EnsureCanonicalResearchGroup;
+use App\Modules\ResearchProgress\Actions\SynchronizeWorkflowMilestone;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -23,7 +27,9 @@ class ApplyOfficialFormSignature
 {
     public function __construct(
         private readonly OfficialFormAuthorization $authorization,
-        private readonly OfficialFormSignatureHasher $hasher
+        private readonly OfficialFormSignatureHasher $hasher,
+        private readonly EnsureCanonicalResearchGroup $ensureCanonicalResearchGroup,
+        private readonly SynchronizeWorkflowMilestone $synchronizeMilestone,
     ) {}
 
     /**
@@ -108,7 +114,10 @@ class ApplyOfficialFormSignature
             }
 
             // Execute Phase 19 domain action if not attestation-only
-            if ($academicAction !== 'sign_authorship') {
+            $isRes026PanelSignature = strtoupper($lockedInstance->definition->code) === 'RES-026'
+                && in_array($academicAction, ['sign_chairperson', 'sign_member_1', 'sign_member_2'], true);
+
+            if ($academicAction !== 'sign_authorship' && ! $isRes026PanelSignature) {
                 if ($academicAction === 'certify') {
                     app(CertifyOfficialForm::class)->handle($actor, $lockedInstance);
                 } else {
@@ -196,6 +205,10 @@ class ApplyOfficialFormSignature
                     ],
                 ]);
 
+                if (strtoupper($lockedInstance->definition->code) === 'RES-026') {
+                    $this->advanceRes026AfterSignature($lockedInstance, $signatureRecord, $actor);
+                }
+
                 if (strtoupper($lockedInstance->definition->code) === 'RES-037' && $lockedInstance->source_type === DefenseEvaluationRound::class && $lockedInstance->source) {
                     app(FinalizeDefenseEvaluationRound::class)->handle($lockedInstance->source);
                 }
@@ -208,5 +221,98 @@ class ApplyOfficialFormSignature
                 throw $e;
             }
         });
+    }
+
+    private function advanceRes026AfterSignature(OfficialFormInstance $instance, OfficialFormSignature $signature, User $actor): void
+    {
+        $presentation = TitlePresentation::query()->lockForUpdate()->where('official_form_instance_id', $instance->id)->firstOrFail();
+
+        if (in_array($signature->academic_action, ['sign_chairperson', 'sign_member_1', 'sign_member_2'], true)) {
+            $required = ['sign_chairperson', 'sign_member_1', 'sign_member_2'];
+            $signed = OfficialFormSignature::query()
+                ->where('official_form_version_id', $presentation->official_form_version_id)
+                ->whereIn('academic_action', $required)
+                ->distinct()
+                ->pluck('academic_action')
+                ->all();
+            if (count(array_intersect($required, $signed)) === 3) {
+                $presentation->update(['status' => 'awaiting_program_coordinator']);
+            }
+            $event = 'RES026_PANEL_SIGNED';
+        } elseif ($signature->academic_action === 'endorse') {
+            $presentation->update(['status' => 'awaiting_dean']);
+            $event = 'RES026_COORDINATOR_ACTION';
+        } elseif ($signature->academic_action === 'approve') {
+            $this->finalizeCanonicalTitle($presentation, $actor);
+            $event = 'RES026_DEAN_ACTION';
+        } else {
+            return;
+        }
+
+        AuditLog::query()->create([
+            'user_id' => $actor->id,
+            'actor_name' => $actor->name,
+            'actor_email' => $actor->email,
+            'event' => $event,
+            'auditable_type' => TitlePresentation::class,
+            'auditable_id' => $presentation->id,
+            'description' => "Recorded {$signature->academic_action} digital signature on RES-026.",
+            'subject_snapshot' => ['academic_actor_type' => $signature->actor_type, 'official_form_signature_id' => $signature->id],
+        ]);
+    }
+
+    private function finalizeCanonicalTitle(TitlePresentation $presentation, User $actor): void
+    {
+        if ($presentation->status !== 'awaiting_dean' || $presentation->approved_title_number === null) {
+            throw new InvalidArgumentException('RES-026 is not ready for final Dean approval.');
+        }
+
+        $version = $presentation->formVersion()->lockForUpdate()->firstOrFail();
+        $topics = array_values($version->payload['topics'] ?? []);
+        $approvedTitle = trim((string) ($topics[$presentation->approved_title_number - 1] ?? ''));
+        if ($approvedTitle === '') {
+            throw new InvalidArgumentException('The approved title cannot be derived from the exact submitted RES-026 version.');
+        }
+
+        $group = ResearchClassGroup::query()->lockForUpdate()->findOrFail($presentation->defense->research_class_group_id);
+        $group = $this->ensureCanonicalResearchGroup->handle($group, $actor);
+
+        $project = DB::table('research_projects')->where('research_group_id', $group->research_group_id)->lockForUpdate()->first();
+        if ($project === null) {
+            DB::table('research_projects')->insert([
+                'research_group_id' => $group->research_group_id,
+                'title' => $approvedTitle,
+                'status' => 'approved',
+                'created_by' => $actor->id,
+                'approved_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } else {
+            DB::table('research_projects')->where('id', $project->id)->update([
+                'title' => $approvedTitle,
+                'status' => 'approved',
+                'approved_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $presentation->update(['status' => 'finalized', 'finalized_at' => now(), 'finalized_by' => $actor->id]);
+
+        $this->synchronizeMilestone->complete(
+            $group,
+            'research-title-presentation',
+            $actor,
+            'official_form',
+            $presentation->official_form_instance_id,
+            'Finalized RES-026 Research Title Approval with all required digital signatures.',
+        );
+
+        AuditLog::query()->create([
+            'user_id' => $actor->id, 'actor_name' => $actor->name, 'actor_email' => $actor->email,
+            'event' => 'CANONICAL_TITLE_FINALIZED', 'auditable_type' => TitlePresentation::class, 'auditable_id' => $presentation->id,
+            'description' => 'Finalized the canonical research title from the exact approved RES-026 title option.',
+            'subject_snapshot' => ['academic_actor_type' => 'dean', 'approved_title_number' => $presentation->approved_title_number, 'official_form_version_id' => $version->id],
+        ]);
     }
 }

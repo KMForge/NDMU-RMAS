@@ -3,12 +3,15 @@
 namespace App\Modules\OfficialForms\Actions;
 
 use App\Enums\AccountStatus;
+use App\Enums\DocumentStage;
+use App\Enums\DocumentStatus;
 use App\Enums\UserType;
 use App\Models\AuditLog;
 use App\Models\ConsultationRecord;
 use App\Models\Defense;
 use App\Models\DefensePanelAssignment;
 use App\Models\DefenseSchedule;
+use App\Models\Document;
 use App\Models\DocumentReview;
 use App\Models\OfficialFormActorAssignment;
 use App\Models\OfficialFormDefinition;
@@ -35,6 +38,7 @@ class CreateOfficialFormInstance
      */
     /** @var array<string, list<string>> */
     public const FORM_ALLOWED_SOURCE_TYPES = [
+        'RES-026' => [Document::class],
         'RES-031' => [ConsultationRecord::class],
         'RES-036' => [DefenseSchedule::class],
         'RES-037' => [DefenseEvaluationRound::class],
@@ -92,6 +96,23 @@ class CreateOfficialFormInstance
 
         $group = $groupId !== null ? ResearchClassGroup::query()->find($groupId) : null;
         $class = $classId !== null ? ResearchClass::query()->find($classId) : null;
+
+        if ($formCodeUpper === 'RES-026' && $group !== null && $sourceType === null) {
+            $approvedDocument = Document::query()
+                ->where('research_class_group_id', $group->id)
+                ->where('document_stage', DocumentStage::TitleProposal->value)
+                ->where('status', DocumentStatus::ApprovedForPresentation->value)
+                ->where('is_current', true)
+                ->latest('version_number')
+                ->first();
+
+            if ($approvedDocument === null) {
+                throw new InvalidArgumentException('Your Title Proposal document must first be approved for Title Presentation.');
+            }
+
+            $sourceType = Document::class;
+            $sourceId = $approvedDocument->id;
+        }
 
         $this->validateOwnershipScope($definition, $groupId, $classId);
 
@@ -175,7 +196,7 @@ class CreateOfficialFormInstance
                 'user_id' => $initiator->id,
                 'actor_name' => $initiator->name,
                 'actor_email' => $initiator->email,
-                'event' => 'official_form.created',
+                'event' => strtoupper($definition->code) === 'RES-026' ? 'RES026_CREATED' : 'official_form.created',
                 'auditable_type' => OfficialFormInstance::class,
                 'auditable_id' => $instance->id,
                 'description' => "Created official form instance {$definition->code} (v1).",
@@ -264,6 +285,15 @@ class CreateOfficialFormInstance
             $record = ConsultationRecord::query()->find($sourceId);
             if (! $record || $record->consulted_at === null || $record->is_superseded || ($groupId !== null && (int) $record->research_class_group_id !== (int) $groupId)) {
                 throw new InvalidArgumentException('Source ConsultationRecord does not belong to the specified group.');
+            }
+        } elseif ($sourceType === Document::class) {
+            $document = Document::query()->lockForUpdate()->find($sourceId);
+            if (! $document
+                || $document->document_stage !== DocumentStage::TitleProposal
+                || $document->status !== DocumentStatus::ApprovedForPresentation
+                || ! $document->is_current
+                || ($groupId !== null && (int) $document->research_class_group_id !== (int) $groupId)) {
+                throw new InvalidArgumentException('RES-026 requires the current approved Title Proposal document for this research group.');
             }
         } elseif ($sourceType === DocumentReview::class) {
             /** @var DocumentReview|null $review */

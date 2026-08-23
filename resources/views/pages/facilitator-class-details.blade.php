@@ -343,32 +343,95 @@
 
             <!-- Unassigned Students Section -->
             @if ($unassignedCollection->isNotEmpty())
-                <section class="overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/50 shadow-sm p-6 space-y-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-2 h-7 rounded-full bg-amber-500"></div>
-                        <div>
-                            <h2 class="text-base font-bold text-amber-900">Unassigned Enrolled Students ({{ $unassignedCollection->count() }})</h2>
-                            <p class="text-xs text-amber-700">These active class members are not yet assigned to any research group.</p>
+                <section
+                    class="overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/50 shadow-sm p-6 space-y-4"
+                    x-data="{
+                        selectedStudents: [],
+                        allIds: {{ json_encode($unassignedCollection->pluck('id')->all()) }},
+                        toggleAll() {
+                            if (this.selectedStudents.length === this.allIds.length) {
+                                this.selectedStudents = [];
+                            } else {
+                                this.selectedStudents = [...this.allIds];
+                            }
+                        }
+                    }"
+                >
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-7 rounded-full bg-amber-500"></div>
+                            <div>
+                                <h2 class="text-base font-bold text-amber-900">Unassigned Enrolled Students ({{ $unassignedCollection->count() }})</h2>
+                                <p class="text-xs text-amber-700">Select multiple students to assign them into a research group at once.</p>
+                            </div>
                         </div>
+
+                        @if ($groupsCollection->isNotEmpty())
+                            <form method="POST" action="{{ route('facilitator.classes.groups.students.bulk-assign', $researchClass) }}" class="flex flex-wrap items-center gap-2 bg-white/80 p-2 rounded-xl border border-amber-200 shadow-2xs">
+                                @csrf
+                                <template x-for="id in selectedStudents" :key="id">
+                                    <input type="hidden" name="enrollment_ids[]" :value="id">
+                                </template>
+
+                                <select name="group_id" required class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold focus:border-[#0e5c3a] focus:outline-none">
+                                    @foreach ($groupsCollection as $grpOpt)
+                                        <option value="{{ $grpOpt->id }}">{{ $grpOpt->name }} ({{ $grpOpt->members->count() }}/4 members)</option>
+                                    @endforeach
+                                </select>
+
+                                <button
+                                    type="submit"
+                                    :disabled="selectedStudents.length === 0"
+                                    class="inline-flex items-center gap-1.5 rounded-lg bg-[#0e5c3a] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#0a4a2e] disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+                                >
+                                    <i class="ph ph-user-plus text-sm"></i>
+                                    <span>Assign Selected (<span x-text="selectedStudents.length">0</span>)</span>
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2 border-t border-amber-200/60">
+                        <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-bold text-amber-900 select-none">
+                            <input
+                                type="checkbox"
+                                :checked="selectedStudents.length === allIds.length && allIds.length > 0"
+                                @change="toggleAll()"
+                                class="rounded border-amber-300 text-[#0e5c3a] focus:ring-[#0e5c3a] h-4 w-4"
+                            >
+                            <span>Select All ({{ $unassignedCollection->count() }})</span>
+                        </label>
+                        <span x-show="selectedStudents.length > 0" class="text-xs font-semibold text-[#0e5c3a]" x-cloak>
+                            <span x-text="selectedStudents.length"></span> student(s) selected
+                        </span>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         @foreach ($unassignedCollection as $unEnr)
-                            <div class="flex items-center justify-between bg-white rounded-xl p-4 border border-amber-150 shadow-2xs">
-                                <div>
-                                    <p class="text-xs font-bold text-gray-800">{{ $unEnr->student?->name }}</p>
-                                    <p class="text-[10px] text-gray-500">{{ $unEnr->student?->email }}</p>
+                            <div class="flex items-center justify-between bg-white rounded-xl p-4 border border-amber-150 shadow-2xs hover:border-amber-300 transition-colors">
+                                <div class="flex items-center gap-3 min-w-0 pr-2">
+                                    <input
+                                        type="checkbox"
+                                        value="{{ $unEnr->id }}"
+                                        x-model.number="selectedStudents"
+                                        class="rounded border-gray-300 text-[#0e5c3a] focus:ring-[#0e5c3a] h-4 w-4 cursor-pointer shrink-0"
+                                    >
+                                    <div class="min-w-0">
+                                        <p class="text-xs font-bold text-gray-800 truncate">{{ $unEnr->student?->name }}</p>
+                                        <p class="text-[10px] text-gray-500 truncate">{{ $unEnr->student?->email }}</p>
+                                    </div>
                                 </div>
+
                                 @if ($groupsCollection->isNotEmpty())
-                                    <form method="POST" action="{{ route('facilitator.classes.groups.students.assign', [$researchClass, $groupsCollection->first(), $unEnr]) }}" x-data="{ targetGroup: '{{ $groupsCollection->first()?->id }}' }" :action="'/facilitator/classes/{{ $researchClass->id }}/groups/' + targetGroup + '/students/{{ $unEnr->id }}'" class="flex items-center gap-2">
+                                    <form method="POST" action="{{ route('facilitator.classes.groups.students.bulk-assign', $researchClass) }}" class="flex items-center gap-1.5 shrink-0">
                                         @csrf
-                                        @method('PUT')
-                                        <select x-model="targetGroup" class="rounded-lg border border-gray-200 px-2 py-1 text-[11px] focus:outline-none">
+                                        <input type="hidden" name="enrollment_ids[]" value="{{ $unEnr->id }}">
+                                        <select name="group_id" class="rounded-lg border border-gray-200 px-2 py-1 text-[11px] focus:outline-none max-w-28 truncate">
                                             @foreach ($groupsCollection as $grpOpt)
                                                 <option value="{{ $grpOpt->id }}">{{ $grpOpt->name }}</option>
                                             @endforeach
                                         </select>
-                                        <button type="submit" class="rounded-lg bg-[#0e5c3a] px-2.5 py-1 text-[11px] font-bold text-white hover:bg-[#0a4a2e]">Assign</button>
+                                        <button type="submit" class="rounded-lg bg-[#0e5c3a] px-2.5 py-1 text-[11px] font-bold text-white hover:bg-[#0a4a2e] shrink-0">Assign</button>
                                     </form>
                                 @endif
                             </div>

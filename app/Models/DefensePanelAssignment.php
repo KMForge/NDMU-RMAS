@@ -9,9 +9,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'defense_id',
     'user_id',
+    'panel_position',
     'assigned_by',
     'assigned_at',
     'ended_at',
+    'change_reason',
 ])]
 class DefensePanelAssignment extends Model
 {

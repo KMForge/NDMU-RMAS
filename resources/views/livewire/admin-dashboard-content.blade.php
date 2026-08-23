@@ -102,7 +102,10 @@
                         <i class="ph ph-users text-lg"></i>
                         <span>User Management</span>
                     </div>
-                    <span x-show="['users', 'assign-roles'].includes(activeTab)" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['users'] ?? 0" label="student registrations awaiting approval" />
+                        <span x-show="['users', 'assign-roles'].includes(activeTab)" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    </div>
                 </button>
 
                 <button
@@ -208,7 +211,10 @@
                         <i class="ph ph-bell text-lg"></i>
                         <span>Notifications</span>
                     </div>
-                    <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['notifications'] ?? 0" label="unread notifications" />
+                        <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    </div>
                 </button>
 
                 <button 
@@ -2540,6 +2546,20 @@
                     @endif
                 </div>
 
+                @if ($successMessage)
+                    <div class="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-900 shadow-sm animate-fade-in">
+                        <div class="flex items-center gap-3">
+                            <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-600 text-white text-base">
+                                <i class="ph ph-check-bold"></i>
+                            </div>
+                            <span>{{ $successMessage }}</span>
+                        </div>
+                        <button type="button" wire:click="$set('successMessage', null)" class="text-emerald-700 hover:text-emerald-900">
+                            <i class="ph ph-x text-lg"></i>
+                        </button>
+                    </div>
+                @endif
+
                 <form wire:submit="saveSystemSettings" class="space-y-6">
                     <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
                         <section class="rounded-[2rem] border border-gray-100 bg-white p-7 shadow-sm">
@@ -2571,12 +2591,18 @@
                         </section>
 
                         <section class="rounded-[2rem] border border-gray-100 bg-white p-7 shadow-sm">
-                            <div class="mb-6 flex items-center gap-3">
-                                <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-xl text-amber-600"><i class="ph ph-calendar-dots"></i></div>
-                                <div>
-                                    <h2 class="font-heading text-lg font-extrabold text-gray-800">Current Academic Cycle</h2>
-                                    <p class="text-xs text-gray-500">Select the year and term used by active research workflows.</p>
+                            <div class="mb-6 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-xl text-amber-600"><i class="ph ph-calendar-dots"></i></div>
+                                    <div>
+                                        <h2 class="font-heading text-lg font-extrabold text-gray-800">Current Academic Cycle</h2>
+                                        <p class="text-xs text-gray-500">Select the year and term used by active research workflows.</p>
+                                    </div>
                                 </div>
+                                <button type="button" wire:click="openAcademicYearModal" class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-700 transition hover:bg-gray-100 hover:text-gray-900">
+                                    <i class="ph ph-plus-circle text-sm text-[#0e5c3a]"></i>
+                                    <span>New Academic Year</span>
+                                </button>
                             </div>
 
                             <div class="space-y-5">
@@ -2601,7 +2627,14 @@
                                     @error('settingsAcademicTermId') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                                 </div>
                                 @if ($academicYears->isEmpty())
-                                    <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-800">No academic years exist yet. Seed or create an academic year before selecting the active cycle.</div>
+                                    <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-800 space-y-3">
+                                        <p>No academic years exist yet. Seed default terms or create a new academic year before selecting the active cycle.</p>
+                                        <div class="flex gap-2">
+                                            <button type="button" wire:click="seedAcademicCycle" class="inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:bg-amber-700 transition">
+                                                <i class="ph ph-sparkle"></i> Seed Default Academic Cycle
+                                            </button>
+                                        </div>
+                                    </div>
                                 @endif
                             </div>
                         </section>
@@ -3056,6 +3089,51 @@
                     </div>
                 </div>
             </div>
+
+            <!-- CREATE ACADEMIC YEAR MODAL -->
+            @if ($showAcademicYearModal)
+            <div class="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto outline-none focus:outline-none">
+                <div wire:click="closeAcademicYearModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+                <div class="relative w-full max-w-md mx-auto my-6 z-10 px-4">
+                    <div class="relative flex flex-col w-full bg-white border border-gray-150 rounded-[2rem] shadow-2xl overflow-hidden">
+                        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+                            <h3 class="text-lg font-bold text-gray-800">Create Academic Year</h3>
+                            <button type="button" wire:click="closeAcademicYearModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                                <i class="ph ph-x text-xl"></i>
+                            </button>
+                        </div>
+                        <form wire:submit="createAcademicYear" class="p-6 space-y-4">
+                            <div>
+                                <label for="new-academic-year-name" class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-600">Academic Year Name *</label>
+                                <input id="new-academic-year-name" type="text" wire:model="newAcademicYearName" placeholder="e.g., 2026–2027" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all">
+                                @error('newAcademicYearName') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="new-academic-year-start" class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-600">Start Date *</label>
+                                    <input id="new-academic-year-start" type="date" wire:model="newAcademicYearStartDate" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all">
+                                    @error('newAcademicYearStartDate') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label for="new-academic-year-end" class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-600">End Date *</label>
+                                    <input id="new-academic-year-end" type="date" wire:model="newAcademicYearEndDate" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all">
+                                    @error('newAcademicYearEndDate') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
+                            <p class="text-[11px] text-gray-500">Creating an Academic Year automatically initializes standard First and Second Semester terms.</p>
+                            <div class="pt-4 flex items-center justify-end gap-3 border-t border-gray-100">
+                                <button type="button" wire:click="closeAcademicYearModal" class="px-5 py-2.5 border border-gray-200 text-gray-500 hover:text-gray-700 text-xs font-bold rounded-2xl transition-all">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-2xl flex items-center gap-2 transition-all">
+                                    <i class="ph ph-plus-circle text-base"></i> Create Academic Year
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            @endif
         </main>
     </div>
 </div>

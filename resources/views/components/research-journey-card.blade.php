@@ -82,7 +82,13 @@
                             {{ $journey['next_action']['label'] }}
                         </div>
                         <p class="text-xs text-slate-500 mb-4">
-                            Form: <code class="px-1.5 py-0.5 bg-slate-100 font-mono text-slate-800 rounded">{{ strtoupper($journey['next_action']['form_code'] ?? 'N/A') }}</code>
+                            @if(($journey['next_action']['action_type'] ?? 'form') === 'document')
+                                Requirement: <span class="font-semibold text-slate-700">Title Proposal Document</span>
+                            @elseif(($journey['next_action']['action_type'] ?? 'form') === 'presentation')
+                                Activity: <span class="font-semibold text-slate-700">Title Presentation</span>
+                            @else
+                                Form: <code class="px-1.5 py-0.5 bg-slate-100 font-mono text-slate-800 rounded">{{ strtoupper($journey['next_action']['form_code'] ?? 'N/A') }}</code>
+                            @endif
                             (Role: <span class="capitalize text-emerald-700 font-medium">{{ str_replace('_', ' ', $journey['next_action']['actor_type']) }}</span>)
                         </p>
                     @else
@@ -105,15 +111,15 @@
         <!-- 13-Stage Timeline Preview -->
         <div class="mt-6 pt-6 border-t border-slate-200">
             <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Lifecycle Stages Timeline</div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 lg:grid-cols-13 gap-1.5 text-center">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7 gap-2 text-center">
                 @foreach($journey['stages'] as $sNum => $sDetails)
-                    <div class="p-2 rounded border text-xs flex flex-col items-center justify-center transition-colors
+                    <div class="min-h-20 p-3 rounded-lg border text-xs flex flex-col items-center justify-center transition-colors
                         {{ $sDetails['is_completed'] ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-semibold' : ($sNum === $journey['current_stage'] ? 'bg-blue-50 border-blue-400 text-blue-900 font-bold ring-2 ring-blue-300/50' : 'bg-white border-slate-200 text-slate-400') }}">
                         <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] mb-1 font-bold
                             {{ $sDetails['is_completed'] ? 'bg-emerald-600 text-white' : ($sNum === $journey['current_stage'] ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500') }}">
                             {{ $sNum }}
                         </span>
-                        <span class="truncate w-full text-[10px]" title="{{ $sDetails['name'] }}">{{ Str::limit($sDetails['name'], 12) }}</span>
+                        <span class="w-full text-[11px] leading-4 whitespace-normal break-words" title="{{ $sDetails['name'] }}">{{ $sDetails['name'] }}</span>
                     </div>
                 @endforeach
             </div>

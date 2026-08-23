@@ -26,6 +26,8 @@ class StudentOfficialFormsTest extends TestCase
         $this->actingAs($student)
             ->get(route('student.dashboard', ['tab' => 'forms', 'form' => 'RES-026']))
             ->assertOk()
+            ->assertSee("activeTab: 'forms'", false)
+            ->assertSee('queuePersistTab(tab)', false)
             ->assertSee('RES-026')
             ->assertSee("activeOfficialForm = 'RES-026'", false)
             ->assertSee('Research Title Approval')

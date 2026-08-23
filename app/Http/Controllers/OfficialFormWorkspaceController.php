@@ -3,8 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Enums\AccountStatus;
+use App\Enums\DocumentStage;
+use App\Enums\DocumentStatus;
 use App\Enums\UserType;
 use App\Models\ConsultationRecord;
+use App\Models\DefenseRoom;
+use App\Models\Document;
 use App\Models\DocumentReview;
 use App\Models\OfficialFormActorAssignment;
 use App\Models\OfficialFormDefinition;
@@ -13,6 +17,7 @@ use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupMember;
 use App\Models\RevisionRequest;
+use App\Models\User;
 use App\Models\UserSignature;
 use App\Modules\OfficialForms\Actions\ApplyOfficialFormSignature;
 use App\Modules\OfficialForms\Actions\ApproveOfficialForm;
@@ -52,6 +57,11 @@ class OfficialFormWorkspaceController extends Controller
             'pendingInstances' => $pendingInstances,
             'contexts' => $this->availableContexts($request),
             'definitions' => OfficialFormDefinition::query()->where('is_active', true)->orderBy('sort_order')->get(),
+            'res026UnlockedGroupIds' => Document::query()
+                ->where('document_stage', DocumentStage::TitleProposal->value)
+                ->where('status', DocumentStatus::ApprovedForPresentation->value)
+                ->where('is_current', true)
+                ->pluck('research_class_group_id'),
         ]);
     }
 
@@ -60,9 +70,10 @@ class OfficialFormWorkspaceController extends Controller
         $this->authorize('view', $instance);
 
         $instance->load([
-            'definition', 'currentVersion', 'versions.creator', 'group.members.student', 'group.researchGroup',
+            'definition', 'currentVersion.signatures', 'versions.creator', 'group.members.student', 'group.researchGroup',
             'group.leader', 'group.adviser', 'group.researchClass.officialFormActorAssignments.user',
             'researchClass.officialFormActorAssignments.user', 'actorAssignments.user', 'source',
+            'titlePresentation.defense.currentSchedule.room', 'titlePresentation.defense.activePanelAssignments.user',
         ]);
 
         $canManageActors = Gate::forUser($request->user())->allows('assignActor', $instance);
@@ -82,19 +93,39 @@ class OfficialFormWorkspaceController extends Controller
             return [$actorType => $eligibleFaculty->filter(fn (User $candidate): bool => $permissions === []
                 || collect($permissions)->contains(fn (string $permission): bool => $candidate->hasPermissionTo($permission)))->values()];
         });
+        $isOwningFacilitator = $instance->group?->researchClass !== null
+            && (int) $instance->group->researchClass->facilitator_id === (int) $request->user()->id
+            && $request->user()->can('defenses.manage');
+        $titlePanelCandidates = $isOwningFacilitator && strtoupper($instance->definition->code) === 'RES-026'
+            ? User::query()
+                ->where('user_type', UserType::Faculty)
+                ->where('status', AccountStatus::Active)
+                ->whereNotNull('approved_at')
+                ->whereNotNull('email_verified_at')
+                ->permission('evaluations.create')
+                ->orderBy('name')
+                ->get(['id', 'name', 'email'])
+            : collect();
 
         return view('pages.official-forms.workspace-show', [
             'instance' => $instance,
             'payload' => $instance->currentVersion?->payload ?? [],
             'canManageActors' => $canManageActors,
             'actorOptions' => $actorOptions,
-            'availableActions' => collect(['endorse', 'receive', 'approve', 'certify', 'validate', 'review', 'sign'])
+            'isOwningFacilitator' => $isOwningFacilitator,
+            'titlePanelCandidates' => $titlePanelCandidates,
+            'defenseRooms' => $isOwningFacilitator ? DefenseRoom::query()->where('is_active', true)->orderBy('name')->get() : collect(),
+            'availableActions' => collect(['sign_chairperson', 'sign_member_1', 'sign_member_2', 'endorse', 'receive', 'approve', 'certify', 'validate', 'review', 'sign'])
                 ->filter(function (string $action) use ($request, $instance): bool {
                     $transition = app(OfficialFormAuthorization::class)->transitionFor($instance, $action);
 
                     return $transition !== null
                         && in_array($instance->status, $transition['from'], true)
-                        && Gate::forUser($request->user())->allows($action, $instance);
+                        && Gate::forUser($request->user())->allows($action, $instance)
+                        && ! $instance->currentVersion?->signatures->contains(
+                            fn ($signature): bool => (int) $signature->signer_user_id === (int) $request->user()->id
+                                && $signature->academic_action === $action,
+                        );
                 })
                 ->values(),
         ]);
@@ -344,13 +375,26 @@ class OfficialFormWorkspaceController extends Controller
 
         return $this->visibleInstances($request)
             ->filter(function (OfficialFormInstance $instance) use ($user, $authorization): bool {
-                return collect(['endorse', 'receive', 'approve', 'certify', 'validate'])
+                return collect([
+                    'sign_chairperson',
+                    'sign_member_1',
+                    'sign_member_2',
+                    'endorse',
+                    'receive',
+                    'approve',
+                    'certify',
+                    'validate',
+                ])
                     ->contains(function (string $action) use ($user, $instance, $authorization): bool {
                         $transition = $authorization->transitionFor($instance, $action);
 
                         return $transition !== null
                             && in_array($instance->status, $transition['from'], true)
-                            && Gate::forUser($user)->allows($action, $instance);
+                            && Gate::forUser($user)->allows($action, $instance)
+                            && ! $instance->currentVersion?->signatures->contains(
+                                fn ($signature): bool => (int) $signature->signer_user_id === (int) $user->id
+                                    && $signature->academic_action === $action,
+                            );
                     });
             })
             ->values();
@@ -360,7 +404,7 @@ class OfficialFormWorkspaceController extends Controller
     private function visibleInstances(Request $request): Collection
     {
         return OfficialFormInstance::query()
-            ->with(['definition', 'currentVersion', 'group.researchClass', 'researchClass'])
+            ->with(['definition', 'currentVersion.signatures', 'group.researchClass', 'researchClass'])
             ->where(function ($query) use ($request): void {
                 $userId = $request->user()->id;
                 $query->where('initiated_by', $userId)
@@ -371,7 +415,8 @@ class OfficialFormWorkspaceController extends Controller
                         ->orWhereHas('researchClass', fn ($class) => $class->where('facilitator_id', $userId)
                             ->orWhereHas('officialFormActorAssignments', fn ($actors) => $actors->where('user_id', $userId)->where('status', 'active'))))
                     ->orWhereHas('researchClass', fn ($q) => $q->where('facilitator_id', $userId)
-                        ->orWhereHas('officialFormActorAssignments', fn ($actors) => $actors->where('user_id', $userId)->where('status', 'active')));
+                        ->orWhereHas('officialFormActorAssignments', fn ($actors) => $actors->where('user_id', $userId)->where('status', 'active')))
+                    ->orWhereHas('titlePresentation.defense.activePanelAssignments', fn ($panel) => $panel->where('user_id', $userId));
 
                 if ($request->user()->can('users.manage') || $request->user()->can('dashboards.dean.view') || $request->user()->hasRole('college-dean') || $request->user()->hasRole('dean')) {
                     $query->orWhereNotNull('id');

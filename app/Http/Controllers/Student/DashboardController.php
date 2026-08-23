@@ -85,9 +85,20 @@ class DashboardController extends Controller
             })
             ->all();
 
-        $activeGroup = $data['activeGroup'] ?? $request->user()->researchGroups()->first();
+        $activeGroup = $data['activeGroup'] ?? null;
         $journey = $activeGroup ? $journeyService->getJourneyForGroup($activeGroup, $request->user()) : null;
         $pendingAcademicActions = $pendingActionsService->execute($request->user());
+
+        $data['sidebarBadges'] = [
+            'consultation' => $pendingConsultationsCount,
+            'revisions' => collect($data['revisions'] ?? [])
+                ->whereIn('status', ['open', 'in_progress'])
+                ->count(),
+            'forms' => $pendingAcademicActions->count(),
+            'notifications' => Schema::hasTable('notifications')
+                ? $request->user()->unreadNotifications()->count()
+                : 0,
+        ];
 
         return view('pages.student-dashboard', [
             'area' => 'Student Portal',

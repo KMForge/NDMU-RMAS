@@ -100,7 +100,17 @@ Route::middleware(['auth', 'verified', 'active'])
             ->whereNumber('instance')->whereIn('action', ['endorse', 'receive', 'approve', 'certify', 'validate'])
             ->middleware('throttle:30,1')->name('action');
         Route::post('/instances/{instance}/actions/{action}/sign', [OfficialFormWorkspaceController::class, 'signAction'])
-            ->whereNumber('instance')->whereIn('action', ['endorse', 'receive', 'approve', 'certify', 'validate', 'sign_authorship'])
+            ->whereNumber('instance')->whereIn('action', [
+                'endorse',
+                'receive',
+                'approve',
+                'certify',
+                'validate',
+                'sign_authorship',
+                'sign_chairperson',
+                'sign_member_1',
+                'sign_member_2',
+            ])
             ->middleware('throttle:30,1')->name('sign-action');
         Route::get('/signatures/{signature}/image', [OfficialFormSignatureController::class, 'image'])
             ->whereNumber('signature')->middleware('throttle:120,1')->name('signature-image');

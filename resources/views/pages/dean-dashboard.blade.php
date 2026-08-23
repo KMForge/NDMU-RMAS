@@ -1,5 +1,10 @@
 @extends('layouts.blank')
 
+@php
+    $allowedTabs = ['dashboard', 'pending', 'manuscript', 'appointments', 'schedule', 'reports', 'repository', 'notifications', 'settings'];
+    $initialTab = in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard';
+@endphp
+
 @section('content')
 <style>
     [x-cloak] { display: none !important; }
@@ -20,7 +25,18 @@
 </style>
 
 <div class="min-h-screen flex font-sans bg-[#f4f7f6]" x-data="{ 
-    activeTab: 'dashboard',
+    activeTab: @js($initialTab),
+    dashboardUrl: @js(route('dean.dashboard')),
+    persistTab(tab) {
+        const url = new URL(this.dashboardUrl, window.location.origin);
+        url.searchParams.set('tab', tab);
+
+        if (`${url.pathname}${url.search}` === `${window.location.pathname}${window.location.search}`) return;
+
+        window.Livewire?.navigate
+            ? window.Livewire.navigate(url.toString())
+            : window.location.assign(url.toString());
+    },
     notificationsFilter: 'all',
     showDetailsModal: false,
     selectedRequest: null,
@@ -288,7 +304,11 @@
             unread: false
         }
     ]
-}">
+}"
+    x-init="$watch('activeTab', (tab, previousTab) => {
+        if (tab !== previousTab) $nextTick(() => persistTab(tab));
+    })"
+>
     <!-- Left Sidebar: Navigation -->
     <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5 overflow-y-auto">
         <div class="flex-shrink-0">
@@ -344,9 +364,7 @@
                         <span>Pending Approvals</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        @if (isset($pendingFormInstances) && $pendingFormInstances->count() > 0)
-                            <span class="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[10px] font-black text-white shadow-sm">{{ $pendingFormInstances->count() }}</span>
-                        @endif
+                        <x-sidebar-count-badge :count="$sidebarBadges['pending'] ?? 0" label="approvals requiring attention" />
                         <span x-show="activeTab === 'pending'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                     </div>
                 </button>
@@ -430,9 +448,7 @@
                         <span>Official Forms Workspace</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        @if (isset($pendingFormInstances) && $pendingFormInstances->count() > 0)
-                            <span class="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[10px] font-black text-white shadow-sm">{{ $pendingFormInstances->count() }}</span>
-                        @endif
+                        <x-sidebar-count-badge :count="$sidebarBadges['forms'] ?? 0" label="forms awaiting approval" />
                         <i class="ph ph-caret-right text-xs text-white/60"></i>
                     </div>
                 </a>
@@ -451,7 +467,10 @@
                         <i class="ph ph-bell text-lg"></i>
                         <span>Notifications</span>
                     </div>
-                    <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['notifications'] ?? 0" label="unread notifications" />
+                        <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    </div>
                 </a>
                 
                 <!-- Settings -->

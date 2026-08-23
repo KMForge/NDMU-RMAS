@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 #[Fillable([
@@ -65,5 +66,10 @@ class OfficialFormInstance extends Model
     public function source(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    public function titlePresentation(): HasOne
+    {
+        return $this->hasOne(TitlePresentation::class, 'official_form_instance_id');
     }
 }
