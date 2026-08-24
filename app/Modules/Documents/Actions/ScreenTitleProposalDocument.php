@@ -12,12 +12,17 @@ use App\Models\DocumentReview;
 use App\Models\DocumentReviewAudit;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class ScreenTitleProposalDocument
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications,
+    ) {}
+
     public function handle(User $actor, Document $document, string $decision, ?string $remarks, ?string $ipAddress = null): DocumentReview
     {
         if (! in_array($decision, ['revision_required', 'approved_for_presentation'], true)) {
@@ -83,6 +88,25 @@ class ScreenTitleProposalDocument
                 'description' => $decision === 'revision_required' ? 'Returned Title Proposal for revision.' : 'Approved Title Proposal for Title Presentation.',
                 'subject_snapshot' => ['academic_actor_type' => 'research_facilitator', 'group_id' => $group->id, 'version_number' => $locked->version_number],
             ]);
+
+            $students = $group->members()->with('student')->get()->pluck('student')->filter();
+            $decisionLabel = $decision === 'revision_required' ? 'requires revision' : 'was approved for presentation';
+
+            $this->notifications->sendToMany(
+                recipients: $students,
+                eventKey: "document.title-proposal.{$decision}",
+                title: 'Title proposal screening decision',
+                message: "Your group Title Proposal {$decisionLabel}.",
+                category: 'document',
+                routeName: 'student.dashboard',
+                routeParameters: ['tab' => 'proposal'],
+                sourceType: DocumentReview::class,
+                sourceId: $review->getKey(),
+                actor: $actor,
+                contextLabel: $group->name,
+                actingAs: 'Student Researcher',
+                occurrence: $status->value,
+            );
 
             return $review->load('reviewer:id,name');
         }, 3);

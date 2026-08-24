@@ -11,12 +11,17 @@ use App\Models\DefensePanelAssignment;
 use App\Models\DefenseSchedule;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class CancelDefense
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications = new WorkflowNotificationDispatcher,
+    ) {}
+
     public function handle(
         User $actor,
         Defense $defense,
@@ -78,6 +83,10 @@ class CancelDefense
             $lockedDefense->status = 'cancelled';
             $lockedDefense->save();
 
+            $panelUserIds = DefensePanelAssignment::where('defense_id', $lockedDefense->id)
+                ->whereNull('ended_at')
+                ->pluck('user_id');
+
             DefensePanelAssignment::where('defense_id', $lockedDefense->id)
                 ->whereNull('ended_at')
                 ->update(['ended_at' => now()]);
@@ -95,6 +104,39 @@ class CancelDefense
                     'reason' => $reason,
                 ],
             ]);
+
+            $students = $lockedGroup->members()->with('student')->get()->pluck('student')->filter();
+            $this->notifications->sendToMany(
+                recipients: $students,
+                eventKey: 'defense.cancelled',
+                title: 'Defense cancelled',
+                message: 'Your scheduled defense was cancelled. Open your defense schedule for current information.',
+                category: 'defense',
+                routeName: 'student.dashboard',
+                routeParameters: ['tab' => 'defense'],
+                sourceType: Defense::class,
+                sourceId: $lockedDefense->getKey(),
+                actor: $actor,
+                contextLabel: $lockedGroup->name,
+                actingAs: 'Student Researcher',
+                occurrence: 'cancelled',
+            );
+
+            $this->notifications->sendToMany(
+                recipients: User::query()->whereIn('id', $panelUserIds)->get(),
+                eventKey: 'defense.cancelled',
+                title: 'Assigned defense cancelled',
+                message: "{$lockedGroup->name}'s scheduled defense was cancelled.",
+                category: 'defense',
+                routeName: 'panelist.dashboard',
+                routeParameters: ['tab' => 'schedule'],
+                sourceType: Defense::class,
+                sourceId: $lockedDefense->getKey(),
+                actor: $actor,
+                contextLabel: $lockedGroup->name,
+                actingAs: 'Panel Member',
+                occurrence: 'cancelled',
+            );
 
             return $lockedDefense->fresh();
         });

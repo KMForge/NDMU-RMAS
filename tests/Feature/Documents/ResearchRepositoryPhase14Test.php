@@ -4,6 +4,8 @@ namespace Tests\Feature\Documents;
 
 use App\Enums\DocumentStage;
 use App\Enums\DocumentStatus;
+use App\Models\Defense;
+use App\Models\DefensePanelAssignment;
 use App\Models\Document;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
@@ -12,6 +14,7 @@ use App\Models\ResearchClassGroupMember;
 use App\Models\User;
 use App\Modules\Classes\Actions\DisbandResearchClassGroup;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
+use App\Modules\Documents\Queries\GetPanelistAssignedDocuments;
 use App\Policies\DocumentPolicy;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -128,6 +131,56 @@ class ResearchRepositoryPhase14Test extends TestCase
 
         $this->assertFalse(app(DocumentPolicy::class)->view($panelist, $document));
         $this->assertTrue(app(GetDocumentRepositoryData::class)->for($panelist, [])['repositoryDocuments']->isEmpty());
+    }
+
+    public function test_active_panelist_can_access_only_the_current_document_matching_the_assigned_defense_stage(): void
+    {
+        [$group, $facilitator, $leader] = $this->group();
+        $proposal = $this->document(
+            $leader,
+            $group,
+            'Assigned Proposal.pdf',
+            DocumentStage::ProposalDefense,
+            DocumentStatus::Accepted,
+        );
+        $final = $this->document(
+            $leader,
+            $group,
+            'Unassigned Final.pdf',
+            DocumentStage::FinalDefense,
+            DocumentStatus::Accepted,
+        );
+        $panelist = User::factory()->create();
+        $panelist->assignRole('panel-member');
+        $defense = Defense::query()->create([
+            'research_class_group_id' => $group->id,
+            'defense_type' => DocumentStage::ProposalDefense->value,
+            'status' => 'scheduled',
+            'created_by' => $facilitator->id,
+        ]);
+        $assignment = DefensePanelAssignment::query()->create([
+            'defense_id' => $defense->id,
+            'user_id' => $panelist->id,
+            'panel_position' => 'chairperson',
+            'assigned_by' => $facilitator->id,
+            'assigned_at' => now(),
+        ]);
+
+        $this->assertTrue(app(DocumentPolicy::class)->view($panelist, $proposal));
+        $this->assertFalse(app(DocumentPolicy::class)->view($panelist, $final));
+        $this->assertSame(
+            [$proposal->id],
+            app(GetPanelistAssignedDocuments::class)->for($panelist)->pluck('id')->all(),
+        );
+        $this->assertSame(
+            [$proposal->id],
+            app(GetDocumentRepositoryData::class)->for($panelist, [])['repositoryDocuments']->pluck('id')->all(),
+        );
+
+        $assignment->update(['ended_at' => now()]);
+
+        $this->assertFalse(app(DocumentPolicy::class)->view($panelist, $proposal));
+        $this->assertTrue(app(GetPanelistAssignedDocuments::class)->for($panelist)->isEmpty());
     }
 
     public function test_leader_change_keeps_group_ownership_and_historical_uploader_identity(): void

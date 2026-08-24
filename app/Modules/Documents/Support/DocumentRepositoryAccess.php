@@ -2,6 +2,7 @@
 
 namespace App\Modules\Documents\Support;
 
+use App\Models\Defense;
 use App\Models\Document;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -30,6 +31,10 @@ class DocumentRepositoryAccess
 
         if ($this->groupAccess->isActiveMember($user, $document)
             || $this->groupAccess->isHistoricalMember($user, $document)) {
+            return true;
+        }
+
+        if ($this->isActivePanelistForDocumentStage($user, $document)) {
             return true;
         }
 
@@ -78,7 +83,12 @@ class DocumentRepositoryAccess
                                 ->where('status', 'active')
                                 ->whereNull('disbanded_at'))
                             ->orWhereHas('researchClassGroup.researchClass', fn (Builder $class) => $class
-                                ->where('facilitator_id', $user->getKey()));
+                                ->where('facilitator_id', $user->getKey()))
+                            ->orWhereHas('researchClassGroup.defenses', fn (Builder $defense) => $defense
+                                ->whereColumn('defenses.defense_type', 'documents.document_stage')
+                                ->whereIn('defenses.status', ['scheduled', 'completed'])
+                                ->whereHas('activePanelAssignments', fn (Builder $assignment) => $assignment
+                                    ->where('user_id', $user->getKey())));
                     });
             })->orWhere(function (Builder $legacy) use ($user): void {
                 $legacy->whereNull('documents.research_class_group_id')
@@ -93,5 +103,20 @@ class DocumentRepositoryAccess
                     });
             });
         });
+    }
+
+    private function isActivePanelistForDocumentStage(User $user, Document $document): bool
+    {
+        if ($document->research_class_group_id === null || $document->document_stage === null) {
+            return false;
+        }
+
+        return Defense::query()
+            ->where('research_class_group_id', $document->research_class_group_id)
+            ->where('defense_type', $document->document_stage->value)
+            ->whereIn('status', ['scheduled', 'completed'])
+            ->whereHas('activePanelAssignments', fn (Builder $assignment) => $assignment
+                ->where('user_id', $user->getKey()))
+            ->exists();
     }
 }

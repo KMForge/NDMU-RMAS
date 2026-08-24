@@ -93,7 +93,7 @@ class DashboardController extends Controller
             'consultation' => $pendingConsultationsCount,
             'revisions' => collect($data['revisions'] ?? [])
                 ->whereIn('status', ['open', 'in_progress'])
-                ->count(),
+                ->count() + (int) ($data['documentFeedbackCount'] ?? 0),
             'forms' => $pendingAcademicActions->count(),
             'notifications' => Schema::hasTable('notifications')
                 ? $request->user()->unreadNotifications()->count()

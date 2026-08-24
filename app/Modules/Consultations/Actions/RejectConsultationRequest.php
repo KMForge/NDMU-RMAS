@@ -7,11 +7,16 @@ use App\Models\ConsultationAudit;
 use App\Models\ConsultationRequest;
 use App\Models\User;
 use App\Modules\Consultations\Exceptions\ConsultationException;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 class RejectConsultationRequest
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications,
+    ) {}
+
     public function handle(User $adviser, ConsultationRequest $request, string $reason): ConsultationRequest
     {
         if (! $adviser->can('consultations.manage-assigned')) {
@@ -57,6 +62,26 @@ class RejectConsultationRequest
                         'rejection_reason' => $reason,
                     ],
                 ]);
+
+                $student = User::query()->find($lockedRequest->requested_by);
+
+                if ($student !== null) {
+                    $this->notifications->send(
+                        recipient: $student,
+                        eventKey: 'consultation.rejected',
+                        title: 'Consultation request rejected',
+                        message: 'Your consultation request was rejected. Open Consultation Records for the recorded reason.',
+                        category: 'consultation',
+                        routeName: 'student.dashboard',
+                        routeParameters: ['tab' => 'consultation'],
+                        sourceType: ConsultationRequest::class,
+                        sourceId: $lockedRequest->getKey(),
+                        actor: $adviser,
+                        contextLabel: $lockedRequest->researchClassGroup?->name,
+                        actingAs: 'Student Researcher',
+                        occurrence: ConsultationStatus::Rejected->value,
+                    );
+                }
 
                 return $lockedRequest->fresh(['researchClassGroup', 'assignedAdviser', 'requester', 'reviewer']);
             }, 3);

@@ -132,7 +132,7 @@ class DashboardController extends Controller
             $viewData = [...$viewData, ...$reviewData->for(
                 $user,
                 (string) $request->query('document_search', ''),
-                (string) $request->query('document_status', 'needs_attention'),
+                (string) $request->query('document_status', 'all'),
                 $request->query('document_stage') ? (string) $request->query('document_stage') : null,
                 $request->query('document_group_id') ? (int) $request->query('document_group_id') : null,
                 $request->query('document_file_type') ? (string) $request->query('document_file_type') : null,
@@ -188,7 +188,7 @@ class DashboardController extends Controller
             'documentReviewComments' => new Collection,
             'documentReviewStats' => ['approved' => 0, 'revisions' => 0, 'comments' => 0, 'critical' => 0],
             'documentReviewSearch' => '',
-            'documentReviewStatus' => 'needs_attention',
+            'documentReviewStatus' => 'all',
             'documentReviewStage' => null,
             'documentReviewGroup' => null,
             'documentReviewFileType' => null,

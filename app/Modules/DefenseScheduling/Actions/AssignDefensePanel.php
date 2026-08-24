@@ -10,12 +10,17 @@ use App\Models\DefenseEvaluationRound;
 use App\Models\DefensePanelAssignment;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class AssignDefensePanel
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications = new WorkflowNotificationDispatcher,
+    ) {}
+
     public function handle(
         User $actor,
         Defense $defense,
@@ -154,6 +159,38 @@ class AssignDefensePanel
                     'ended_user_ids' => $toEnd,
                 ],
             ]);
+
+            $this->notifications->sendToMany(
+                recipients: User::query()->whereIn('id', $toAdd)->get(),
+                eventKey: 'defense.panel.assigned',
+                title: 'Defense panel assignment',
+                message: "You were assigned to {$lockedGroup->name}'s defense panel.",
+                category: 'defense',
+                routeName: 'panelist.dashboard',
+                routeParameters: ['tab' => 'schedule'],
+                sourceType: Defense::class,
+                sourceId: $lockedDefense->getKey(),
+                actor: $actor,
+                contextLabel: $lockedGroup->name,
+                actingAs: 'Panel Member',
+                occurrence: 'assigned',
+            );
+
+            $this->notifications->sendToMany(
+                recipients: User::query()->whereIn('id', $toEnd)->get(),
+                eventKey: 'defense.panel.removed',
+                title: 'Defense panel assignment removed',
+                message: "You are no longer assigned to {$lockedGroup->name}'s defense panel.",
+                category: 'defense',
+                routeName: 'panelist.dashboard',
+                routeParameters: ['tab' => 'schedule'],
+                sourceType: Defense::class,
+                sourceId: $lockedDefense->getKey(),
+                actor: $actor,
+                contextLabel: $lockedGroup->name,
+                actingAs: 'Panel Member',
+                occurrence: 'removed',
+            );
 
             return $lockedDefense->fresh(['activePanelAssignments.user']);
         });

@@ -7,12 +7,17 @@ use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupAdviserRequest;
 use App\Models\User;
 use App\Modules\Classes\Exceptions\ClassOperationException;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 class RequestAdviserForResearchClassGroup
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications,
+    ) {}
+
     public function handle(
         User $facilitator,
         ResearchClass $researchClass,
@@ -56,13 +61,30 @@ class RequestAdviserForResearchClassGroup
                     throw new ClassOperationException('This group already has a pending adviser request.');
                 }
 
-                return ResearchClassGroupAdviserRequest::query()->create([
+                $request = ResearchClassGroupAdviserRequest::query()->create([
                     'research_class_group_id' => $lockedGroup->getKey(),
                     'adviser_id' => $adviser->getKey(),
                     'requested_by' => $facilitator->getKey(),
                     'status' => 'pending',
                     'requested_at' => now(),
                 ]);
+
+                $this->notifications->send(
+                    recipient: $adviser,
+                    eventKey: 'adviser.invitation.received',
+                    title: 'Adviser invitation received',
+                    message: "You were invited to advise {$lockedGroup->name}.",
+                    category: 'class',
+                    routeName: 'adviser.dashboard',
+                    routeParameters: ['tab' => 'classes'],
+                    sourceType: ResearchClassGroupAdviserRequest::class,
+                    sourceId: $request->getKey(),
+                    actor: $facilitator,
+                    contextLabel: $lockedGroup->name,
+                    actingAs: 'Thesis Adviser',
+                );
+
+                return $request;
             }, 3);
         } catch (QueryException $exception) {
             report($exception);

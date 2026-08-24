@@ -11,6 +11,7 @@ use App\Models\DefenseRoom;
 use App\Models\DefenseSchedule;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,10 @@ use InvalidArgumentException;
 
 class ScheduleDefense
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications = new WorkflowNotificationDispatcher,
+    ) {}
+
     public function handle(
         User $actor,
         ResearchClassGroup $group,
@@ -207,6 +212,56 @@ class ScheduleDefense
                     'panel_user_ids' => $panelUserIds,
                 ],
             ]);
+
+            $label = str($defenseType)->headline()->toString();
+            $students = $lockedGroup->members()->with('student')->get()->pluck('student')->filter();
+            $this->notifications->sendToMany(
+                recipients: $students,
+                eventKey: 'defense.scheduled',
+                title: "{$label} scheduled",
+                message: "Your {$label} is scheduled for {$startsAt->format('M j, Y g:i A')} in {$room->name}.",
+                category: 'defense',
+                routeName: 'student.dashboard',
+                routeParameters: ['tab' => 'defense'],
+                sourceType: DefenseSchedule::class,
+                sourceId: $schedule->getKey(),
+                actor: $actor,
+                contextLabel: $lockedGroup->name,
+                actingAs: 'Student Researcher',
+            );
+
+            $adviser = $lockedGroup->adviser_id !== null ? User::query()->find($lockedGroup->adviser_id) : null;
+            if ($adviser !== null) {
+                $this->notifications->send(
+                    recipient: $adviser,
+                    eventKey: 'defense.scheduled',
+                    title: "{$label} scheduled",
+                    message: "{$lockedGroup->name} is scheduled for {$startsAt->format('M j, Y g:i A')}.",
+                    category: 'defense',
+                    routeName: 'adviser.dashboard',
+                    routeParameters: ['tab' => 'evaluations'],
+                    sourceType: DefenseSchedule::class,
+                    sourceId: $schedule->getKey(),
+                    actor: $actor,
+                    contextLabel: $lockedGroup->name,
+                    actingAs: 'Thesis Adviser',
+                );
+            }
+
+            $this->notifications->sendToMany(
+                recipients: $panelUsers,
+                eventKey: 'defense.panel-assigned',
+                title: "Assigned to {$label}",
+                message: "You were assigned to {$lockedGroup->name}'s {$label} on {$startsAt->format('M j, Y g:i A')}.",
+                category: 'defense',
+                routeName: 'panelist.dashboard',
+                routeParameters: ['tab' => 'schedule'],
+                sourceType: Defense::class,
+                sourceId: $defense->getKey(),
+                actor: $actor,
+                contextLabel: $lockedGroup->name,
+                actingAs: 'Panel Member',
+            );
 
             return $defense->fresh(['currentSchedule.room', 'activePanelAssignments.user']);
         });

@@ -90,6 +90,28 @@ class DashboardController extends Controller
             ->whereHas('researchClassGroup.researchClass', fn ($query) => $query->where('facilitator_id', $request->user()->id))
             ->latest('submitted_at')
             ->get();
+        $adviserApprovedDefenseDocuments = Document::query()
+            ->with([
+                'user:id,name,email',
+                'researchClassGroup:id,research_class_id,name,adviser_id',
+                'researchClassGroup.adviser:id,name',
+            ])
+            ->whereIn('document_stage', [
+                DocumentStage::ProposalDefense->value,
+                DocumentStage::PreFinalDefense->value,
+                DocumentStage::FinalDefense->value,
+            ])
+            ->where('status', DocumentStatus::Accepted->value)
+            ->where('is_current', true)
+            ->whereHas('researchClassGroup.researchClass', fn ($query) => $query->where('facilitator_id', $request->user()->id))
+            ->whereNotExists(function ($query): void {
+                $query->selectRaw('1')
+                    ->from('defenses')
+                    ->whereColumn('defenses.research_class_group_id', 'documents.research_class_group_id')
+                    ->whereColumn('defenses.defense_type', 'documents.document_stage');
+            })
+            ->latest('submitted_at')
+            ->get();
         $pendingFormInstances = app(OfficialFormWorkspaceController::class)->pendingInstances($request);
         $classDashboardData = $classData->for(
             $request->user(),
@@ -114,10 +136,13 @@ class DashboardController extends Controller
             'defenseSchedulingGroups' => $defenseSchedulingGroups,
             'defensePanelCandidates' => $defensePanelCandidates,
             'titleProposalScreeningQueue' => $titleProposalScreeningQueue,
+            'adviserApprovedDefenseDocuments' => $adviserApprovedDefenseDocuments,
             'sidebarBadges' => [
                 'forms' => $pendingFormInstances->count(),
                 'join-requests' => (int) ($classDashboardData['classRequestStats']['pending'] ?? 0),
-                'screening' => $titleProposalScreeningQueue->count(),
+                'screening' => $titleProposalScreeningQueue->count() + $adviserApprovedDefenseDocuments->count(),
+                'title-proposal-screening' => $titleProposalScreeningQueue->count(),
+                'defense-scheduling-ready' => $adviserApprovedDefenseDocuments->count(),
                 'notifications' => Schema::hasTable('notifications')
                     ? $request->user()->unreadNotifications()->count()
                     : 0,

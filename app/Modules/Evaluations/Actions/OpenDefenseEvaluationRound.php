@@ -10,13 +10,15 @@ use App\Models\DefenseEvaluationRoundStudent;
 use App\Models\DefenseSchedule;
 use App\Models\User;
 use App\Modules\Evaluations\Services\EvaluationAuthorization;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class OpenDefenseEvaluationRound
 {
     public function __construct(
-        private readonly EvaluationAuthorization $auth = new EvaluationAuthorization
+        private readonly EvaluationAuthorization $auth = new EvaluationAuthorization,
+        private readonly WorkflowNotificationDispatcher $notifications = new WorkflowNotificationDispatcher,
     ) {}
 
     public function handle(User $actor, Defense $defense, ?int $designatedSignerUserId = null): DefenseEvaluationRound
@@ -138,6 +140,22 @@ class OpenDefenseEvaluationRound
                 'auditable_id' => $round->id,
                 'description' => "Opened defense evaluation round #{$round->id} for defense #{$lockedDefense->id}.",
             ]);
+
+            $this->notifications->sendToMany(
+                recipients: $freshPanelists->values(),
+                eventKey: 'evaluation.round.opened',
+                title: 'Defense evaluation ready',
+                message: "The evaluation round for {$lockedDefense->group?->name} is ready for your evaluation.",
+                category: 'evaluation',
+                routeName: 'panelist.dashboard',
+                routeParameters: ['tab' => in_array($lockedDefense->defense_type, ['pre_final_defense', 'final_defense'], true) ? 'final-eval' : 'proposal-eval'],
+                sourceType: DefenseEvaluationRound::class,
+                sourceId: $round->getKey(),
+                actor: $actor,
+                contextLabel: $lockedDefense->group?->name,
+                actingAs: 'Panel Member',
+                occurrence: 'open',
+            );
 
             return $round->load(['roundPanelists', 'roundStudents']);
         });

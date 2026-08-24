@@ -10,12 +10,17 @@ use App\Models\ConsultationRequest;
 use App\Models\ResearchClassGroupMember;
 use App\Models\User;
 use App\Modules\Consultations\Exceptions\ConsultationException;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 class RecordCompletedConsultation
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications,
+    ) {}
+
     /**
      * @param  array{
      *     consulted_at?: ?CarbonImmutable,
@@ -106,6 +111,21 @@ class RecordCompletedConsultation
                         'attendees_count' => count($submittedAttendeeIds),
                     ],
                 ]);
+
+                $this->notifications->sendToMany(
+                    recipients: User::query()->whereIn('id', $groupMemberUserIds)->get(),
+                    eventKey: 'consultation.completed',
+                    title: 'Consultation record completed',
+                    message: 'Your adviser recorded the completed consultation and its recommendations.',
+                    category: 'consultation',
+                    routeName: 'student.dashboard',
+                    routeParameters: ['tab' => 'consultation'],
+                    sourceType: ConsultationRecord::class,
+                    sourceId: $record->getKey(),
+                    actor: $adviser,
+                    contextLabel: $lockedRequest->researchClassGroup?->name,
+                    actingAs: 'Student Researcher',
+                );
 
                 return $record->fresh(['request', 'researchClassGroup', 'conductedBy', 'attendances.student']);
             }, 3);

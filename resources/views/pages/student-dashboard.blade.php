@@ -222,7 +222,7 @@
         <div class="flex-shrink-0 px-6 pb-6 mt-8">
             <div class="pt-4 border-t border-white/10 space-y-1">
                 <a
-                    href="{{ route('student.dashboard', ['tab' => 'notifications']) }}"
+                    href="{{ route('notifications.index') }}"
                     wire:navigate
                     :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold' : 'text-white/90 hover:bg-white/5 font-semibold'"
                     class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-[13px] text-left transition-all"
@@ -272,12 +272,12 @@
             </form>
             <div class="flex items-center gap-3">
                 <x-workspace-switcher current="student" />
-                <button type="button" @click="activeTab = 'notifications'" class="w-9 h-9 rounded-full hover:bg-gray-50 text-gray-500 flex items-center justify-center relative">
+                <a href="{{ route('notifications.index') }}" class="w-9 h-9 rounded-full hover:bg-gray-50 text-gray-500 flex items-center justify-center relative" aria-label="Open notifications">
                     <i class="ph ph-bell text-lg"></i>
                     @if ($notifications->whereNull('read_at')->isNotEmpty())
                         <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 border border-white"></span>
                     @endif
-                </button>
+                </a>
                 <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-xs">
                     {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($student->name, 0, 1)) }}
                 </div>
@@ -739,6 +739,39 @@
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div class="lg:col-span-2 space-y-8">
                             <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200">
+                                <div class="flex flex-wrap items-start justify-between gap-4">
+                                    <div>
+                                        <h2 class="font-bold text-gray-850 text-lg">Current Research Document</h2>
+                                        <p class="mt-1 text-xs text-gray-500">The latest current paper submitted by your Research Group.</p>
+                                    </div>
+                                    @if ($currentResearchDocument)
+                                        <span class="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase text-emerald-700">
+                                            {{ \Illuminate\Support\Str::headline($currentResearchDocument->status->value) }}
+                                        </span>
+                                    @endif
+                                </div>
+
+                                @if ($currentResearchDocument)
+                                    <div class="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
+                                        <div class="min-w-0">
+                                            <p class="truncate text-sm font-bold text-gray-850">{{ $currentResearchDocument->original_filename }}</p>
+                                            <p class="mt-1 text-xs text-gray-500">
+                                                {{ $currentResearchDocument->stageLabel() }}
+                                                · Version {{ $currentResearchDocument->version_number }}
+                                                · {{ $currentResearchDocument->formattedFileSize() }}
+                                                · {{ $currentResearchDocument->submitted_at?->format('M j, Y g:i A') }}
+                                            </p>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <a href="{{ route('documents.view', $currentResearchDocument) }}" target="_blank" rel="noopener" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-700">View</a>
+                                            <a href="{{ route('documents.download', $currentResearchDocument) }}" class="rounded-lg bg-[#0e5c3a] px-3 py-2 text-xs font-bold text-white">Download</a>
+                                        </div>
+                                    </div>
+                                @else
+                                    <p class="mt-5 text-sm text-gray-500">No current research document has been submitted for your group.</p>
+                                @endif
+                            </div>
+                            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200">
                                 <h2 class="font-bold text-gray-850 text-lg">Abstract</h2>
                                 <p class="text-sm text-gray-600 leading-7 mt-4">{{ $researchProject->abstract ?: 'No abstract has been provided.' }}</p>
                             </div>
@@ -1182,7 +1215,56 @@
             </section>
 
             <section x-show="activeTab === 'revisions'" x-cloak class="space-y-8">
-                <x-student-section-heading title="Revision Tracker" description="Revision requests for your research." />
+                <x-student-section-heading title="Revision Tracker" description="Panel feedback and revision requests for your research." />
+
+                <div class="space-y-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-900">Panel Feedback</h2>
+                        <p class="mt-1 text-xs text-gray-500">Comments posted by your assigned reviewers appear here automatically.</p>
+                    </div>
+
+                    @forelse ($documentFeedback as $feedback)
+                        @php
+                            $feedbackDocument = $feedback->document;
+                        @endphp
+                        <article class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide {{ $feedback->severity === 'critical' ? 'bg-red-50 text-red-700' : ($feedback->severity === 'warning' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700') }}">
+                                            {{ \Illuminate\Support\Str::headline($feedback->severity) }}
+                                        </span>
+                                        @if ($feedback->resolved_at)
+                                            <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-700">Resolved</span>
+                                        @endif
+                                    </div>
+                                    <h3 class="mt-3 truncate font-bold text-gray-900">{{ $feedbackDocument?->original_filename ?? 'Research document' }}</h3>
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        {{ $feedback->author?->name ?? 'Assigned reviewer' }}
+                                        @if ($feedback->page_number)
+                                            · Page {{ $feedback->page_number }}
+                                        @endif
+                                        · {{ $feedback->created_at?->format('M j, Y g:i A') }}
+                                    </p>
+                                    <p class="mt-3 whitespace-pre-line text-sm leading-6 text-gray-700">{{ $feedback->comment }}</p>
+                                </div>
+
+                                @if ($feedbackDocument)
+                                    <a href="{{ route('documents.view', $feedbackDocument) }}" target="_blank" rel="noopener" class="shrink-0 rounded-xl border border-[#0e5c3a] px-4 py-2.5 text-center text-xs font-bold text-[#0e5c3a]">
+                                        View Paper
+                                    </a>
+                                @endif
+                            </div>
+                        </article>
+                    @empty
+                        <x-student-empty-state message="No panel feedback has been posted." />
+                    @endforelse
+                </div>
+
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">Formal Revision Requests</h2>
+                    <p class="mt-1 text-xs text-gray-500">Required revision cycles issued for your research group.</p>
+                </div>
                 <div class="space-y-4">
                     @forelse ($revisions as $revision)
                         <div class="space-y-3">
@@ -1245,6 +1327,12 @@
 
             <section x-show="activeTab === 'defense'" x-cloak class="space-y-8">
                 <x-student-section-heading title="My Defense Schedule" description="Defense requests and confirmed schedules." />
+                @php
+                    $title = 'Research Defense';
+                    $status = 'Scheduled';
+                    $date = 'TBA';
+                    $venue = 'Venue not assigned';
+                @endphp
                 <div class="space-y-4">
                     @forelse ($defenses as $defense)
                         @php

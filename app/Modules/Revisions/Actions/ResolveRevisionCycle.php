@@ -7,12 +7,17 @@ use App\Models\DocumentReviewComment;
 use App\Models\RevisionRequest;
 use App\Models\RevisionRequestEvent;
 use App\Models\User;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use App\Modules\Revisions\Exceptions\RevisionWorkflowException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 
 class ResolveRevisionCycle
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications,
+    ) {}
+
     public function handle(User $user, RevisionRequest $revisionRequest, ?string $notes = null): RevisionRequest
     {
         return DB::transaction(function () use ($user, $revisionRequest, $notes): RevisionRequest {
@@ -70,6 +75,23 @@ class ResolveRevisionCycle
                     'resolved_at' => now()->toIso8601String(),
                 ],
             ]);
+
+            $students = $group->members()->with('student')->get()->pluck('student')->filter();
+            $this->notifications->sendToMany(
+                recipients: $students,
+                eventKey: 'revision.resolved',
+                title: 'Revision resolved',
+                message: "{$lockedRevision->title} was resolved by {$user->name}.",
+                category: 'revision',
+                routeName: 'student.dashboard',
+                routeParameters: ['tab' => 'revisions'],
+                sourceType: RevisionRequest::class,
+                sourceId: $lockedRevision->getKey(),
+                actor: $user,
+                contextLabel: $group->name,
+                actingAs: 'Student Researcher',
+                occurrence: RevisionStatus::Resolved->value,
+            );
 
             return $lockedRevision;
         }, 3);

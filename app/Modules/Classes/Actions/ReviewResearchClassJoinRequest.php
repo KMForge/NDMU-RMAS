@@ -7,11 +7,16 @@ use App\Models\ResearchClassEnrollment;
 use App\Models\User;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 class ReviewResearchClassJoinRequest
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications,
+    ) {}
+
     public function approve(
         User $facilitator,
         ResearchClass $researchClass,
@@ -95,6 +100,27 @@ class ReviewResearchClassJoinRequest
                     'reviewed_by' => $facilitator->getKey(),
                     'reviewed_at' => now(),
                 ]);
+
+                $student = User::query()->find($lockedRequest->student_id);
+
+                if ($student !== null) {
+                    $decisionLabel = $decision === 'active' ? 'approved' : 'rejected';
+                    $this->notifications->send(
+                        recipient: $student,
+                        eventKey: "class.join-request.{$decisionLabel}",
+                        title: "Class join request {$decisionLabel}",
+                        message: "Your request to join {$lockedClass->name} was {$decisionLabel}.",
+                        category: 'class',
+                        routeName: 'student.dashboard',
+                        routeParameters: ['tab' => 'classes'],
+                        sourceType: ResearchClassEnrollment::class,
+                        sourceId: $lockedRequest->getKey(),
+                        actor: $facilitator,
+                        contextLabel: $lockedClass->name,
+                        actingAs: 'Student Researcher',
+                        occurrence: $decision,
+                    );
+                }
 
                 return $lockedRequest->refresh();
             }, 3);

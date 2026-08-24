@@ -7,12 +7,17 @@ use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupAdviserRequest;
 use App\Models\User;
 use App\Modules\Classes\Exceptions\ClassOperationException;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 class CancelResearchClassGroupAdviserRequest
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications,
+    ) {}
+
     public function handle(
         User $facilitator,
         ResearchClass $researchClass,
@@ -48,6 +53,25 @@ class CancelResearchClassGroupAdviserRequest
                     'status' => 'cancelled',
                     'cancelled_at' => now(),
                 ]);
+
+                $recipient = User::query()->find($lockedRequest->adviser_id);
+                if ($recipient !== null) {
+                    $this->notifications->send(
+                        recipient: $recipient,
+                        eventKey: 'adviser.invitation.cancelled',
+                        title: 'Adviser invitation cancelled',
+                        message: "The adviser invitation for {$lockedGroup->name} was cancelled.",
+                        category: 'class',
+                        routeName: 'adviser.dashboard',
+                        routeParameters: ['tab' => 'classes'],
+                        sourceType: ResearchClassGroupAdviserRequest::class,
+                        sourceId: $lockedRequest->getKey(),
+                        actor: $facilitator,
+                        contextLabel: $lockedGroup->name,
+                        actingAs: 'Thesis Adviser',
+                        occurrence: 'cancelled',
+                    );
+                }
             }, 3);
         } catch (QueryException $exception) {
             report($exception);

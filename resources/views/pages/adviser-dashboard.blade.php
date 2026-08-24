@@ -351,7 +351,7 @@
             <div class="pt-4 border-t border-white/10 space-y-1">
                 <!-- Notifications -->
                 <a
-                   href="{{ route('adviser.dashboard', ['tab' => 'notifications']) }}"
+                   href="{{ route('notifications.index') }}"
                    wire:navigate
                    :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">

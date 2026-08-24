@@ -98,27 +98,11 @@
         { name: 'Dr. John Reyes', title: 'Panelist', rating: 4, comment: 'Strong theoretical foundation. Consider expanding the literature review section.', borderClass: 'border-blue-100 bg-blue-50/10' },
         { name: 'Prof. Anna Garcia', title: 'Panelist', rating: 5, comment: 'Innovative approach and practical applications. Well-defended arguments.', borderClass: 'border-purple-100 bg-purple-50/10' }
     ],
-    recommendationComments: [
-        { name: 'Dr. Maria Santos', role: 'Adviser', time: '2 hours ago', text: 'Please expand this section with more recent studies from 2024-2026.', page: 'Page 12', borderClass: 'border-l-4 border-l-amber-500 border border-gray-100 bg-amber-50/5' },
-        { name: 'Dr. John Reyes', role: 'Panelist', time: '5 hours ago', text: 'Excellent data presentation. Well organized.', page: 'Page 18', borderClass: 'border-l-4 border-l-emerald-500 border border-gray-100 bg-emerald-50/5' },
-        { name: 'Prof. Anna Garcia', role: 'Technical Editor', time: '1 day ago', text: 'Check citation format on this page - should follow APA 7th edition.', page: 'Page 5', borderClass: 'border-l-4 border-l-amber-500 border border-gray-100 bg-amber-50/5' }
-    ],
-    newRecommendationCommentText: '',
-    postRecommendationComment() {
-        if (this.newRecommendationCommentText.trim() === '') return;
-        this.recommendationComments.push({
-            name: 'Prof. Patricia Cruz',
-            role: 'Panelist',
-            time: 'Just now',
-            text: this.newRecommendationCommentText,
-            page: 'General',
-            borderClass: 'border-l-4 border-l-blue-500 border border-gray-100 bg-blue-50/5'
-        });
-        this.newRecommendationCommentText = '';
-    },
+    selectedReviewPaper: @js($selectedReviewPaper ?? null),
+    recommendationComments: @js($selectedReviewPaper['comments'] ?? []),
     repositorySearchQuery: '',
     repositoryStatusFilter: 'all',
-    repositoryDocuments: [
+    repositoryDocumentExamples: [
         {
             title: 'Chapter 1 – Introduction',
             chapter: 'CHAPTER 1',
@@ -204,6 +188,7 @@
             icon: 'ph-file-doc text-blue-500 bg-blue-50'
         }
     ],
+    repositoryDocuments: @js($assignedPapers ?? []),
     filteredRepositoryDocuments() {
         return this.repositoryDocuments.filter(doc => {
             if (this.repositoryStatusFilter !== 'all' && doc.status.toLowerCase() !== this.repositoryStatusFilter.toLowerCase()) return false;
@@ -214,99 +199,18 @@
             return true;
         });
     },
-    proposalProposals: [
-        {
-            id: 'PROP-2026-001',
-            title: 'Machine Learning Applications in Agricultural Pest Detection',
-            status: 'Approved',
-            submitted: 'March 5, 2026',
-            reviewedBy: 'Dr. Maria Santos',
-            approvalDate: 'March 10, 2026',
-            statusClass: 'bg-[#10b981] text-white font-bold px-3 py-1 rounded-full text-[10px]'
-        }
-    ],
+    proposalProposals: @js($proposalPapers ?? []),
     filteredProposals() {
         return this.proposalProposals.filter(p => {
             if (this.proposalStatusFilter !== 'all' && p.status.toLowerCase() !== this.proposalStatusFilter.toLowerCase()) return false;
             if (this.proposalSearchQuery.trim() !== '') {
                 const q = this.proposalSearchQuery.toLowerCase();
-                return p.title.toLowerCase().includes(q) || p.id.toLowerCase().includes(q);
+                return p.title.toLowerCase().includes(q) || String(p.id).toLowerCase().includes(q) || p.filename.toLowerCase().includes(q);
             }
             return true;
         });
     },
-    assignedPapers: [
-        {
-            title: 'The Impact of Social Media Usage on the Academic Performance of Senior High Schoo...',
-            college: 'College of Education',
-            researchers: [
-                { name: 'Maria Santos', bg: 'bg-[#0e5c3a] text-white', init: 'M' },
-                { name: 'Juan dela Cruz', bg: 'bg-emerald-700 text-white', init: 'J' }
-            ],
-            adviser: 'Dr. Reyna Garcia',
-            status: 'For Review',
-            statusClass: 'bg-orange-55 border border-orange-200 text-orange-700 font-bold px-2 py-0.5 rounded-full text-[10px]',
-            defenseType: 'Proposal Defense',
-            defenseTypeClass: 'bg-yellow-50 border border-yellow-200 text-yellow-750 font-bold px-2 py-0.5 rounded-full text-[10px]',
-            submitted: 'May 28, 2026'
-        },
-        {
-            title: 'Effectiveness of Blended Learning Modalities on Student Engagement in NDMU College of...',
-            college: 'College of Engineering',
-            researchers: [
-                { name: 'Ana Reyes', bg: 'bg-[#0e5c3a] text-white', init: 'A' },
-                { name: 'Carlo Bautista', bg: 'bg-emerald-700 text-white', init: 'C' },
-                { name: 'Lea Mercado', bg: 'bg-[#0f766e] text-white', init: 'L' }
-            ],
-            adviser: 'Prof. Miguel Torres',
-            status: 'Under Review',
-            statusClass: 'bg-blue-50 border border-blue-200 text-blue-705 font-bold px-2 py-0.5 rounded-full text-[10px]',
-            defenseType: 'Pre-Oral Defense',
-            defenseTypeClass: 'bg-blue-50 border border-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-full text-[10px]',
-            submitted: 'May 20, 2026'
-        },
-        {
-            title: 'Financial Literacy and Savings Behavior Among Undergraduate Students: A Mixed-...',
-            college: 'College of Business',
-            researchers: [
-                { name: 'Paolo Lim', bg: 'bg-[#0e5c3a] text-white', init: 'P' },
-                { name: 'Grace Tan', bg: 'bg-emerald-700 text-white', init: 'G' }
-            ],
-            adviser: 'Dr. Sandra Villanueva',
-            status: 'Evaluated',
-            statusClass: 'bg-emerald-50 border border-emerald-250 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px]',
-            defenseType: 'Final Oral Defense',
-            defenseTypeClass: 'bg-purple-50 border border-purple-200 text-purple-700 font-bold px-2 py-0.5 rounded-full text-[10px]',
-            submitted: 'Apr 15, 2026'
-        },
-        {
-            title: 'Community-Based Interventions for Maternal Health Outcomes in Selected Barangays of...',
-            college: 'College of Nursing',
-            researchers: [
-                { name: 'Rose Aquino', bg: 'bg-[#0e5c3a] text-white', init: 'R' }
-            ],
-            adviser: 'Dr. Felix Navarro',
-            status: 'Pending Defense',
-            statusClass: 'bg-purple-50 border border-purple-200 text-purple-700 font-bold px-2 py-0.5 rounded-full text-[10px]',
-            defenseType: 'Final Oral Defense',
-            defenseTypeClass: 'bg-purple-50 border border-purple-200 text-purple-700 font-bold px-2 py-0.5 rounded-full text-[10px]',
-            submitted: 'Mar 10, 2026'
-        },
-        {
-            title: 'Digital Transformation in Local Government Units: Barriers and Enablers in the...',
-            college: 'College of Public Administration',
-            researchers: [
-                { name: 'Marco Jimenez', bg: 'bg-[#0e5c3a] text-white', init: 'M' },
-                { name: 'Pia Ramos', bg: 'bg-[#0f766e] text-white', init: 'P' }
-            ],
-            adviser: 'Dr. Lourdes Castillo',
-            status: 'Approved',
-            statusClass: 'bg-emerald-50 border border-emerald-250 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px]',
-            defenseType: 'Final Oral Defense',
-            defenseTypeClass: 'bg-purple-50 border border-purple-200 text-purple-700 font-bold px-2 py-0.5 rounded-full text-[10px]',
-            submitted: 'Feb 22, 2026'
-        }
-    ],
+    assignedPapers: @js($assignedPapers ?? []),
     filteredAssignedPapers() {
         return this.assignedPapers.filter(p => {
             if (this.assignedPapersStatusFilter !== 'all' && p.status.toLowerCase() !== this.assignedPapersStatusFilter.toLowerCase()) return false;
@@ -467,7 +371,10 @@
                         <i class="ph ph-file-text text-lg"></i>
                         <span>Assigned Research Papers</span>
                     </div>
-                    <span x-show="activeTab === 'assigned-papers'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['assigned-papers'] ?? 0" label="assigned papers requiring attention" />
+                        <span x-show="activeTab === 'assigned-papers'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    </div>
                 </button>
 
                 <!-- Proposal Evaluation -->
@@ -604,8 +511,7 @@
         <div class="flex-shrink-0 px-6 pb-6 mt-8">
             <div class="pt-4 border-t border-white/10 space-y-1">
                 <!-- Notifications -->
-                <a href="#" 
-                   @click.prevent="activeTab = 'notifications'"
+                <a href="{{ route('notifications.index') }}"
                    :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
                    class="flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200">
                     <div class="flex items-center gap-3">
@@ -665,10 +571,10 @@
             <div class="flex items-center gap-4">
                 <x-workspace-switcher current="panelist" />
                 <!-- Notification Bell -->
-                <button @click="activeTab = 'notifications'" class="relative w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
+                <a href="{{ route('notifications.index') }}" class="relative w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer" aria-label="Open notifications">
                     <i class="ph ph-bell text-lg"></i>
                     <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                </button>
+                </a>
                 
                 <!-- Evaluation Portal Profile Badge -->
                 <div class="flex items-center gap-3 pl-2 border-l border-gray-150">
@@ -883,7 +789,7 @@
                         
                         <div class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-[#0e5c3a] text-xs font-bold rounded-xl">
                             <i class="ph ph-file-text"></i>
-                            <span>5 Papers Assigned</span>
+                            <span x-text="`${assignedPapers.length} ${assignedPapers.length === 1 ? 'Paper' : 'Papers'} Assigned`"></span>
                         </div>
                     </div>
                 </div>
@@ -1045,15 +951,15 @@
                                         <!-- Actions -->
                                         <td class="px-6 py-4">
                                             <div class="flex items-center justify-center gap-2.5">
-                                                <button @click="alert(`Viewing details for: ${paper.title}`)" class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors cursor-pointer" title="View details">
+                                                <a :href="paper.viewUrl" target="_blank" rel="noopener" class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors cursor-pointer" title="View paper">
                                                     <i class="ph ph-eye text-sm"></i>
-                                                </button>
-                                                <button @click="alert(`Evaluating research: ${paper.title}`)" class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center hover:bg-emerald-100 transition-colors cursor-pointer" title="Evaluate paper">
+                                                </a>
+                                                <a :href="paper.evaluationUrl" class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center hover:bg-emerald-100 transition-colors cursor-pointer" title="Open evaluation">
                                                     <i class="ph ph-file-text text-sm"></i>
-                                                </button>
-                                                <button @click="alert(`Downloading document for: ${paper.title}`)" class="w-7 h-7 rounded-lg border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-gray-50 transition-colors cursor-pointer" title="Download paper">
+                                                </a>
+                                                <a :href="paper.downloadUrl" class="w-7 h-7 rounded-lg border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-gray-50 transition-colors cursor-pointer" title="Download paper">
                                                     <i class="ph ph-download text-sm"></i>
-                                                </button>
+                                                </a>
                                             </div>
                                         </td>
                                     </tr>
@@ -1088,8 +994,8 @@
                             <span class="w-11 h-11 rounded-xl bg-emerald-50/80 text-[#0e5c3a] border border-emerald-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
                                 <i class="ph ph-check-circle"></i>
                             </span>
-                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Approved</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="proposalProposals.filter(p => p.status === 'Approved').length">1</span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Evaluated</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="proposalProposals.filter(p => p.status === 'Evaluated').length">0</span>
                         </div>
                         <span class="text-emerald-600 text-xl font-bold">
                             <i class="ph ph-check-fat"></i>
@@ -1102,8 +1008,8 @@
                             <span class="w-11 h-11 rounded-xl bg-amber-50/80 text-amber-700 border border-amber-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
                                 <i class="ph ph-clock"></i>
                             </span>
-                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Pending</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="proposalProposals.filter(p => p.status === 'Pending').length">0</span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Awaiting Evaluation</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="proposalProposals.filter(p => ['Pending Defense', 'For Review'].includes(p.status)).length">0</span>
                         </div>
                         <span class="text-amber-500 text-xl font-bold">
                             <i class="ph ph-hourglass"></i>
@@ -1116,8 +1022,8 @@
                             <span class="w-11 h-11 rounded-xl bg-red-50/80 text-red-700 border border-red-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
                                 <i class="ph ph-x-circle"></i>
                             </span>
-                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Revisions</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="proposalProposals.filter(p => p.status === 'Revisions').length">0</span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Under Review</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="proposalProposals.filter(p => p.status === 'Under Review').length">0</span>
                         </div>
                         <span class="text-red-500 text-xl font-bold">
                             <i class="ph ph-warning"></i>
@@ -1149,7 +1055,7 @@
                                 <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                                     <div>
                                         <h3 class="font-extrabold text-sm text-slate-900 leading-snug" x-text="p.title">Machine Learning Applications in Agricultural Pest Detection</h3>
-                                        <p class="text-[10px] text-slate-500 font-semibold mt-1.5" x-text="`Proposal ID: ${p.id}`">Proposal ID: PROP-2026-001</p>
+                                        <p class="text-[10px] text-slate-500 font-semibold mt-1.5" x-text="p.filename">Proposal document</p>
                                         <p class="text-[10px] text-slate-500 font-semibold mt-0.5" x-text="`Submitted: ${p.submitted}`">Submitted: March 5, 2026</p>
                                     </div>
                                     <span :class="p.statusClass" class="flex-shrink-0 self-start text-[10px] font-black" x-text="p.status">Approved</span>
@@ -1157,23 +1063,32 @@
 
                                 <div class="border-t border-slate-100 pt-4 grid grid-cols-2 gap-4">
                                     <div>
-                                        <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Reviewed by</span>
-                                        <span class="text-xs text-slate-800 font-bold block mt-1" x-text="p.reviewedBy">Dr. Maria Santos</span>
+                                        <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Research Adviser</span>
+                                        <span class="text-xs text-slate-800 font-bold block mt-1" x-text="p.adviser">Not assigned</span>
                                     </div>
                                     <div>
-                                        <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Approval Date</span>
-                                        <span class="text-xs text-slate-800 font-bold block mt-1" x-text="p.approvalDate">March 10, 2026</span>
+                                        <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Defense Stage</span>
+                                        <span class="text-xs text-slate-800 font-bold block mt-1" x-text="p.defenseType">Proposal Defense</span>
                                     </div>
                                 </div>
 
                                 <div class="flex items-center gap-3 pt-2">
-                                    <button @click="alert(`Viewing Proposal: ${p.title}`)" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer">
+                                    <a :href="p.viewUrl" target="_blank" rel="noopener" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer">
                                         View Proposal
-                                    </button>
-                                    <button @click="alert(`Downloading PDF for: ${p.title}`)" class="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer">
-                                        Download PDF
-                                    </button>
+                                    </a>
+                                    <a :href="p.downloadUrl" class="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer">
+                                        Download <span x-text="p.fileType"></span>
+                                    </a>
+                                    <a :href="p.reviewUrl" class="px-5 py-2.5 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-800 text-xs font-bold rounded-xl transition-all cursor-pointer">
+                                        Review & Comment
+                                    </a>
+                                    <a x-show="p.status !== 'Pending Defense'" :href="p.evaluationUrl" class="px-5 py-2.5 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition-all cursor-pointer">
+                                        Open Evaluation
+                                    </a>
                                 </div>
+                                <p x-show="p.status === 'Pending Defense'" class="text-[10px] font-semibold text-amber-700">
+                                    The paper is available for advance reading. Formal scoring opens when the facilitator starts the evaluation round.
+                                </p>
                             </div>
                         </template>
 
@@ -1325,9 +1240,94 @@
                 <!-- Title Block -->
                 <div>
                     <h1 class="text-2xl font-bold font-heading text-gray-800">Document Review System</h1>
-                    <p class="text-xs text-gray-455 mt-1">Review and annotate research documents</p>
+                    <p class="text-xs text-gray-455 mt-1">Read the assigned paper and record page-specific panel feedback.</p>
                 </div>
 
+                @if ($selectedReviewPaper)
+                    @if (session('document_review_success'))
+                        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-800">{{ session('document_review_success') }}</div>
+                    @endif
+                    @if ($errors->has('document_review'))
+                        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-800">{{ $errors->first('document_review') }}</div>
+                    @endif
+
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div class="flex items-center gap-4 min-w-0">
+                            <span class="w-12 h-12 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center text-2xl flex-shrink-0"><i class="ph ph-file-pdf"></i></span>
+                            <div class="min-w-0">
+                                <h2 class="font-extrabold text-sm text-gray-800 truncate">{{ $selectedReviewPaper['filename'] }}</h2>
+                                <p class="text-[11px] text-gray-500 font-semibold mt-1">{{ $selectedReviewPaper['title'] }}</p>
+                                <p class="text-[10px] text-gray-400 font-semibold mt-0.5">{{ $selectedReviewPaper['defenseType'] }} · {{ $selectedReviewPaper['fileSize'] }} · Submitted {{ $selectedReviewPaper['submitted'] }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <a href="{{ $selectedReviewPaper['downloadUrl'] }}" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5"><i class="ph ph-download-simple"></i> Download</a>
+                            <a href="{{ $selectedReviewPaper['viewUrl'] }}" target="_blank" rel="noopener" class="px-5 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl">Open Full Screen</a>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                        <section class="lg:col-span-2 overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-sm">
+                            <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+                                <h2 class="text-sm font-bold text-gray-850">Document Preview</h2>
+                                <span class="text-[10px] font-bold text-gray-400">Secure authorized view</span>
+                            </div>
+                            @if ($selectedReviewPaper['fileType'] === 'PDF')
+                                <iframe src="{{ $selectedReviewPaper['viewUrl'] }}#toolbar=1&navpanes=0" title="Preview of {{ $selectedReviewPaper['filename'] }}" class="block h-[72vh] min-h-[680px] w-full bg-gray-100"></iframe>
+                            @else
+                                <div class="flex h-[680px] flex-col items-center justify-center gap-4 bg-gray-50 px-8 text-center">
+                                    <i class="ph ph-file-doc text-5xl text-blue-500"></i>
+                                    <p class="text-sm font-bold text-gray-800">DOCX preview depends on the browser.</p>
+                                    <p class="text-xs text-gray-500">Use the authorized full view or download the file to review its contents.</p>
+                                    <a href="{{ $selectedReviewPaper['viewUrl'] }}" target="_blank" rel="noopener" class="rounded-xl bg-[#0e5c3a] px-5 py-2.5 text-xs font-bold text-white">Open Document</a>
+                                </div>
+                            @endif
+                        </section>
+
+                        <aside class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5 lg:sticky lg:top-5">
+                            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                                <h2 class="text-sm font-bold text-gray-850">Comments & Feedback</h2>
+                                <span class="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-black text-blue-700" x-text="recommendationComments.length"></span>
+                            </div>
+
+                            <div class="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                                <template x-for="c in recommendationComments" :key="c.id">
+                                    <div :class="c.borderClass" class="rounded-xl p-4 space-y-2">
+                                        <div class="flex justify-between items-start gap-2">
+                                            <div><h3 class="font-extrabold text-xs text-gray-800" x-text="c.name"></h3><span class="text-[10px] text-gray-400 font-semibold" x-text="c.role"></span></div>
+                                            <span class="text-[9px] text-gray-400 font-semibold" x-text="c.time"></span>
+                                        </div>
+                                        <p class="text-xs text-gray-600 font-medium leading-relaxed whitespace-pre-line" x-text="c.text"></p>
+                                        <div class="pt-1 text-[10px] font-bold text-gray-400" x-text="c.page"></div>
+                                    </div>
+                                </template>
+                                <div x-show="recommendationComments.length === 0" class="rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center text-xs text-gray-400">No comments have been posted for this paper.</div>
+                            </div>
+
+                            <form method="POST" action="{{ $selectedReviewPaper['commentUrl'] }}" class="space-y-3 border-t border-gray-100 pt-4">
+                                @csrf
+                                <textarea name="comment" rows="4" required minlength="2" maxlength="5000" placeholder="Write your feedback..." class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 resize-none">{{ old('comment') }}</textarea>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <select name="severity" required class="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs"><option value="comment">Comment</option><option value="revision">Revision</option><option value="critical">Critical</option></select>
+                                    @if ($selectedReviewPaper['fileType'] === 'PDF')<input type="number" name="page_number" min="1" max="10000" value="{{ old('page_number') }}" placeholder="Page (optional)" class="rounded-xl border border-gray-200 px-3 py-2.5 text-xs">@endif
+                                </div>
+                                @error('comment')<p class="text-[10px] font-bold text-red-600">{{ $message }}</p>@enderror
+                                @error('page_number')<p class="text-[10px] font-bold text-red-600">{{ $message }}</p>@enderror
+                                <button type="submit" class="w-full py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md">Post Comment</button>
+                                <p class="text-[10px] leading-4 text-gray-400">Comments are stored with your identity and timestamp. Formal scoring opens separately when the facilitator starts the evaluation round.</p>
+                            </form>
+                        </aside>
+                    </div>
+                @else
+                    <div class="rounded-2xl border border-dashed border-gray-200 bg-white px-8 py-16 text-center shadow-sm">
+                        <i class="ph ph-file-magnifying-glass text-5xl text-gray-300"></i>
+                        <h2 class="mt-4 text-base font-bold text-gray-800">Select an assigned paper first</h2>
+                        <p class="mt-1 text-xs text-gray-500">Open Proposal Evaluation or Assigned Research Papers, then choose Review & Comment.</p>
+                        <a href="{{ route('panelist.dashboard', ['tab' => 'proposal-eval']) }}" class="mt-5 inline-flex rounded-xl bg-[#0e5c3a] px-5 py-2.5 text-xs font-bold text-white">Open Proposal Evaluation</a>
+                    </div>
+                @endif
+
+                @if (false)
                 <!-- Document Info Card -->
                 <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div class="flex items-center gap-4">
@@ -1500,6 +1500,7 @@
                         </button>
                     </div>
                 </div>
+                @endif
             </div>
 
             <!-- TAB: My Defense Schedule -->
@@ -1712,8 +1713,8 @@
                             <span class="w-11 h-11 rounded-xl bg-blue-50/80 text-blue-700 border border-blue-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
                                 <i class="ph ph-check-circle"></i>
                             </span>
-                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Approved</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="repositoryDocuments.filter(d => d.status === 'Approved').length">2</span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Evaluated</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="repositoryDocuments.filter(d => d.status === 'Evaluated').length">0</span>
                         </div>
                         <span class="text-blue-500 text-xl font-bold">
                             <i class="ph ph-check-fat"></i>
@@ -1726,8 +1727,8 @@
                             <span class="w-11 h-11 rounded-xl bg-amber-50/80 text-amber-700 border border-amber-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
                                 <i class="ph ph-clock"></i>
                             </span>
-                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Pending Review</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="repositoryDocuments.filter(d => d.status === 'Pending Review').length">2</span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Pending Defense</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="repositoryDocuments.filter(d => d.status === 'Pending Defense').length">0</span>
                         </div>
                         <span class="text-amber-500 text-xl font-bold">
                             <i class="ph ph-hourglass"></i>
@@ -1740,8 +1741,8 @@
                             <span class="w-11 h-11 rounded-xl bg-purple-50/80 text-purple-700 border border-purple-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
                                 <i class="ph ph-textbox"></i>
                             </span>
-                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">For Evaluation</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="repositoryDocuments.filter(d => d.status === 'For Evaluation').length">1</span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">For Review</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="repositoryDocuments.filter(d => ['For Review', 'Under Review'].includes(d.status)).length">0</span>
                         </div>
                         <span class="text-purple-500 text-xl font-bold">
                             <i class="ph ph-clipboard-text"></i>
@@ -1770,10 +1771,10 @@
                             style="background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27 fill=%27%236b7280%27%3E%3Cpath fill-rule=%27evenodd%27 d=%27M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z%27 clip-rule=%27evenodd%27/%3E%3C/svg%3E'); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.2em auto;"
                         >
                             <option value="all">All Status</option>
-                            <option value="reviewed">Reviewed</option>
-                            <option value="pending review">Pending Review</option>
-                            <option value="for evaluation">For Evaluation</option>
-                            <option value="approved">Approved</option>
+                            <option value="pending defense">Pending Defense</option>
+                            <option value="for review">For Review</option>
+                            <option value="under review">Under Review</option>
+                            <option value="evaluated">Evaluated</option>
                         </select>
                     </div>
                 </div>
@@ -1813,15 +1814,15 @@
 
                             <!-- Action Buttons Grid -->
                             <div class="grid grid-cols-3 gap-2.5 pt-3">
-                                <button @click="alert(`Opening preview for: ${doc.title}`)" class="py-2 rounded-xl bg-white border border-[#0e5c3a] hover:bg-emerald-50 text-[#0e5c3a] text-xs font-bold transition-all cursor-pointer text-center flex items-center justify-center gap-1">
+                                <a :href="doc.viewUrl" target="_blank" rel="noopener" class="py-2 rounded-xl bg-white border border-[#0e5c3a] hover:bg-emerald-50 text-[#0e5c3a] text-xs font-bold transition-all cursor-pointer text-center flex items-center justify-center gap-1">
                                     <i class="ph ph-eye"></i> View
-                                </button>
-                                <button @click="alert(`Downloading file: ${doc.title}`)" class="py-2 rounded-xl bg-white border border-blue-500 hover:bg-blue-50 text-blue-600 text-xs font-bold transition-all cursor-pointer text-center flex items-center justify-center gap-1">
+                                </a>
+                                <a :href="doc.downloadUrl" class="py-2 rounded-xl bg-white border border-blue-500 hover:bg-blue-50 text-blue-600 text-xs font-bold transition-all cursor-pointer text-center flex items-center justify-center gap-1">
                                     <i class="ph ph-download"></i> Download
-                                </button>
-                                <button @click="alert(`Evaluating document: ${doc.title}`)" class="py-2 rounded-xl bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold transition-all cursor-pointer text-center flex items-center justify-center gap-1 shadow-sm">
+                                </a>
+                                <a :href="doc.evaluationUrl" class="py-2 rounded-xl bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold transition-all cursor-pointer text-center flex items-center justify-center gap-1 shadow-sm">
                                     <i class="ph ph-check-square"></i> Evaluate
-                                </button>
+                                </a>
                             </div>
                         </div>
                     </template>

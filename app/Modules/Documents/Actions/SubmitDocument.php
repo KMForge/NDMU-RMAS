@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Modules\Documents\Exceptions\DocumentUploadFailed;
 use App\Modules\Documents\Exceptions\DuplicateDocumentSubmission;
 use App\Modules\Documents\Support\DocumentFilenameSanitizer;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use App\Modules\Revisions\Exceptions\RevisionWorkflowException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
@@ -28,6 +29,7 @@ class SubmitDocument
     public function __construct(
         private readonly DocumentFilenameSanitizer $filenameSanitizer,
         private readonly RecordDocumentUploadAttempt $audit,
+        private readonly WorkflowNotificationDispatcher $notifications,
     ) {}
 
     public function handle(
@@ -273,6 +275,29 @@ class SubmitDocument
                         ],
                         'occurred_at' => now(),
                     ]);
+                }
+
+                $adviser = $lockedGroup->adviser_id !== null
+                    ? User::query()->find($lockedGroup->adviser_id)
+                    : null;
+
+                if ($adviser !== null && $documentStage !== DocumentStage::TitleProposal) {
+                    $isRevision = $lockedRevision !== null;
+                    $this->notifications->send(
+                        recipient: $adviser,
+                        eventKey: $isRevision ? 'revision.document.submitted' : 'document.submitted',
+                        title: $isRevision ? 'Revised document submitted' : 'Research document submitted',
+                        message: "{$lockedGroup->name} submitted {$document->original_filename} for your attention.",
+                        category: 'document',
+                        routeName: 'adviser.dashboard',
+                        routeParameters: ['tab' => $isRevision ? 'revisions' : 'docreview'],
+                        sourceType: $isRevision ? RevisionRequest::class : Document::class,
+                        sourceId: $isRevision ? $lockedRevision->getKey() : $document->getKey(),
+                        actor: $user,
+                        contextLabel: $lockedGroup->name,
+                        actingAs: 'Thesis Adviser',
+                        occurrence: (string) $document->version_number,
+                    );
                 }
 
                 return $document;

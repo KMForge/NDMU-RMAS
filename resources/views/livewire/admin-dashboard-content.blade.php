@@ -201,9 +201,8 @@
         <!-- Sidebar Footer -->
         <div class="flex-shrink-0 px-6 pb-6 mt-auto">
             <div class="pt-4 border-t border-white/10 space-y-1">
-                <button
-                    type="button"
-                    @click="activeTab = 'notifications'"
+                <a
+                    href="{{ route('notifications.index') }}"
                     :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
                 >
@@ -215,7 +214,7 @@
                         <x-sidebar-count-badge :count="$sidebarBadges['notifications'] ?? 0" label="unread notifications" />
                         <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                     </div>
-                </button>
+                </a>
 
                 <button 
                     type="button"
@@ -264,10 +263,10 @@
             <div class="flex items-center gap-6">
                 <x-workspace-switcher current="admin" />
                 <!-- Notification Bell -->
-                <button class="relative w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-600 transition-colors">
+                <a href="{{ route('notifications.index') }}" class="relative w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-600 transition-colors" aria-label="Open notifications">
                     <i class="ph ph-bell text-xl"></i>
                     <span class="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                </button>
+                </a>
 
                 <!-- Divider -->
                 <div class="h-8 w-px bg-gray-200"></div>

@@ -6,6 +6,7 @@
     $classes = $classes ?? $researchClasses ?? collect();
     $classRequestStats = $classRequestStats ?? ['pending' => 0, 'approved' => 0, 'rejected' => 0, 'total' => 0];
     $pendingTitleProposalScreeningCount = collect($titleProposalScreeningQueue ?? [])->count();
+    $defenseSchedulingReadyCount = collect($adviserApprovedDefenseDocuments ?? [])->count();
     $officialFormPhases = $officialFormPhases ?? [];
     $officialForms = $officialForms ?? [];
     $officialFormsByPhase = collect($officialForms)->groupBy('phase', preserveKeys: true);
@@ -813,7 +814,9 @@
                     <div class="flex items-center gap-2">
                         <x-sidebar-count-badge
                             :count="$sidebarBadges['screening'] ?? 0"
-                            :label="Str::plural('title proposal', $sidebarBadges['screening'] ?? 0).' awaiting screening'"
+                            :label="$defenseSchedulingReadyCount > 0
+                                ? Str::plural('document', $sidebarBadges['screening'] ?? 0).' awaiting facilitator action'
+                                : Str::plural('title proposal', $sidebarBadges['screening'] ?? 0).' awaiting screening'"
                         />
                         <span x-show="activeTab === 'screening'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                     </div>
@@ -918,8 +921,7 @@
         <div class="flex-shrink-0 px-6 pb-6 mt-8">
             <div class="pt-4 border-t border-white/10 space-y-1">
                 <!-- Notifications -->
-                <a href="#" 
-                   @click.prevent="activeTab = 'notifications'"
+                <a href="{{ route('notifications.index') }}"
                    :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
                    class="flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200">
                     <div class="flex items-center gap-3">
@@ -979,10 +981,10 @@
             <div class="flex items-center gap-4">
                 <x-workspace-switcher current="facilitator" />
                 <!-- Notification Bell -->
-                <button @click="activeTab = 'notifications'" class="relative w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
+                <a href="{{ route('notifications.index') }}" class="relative w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer" aria-label="Open notifications">
                     <i class="ph ph-bell text-lg"></i>
                     <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                </button>
+                </a>
                 
                 <!-- Facilitator Portal Profile Badge -->
                 <div class="flex items-center gap-3 pl-2 border-l border-gray-150">
@@ -1662,6 +1664,44 @@
                             </article>
                         @empty
                             <p class="py-6 text-center text-xs text-gray-400">No Title Proposal document is awaiting your screening.</p>
+                        @endforelse
+                    </div>
+                </section>
+
+                <section class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <h2 class="font-bold text-gray-850">Adviser-Approved Documents Ready for Scheduling</h2>
+                            <p class="mt-1 text-xs text-gray-455">These current defense-stage documents passed adviser review and now require facilitator scheduling.</p>
+                        </div>
+                        <span class="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-700">{{ $defenseSchedulingReadyCount }}</span>
+                    </div>
+                    <div class="mt-4 space-y-3">
+                        @forelse ($adviserApprovedDefenseDocuments ?? [] as $approvedDocument)
+                            <article class="rounded-xl border border-gray-150 p-4">
+                                <div class="flex flex-wrap items-start justify-between gap-3">
+                                    <div>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <p class="text-sm font-bold text-gray-850">{{ $approvedDocument->researchClassGroup?->name }}</p>
+                                            <span class="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-black uppercase text-emerald-700">Adviser approved</span>
+                                            <span class="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-black text-blue-700">{{ $approvedDocument->stageLabel() }}</span>
+                                        </div>
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            {{ $approvedDocument->original_filename }} · Version {{ $approvedDocument->version_number }}
+                                            · Adviser: {{ $approvedDocument->researchClassGroup?->adviser?->name ?? 'Not assigned' }}
+                                        </p>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <a href="{{ route('documents.view', $approvedDocument) }}" target="_blank" rel="noopener" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold">View</a>
+                                        <a href="{{ route('documents.download', $approvedDocument) }}" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold">Download</a>
+                                        <button type="button" @click="activeTab = 'defenses'; queuePersistTab('defenses'); $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))" class="rounded-lg bg-[#0e5c3a] px-3 py-2 text-xs font-bold text-white">
+                                            Schedule Defense
+                                        </button>
+                                    </div>
+                                </div>
+                            </article>
+                        @empty
+                            <p class="py-6 text-center text-xs text-gray-400">No adviser-approved defense document is waiting for scheduling.</p>
                         @endforelse
                     </div>
                 </section>

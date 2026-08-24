@@ -10,6 +10,7 @@ use App\Models\AuditLog;
 use App\Models\Document;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use App\Modules\ResearchProgress\Actions\SynchronizeWorkflowMilestone;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +18,10 @@ use InvalidArgumentException;
 
 class SubmitTitleProposalForScreening
 {
-    public function __construct(private readonly SynchronizeWorkflowMilestone $synchronizeMilestone) {}
+    public function __construct(
+        private readonly SynchronizeWorkflowMilestone $synchronizeMilestone,
+        private readonly WorkflowNotificationDispatcher $notifications,
+    ) {}
 
     public function handle(User $actor, Document $document): Document
     {
@@ -65,6 +69,26 @@ class SubmitTitleProposalForScreening
                 'description' => "Submitted Title Proposal v{$locked->version_number} for facilitator screening.",
                 'subject_snapshot' => ['academic_actor_type' => 'student_group_leader', 'group_id' => $group->id, 'version_number' => $locked->version_number],
             ]);
+
+            $facilitator = User::query()->find($group->researchClass?->facilitator_id);
+
+            if ($facilitator !== null) {
+                $this->notifications->send(
+                    recipient: $facilitator,
+                    eventKey: 'document.title-proposal.submitted',
+                    title: 'Title proposal awaiting screening',
+                    message: "{$group->name} submitted Title Proposal version {$locked->version_number}.",
+                    category: 'document',
+                    routeName: 'facilitator.dashboard',
+                    routeParameters: ['tab' => 'screening'],
+                    sourceType: Document::class,
+                    sourceId: $locked->getKey(),
+                    actor: $actor,
+                    contextLabel: $group->name,
+                    actingAs: 'Research Facilitator',
+                    occurrence: (string) $locked->version_number,
+                );
+            }
 
             return $locked->fresh();
         }, 3);

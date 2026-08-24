@@ -7,11 +7,16 @@ use App\Models\ConsultationAudit;
 use App\Models\ConsultationRequest;
 use App\Models\User;
 use App\Modules\Consultations\Exceptions\ConsultationException;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 class CancelConsultationRequest
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications,
+    ) {}
+
     public function handle(User $requester, ConsultationRequest $request, ?string $reason = null): ConsultationRequest
     {
         try {
@@ -47,6 +52,25 @@ class CancelConsultationRequest
                         'cancellation_reason' => ! empty($reason) ? trim($reason) : null,
                     ],
                 ]);
+
+                $adviser = User::query()->find($lockedRequest->assigned_adviser_id);
+
+                if ($adviser !== null) {
+                    $this->notifications->send(
+                        recipient: $adviser,
+                        eventKey: 'consultation.cancelled',
+                        title: 'Consultation cancelled',
+                        message: "{$requester->name} cancelled the consultation request.",
+                        category: 'consultation',
+                        routeName: 'adviser.dashboard',
+                        routeParameters: ['tab' => 'consultation'],
+                        sourceType: ConsultationRequest::class,
+                        sourceId: $lockedRequest->getKey(),
+                        actor: $requester,
+                        actingAs: 'Thesis Adviser',
+                        occurrence: ConsultationStatus::Cancelled->value,
+                    );
+                }
 
                 return $lockedRequest->fresh(['researchClassGroup', 'assignedAdviser', 'requester', 'canceller']);
             }, 3);

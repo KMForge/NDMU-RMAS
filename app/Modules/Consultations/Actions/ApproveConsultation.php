@@ -8,6 +8,7 @@ use App\Models\ConsultationAudit;
 use App\Models\ConsultationRequest;
 use App\Models\User;
 use App\Modules\Consultations\Exceptions\ConsultationException;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
@@ -15,6 +16,10 @@ use Illuminate\Support\Facades\DB;
 
 class ApproveConsultation
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications,
+    ) {}
+
     /**
      * @param  array{
      *     confirmed_start_at?: ?CarbonImmutable,
@@ -102,6 +107,26 @@ class ApproveConsultation
                         'mode' => $mode,
                     ],
                 ]);
+
+                $student = User::query()->find($lockedRequest->requested_by);
+
+                if ($student !== null) {
+                    $this->notifications->send(
+                        recipient: $student,
+                        eventKey: 'consultation.approved',
+                        title: 'Consultation approved',
+                        message: "Your consultation was approved for {$startAt->format('M j, Y g:i A')}.",
+                        category: 'consultation',
+                        routeName: 'student.dashboard',
+                        routeParameters: ['tab' => 'consultation'],
+                        sourceType: ConsultationRequest::class,
+                        sourceId: $lockedRequest->getKey(),
+                        actor: $adviser,
+                        contextLabel: $lockedRequest->researchClassGroup?->name,
+                        actingAs: 'Student Researcher',
+                        occurrence: ConsultationStatus::Approved->value,
+                    );
+                }
 
                 return $lockedRequest->fresh(['researchClassGroup', 'assignedAdviser', 'requester', 'reviewer']);
             }, 3);

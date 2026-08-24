@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Modules\Classes\Actions\CreateResearchClassGroup;
 use App\Modules\ResearchProgress\Actions\SyncResearchMilestoneDefinitions;
 use App\Modules\ResearchProgress\Queries\GetResearchGroupProgress;
+use App\Notifications\AcademicWorkflowNotification;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -291,7 +292,7 @@ class ResearchProgressMilestoneTest extends TestCase
         $this->actingAs($this->facilitator)->patchJson(route('facilitator.progress.start', $otherFirst))->assertForbidden();
     }
 
-    public function test_client_percentage_is_ignored_and_phase_actions_send_no_notifications(): void
+    public function test_client_percentage_is_ignored_and_phase_actions_notify_exact_group_context(): void
     {
         Notification::fake();
         $first = $this->milestones()->first();
@@ -304,7 +305,12 @@ class ResearchProgressMilestoneTest extends TestCase
 
         $expectedSinglePercentage = round((1 / 13) * 100, 2);
         $this->assertSame($expectedSinglePercentage, app(GetResearchGroupProgress::class)->for($this->group)['progress_percentage']);
-        Notification::assertNothingSent();
+        Notification::assertSentTo(
+            [$this->student, $this->adviser],
+            AcademicWorkflowNotification::class,
+            fn (AcademicWorkflowNotification $notification): bool => $notification->eventKey === 'research.milestone.updated',
+        );
+        Notification::assertNotSentTo($this->facilitator, AcademicWorkflowNotification::class);
     }
 
     public function test_evidence_must_belong_to_the_same_group(): void

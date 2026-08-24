@@ -24,7 +24,11 @@ class DocumentGroupAccess
     public function activeMembershipFor(User $user): ?ResearchClassGroupMember
     {
         return $this->activeMembershipQuery($user)
-            ->with(['researchClassGroup.leader', 'researchClassGroup.researchClass'])
+            ->with([
+                'researchClassGroup.leader',
+                'researchClassGroup.adviser',
+                'researchClassGroup.researchClass',
+            ])
             ->first();
     }
 

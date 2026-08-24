@@ -75,6 +75,37 @@ class AdviserDocumentReviewTest extends TestCase
             ->assertSee('aria-label="2 documents awaiting review"', false);
     }
 
+    public function test_accepted_proposal_remains_in_adviser_history_and_is_handed_to_owning_facilitator(): void
+    {
+        $adviser = $this->adviser();
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Handoff Group');
+        $document = $this->document($leader, $group, 'proposal-for-defense.pdf');
+        $facilitator = $group->researchClass->facilitator;
+
+        $this->actingAs($adviser)
+            ->patch(route('adviser.documents.review', $document), [
+                'decision' => DocumentStatus::Accepted->value,
+                'review_notes' => 'Ready for facilitator scheduling.',
+            ])
+            ->assertRedirect(route('adviser.dashboard', [
+                'tab' => 'docreview',
+                'document_id' => $document->id,
+                'document_status' => 'all',
+            ]));
+
+        $this->get(route('adviser.dashboard', ['tab' => 'docreview']))
+            ->assertOk()
+            ->assertSee('proposal-for-defense.pdf')
+            ->assertSee('Accepted');
+
+        $this->actingAs($facilitator)
+            ->get(route('facilitator.dashboard', ['tab' => 'screening']))
+            ->assertOk()
+            ->assertSee('Adviser-Approved Documents Ready for Scheduling')
+            ->assertSee('proposal-for-defense.pdf')
+            ->assertSee('aria-label="1 document awaiting facilitator action"', false);
+    }
+
     public function test_user_with_research_view_all_cannot_see_unrelated_groups_in_review_queue(): void
     {
         $adviser = $this->adviser();

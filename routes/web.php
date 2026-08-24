@@ -4,6 +4,7 @@ use App\Http\Controllers\AccessPendingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentAccessController;
 use App\Http\Controllers\Facilitator\ResearchClassFormActorController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OfficialFormController;
 use App\Http\Controllers\OfficialFormSignatureController;
 use App\Http\Controllers\OfficialFormVerificationController;
@@ -28,6 +29,17 @@ Route::post('/workspace/{workspace}', WorkspaceController::class)
     ->middleware(['auth', 'verified', 'active', 'throttle:30,1'])
     ->whereIn('workspace', ['admin', 'facilitator', 'dean', 'adviser', 'panelist', 'student'])
     ->name('workspace.switch');
+
+Route::middleware(['auth', 'verified', 'active', 'throttle:120,1'])
+    ->prefix('notifications')
+    ->name('notifications.')
+    ->group(function (): void {
+        Route::get('/', [NotificationController::class, 'index'])->name('index');
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread-count');
+        Route::get('/{notification}/open', [NotificationController::class, 'open'])->whereUuid('notification')->name('open');
+        Route::patch('/{notification}/read', [NotificationController::class, 'read'])->whereUuid('notification')->name('read');
+        Route::patch('/read-all', [NotificationController::class, 'readAll'])->name('read-all');
+    });
 
 Route::middleware(['auth', 'verified', 'active'])
     ->prefix('documents')

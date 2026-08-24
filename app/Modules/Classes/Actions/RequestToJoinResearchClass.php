@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Modules\Classes\Exceptions\ClassJoinRateLimited;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
@@ -19,6 +20,10 @@ class RequestToJoinResearchClass
     private const FAILED_ATTEMPTS_DECAY_SECONDS = 600;
 
     private const MAX_REJECTED_ATTEMPTS_PER_CLASS = 5;
+
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications,
+    ) {}
 
     public function handle(User $student, string $joinCode): ResearchClassEnrollment
     {
@@ -86,11 +91,32 @@ class RequestToJoinResearchClass
                     'reviewed_at' => null,
                 ];
 
-                return ResearchClassEnrollment::query()->create([
+                $enrollment = ResearchClassEnrollment::query()->create([
                     'research_class_id' => $researchClass->getKey(),
                     'student_id' => $student->getKey(),
                     ...$requestData,
                 ]);
+
+                $facilitator = User::query()->find($researchClass->facilitator_id);
+
+                if ($facilitator !== null) {
+                    $this->notifications->send(
+                        recipient: $facilitator,
+                        eventKey: 'class.join-request.submitted',
+                        title: 'New class join request',
+                        message: "{$student->name} requested to join {$researchClass->name}.",
+                        category: 'class',
+                        routeName: 'facilitator.dashboard',
+                        routeParameters: ['tab' => 'join-requests'],
+                        sourceType: ResearchClassEnrollment::class,
+                        sourceId: $enrollment->getKey(),
+                        actor: $student,
+                        contextLabel: $researchClass->name,
+                        actingAs: 'Research Facilitator',
+                    );
+                }
+
+                return $enrollment;
             }, 3);
         } catch (QueryException $exception) {
             report($exception);

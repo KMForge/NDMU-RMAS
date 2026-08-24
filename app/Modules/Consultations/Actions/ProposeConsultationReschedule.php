@@ -8,12 +8,17 @@ use App\Models\ConsultationRequest;
 use App\Models\ConsultationScheduleProposal;
 use App\Models\User;
 use App\Modules\Consultations\Exceptions\ConsultationException;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 class ProposeConsultationReschedule
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications,
+    ) {}
+
     /**
      * @param  array{
      *     proposed_start_at: CarbonImmutable
@@ -87,6 +92,25 @@ class ProposeConsultationReschedule
                         'duration_minutes' => $durationMinutes,
                     ],
                 ]);
+
+                $student = User::query()->find($lockedRequest->requested_by);
+
+                if ($student !== null) {
+                    $this->notifications->send(
+                        recipient: $student,
+                        eventKey: 'consultation.reschedule-proposed',
+                        title: 'Consultation reschedule proposed',
+                        message: "{$adviser->name} proposed {$proposedStart->format('M j, Y g:i A')} for your consultation.",
+                        category: 'consultation',
+                        routeName: 'student.dashboard',
+                        routeParameters: ['tab' => 'consultation'],
+                        sourceType: ConsultationScheduleProposal::class,
+                        sourceId: $proposal->getKey(),
+                        actor: $adviser,
+                        contextLabel: $lockedRequest->researchClassGroup?->name,
+                        actingAs: 'Student Researcher',
+                    );
+                }
 
                 return $proposal;
             }, 3);

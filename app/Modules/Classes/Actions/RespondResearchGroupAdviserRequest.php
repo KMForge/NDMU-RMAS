@@ -7,11 +7,16 @@ use App\Models\ResearchClassGroupAdviserHistory;
 use App\Models\ResearchClassGroupAdviserRequest;
 use App\Models\User;
 use App\Modules\Classes\Exceptions\ClassOperationException;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 class RespondResearchGroupAdviserRequest
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications,
+    ) {}
+
     public function handle(
         User $adviser,
         ResearchClassGroupAdviserRequest $adviserRequest,
@@ -75,6 +80,27 @@ class RespondResearchGroupAdviserRequest
                         'status' => 'declined',
                         'responded_at' => $now,
                     ]);
+                }
+
+                $facilitator = User::query()->find($lockedRequest->requested_by);
+
+                if ($facilitator !== null) {
+                    $decisionLabel = $decision === 'accept' ? 'accepted' : 'declined';
+                    $this->notifications->send(
+                        recipient: $facilitator,
+                        eventKey: "adviser.invitation.{$decisionLabel}",
+                        title: "Adviser invitation {$decisionLabel}",
+                        message: "{$adviser->name} {$decisionLabel} the invitation for {$group->name}.",
+                        category: 'class',
+                        routeName: 'facilitator.dashboard',
+                        routeParameters: ['tab' => 'classes'],
+                        sourceType: ResearchClassGroupAdviserRequest::class,
+                        sourceId: $lockedRequest->getKey(),
+                        actor: $adviser,
+                        contextLabel: $group->name,
+                        actingAs: 'Research Facilitator',
+                        occurrence: $decision,
+                    );
                 }
 
                 return $lockedRequest->refresh();

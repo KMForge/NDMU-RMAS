@@ -24,6 +24,7 @@ use App\Modules\Revisions\Actions\ResolveRevisionCycle;
 use App\Modules\Revisions\Actions\StartRevisionCycle;
 use App\Modules\Revisions\Actions\SubmitRevisionDocument;
 use App\Modules\Revisions\Exceptions\RevisionWorkflowException;
+use App\Notifications\AcademicWorkflowNotification;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -170,7 +171,12 @@ class RevisionWorkflowTest extends TestCase
         $this->assertEquals($this->adviser->id, $cycle->requested_by);
         $this->assertNull($cycle->assigned_to, 'Modern Phase 17 cycle must keep assigned_to null.');
 
-        Notification::assertNothingSent();
+        Notification::assertSentTo(
+            [$this->leader, $this->member],
+            AcademicWorkflowNotification::class,
+            fn (AcademicWorkflowNotification $notification): bool => $notification->eventKey === 'document.review.decision-recorded',
+        );
+        Notification::assertNotSentTo($this->facilitator, AcademicWorkflowNotification::class);
     }
 
     public function test_idempotent_cycle_creation(): void
@@ -626,7 +632,7 @@ class RevisionWorkflowTest extends TestCase
         );
     }
 
-    public function test_zero_phase_23_notifications_sent(): void
+    public function test_revision_workflow_sends_contextual_phase_23_notifications(): void
     {
         $review = app(ReviewDocument::class)->handle(
             $this->adviser,
@@ -644,7 +650,21 @@ class RevisionWorkflowTest extends TestCase
         app(ResolveRevisionCycle::class)->handle($this->adviser, $cycle);
         app(ReopenRevisionCycle::class)->handle($this->adviser, $cycle, 'Reopening for review.');
 
-        Notification::assertNothingSent();
+        Notification::assertSentTo(
+            [$this->leader, $this->member],
+            AcademicWorkflowNotification::class,
+            fn (AcademicWorkflowNotification $notification): bool => in_array($notification->eventKey, [
+                'document.review.decision-recorded',
+                'revision.resolved',
+                'revision.reopened',
+            ], true),
+        );
+        Notification::assertSentTo(
+            $this->adviser,
+            AcademicWorkflowNotification::class,
+            fn (AcademicWorkflowNotification $notification): bool => str_contains($notification->eventKey, 'document.'),
+        );
+        Notification::assertNotSentTo($this->facilitator, AcademicWorkflowNotification::class);
     }
 
     public function test_zero_phase_18_progress_changes(): void

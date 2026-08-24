@@ -8,13 +8,15 @@ use App\Models\OfficialFormInstance;
 use App\Models\OfficialFormSignature;
 use App\Models\User;
 use App\Modules\Evaluations\Services\EvaluationAuthorization;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class ReleaseDefenseEvaluationResults
 {
     public function __construct(
-        private readonly EvaluationAuthorization $auth = new EvaluationAuthorization
+        private readonly EvaluationAuthorization $auth = new EvaluationAuthorization,
+        private readonly WorkflowNotificationDispatcher $notifications = new WorkflowNotificationDispatcher,
     ) {}
 
     public function handle(User $actor, DefenseEvaluationRound $round): DefenseEvaluationRound
@@ -78,6 +80,25 @@ class ReleaseDefenseEvaluationResults
                 'auditable_id' => $lockedRound->id,
                 'description' => "Released evaluation results for round #{$lockedRound->id}.",
             ]);
+
+            $group = $lockedRound->defense?->group;
+            $students = $group?->members()->with('student')->get()->pluck('student')->filter() ?? collect();
+
+            $this->notifications->sendToMany(
+                recipients: $students,
+                eventKey: 'evaluation.results.released',
+                title: 'Defense evaluation results released',
+                message: 'Your defense evaluation results are now available.',
+                category: 'evaluation',
+                routeName: 'student.dashboard',
+                routeParameters: ['tab' => 'evaluations'],
+                sourceType: DefenseEvaluationRound::class,
+                sourceId: $lockedRound->getKey(),
+                actor: $actor,
+                contextLabel: $group?->name,
+                actingAs: 'Student Researcher',
+                occurrence: 'released',
+            );
 
             return $lockedRound->fresh(['summary']);
         });

@@ -7,12 +7,17 @@ use App\Models\ResearchClassGroup;
 use App\Models\ResearchGroupMilestone;
 use App\Models\ResearchGroupMilestoneEvent;
 use App\Models\User;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class TransitionResearchGroupMilestone
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications,
+    ) {}
+
     public function execute(
         User $actor,
         ResearchGroupMilestone $milestone,
@@ -116,6 +121,41 @@ class TransitionResearchGroupMilestone
                 'ip_address' => $ipAddress,
                 'occurred_at' => $now,
             ]);
+
+            $this->notifications->sendToMany(
+                recipients: $group->members()->with('student')->get()->pluck('student')->filter()
+                    ->reject(fn (User $recipient): bool => $recipient->is($actor)),
+                eventKey: 'research.milestone.updated',
+                title: 'Research milestone updated',
+                message: "{$locked->definition->name} is now ".str($target->value)->headline()->lower().'.',
+                category: 'research',
+                routeName: 'student.dashboard',
+                routeParameters: ['tab' => 'progress'],
+                sourceType: ResearchGroupMilestone::class,
+                sourceId: $locked->getKey(),
+                actor: $actor,
+                contextLabel: $group->name,
+                occurrence: $target->value,
+            );
+
+            $adviser = $group->adviser_id !== null ? User::query()->find($group->adviser_id) : null;
+            if ($adviser !== null && ! $adviser->is($actor)) {
+                $this->notifications->send(
+                    recipient: $adviser,
+                    eventKey: 'research.milestone.updated',
+                    title: 'Research milestone updated',
+                    message: "{$locked->definition->name} is now ".str($target->value)->headline()->lower().'.',
+                    category: 'research',
+                    routeName: 'adviser.dashboard',
+                    routeParameters: ['tab' => 'monitoring'],
+                    sourceType: ResearchGroupMilestone::class,
+                    sourceId: $locked->getKey(),
+                    actor: $actor,
+                    contextLabel: $group->name,
+                    actingAs: 'Thesis Adviser',
+                    occurrence: $target->value,
+                );
+            }
 
             return $locked->load(['definition', 'evidences', 'events.actor:id,name,email']);
         }, 3);
