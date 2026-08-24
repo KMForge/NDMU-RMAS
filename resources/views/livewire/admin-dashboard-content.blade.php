@@ -262,11 +262,7 @@
             <!-- Profile Info and Notification Icon -->
             <div class="flex items-center gap-6">
                 <x-workspace-switcher current="admin" />
-                <!-- Notification Bell -->
-                <a href="{{ route('notifications.index') }}" class="relative w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-600 transition-colors" aria-label="Open notifications">
-                    <i class="ph ph-bell text-xl"></i>
-                    <span class="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                </a>
+                <x-notification-dropdown />
 
                 <!-- Divider -->
                 <div class="h-8 w-px bg-gray-200"></div>

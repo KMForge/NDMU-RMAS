@@ -272,12 +272,7 @@
             </form>
             <div class="flex items-center gap-3">
                 <x-workspace-switcher current="student" />
-                <a href="{{ route('notifications.index') }}" class="w-9 h-9 rounded-full hover:bg-gray-50 text-gray-500 flex items-center justify-center relative" aria-label="Open notifications">
-                    <i class="ph ph-bell text-lg"></i>
-                    @if ($notifications->whereNull('read_at')->isNotEmpty())
-                        <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 border border-white"></span>
-                    @endif
-                </a>
+                <x-notification-dropdown />
                 <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-xs">
                     {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($student->name, 0, 1)) }}
                 </div>

@@ -13,6 +13,7 @@ use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use App\Notifications\AcademicWorkflowNotification;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
@@ -122,6 +123,23 @@ class NotificationCenterTest extends TestCase
 
         $this->assertNotNull($notificationA->fresh()->read_at);
         $this->assertNull($notificationB->fresh()->read_at);
+    }
+
+    public function test_header_dropdown_shows_only_the_signed_in_users_recent_notifications(): void
+    {
+        $user = $this->activeStudent();
+        $otherUser = $this->activeStudent();
+        $this->notify($user, 'document.reviewed', 'Your document was reviewed');
+        $this->notify($otherUser, 'document.reviewed', 'Another user notification');
+
+        $this->actingAs($user);
+
+        $html = Blade::render('<x-notification-dropdown />');
+
+        $this->assertStringContainsString('Your document was reviewed', $html);
+        $this->assertStringContainsString('1 unread', $html);
+        $this->assertStringContainsString('View all notifications', $html);
+        $this->assertStringNotContainsString('Another user notification', $html);
     }
 
     public function test_unknown_destination_falls_back_to_notification_center(): void

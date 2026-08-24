@@ -518,11 +518,7 @@
             <!-- Right profile area matching "D / Dr. Dean's Portal" -->
             <div class="flex items-center gap-4">
                 <x-workspace-switcher current="dean" />
-                <!-- Notification Bell -->
-                <a href="{{ route('notifications.index') }}" class="relative w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer" aria-label="Open notifications">
-                    <i class="ph ph-bell text-lg"></i>
-                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                </a>
+                <x-notification-dropdown />
                 
                 <!-- Dean's Portal Profile Badge -->
                 <div class="flex items-center gap-3 pl-2 border-l border-gray-150">

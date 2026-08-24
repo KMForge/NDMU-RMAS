@@ -404,6 +404,7 @@
 
             <div class="flex items-center gap-4">
                 <x-workspace-switcher current="adviser" />
+                <x-notification-dropdown />
                 <span class="text-xs font-bold text-gray-700">{{ $adviser->name }}</span>
             </div>
         </header>

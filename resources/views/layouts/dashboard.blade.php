@@ -78,10 +78,7 @@
 
             <!-- Right profile area -->
             <div class="flex items-center gap-4">
-                <button class="relative w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors">
-                    <i class="ph ph-bell text-lg"></i>
-                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                </button>
+                <x-notification-dropdown />
                 
                 <div class="flex items-center gap-3 pl-2 border-l border-gray-150">
                     <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-xs">
