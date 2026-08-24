@@ -1,115 +1,196 @@
 @extends('layouts.auth')
 
 @section('auth-content')
-<div class="min-h-screen flex flex-col md:flex-row relative bg-[#f4f7f6]">
-    <!-- Left Side: Image Banner & Brand Description -->
-    <div class="w-full md:w-[45%] lg:w-[40%] bg-[#0e5c3a] text-white p-8 md:p-16 flex flex-col justify-between relative min-h-[400px] md:min-h-screen overflow-hidden">
-        <img src="{{ asset('images/ndmu-optimized.jpg') }}" alt="" aria-hidden="true" fetchpriority="high" decoding="async" class="absolute inset-0 h-full w-full object-cover">
-        <div aria-hidden="true" class="absolute inset-0 bg-gradient-to-b from-[rgba(14,92,58,0.82)] to-[rgba(10,70,44,0.88)]"></div>
+<div class="min-h-screen flex flex-col md:flex-row relative bg-[#F7FAF8]">
+    <!-- Left Side: Premium NDMU Research Brand Panel -->
+    <div class="w-full md:w-[40%] bg-gradient-to-br from-[#003D29] via-[#005337] to-[#00462F] text-white p-8 md:p-16 flex flex-col justify-between relative min-h-[500px] md:min-h-screen overflow-hidden">
+        <!-- Subtle academic patterns (very faint) -->
+        <svg class="absolute inset-0 w-full h-full opacity-3" aria-hidden="true">
+            <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                <circle cx="2" cy="2" r="1" fill="white" />
+            </pattern>
+            <rect width="100%" height="100%" fill="url(#dots)" />
+        </svg>
+
+        <!-- Decorative circles (very subtle) -->
+        <div class="absolute -top-40 -right-32 w-96 h-96 rounded-full border border-white/5 pointer-events-none"></div>
+        <div class="absolute -bottom-32 -left-40 w-80 h-80 rounded-full border border-white/8 pointer-events-none"></div>
 
         <!-- Logo -->
-        <div class="relative z-10 flex items-center gap-3">
+        <div class="relative z-10 flex items-center gap-3 animate-fade-in-left">
             <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-12 w-auto">
             <div class="flex flex-col leading-none">
                 <span class="font-heading font-extrabold text-2xl text-white tracking-tight">NDMU</span>
-                <span class="text-[10px] font-bold text-[#eebc3f] tracking-wider uppercase mt-1">Research Management</span>
+                <span class="text-[10px] font-bold text-[#E5B72E] tracking-widest uppercase mt-1">Research Management</span>
             </div>
         </div>
 
-        <!-- Banner Text Content -->
-        <div class="relative z-10 my-auto py-12 space-y-6">
-            <span class="text-xs font-bold tracking-widest text-[#eebc3f] uppercase block">Welcome Back</span>
-            <h1 class="text-4xl md:text-5xl font-heading font-bold text-white leading-tight">
-                Access Your<br>Research Portal
-            </h1>
-            <p class="text-white/80 text-sm md:text-base font-light max-w-sm leading-relaxed">
-                Sign in to manage your research projects, schedule defenses, and collaborate with advisers.
+        <!-- Main Message Content -->
+        <div class="relative z-10 my-auto py-12 space-y-8 animate-fade-in-left" style="animation-delay: 100ms;">
+            <div class="space-y-1">
+                <span class="text-xs font-bold tracking-widest text-[#E5B72E] uppercase block">Welcome Back</span>
+            </div>
+
+            <!-- Hero Headline -->
+            <div class="space-y-2">
+                <h1 class="text-5xl lg:text-6xl font-serif font-bold text-white leading-tight tracking-tight">
+                    Research.<br>
+                    <span>Collaborate.</span><br>
+                    <span class="text-[#E5B72E]">Achieve More.</span>
+                </h1>
+            </div>
+
+            <!-- Supporting Text -->
+            <p class="text-white/75 text-sm leading-relaxed max-w-sm font-light">
+                A centralized research workspace connecting students, faculty, advisers, and panelists throughout the academic research journey.
             </p>
-            
-            <!-- Features list -->
-            <ul class="space-y-4 pt-4 text-sm font-medium">
-                <li class="flex items-center gap-3 text-white/95">
-                    <span class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center border border-white/20 text-[#eebc3f] flex-shrink-0">
-                        <i class="ph ph-check text-xs"></i>
-                    </span>
-                    <span>Access your assigned research dashboard</span>
-                </li>
-                <li class="flex items-center gap-3 text-white/95">
-                    <span class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center border border-white/20 text-[#eebc3f] flex-shrink-0">
-                        <i class="ph ph-check text-xs"></i>
-                    </span>
-                    <span>Submit and track research proposals</span>
-                </li>
-                <li class="flex items-center gap-3 text-white/95">
-                    <span class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center border border-white/20 text-[#eebc3f] flex-shrink-0">
-                        <i class="ph ph-check text-xs"></i>
-                    </span>
-                    <span>Collaborate with advisers and panelists</span>
-                </li>
-                <li class="flex items-center gap-3 text-white/95">
-                    <span class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center border border-white/20 text-[#eebc3f] flex-shrink-0">
-                        <i class="ph ph-check text-xs"></i>
-                    </span>
-                    <span>Schedule and manage defense sessions</span>
-                </li>
-            </ul>
+
+            <!-- Research Journey Timeline -->
+            <div class="space-y-6 pt-4">
+                <!-- Stage 1: Submit -->
+                <div class="flex gap-4 items-start">
+                    <div class="flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full bg-white/10 border border-white/25 flex items-center justify-center flex-shrink-0 mb-3 transition-all duration-300 hover:bg-white/15 hover:scale-110">
+                            <i class="ph ph-document-plus text-[#E5B72E] text-lg"></i>
+                        </div>
+                        <div class="w-0.5 h-12 bg-gradient-to-b from-[#E5B72E]/30 to-transparent"></div>
+                    </div>
+                    <div class="pt-1">
+                        <h3 class="text-sm font-bold text-white">Submit</h3>
+                        <p class="text-xs text-white/60 mt-0.5">Upload and manage research proposals</p>
+                    </div>
+                </div>
+
+                <!-- Stage 2: Collaborate -->
+                <div class="flex gap-4 items-start">
+                    <div class="flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full bg-white/10 border border-white/25 flex items-center justify-center flex-shrink-0 mb-3 transition-all duration-300 hover:bg-white/15 hover:scale-110">
+                            <i class="ph ph-users-three text-[#E5B72E] text-lg"></i>
+                        </div>
+                        <div class="w-0.5 h-12 bg-gradient-to-b from-[#E5B72E]/30 to-transparent"></div>
+                    </div>
+                    <div class="pt-1">
+                        <h3 class="text-sm font-bold text-white">Collaborate</h3>
+                        <p class="text-xs text-white/60 mt-0.5">Work with advisers and panelists</p>
+                    </div>
+                </div>
+
+                <!-- Stage 3: Review -->
+                <div class="flex gap-4 items-start">
+                    <div class="flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full bg-white/10 border border-white/25 flex items-center justify-center flex-shrink-0 mb-3 transition-all duration-300 hover:bg-white/15 hover:scale-110">
+                            <i class="ph ph-file-text text-[#E5B72E] text-lg"></i>
+                        </div>
+                        <div class="w-0.5 h-12 bg-gradient-to-b from-[#E5B72E]/30 to-transparent"></div>
+                    </div>
+                    <div class="pt-1">
+                        <h3 class="text-sm font-bold text-white">Review</h3>
+                        <p class="text-xs text-white/60 mt-0.5">Track feedback and research progress</p>
+                    </div>
+                </div>
+
+                <!-- Stage 4: Defend -->
+                <div class="flex gap-4 items-start">
+                    <div class="flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full bg-white/10 border border-white/25 flex items-center justify-center flex-shrink-0 transition-all duration-300 hover:bg-white/15 hover:scale-110">
+                            <i class="ph ph-calendar text-[#E5B72E] text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="pt-1">
+                        <h3 class="text-sm font-bold text-white">Defend</h3>
+                        <p class="text-xs text-white/60 mt-0.5">Manage research defense schedules</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Bottom spacer/branding link -->
-        <div class="relative z-10 text-xs text-white/50 font-medium">
-            © 2026 Notre Dame of Marbel University.
+        <!-- Research Network Visualization (subtle, background) -->
+        <svg class="absolute bottom-0 right-0 w-80 h-80 opacity-5 pointer-events-none" viewBox="0 0 300 300" aria-hidden="true">
+            <!-- Research network nodes and connections -->
+            <line x1="150" y1="150" x2="80" y2="100" stroke="#46BE7D" stroke-width="0.5" />
+            <line x1="150" y1="150" x2="220" y2="100" stroke="#46BE7D" stroke-width="0.5" />
+            <line x1="150" y1="150" x2="120" y2="240" stroke="#46BE7D" stroke-width="0.5" />
+            <line x1="150" y1="150" x2="220" y2="220" stroke="#46BE7D" stroke-width="0.5" />
+            <line x1="80" y1="100" x2="220" y2="100" stroke="#46BE7D" stroke-width="0.5" />
+
+            <circle cx="150" cy="150" r="8" fill="none" stroke="#E5B72E" stroke-width="1" opacity="0.3" class="animate-pulse-subtle" />
+            <circle cx="80" cy="100" r="6" fill="none" stroke="#46BE7D" stroke-width="0.5" />
+            <circle cx="220" cy="100" r="6" fill="none" stroke="#46BE7D" stroke-width="0.5" />
+            <circle cx="120" cy="240" r="6" fill="none" stroke="#46BE7D" stroke-width="0.5" />
+            <circle cx="220" cy="220" r="6" fill="none" stroke="#46BE7D" stroke-width="0.5" />
+        </svg>
+
+        <!-- Footer -->
+        <div class="relative z-10 flex items-center gap-2 text-xs text-white/60 font-medium animate-fade-in-left" style="animation-delay: 200ms;">
+            <i class="ph ph-shield-check text-[#E5B72E]"></i>
+            <span>Secure Academic Research Portal</span>
         </div>
     </div>
 
-    <!-- Right Side: Login Form Card -->
-    <div class="w-full md:w-[55%] lg:w-[60%] flex items-center justify-center p-6 md:p-12 relative min-h-screen bg-gradient-to-tr from-[#f0f4f2] to-[#f4f7f6]">
+    <!-- Right Side: Premium Authentication Area -->
+    <div class="w-full md:w-[60%] flex items-center justify-center p-6 md:p-12 relative min-h-screen bg-[#F7FAF8]">
+        <!-- Subtle background graphics -->
+        <svg class="absolute inset-0 w-full h-full opacity-40 pointer-events-none" viewBox="0 0 600 800" aria-hidden="true">
+            <defs>
+                <pattern id="dots-auth" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
+                    <circle cx="1" cy="1" r="0.5" fill="#087443" opacity="0.08" />
+                </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#dots-auth)" />
+            <circle cx="500" cy="100" r="200" fill="#087443" opacity="0.02" />
+            <circle cx="100" cy="600" r="150" fill="#087443" opacity="0.03" />
+        </svg>
+
         <!-- Close Button -->
-        <a href="{{ url('/') }}" class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white border border-gray-150 flex items-center justify-center text-gray-500 hover:text-gray-800 shadow-sm transition-all duration-300 z-10 hover:scale-105">
+        <a href="{{ url('/') }}" class="absolute top-6 right-6 w-11 h-11 rounded-full bg-white border border-[#DDE5E1] flex items-center justify-center text-[#68766F] hover:text-[#14231D] hover:bg-[#F1F7F4] shadow-sm transition-all duration-300 z-10 hover:-rotate-90" title="Close">
             <i class="ph ph-x text-lg"></i>
         </a>
 
-        <!-- Login Card -->
-        <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-gray-100/50 p-8 md:p-10 w-full max-w-[460px] flex flex-col relative">
+        <!-- Authentication Card -->
+        <div class="bg-white rounded-3xl shadow-lg shadow-[#087443]/8 border border-[#CFE3D8] p-8 md:p-10 w-full max-w-[500px] flex flex-col relative overflow-hidden animate-fade-in-up">
+            <!-- Card accent (top-left subtle geometric) -->
+            <div class="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-gradient-to-br from-[#087443]/5 to-transparent pointer-events-none"></div>
+
             <!-- Tabs -->
-            <div class="flex bg-gray-100/60 p-1.5 rounded-2xl mb-8">
-                <a href="{{ route('login') }}" class="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-xl bg-[#0e5c3a] text-white shadow-sm transition-all duration-300">
+            <div class="flex bg-[#F1F7F4] p-1 rounded-2xl mb-8 relative z-10">
+                <a href="{{ route('login') }}" class="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-xl bg-[#00633E] text-white shadow-sm transition-all duration-300">
                     <i class="ph ph-sign-in text-base"></i> Sign In
                 </a>
-                <a href="{{ route('register') }}" class="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-xl text-gray-500 hover:text-gray-800 transition-all duration-300">
+                <a href="{{ route('register') }}" class="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-xl text-[#68766F] hover:text-[#14231D] transition-all duration-300">
                     <i class="ph ph-user-plus text-base"></i> Register
                 </a>
             </div>
 
-            <!-- Header Icon & Text -->
-            <div class="text-center mb-8 flex flex-col items-center">
-                <div class="w-12 h-12 rounded-2xl bg-[#0e5c3a]/10 text-[#0e5c3a] flex items-center justify-center mb-4 text-xl">
-                    <i class="ph ph-sign-in"></i>
+            <!-- Header -->
+            <div class="text-center mb-8 flex flex-col items-center relative z-10">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#087443]/10 to-[#087443]/5 text-[#087443] flex items-center justify-center mb-4 text-2xl border border-[#CFE3D8]/50 transition-all duration-500 hover:scale-110">
+                    <i class="ph ph-shield-check"></i>
                 </div>
-                <h2 class="text-2xl font-bold font-heading text-gray-800 mb-1">Welcome Back</h2>
-                <p class="text-xs text-gray-400 font-light">Sign in to access your research portal</p>
+                <h2 class="text-2xl font-bold text-[#14231D] mb-2">Welcome Back</h2>
+                <p class="text-sm text-[#68766F] font-light">Continue to your research workspace.</p>
             </div>
 
             <!-- Form -->
-            <form method="POST" action="{{ route('login.store') }}" class="space-y-5 mb-6">
+            <form method="POST" action="{{ route('login.store') }}" class="space-y-5 mb-6 relative z-10">
                 @csrf
 
                 @if (session('status'))
-                    <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-700" role="status">
+                    <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700 animate-slide-down" role="status">
                         {{ session('status') }}
                     </div>
                 @endif
 
                 @if ($errors->any())
-                    <div class="rounded-2xl border border-red-200 bg-red-50 p-3 text-xs text-red-700" role="alert">
+                    <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 animate-slide-down" role="alert">
                         {{ $errors->first() }}
                     </div>
                 @endif
 
                 <!-- Email Field -->
                 <div class="space-y-2">
-                    <label for="email" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Email Address</label>
+                    <label for="email" class="text-sm font-semibold text-[#14231D] block">Email Address</label>
                     <div class="relative">
-                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 pointer-events-none">
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-[#8B9690] pointer-events-none">
                             <i class="ph ph-envelope-simple text-lg"></i>
                         </span>
                         <input
@@ -120,16 +201,18 @@
                             autocomplete="username"
                             required
                             placeholder="your.email@ndmu.edu.ph"
-                            class="w-full pl-11 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300"
+                            class="w-full pl-12 pr-4 py-3 bg-white border border-[#DDE5E1] rounded-2xl text-sm text-[#14231D] placeholder-[#8B9690] focus:outline-none focus:border-[#087443] focus:ring-4 focus:ring-[#087443]/10 transition-all duration-300"
                         >
                     </div>
                 </div>
 
                 <!-- Password Field -->
                 <div class="space-y-2">
-                    <label for="password" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Password</label>
+                    <div class="flex items-center justify-between">
+                        <label for="password" class="text-sm font-semibold text-[#14231D] block">Password</label>
+                    </div>
                     <div class="relative">
-                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 pointer-events-none">
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-[#8B9690] pointer-events-none">
                             <i class="ph ph-lock text-lg"></i>
                         </span>
                         <input
@@ -138,12 +221,12 @@
                             type="password"
                             autocomplete="current-password"
                             required
-                            placeholder="••••••••"
-                            class="w-full pl-11 pr-11 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300"
+                            placeholder="Enter your password"
+                            class="w-full pl-12 pr-12 py-3 bg-white border border-[#DDE5E1] rounded-2xl text-sm text-[#14231D] placeholder-[#8B9690] focus:outline-none focus:border-[#087443] focus:ring-4 focus:ring-[#087443]/10 transition-all duration-300"
                         >
                         <button
                             type="button"
-                            class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                            class="absolute inset-y-0 right-0 pr-4 flex items-center text-[#8B9690] hover:text-[#087443] transition-colors duration-300"
                             data-password-toggle
                             data-password-input="password"
                             aria-label="Show password"
@@ -155,33 +238,38 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-between gap-4">
-                    <label class="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-                        <input type="checkbox" name="remember" value="1" @checked(old('remember')) class="rounded border-gray-300 text-[#0e5c3a] focus:ring-[#0e5c3a]">
-                        Remember me
+                <!-- Remember Me & Forgot Password -->
+                <div class="flex items-center justify-between gap-4 text-sm">
+                    <label class="flex items-center gap-2 text-[#68766F] cursor-pointer hover:text-[#14231D] transition-colors">
+                        <input type="checkbox" name="remember" value="1" @checked(old('remember')) class="rounded border-[#DDE5E1] text-[#087443] focus:ring-[#087443]">
+                        <span>Remember me</span>
                     </label>
-                    <a href="{{ route('password.request') }}" class="text-xs font-semibold text-[#0e5c3a] hover:text-[#0a4a2e] hover:underline">
+                    <a href="{{ route('password.request') }}" class="font-semibold text-[#087443] hover:text-[#00633E] hover:underline transition-colors">
                         Forgot password?
                     </a>
                 </div>
 
                 <!-- Submit Button -->
-                <button type="submit" class="w-full py-4 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-sm font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-[#0e5c3a]/10 hover:shadow-xl transition-all duration-300">
-                    <i class="ph ph-sign-in text-base"></i> Sign In
+                <button type="submit" class="w-full py-3.5 bg-[#00633E] hover:bg-[#004F32] text-white text-sm font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-[#087443]/15 hover:shadow-xl hover:shadow-[#087443]/20 hover:-translate-y-0.5 transition-all duration-300 active:translate-y-0">
+                    Sign In <i class="ph ph-arrow-right text-base transition-transform duration-300 group-hover:translate-x-1"></i>
                 </button>
             </form>
 
-            <!-- Info Box -->
-            <div class="border border-[#0e5c3a]/15 bg-[#0e5c3a]/5 rounded-2xl p-4 text-center">
-                <p class="text-[11px] text-[#0e5c3a] leading-relaxed">
-                    Are you faculty, an adviser, or a panelist? <span class="font-bold">Staff accounts are created by the administrator.</span> Please contact <a href="mailto:research@ndmu.edu.ph" class="underline font-semibold hover:text-[#0a4a2e]">research@ndmu.edu.ph</a>.
-                </p>
+            <!-- Staff Account Notice -->
+            <div class="border border-[#CFE3D8] bg-[#EAF5EF] rounded-2xl p-4 relative z-10">
+                <div class="flex gap-3">
+                    <i class="ph ph-shield-check text-[#087443] flex-shrink-0 text-lg mt-0.5"></i>
+                    <div class="text-xs text-[#14231D] space-y-1">
+                        <p class="font-semibold">Staff Account Access</p>
+                        <p class="text-[#68766F]">Faculty and staff accounts are managed by the Research Office. <a href="mailto:research@ndmu.edu.ph" class="font-semibold text-[#087443] hover:text-[#00633E] underline">Contact Research Office</a></p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Floating Help Button -->
-    <a href="#" class="absolute bottom-6 right-6 w-10 h-10 rounded-full bg-white border border-gray-150 flex items-center justify-center text-gray-500 hover:text-gray-800 shadow-sm transition-all duration-300 hover:scale-105">
+    <a href="#" class="absolute bottom-8 right-8 w-11 h-11 rounded-full bg-white border border-[#DDE5E1] flex items-center justify-center text-[#68766F] hover:text-[#087443] hover:bg-[#F1F7F4] shadow-sm transition-all duration-300 hover:scale-110" title="Help">
         <i class="ph ph-question text-lg"></i>
     </a>
 </div>
