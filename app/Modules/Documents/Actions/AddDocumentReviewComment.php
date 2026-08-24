@@ -9,15 +9,15 @@ use App\Models\DocumentReviewComment;
 use App\Models\User;
 use App\Modules\Documents\Exceptions\DocumentReviewException;
 use App\Modules\Documents\Support\DocumentReviewerAccess;
-use App\Notifications\DocumentReviewCommentPosted;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Notification;
 
 class AddDocumentReviewComment
 {
     public function __construct(
         private readonly DocumentReviewerAccess $reviewerAccess,
+        private readonly WorkflowNotificationDispatcher $notifications,
     ) {}
 
     /**
@@ -107,9 +107,19 @@ class AddDocumentReviewComment
                         })
                         ->get();
 
-                    Notification::send(
-                        $studentRecipients,
-                        new DocumentReviewCommentPosted($lockedDocument, $comment, $reviewer),
+                    $this->notifications->sendToMany(
+                        recipients: $studentRecipients,
+                        eventKey: 'document.feedback.posted',
+                        title: 'New research paper feedback',
+                        message: "{$reviewer->name} posted feedback on {$lockedDocument->original_filename}.",
+                        category: 'document',
+                        routeName: 'student.dashboard',
+                        routeParameters: ['tab' => 'revisions'],
+                        sourceType: DocumentReviewComment::class,
+                        sourceId: $comment->getKey(),
+                        actor: $reviewer,
+                        contextLabel: $lockedDocument->researchClassGroup?->name,
+                        actingAs: 'Student Researcher',
                     );
                 }
 
