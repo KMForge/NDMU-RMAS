@@ -2,48 +2,48 @@
 
 @section('auth-content')
 <div x-data="{ showPassword: false, showConfirmation: false }" class="h-screen w-screen overflow-hidden flex flex-col md:flex-row relative bg-[#F7FAF8]">
-    <!-- Left Side: Premium NDMU Research Brand Panel -->
-    <div class="w-full md:w-[46%] lg:w-[44%] bg-gradient-to-br from-[#003D29] via-[#005337] to-[#00462F] text-white p-6 lg:p-12 xl:p-14 flex flex-col justify-between relative h-full overflow-hidden shrink-0">
+    <!-- Left Side: Premium NDMU Research Brand Panel (Stretched letters & space-occupying typography) -->
+    <div class="w-full md:w-[50%] lg:w-[48%] bg-gradient-to-br from-[#003D29] via-[#005337] to-[#00462F] text-white p-7 lg:p-12 xl:p-14 flex flex-col justify-between relative h-full overflow-hidden shrink-0">
         <!-- Subtle academic background patterns -->
         <svg class="absolute inset-0 w-full h-full opacity-5 pointer-events-none" aria-hidden="true">
-            <pattern id="dots-reg-perfect" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
-                <circle cx="2" cy="2" r="1.2" fill="white" />
+            <pattern id="dots-reg-stretched" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
+                <circle cx="2" cy="2" r="1.4" fill="white" />
             </pattern>
-            <rect width="100%" height="100%" fill="url(#dots-reg-perfect)" />
+            <rect width="100%" height="100%" fill="url(#dots-reg-stretched)" />
         </svg>
 
         <!-- Decorative background glow & circles -->
-        <div class="absolute -top-32 -right-28 w-88 h-88 rounded-full border border-white/10 pointer-events-none"></div>
-        <div class="absolute -bottom-32 -left-32 w-80 h-80 rounded-full border border-white/10 pointer-events-none"></div>
+        <div class="absolute -top-36 -right-32 w-96 h-96 rounded-full border border-white/10 pointer-events-none"></div>
+        <div class="absolute -bottom-36 -left-36 w-88 h-88 rounded-full border border-white/10 pointer-events-none"></div>
 
         <!-- Header / Logo -->
-        <div class="relative z-10 flex items-center gap-3 animate-fade-in-left">
+        <div class="relative z-10 flex items-center gap-3.5 animate-fade-in-left">
             <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-11 lg:h-13 w-auto object-contain">
-            <div class="flex flex-col leading-none border-l-2 border-[#E5B72E] pl-3">
-                <span class="font-heading font-extrabold text-xl lg:text-2xl text-white tracking-tight">NDMU</span>
-                <span class="text-[9px] lg:text-[10px] font-extrabold text-[#E5B72E] tracking-widest uppercase mt-0.5">Research Management</span>
+            <div class="flex flex-col leading-none border-l-2 border-[#E5B72E] pl-3.5">
+                <span class="font-heading font-extrabold text-2xl lg:text-3xl text-white tracking-wider">NDMU</span>
+                <span class="text-[9px] lg:text-[10px] font-extrabold text-[#E5B72E] tracking-[0.25em] uppercase mt-0.5">Research Management</span>
             </div>
         </div>
 
         <!-- Main Message & Timeline -->
         <div class="relative z-10 my-auto py-2 lg:py-4 space-y-5 lg:space-y-6 animate-fade-in-left" style="animation-delay: 100ms;">
-            <div class="space-y-2">
-                <span class="text-xs font-extrabold tracking-widest text-[#E5B72E] uppercase block">Student Registration</span>
-                <h1 class="text-3xl sm:text-4xl lg:text-5xl xl:text-[3.4rem] font-serif font-bold text-white leading-[1.12] tracking-tight">
+            <div class="space-y-2.5">
+                <span class="text-xs lg:text-sm font-extrabold tracking-[0.3em] text-[#E5B72E] uppercase block">Student Registration</span>
+                <h1 class="text-3xl sm:text-4xl lg:text-5xl xl:text-[3.5rem] font-serif font-bold text-white leading-[1.12] tracking-wide">
                     Begin Your<br>
-                    <span class="text-[#E5B72E]">Research Journey.</span>
+                    <span class="text-[#E5B72E] tracking-wide">Research Journey.</span>
                 </h1>
             </div>
 
             <!-- Supporting Text -->
-            <p class="text-white/85 text-xs sm:text-sm lg:text-base leading-relaxed max-w-md font-normal">
+            <p class="text-white/90 text-sm lg:text-base leading-relaxed max-w-xl font-normal tracking-wide">
                 Create your student research account and become part of NDMU's collaborative academic research community.
             </p>
 
             <!-- Research Journey Timeline -->
             <div class="space-y-3.5 lg:space-y-4 pt-1">
                 <!-- Stage 1: Submit -->
-                <div class="flex gap-3.5 items-start">
+                <div class="flex gap-4 items-start">
                     <div class="flex flex-col items-center">
                         <div class="w-10 h-10 lg:w-11 lg:h-11 rounded-2xl bg-white/20 border border-white/35 flex items-center justify-center shrink-0 text-[#E5B72E] text-lg lg:text-xl shadow-sm">
                             <i class="ph-bold ph-file-arrow-up"></i>
@@ -51,13 +51,13 @@
                         <div class="w-0.5 h-4 lg:h-5 bg-gradient-to-b from-[#E5B72E]/40 to-transparent mt-1"></div>
                     </div>
                     <div class="pt-0.5">
-                        <h3 class="text-sm lg:text-base font-extrabold text-white">Submit</h3>
-                        <p class="text-[11px] lg:text-xs text-white/75">Upload and manage research proposals</p>
+                        <h3 class="text-sm lg:text-base font-extrabold text-white tracking-wide">Submit</h3>
+                        <p class="text-[11px] lg:text-xs text-white/75 tracking-wide">Upload and manage research proposals</p>
                     </div>
                 </div>
 
                 <!-- Stage 2: Collaborate -->
-                <div class="flex gap-3.5 items-start">
+                <div class="flex gap-4 items-start">
                     <div class="flex flex-col items-center">
                         <div class="w-10 h-10 lg:w-11 lg:h-11 rounded-2xl bg-white/20 border border-white/35 flex items-center justify-center shrink-0 text-[#E5B72E] text-lg lg:text-xl shadow-sm">
                             <i class="ph-bold ph-users-three"></i>
@@ -65,13 +65,13 @@
                         <div class="w-0.5 h-4 lg:h-5 bg-gradient-to-b from-[#E5B72E]/40 to-transparent mt-1"></div>
                     </div>
                     <div class="pt-0.5">
-                        <h3 class="text-sm lg:text-base font-extrabold text-white">Collaborate</h3>
-                        <p class="text-[11px] lg:text-xs text-white/75">Work with advisers and panelists</p>
+                        <h3 class="text-sm lg:text-base font-extrabold text-white tracking-wide">Collaborate</h3>
+                        <p class="text-[11px] lg:text-xs text-white/75 tracking-wide">Work with advisers and panelists</p>
                     </div>
                 </div>
 
                 <!-- Stage 3: Review -->
-                <div class="flex gap-3.5 items-start">
+                <div class="flex gap-4 items-start">
                     <div class="flex flex-col items-center">
                         <div class="w-10 h-10 lg:w-11 lg:h-11 rounded-2xl bg-white/20 border border-white/35 flex items-center justify-center shrink-0 text-[#E5B72E] text-lg lg:text-xl shadow-sm">
                             <i class="ph-bold ph-file-text"></i>
@@ -79,21 +79,21 @@
                         <div class="w-0.5 h-4 lg:h-5 bg-gradient-to-b from-[#E5B72E]/40 to-transparent mt-1"></div>
                     </div>
                     <div class="pt-0.5">
-                        <h3 class="text-sm lg:text-base font-extrabold text-white">Review</h3>
-                        <p class="text-[11px] lg:text-xs text-white/75">Track feedback and research progress</p>
+                        <h3 class="text-sm lg:text-base font-extrabold text-white tracking-wide">Review</h3>
+                        <p class="text-[11px] lg:text-xs text-white/75 tracking-wide">Track feedback and research progress</p>
                     </div>
                 </div>
 
                 <!-- Stage 4: Defend -->
-                <div class="flex gap-3.5 items-start">
+                <div class="flex gap-4 items-start">
                     <div class="flex flex-col items-center">
                         <div class="w-10 h-10 lg:w-11 lg:h-11 rounded-2xl bg-white/20 border border-white/35 flex items-center justify-center shrink-0 text-[#E5B72E] text-lg lg:text-xl shadow-sm">
                             <i class="ph-bold ph-presentation-chart"></i>
                         </div>
                     </div>
                     <div class="pt-0.5">
-                        <h3 class="text-sm lg:text-base font-extrabold text-white">Defend</h3>
-                        <p class="text-[11px] lg:text-xs text-white/75">Manage research defense schedules</p>
+                        <h3 class="text-sm lg:text-base font-extrabold text-white tracking-wide">Defend</h3>
+                        <p class="text-[11px] lg:text-xs text-white/75 tracking-wide">Manage research defense schedules</p>
                     </div>
                 </div>
             </div>
@@ -102,7 +102,7 @@
             <div class="border border-white/20 bg-white/10 rounded-2xl p-3 mt-1">
                 <div class="flex gap-2.5 items-start">
                     <i class="ph-bold ph-info text-[#E5B72E] shrink-0 text-base mt-0.5"></i>
-                    <p class="text-xs text-white/80 leading-relaxed">
+                    <p class="text-xs text-white/80 leading-relaxed tracking-wide">
                         <strong class="text-white">Account Approval:</strong> Student registrations are reviewed by the administrator. You'll receive an email once your account has been activated.
                     </p>
                 </div>
@@ -110,22 +110,22 @@
         </div>
 
         <!-- Footer -->
-        <div class="relative z-10 flex items-center gap-2 text-xs lg:text-sm text-white/75 font-semibold animate-fade-in-left" style="animation-delay: 200ms;">
+        <div class="relative z-10 flex items-center gap-2.5 text-xs lg:text-sm text-white/80 font-semibold tracking-wide animate-fade-in-left" style="animation-delay: 200ms;">
             <i class="ph-bold ph-shield-check text-[#E5B72E] text-base"></i>
-            <span>Secure Academic Research Portal</span>
+            <span class="tracking-wide">Secure Academic Research Portal</span>
         </div>
     </div>
 
     <!-- Right Side: Strictly NON-SCROLLABLE (overflow-hidden) with Floating Card -->
-    <div class="w-full md:w-[54%] lg:w-[56%] flex items-center justify-center p-4 sm:p-6 lg:p-8 relative h-full overflow-hidden bg-[#F7FAF8]">
+    <div class="w-full md:w-[50%] lg:w-[52%] flex items-center justify-center p-4 sm:p-6 lg:p-8 relative h-full overflow-hidden bg-[#F7FAF8]">
         <!-- Subtle background graphics -->
         <svg class="absolute inset-0 w-full h-full opacity-30 pointer-events-none" viewBox="0 0 600 800" aria-hidden="true">
             <defs>
-                <pattern id="dots-auth-clean-reg" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
+                <pattern id="dots-auth-clean-reg-str" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
                     <circle cx="1.5" cy="1.5" r="0.8" fill="#087443" opacity="0.1" />
                 </pattern>
             </defs>
-            <rect width="100%" height="100%" fill="url(#dots-auth-clean-reg)" />
+            <rect width="100%" height="100%" fill="url(#dots-auth-clean-reg-str)" />
             <circle cx="500" cy="100" r="220" fill="#087443" opacity="0.03" />
             <circle cx="100" cy="600" r="180" fill="#087443" opacity="0.04" />
         </svg>
@@ -136,7 +136,7 @@
         </a>
 
         <!-- Floating Registration Card -->
-        <div class="relative w-full max-w-[500px] lg:max-w-[530px] my-auto animate-fade-in-up">
+        <div class="relative w-full max-w-[480px] sm:max-w-[500px] lg:max-w-[520px] my-auto animate-fade-in-up">
             <!-- Floating Ambient Back Glow -->
             <div class="absolute -inset-3 rounded-[38px] bg-gradient-to-tr from-[#003D29]/30 via-[#E5B72E]/20 to-[#005337]/30 blur-2xl opacity-75 pointer-events-none"></div>
 
