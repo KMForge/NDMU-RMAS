@@ -5,306 +5,284 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="NDMU Research Management System for submissions, reviews, defenses, revisions, and archiving.">
     <title>NDMU Research Management System</title>
-    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     <style>
-        [x-cloak] { display: none !important; }
-        body { font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; }
-        
-        .hero-grid {
-            background-color: #064b35;
+        body { font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .hero-pattern {
+            background-color: #043d2e;
             background-image: 
-                radial-gradient(circle at 50% 30%, rgba(240, 200, 61, 0.12) 0%, transparent 65%),
-                linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-            background-size: 100% 100%, 42px 42px, 42px 42px;
+                radial-gradient(circle at 80% 20%, rgba(234, 179, 8, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 10% 80%, rgba(16, 185, 129, 0.08) 0%, transparent 45%),
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
         }
-        
+        .site-header { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+        .site-header.is-scrolled {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 10px 30px -10px rgba(4, 61, 46, 0.12);
+        }
         .paper-lines {
-            background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 24px, rgba(7, 94, 61, 0.07) 25px);
+            background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 27px, rgba(4, 61, 46, 0.05) 28px);
+        }
+        .gold-gradient-text {
+            background: linear-gradient(135deg, #fef08a 0%, #facc15 50%, #eab308 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
     </style>
 </head>
-<body class="m-0 overflow-x-hidden bg-[#064b35] text-white antialiased">
+<body class="m-0 overflow-x-hidden bg-[#faf8f2] text-[#0f291e] antialiased selection:bg-[#facc15] selection:text-[#043d2e]">
 
-<!-- Header Navigation -->
-<header class="sticky top-0 z-50 border-b border-white/10 bg-[#043d2e]/95 backdrop-blur-md shadow-md">
-    <div class="mx-auto flex min-h-20 max-w-7xl items-center justify-between px-6 lg:px-10">
-        <!-- Logo -->
-        <a href="{{ route('home') }}" class="flex items-center gap-3.5 group" aria-label="NDMU Research Management home">
-            <div class="p-1.5 rounded-xl bg-white/10 border border-white/15 group-hover:border-[#f0c83d]/50 transition duration-200">
-                <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Seal" width="48" height="48" class="h-10 w-10 shrink-0 object-contain">
-            </div>
-            <div class="flex flex-col leading-none border-l-2 border-[#f0c83d] pl-3">
-                <span class="font-heading font-black text-lg text-white tracking-tight">NDMU</span>
-                <span class="text-[9px] font-extrabold uppercase tracking-[.15em] text-[#f0c83d] mt-0.5">Research Management</span>
-            </div>
+<!-- Header -->
+<header data-site-header class="site-header sticky top-0 z-50 border-b border-[#043d2e]/10 bg-white/90 backdrop-blur-md">
+    <div class="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+        <a href="{{ route('home') }}" class="group flex items-center gap-3 transition-transform duration-200 hover:scale-[1.01]" aria-label="NDMU Research Management home">
+            <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="Notre Dame of Marbel University seal" width="48" height="48" class="h-11 w-11 shrink-0 object-contain sm:h-12 sm:w-12 transition-transform duration-300 group-hover:rotate-3">
+            <span class="border-l border-[#043d2e]/15 pl-3 leading-tight">
+                <strong class="block text-base font-black tracking-tight text-[#043d2e] sm:text-lg">NDMU</strong>
+                <span class="block text-[9px] font-extrabold uppercase tracking-[0.18em] text-[#b48811] sm:text-[10px]">Research Management System</span>
+            </span>
         </a>
-
-        <!-- Auth Actions -->
-        <div class="flex items-center gap-3">
-            @if(Route::has('login'))
-                <a href="{{ route('login') }}" class="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-5 py-2.5 text-xs font-bold text-white transition duration-200 hover:bg-white/20 hover:border-white/50 sm:text-sm">
-                    <i class="ph ph-sign-in text-base text-[#f0c83d]"></i>
-                    <span>Login</span>
-                </a>
-            @endif
-            @if(Route::has('register'))
-                <a href="{{ route('register') }}" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#e8b923] via-[#f0c83d] to-[#d7a916] px-5 py-2.5 text-xs font-extrabold text-[#17372c] shadow-lg transition duration-200 hover:scale-105 hover:shadow-xl sm:text-sm">
-                    <i class="ph ph-user-plus text-base"></i>
-                    <span>Register</span>
-                </a>
-            @endif
-        </div>
     </div>
 </header>
 
 <main>
 <!-- Hero Section -->
-<section class="hero-grid relative overflow-hidden text-white py-16 sm:py-24">
-    <div class="pointer-events-none absolute -right-28 -top-28 h-96 w-96 rounded-full border-[70px] border-[#e8b923]/10"></div>
-    <div class="mx-auto grid min-h-[600px] max-w-7xl items-center gap-14 px-6 lg:grid-cols-[1.05fr_.95fr] lg:px-8">
+<section class="hero-pattern relative overflow-hidden text-white">
+    <!-- Decorative background ambient elements -->
+    <div class="pointer-events-none absolute -right-24 -top-24 h-[420px] w-[420px] rounded-full border-[60px] border-[#facc15]/10 blur-xl"></div>
+    <div class="pointer-events-none absolute -bottom-32 -left-32 h-[500px] w-[500px] rounded-full border-[70px] border-emerald-400/5 blur-2xl"></div>
+
+    <div class="relative mx-auto grid min-h-[660px] max-w-7xl items-center gap-12 px-6 py-16 lg:grid-cols-12 lg:px-8 lg:py-24">
         
-        <!-- Left Text & Actions -->
-        <div class="relative z-10 max-w-2xl">
-            <div class="mb-6 inline-flex items-center gap-2.5 rounded-full border border-[#e8b923]/45 bg-[#053f2d] px-4 py-2 text-xs font-extrabold uppercase tracking-[.18em] text-[#f3cf5d] shadow-lg backdrop-blur-sm">
-                <span class="h-2 w-2 rounded-full bg-[#e8b923] animate-ping"></span>
-                <i class="ph ph-shield-check text-sm text-[#e8b923]"></i>
-                <span>Internal · NDMU Research Management</span>
+        <!-- Left Hero Column -->
+        <div class="relative z-10 lg:col-span-7">
+            <div class="mb-6 inline-flex items-center gap-2.5 rounded-full border border-[#facc15]/30 bg-[#02281e]/80 px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#fef08a] backdrop-blur-md shadow-inner">
+                <span class="relative flex h-2 w-2">
+                  <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#facc15] opacity-75"></span>
+                  <span class="relative inline-flex h-2 w-2 rounded-full bg-[#facc15]"></span>
+                </span>
+                Internal · NDMU Research Management
             </div>
-            
-            <h1 class="text-4xl font-black leading-[1.08] tracking-[-.035em] sm:text-5xl lg:text-[3.6rem]">
-                Manage research from <span class="text-[#f0c83d]">proposal</span> to institutional <span class="text-[#f0c83d]">archiving.</span>
+
+            <h1 class="text-4xl font-black leading-[1.08] tracking-tight sm:text-5xl lg:text-[3.6rem]">
+                Manage research from <span class="gold-gradient-text">proposal</span> to institutional <span class="gold-gradient-text">archiving.</span>
             </h1>
-            
-            <p class="mt-6 max-w-xl text-base leading-7 text-[#d6e3dc] sm:text-lg">
+
+            <p class="mt-6 max-w-xl text-base leading-relaxed text-[#d1e3da] sm:text-lg">
                 NDMU Research Management System centralizes research submissions, reviews, approvals, defenses, revisions, and institutional archiving in one secure platform.
             </p>
-            
-            <div class="mt-9 flex flex-col gap-3.5 sm:flex-row">
+
+            <div class="mt-9 flex flex-col gap-3.5 sm:flex-row sm:items-center">
                 @if(Route::has('login'))
-                    <a href="{{ route('login') }}" class="group inline-flex min-h-12 items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-[#e8b923] via-[#f0c83d] to-[#d7a916] px-7 text-sm font-extrabold text-[#17372c] shadow-xl transition duration-200 hover:scale-105">
-                        <span>Log in to Continue</span> 
-                        <i class="ph ph-arrow-right text-base font-bold transition-transform duration-200 group-hover:translate-x-1"></i>
+                    <a href="{{ route('login') }}" class="group inline-flex min-h-[52px] items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-[#facc15] to-[#eab308] px-7 text-sm font-extrabold text-[#043d2e] shadow-lg shadow-[#facc15]/20 transition duration-200 hover:from-[#fde047] hover:to-[#facc15] hover:shadow-xl hover:shadow-[#facc15]/30 hover:-translate-y-0.5">
+                        Log in to Continue 
+                        <i class="ph ph-arrow-right text-base transition-transform duration-200 group-hover:translate-x-1"></i>
                     </a>
                 @endif
                 @if(Route::has('register'))
-                    <a href="{{ route('register') }}" class="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/40 bg-white/10 px-7 text-sm font-bold text-white shadow-md backdrop-blur-sm transition duration-200 hover:bg-white/20 hover:border-white/60">
-                        <i class="ph ph-user-plus text-base text-[#f0c83d]"></i>
-                        <span>Create an Account</span>
+                    <a href="{{ route('register') }}" class="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 text-sm font-bold text-white backdrop-blur-md transition duration-200 hover:border-white/50 hover:bg-white/20 hover:-translate-y-0.5">
+                        Create an Account
                     </a>
                 @endif
             </div>
 
-            <!-- Feature Pills -->
-            <div class="mt-10 flex flex-wrap items-center gap-3">
-                <span class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/20 px-3.5 py-1.5 text-xs font-bold text-[#e3f0ea] backdrop-blur-md">
-                    <i class="ph ph-lock-key text-[#f0c83d]"></i> Secure access
-                </span>
-                <span class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/20 px-3.5 py-1.5 text-xs font-bold text-[#e3f0ea] backdrop-blur-md">
-                    <i class="ph ph-identification-card text-[#f0c83d]"></i> Role-based permissions
-                </span>
-                <span class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/20 px-3.5 py-1.5 text-xs font-bold text-[#e3f0ea] backdrop-blur-md">
-                    <i class="ph ph-archive text-[#f0c83d]"></i> Centralized records
-                </span>
+            <!-- Stats strip -->
+            <div class="mt-12 grid grid-cols-3 gap-4 border-t border-white/10 pt-8">
+                <div>
+                    <span class="block text-2xl font-black text-[#facc15] sm:text-3xl">25</span>
+                    <span class="mt-0.5 block text-xs font-semibold text-[#b8d5c7]">Official Forms</span>
+                </div>
+                <div>
+                    <span class="block text-2xl font-black text-[#facc15] sm:text-3xl">13</span>
+                    <span class="mt-0.5 block text-xs font-semibold text-[#b8d5c7]">Journey Stages</span>
+                </div>
+                <div>
+                    <span class="block text-2xl font-black text-[#facc15] sm:text-3xl">100%</span>
+                    <span class="mt-0.5 block text-xs font-semibold text-[#b8d5c7]">Secure RLS</span>
+                </div>
             </div>
         </div>
 
-        <!-- Right Interactive System Preview Dashboard -->
-        <div class="relative mx-auto w-full max-w-[520px] pb-6 pt-4 lg:mx-0 lg:justify-self-end">
-            <!-- Ambient Glow Behind Preview Card -->
-            <div class="absolute -inset-2 rounded-3xl bg-gradient-to-r from-[#f0c83d]/30 via-emerald-500/20 to-[#f0c83d]/20 blur-xl opacity-75"></div>
-            
-            <article class="relative rounded-3xl border border-white/25 bg-white/10 p-6 sm:p-8 backdrop-blur-xl shadow-[0_30px_80px_rgba(0,0,0,0.45)] text-white group hover:border-[#f0c83d]/50 transition duration-300">
-                
-                <!-- Card Header -->
-                <div class="flex items-center justify-between border-b border-white/15 pb-5">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-[#f0c83d]/20 border border-[#f0c83d]/40 flex items-center justify-center text-[#f0c83d] shadow-sm">
-                            <i class="ph ph-squares-four text-xl font-bold"></i>
+        <!-- Right Preview Card Column -->
+        <div class="relative lg:col-span-5 lg:justify-self-end w-full max-w-[500px]" aria-label="Sample research record under review">
+            <!-- Background floating cards for depth -->
+            <div class="absolute inset-x-6 bottom-0 top-12 rotate-3 rounded-3xl border border-[#facc15]/40 bg-[#d9a016] shadow-2xl transition duration-500 hover:rotate-4"></div>
+            <div class="absolute inset-x-3 bottom-3 top-6 -rotate-2 rounded-3xl border border-[#dce3db] bg-[#eef1eb] shadow-lg"></div>
+
+            <!-- Main paper card -->
+            <article class="paper-lines relative rounded-3xl border border-white/90 bg-[#fffefb] p-6 text-[#0f291e] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] sm:p-7">
+                <div class="flex items-center justify-between gap-3 border-b border-[#043d2e]/10 pb-4">
+                    <div>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-[#a27608]">Research Record</p>
+                        <p class="mt-0.5 font-mono text-xs font-bold text-[#043d2e] sm:text-sm">RES-2026-00417</p>
+                    </div>
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-100 px-3 py-1 text-[10px] font-black tracking-wider text-amber-900 shadow-sm">
+                        <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                        UNDER REVIEW
+                    </span>
+                </div>
+
+                <div class="py-5">
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-[#6b7c73]">Research title</p>
+                    <h2 class="mt-1.5 text-lg font-black leading-snug text-[#043d2e] sm:text-xl">
+                        Development of a Research Management Information System
+                    </h2>
+                    <div class="mt-5 grid grid-cols-2 gap-4 rounded-xl bg-[#f4f7f4] p-3.5 border border-[#043d2e]/5">
+                        <div>
+                            <p class="text-[9px] font-bold uppercase tracking-wider text-[#798880]">Submitted by</p>
+                            <p class="mt-0.5 text-xs font-bold text-[#043d2e]">Research Group</p>
                         </div>
                         <div>
-                            <p class="text-xs font-black tracking-wider uppercase text-white font-heading">Portal Live Activity</p>
-                            <p class="text-[10px] text-emerald-200 font-semibold flex items-center gap-1.5 mt-0.5">
-                                <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                                Real-time Research Tracking
-                            </p>
+                            <p class="text-[9px] font-bold uppercase tracking-wider text-[#798880]">College / Program</p>
+                            <p class="mt-0.5 text-xs font-bold text-[#043d2e]">NDMU Academic Unit</p>
                         </div>
-                    </div>
-                    <span class="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-extrabold tracking-wider text-[#f0c83d] uppercase backdrop-blur-md">
-                        System Active
-                    </span>
-                </div>
-
-                <!-- Interactive Quick Search Bar Preview -->
-                <div class="mt-5 relative">
-                    <div class="flex items-center gap-3 px-4 py-3 rounded-2xl bg-black/25 border border-white/15 text-xs text-gray-300">
-                        <i class="ph ph-magnifying-glass text-base text-[#f0c83d]"></i>
-                        <span class="font-medium text-gray-300/80">Search research papers, authors, or topics...</span>
-                        <span class="ml-auto px-2 py-0.5 rounded bg-white/10 text-[9px] font-mono text-gray-400">⌘K</span>
                     </div>
                 </div>
 
-                <!-- Recent Submissions & Activity Ticker -->
-                <div class="mt-5 space-y-3">
-                    <p class="text-[10px] font-extrabold uppercase tracking-widest text-[#f0c83d] flex items-center gap-1.5">
-                        <i class="ph ph-[#f0c83d] ph-clock-counter-clockwise text-xs"></i> Recent Submissions
-                    </p>
-
-                    <!-- Activity Item 1 -->
-                    <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0">
-                                <i class="ph ph-file-text text-lg"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <p class="text-xs font-bold text-white truncate">AI Pest Detection System</p>
-                                <p class="text-[10px] text-gray-300 truncate">Computer Studies • 2 mins ago</p>
-                            </div>
+                <div class="border-t border-[#043d2e]/10 pt-4">
+                    <div class="relative flex justify-between before:absolute before:left-[8%] before:right-[8%] before:top-3 before:h-0.5 before:bg-[#d8e2dc]">
+                        @foreach([['check','Title Proposal','done'],['user-check','Adviser Review','done'],['presentation-chart','Proposal Defense','current'],['seal-check','Final Defense','next'],['archive','Archiving','next']] as $stage)
+                        <div class="relative z-10 flex flex-col items-center text-center">
+                            <span class="flex h-6 w-6 items-center justify-center rounded-full border text-[11px] transition-transform duration-200 hover:scale-110 {{ $stage[2]==='done'?'border-[#043d2e] bg-[#043d2e] text-white':($stage[2]==='current'?'border-[#facc15] bg-[#facc15] text-[#043d2e] ring-4 ring-[#facc15]/20 shadow-sm':'border-[#ccd5cf] bg-[#faf8f2] text-[#86948c]') }}">
+                                <i class="ph ph-{{ $stage[0] }}"></i>
+                            </span>
+                            <span class="mt-1.5 hidden text-[8px] font-bold leading-tight text-[#526359] sm:block">{{ $stage[1] }}</span>
                         </div>
-                        <span class="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-[9px] font-extrabold border border-emerald-500/30 shrink-0">
-                            PROPOSAL
-                        </span>
-                    </div>
-
-                    <!-- Activity Item 2 -->
-                    <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-[#f0c83d]/20 text-[#f0c83d] flex items-center justify-center shrink-0">
-                                <i class="ph ph-user-check text-lg"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <p class="text-xs font-bold text-white truncate">IoT Smart Classroom</p>
-                                <p class="text-[10px] text-gray-300 truncate">Engineering • 15 mins ago</p>
-                            </div>
-                        </div>
-                        <span class="px-2.5 py-1 rounded-full bg-[#f0c83d]/20 text-[#f0c83d] text-[9px] font-extrabold border border-[#f0c83d]/30 shrink-0">
-                            ADVISER REVIEW
-                        </span>
-                    </div>
-
-                    <!-- Activity Item 3 -->
-                    <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center shrink-0">
-                                <i class="ph ph-presentation-chart text-lg"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <p class="text-xs font-bold text-white truncate">Community Health Portal</p>
-                                <p class="text-[10px] text-gray-300 truncate">Health Sciences • Today 2:00 PM</p>
-                            </div>
-                        </div>
-                        <span class="px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 text-[9px] font-extrabold border border-blue-500/30 shrink-0">
-                            DEFENSE
-                        </span>
+                        @endforeach
                     </div>
                 </div>
-
-                <!-- Card Footer Actions -->
-                <div class="mt-6 pt-4 border-t border-white/15 flex items-center justify-between text-xs">
-                    <span class="text-gray-300 text-[11px] font-medium flex items-center gap-1.5">
-                        <i class="ph ph-shield-check text-[#f0c83d]"></i> NDMU Verified System
-                    </span>
-                    <a href="{{ route('login') }}" class="inline-flex items-center gap-1.5 text-[#f0c83d] font-bold hover:underline text-xs">
-                        <span>Access Dashboard</span>
-                        <i class="ph ph-arrow-right"></i>
-                    </a>
-                </div>
-
             </article>
         </div>
+
     </div>
 </section>
 
 <!-- Research Lifecycle Section -->
-<section class="bg-[#043d2e] py-20 sm:py-24 border-t border-white/10 text-white">
-    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+<section class="hero-pattern relative border-t border-white/10 py-20 text-white sm:py-24">
+    <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
         <div class="max-w-2xl">
-            <p class="text-xs font-extrabold uppercase tracking-[.2em] text-[#f0c83d] flex items-center gap-2">
-                <i class="ph ph-path text-base"></i> Research lifecycle
+            <p class="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#facc15]">
+                <i class="ph ph-path text-base" aria-hidden="true"></i>Research lifecycle
             </p>
-            <h2 class="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">How research moves</h2>
-            <p class="mt-3 text-[#d8e6df]">One organized process from proposal to institutional archiving.</p>
+            <h2 class="mt-2 text-3xl font-black tracking-tight text-white sm:text-4xl">
+                How research moves
+            </h2>
+            <p class="mt-2 text-base text-[#cbe0d4]">
+                One organized process from proposal to institutional archiving.
+            </p>
         </div>
-        
-        <div class="relative mt-14 grid gap-8 md:grid-cols-5 md:gap-4 md:before:absolute md:before:left-[9%] md:before:right-[9%] md:before:top-5 md:before:border-t md:before:border-dashed md:before:border-[#f0c83d]/60">
-            @foreach([['file-text','Title Proposal','Submit initial research proposal.'],['user-check','Adviser Review','Review, consultation, and revision.'],['presentation-chart','Proposal Defense','Defense evaluation and required revisions.'],['seal-check','Final Defense','Final evaluation and approval.'],['archive','Archiving','Approved research stored in the institutional repository.']] as $index=>$step)
-            <article class="relative grid grid-cols-[2.5rem_1fr] gap-4 md:block md:text-center group">
-                <span class="relative z-10 flex h-11 w-11 items-center justify-center rounded-full border-4 border-[#043d2e] bg-[#075e3d] text-xs font-black text-[#f0c83d] shadow-lg group-hover:scale-110 transition duration-200 md:mx-auto">
+
+        <div class="relative mt-12 grid gap-6 md:grid-cols-5 md:gap-4 md:before:absolute md:before:left-[10%] md:before:right-[10%] md:before:top-7 md:before:border-t-2 md:before:border-dashed md:before:border-[#facc15]/50">
+            @foreach([
+                ['file-text','Title Proposal','Submit initial research proposal.'],
+                ['user-check','Adviser Review','Review, consultation, and revision.'],
+                ['presentation','Proposal Defense','Defense evaluation and required revisions.'],
+                ['seal-check','Final Defense','Final evaluation and approval.'],
+                ['archive','Archiving','Approved research stored in the institutional repository.']
+            ] as $index=>$step)
+            <article class="group relative flex flex-col items-center rounded-2xl border border-white/10 bg-[#02281e]/60 p-5 text-center backdrop-blur-md transition-all duration-300 hover:-translate-y-1.5 hover:border-[#facc15]/50 hover:bg-[#033327] hover:shadow-xl hover:shadow-[#043d2e]">
+                <span class="relative z-10 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#facc15]/60 bg-[#043d2e] text-base font-black text-[#facc15] shadow-inner ring-4 ring-white/5 transition-transform duration-300 group-hover:scale-110 group-hover:border-[#facc15]">
                     {{ str_pad($index+1,2,'0',STR_PAD_LEFT) }}
                 </span>
-                <div class="md:mt-5">
-                    <div class="w-10 h-10 mx-auto rounded-xl bg-white/10 flex items-center justify-center mb-3 text-[#f0c83d] group-hover:bg-[#f0c83d] group-hover:text-[#043d2e] transition duration-200">
-                        <i class="ph ph-{{ $step[0] }} text-xl"></i>
-                    </div>
-                    <h3 class="mt-1 text-base font-extrabold text-white">{{ $step[1] }}</h3>
-                    <p class="mx-auto mt-2 max-w-[190px] text-xs leading-5 text-[#c8dbd1] font-light">{{ $step[2] }}</p>
-                </div>
+                <i class="ph ph-{{ $step[0] }} mt-4 text-2xl text-[#facc15] transition-transform duration-300 group-hover:scale-110"></i>
+                <h3 class="mt-2 text-base font-black text-white">{{ $step[1] }}</h3>
+                <p class="mt-2 text-xs leading-relaxed text-[#b4d2c3]">{{ $step[2] }}</p>
             </article>
             @endforeach
         </div>
     </div>
 </section>
 
-<!-- One Secure Workspace Section -->
-<section class="border-y border-white/10 bg-[#064b35] py-20 sm:py-24 text-white">
+<!-- Features Grid Section -->
+<section class="relative bg-[#faf8f2] py-20 text-[#0f291e] sm:py-24">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="text-center">
-            <p class="text-xs font-extrabold uppercase tracking-[.2em] text-[#f0c83d] flex items-center justify-center gap-2">
-                <i class="ph ph-folder-open text-base"></i> One secure workspace
+            <p class="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#a27608]">
+                <i class="ph ph-folder-open text-base" aria-hidden="true"></i>One secure workspace
             </p>
-            <h2 class="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">Everything your research needs</h2>
-            <p class="mx-auto mt-3 max-w-xl text-[#d8e6df]">Documents, approvals, revisions, and progress kept in one place.</p>
+            <h2 class="mt-2 text-3xl font-black tracking-tight text-[#043d2e] sm:text-4xl">
+                Everything your research needs
+            </h2>
+            <p class="mx-auto mt-2 max-w-xl text-base text-[#526359]">
+                Documents, approvals, revisions, and progress kept in one place.
+            </p>
         </div>
-        
-        <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            @foreach([['chart-line-up','Research Progress Tracking','Track the research from initial proposal through final archiving.'],['file-arrow-up','Document Submission','Securely submit research documents and required revisions.'],['checks','Reviews & Approvals','Keep adviser, facilitator, coordinator, and panel decisions organized.'],['books','Research Archive','Maintain approved research records in the institutional repository.']] as $feature)
-            <article class="rounded-3xl border border-white/15 border-t-4 border-t-[#f0c83d] bg-white/5 p-7 shadow-xl hover:-translate-y-1.5 transition duration-300 backdrop-blur-sm group">
-                <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-[#f0c83d] group-hover:bg-[#f0c83d] group-hover:text-[#064b35] transition duration-200 shadow-md">
-                    <i class="ph ph-{{ $feature[0] }} text-2xl"></i>
-                </span>
-                <h3 class="mt-6 text-lg font-extrabold text-white tracking-tight">{{ $feature[1] }}</h3>
-                <p class="mt-3 text-xs leading-6 text-[#c8dbd1] font-light">{{ $feature[2] }}</p>
+
+        <div class="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            @foreach([
+                ['chart-line-up','Research Progress Tracking','Track the research from initial proposal through final archiving.'],
+                ['file-arrow-up','Document Submission','Securely submit research documents and required revisions.'],
+                ['checks','Reviews & Approvals','Keep adviser, facilitator, coordinator, and panel decisions organized.'],
+                ['books','Research Archive','Maintain approved research records in the institutional repository.']
+            ] as $feature)
+            <article class="group relative flex flex-col justify-between rounded-2xl border border-[#043d2e]/10 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-[#043d2e]/30 hover:shadow-xl hover:shadow-[#043d2e]/10">
+                <div>
+                    <span class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#043d2e]/5 text-[#043d2e] transition-colors duration-300 group-hover:bg-[#043d2e] group-hover:text-[#facc15]">
+                        <i class="ph ph-{{ $feature[0] }} text-2xl"></i>
+                    </span>
+                    <h3 class="mt-5 text-lg font-black text-[#043d2e]">{{ $feature[1] }}</h3>
+                    <p class="mt-2.5 text-sm leading-relaxed text-[#526359]">{{ $feature[2] }}</p>
+                </div>
+                <div class="mt-6 flex items-center gap-1.5 text-xs font-bold text-[#043d2e] opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    Learn more <i class="ph ph-caret-right text-xs"></i>
+                </div>
             </article>
             @endforeach
         </div>
 
-        <div class="mt-12 flex flex-wrap items-center justify-center gap-x-4 gap-y-3 rounded-2xl border border-white/15 bg-black/20 px-6 py-4 text-xs font-bold text-[#e0ebe5] shadow-inner">
-            @foreach([['shield-check','Secure Documents'],['users-three','Role-Based Access'],['flow-arrow','Review Workflow'],['clock-counter-clockwise','Revision History'],['archive','Research Archiving']] as $capability)
+        <!-- Capability Pills Bar -->
+        <div class="mt-12 flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-[#043d2e]/10 bg-white px-6 py-4 text-xs font-bold text-[#043d2e] shadow-sm sm:gap-6">
+            @foreach([
+                ['shield-check','Secure Documents'],
+                ['users-three','Role-Based Access'],
+                ['flow-arrow','Review Workflow'],
+                ['clock-counter-clockwise','Revision History'],
+                ['archive','Research Archiving']
+            ] as $capability)
                 <span class="inline-flex items-center gap-2">
-                    <i class="ph ph-{{ $capability[0] }} text-base text-[#f0c83d]"></i>{{ $capability[1] }}
+                    <i class="ph ph-{{ $capability[0] }} text-base text-[#a27608]"></i>
+                    {{ $capability[1] }}
                 </span>
                 @if(!$loop->last)
-                    <span class="hidden h-4 w-px bg-[#f0c83d]/30 sm:block"></span>
+                    <span class="hidden h-4 w-px bg-[#043d2e]/15 sm:block"></span>
                 @endif
             @endforeach
         </div>
     </div>
 </section>
 
-<!-- Call to Action Banner -->
-<section class="relative overflow-hidden bg-gradient-to-br from-[#043d2e] via-[#064b35] to-[#075e3d] px-6 py-16 text-center text-white border-b border-white/10">
-    <div class="pointer-events-none absolute -right-16 -top-20 h-64 w-52 rotate-12 rounded-2xl border border-white/5 bg-white/[.025]"></div>
-    <div class="relative">
-        <p class="inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[.2em] text-[#f0c83d]">
-            <i class="ph ph-lock-key text-base"></i> Authorized university access
+<!-- Call to Action Section -->
+<section class="hero-pattern relative overflow-hidden border-t border-white/10 px-6 py-20 text-center text-white">
+    <div class="relative mx-auto max-w-4xl">
+        <p class="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#facc15]">
+            <i class="ph ph-lock-key text-base" aria-hidden="true"></i>Authorized university access
         </p>
-        <h2 class="mt-3 text-2xl font-black sm:text-3xl">Ready to manage your research?</h2>
-        <p class="mx-auto mt-3 max-w-xl text-sm leading-6 text-[#d8e6df]">Access the NDMU Research Management System using your authorized university account.</p>
-        
-        <div class="mt-7 flex flex-col justify-center gap-3.5 sm:flex-row">
+        <h2 class="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
+            Ready to manage your research?
+        </h2>
+        <p class="mx-auto mt-3 max-w-xl text-base text-[#d1e3da]">
+            Access the NDMU Research Management System using your authorized university account.
+        </p>
+        <div class="mt-8 flex flex-col justify-center gap-3.5 sm:flex-row">
             @if(Route::has('login'))
-                <a href="{{ route('login') }}" class="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#e8b923] via-[#f0c83d] to-[#d7a916] px-7 text-sm font-extrabold text-[#17372c] transition hover:scale-105 shadow-xl">
-                    <span>Log in to Continue</span> 
-                    <i class="ph ph-arrow-right font-bold"></i>
+                <a href="{{ route('login') }}" class="group inline-flex min-h-[50px] items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-[#facc15] to-[#eab308] px-7 text-sm font-extrabold text-[#043d2e] shadow-lg shadow-[#facc15]/20 transition duration-200 hover:from-[#fde047] hover:to-[#facc15] hover:shadow-xl hover:shadow-[#facc15]/30">
+                    Log in to Continue 
+                    <i class="ph ph-arrow-right text-base transition-transform duration-200 group-hover:translate-x-1"></i>
                 </a>
-            @endif 
+            @endif
             @if(Route::has('register'))
-                <a href="{{ route('register') }}" class="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/40 bg-white/10 px-7 text-sm font-bold text-white transition hover:bg-white/20">
-                    <i class="ph ph-user-plus text-base text-[#f0c83d]"></i>
-                    <span>Create an Account</span>
+                <a href="{{ route('register') }}" class="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 text-sm font-bold text-white backdrop-blur-md transition duration-200 hover:border-white/50 hover:bg-white/20">
+                    <i class="ph ph-user-plus text-base" aria-hidden="true"></i>
+                    Create an Account
                 </a>
             @endif
         </div>
@@ -312,15 +290,21 @@
 </section>
 </main>
 
-<!-- Footer -->
-<footer class="bg-[#032b20] border-t border-white/10 px-6 py-8 text-center text-xs text-[#c8dbd1]">
-    <div class="flex items-center justify-center gap-2 text-[#f0c83d] mb-2">
-        <i class="ph ph-buildings text-xl"></i>
+<footer class="border-t border-white/10 bg-[#02281e] px-6 py-10 text-center text-[#cbe0d4]">
+    <div class="mx-auto max-w-7xl">
+        <i class="ph ph-buildings text-3xl text-[#facc15]" aria-hidden="true"></i>
+        <p class="mt-3 text-base font-black text-white">NDMU Research Management System</p>
+        <p class="mt-1 text-xs text-[#a2b8ab]">Notre Dame of Marbel University</p>
+        <p class="mt-4 text-[10px] font-extrabold uppercase tracking-widest text-[#facc15]">University Information System</p>
+        <p class="mt-4 text-xs text-[#87a393]">&copy; 2026 Notre Dame of Marbel University. All rights reserved.</p>
     </div>
-    <p class="text-sm font-extrabold text-white">NDMU Research Management System</p>
-    <p class="mt-1 text-xs text-[#a27608] font-semibold">Notre Dame of Marbel University</p>
-    <p class="mt-4 text-[11px] text-gray-400">&copy; 2026 Notre Dame of Marbel University. All rights reserved.</p>
 </footer>
 
+<script>
+    const siteHeader = document.querySelector('[data-site-header]');
+    const updateHeader = () => siteHeader?.classList.toggle('is-scrolled', window.scrollY > 10);
+    window.addEventListener('scroll', updateHeader, { passive: true });
+    updateHeader();
+</script>
 </body>
 </html>
