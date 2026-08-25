@@ -2,7 +2,7 @@
 
 @section('auth-content')
 <div x-data="{ showPassword: false, showConfirmation: false }" class="h-screen w-screen overflow-hidden flex flex-col md:flex-row relative bg-[#F7FAF8]">
-    <!-- Left Side: Premium NDMU Research Brand Panel (Stretched letters & space-occupying typography) -->
+    <!-- Left Side: Premium NDMU Research Brand Panel -->
     <div class="w-full md:w-[50%] lg:w-[48%] bg-gradient-to-br from-[#003D29] via-[#005337] to-[#00462F] text-white p-7 lg:p-12 xl:p-14 flex flex-col justify-between relative h-full overflow-hidden shrink-0">
         <!-- Subtle academic background patterns -->
         <svg class="absolute inset-0 w-full h-full opacity-5 pointer-events-none" aria-hidden="true">
@@ -130,9 +130,12 @@
             <circle cx="100" cy="600" r="180" fill="#087443" opacity="0.04" />
         </svg>
 
-        <!-- Close Button -->
-        <a href="{{ url('/') }}" class="absolute top-5 right-5 w-10 h-10 rounded-full bg-white border border-[#DDE5E1] flex items-center justify-center text-[#68766F] hover:text-[#00633E] hover:bg-[#F1F7F4] shadow-md transition-all duration-300 z-30 hover:-rotate-90" title="Back to home">
-            <i class="ph-bold ph-x text-base"></i>
+        <!-- High-Impact Close Button (Top Right) -->
+        <a href="{{ url('/') }}" class="absolute top-5 right-5 group flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#003D29] text-white border border-[#00633E] shadow-xl shadow-[#003D29]/25 hover:bg-[#E5B72E] hover:text-[#002E1F] hover:border-[#E5B72E] hover:scale-105 transition-all duration-300 z-30" title="Back to Home">
+            <span class="text-xs font-extrabold tracking-wide">Back to Home</span>
+            <div class="w-6 h-6 rounded-full bg-white/15 flex items-center justify-center group-hover:bg-[#002E1F]/20 group-hover:rotate-90 transition-all duration-300">
+                <i class="ph-bold ph-x text-sm"></i>
+            </div>
         </a>
 
         <!-- Floating Registration Card -->
@@ -357,9 +360,12 @@
         </div>
     </div>
 
-    <!-- Floating Help Button -->
-    <a href="#" class="absolute bottom-5 right-5 w-10 h-10 rounded-full bg-white border border-[#DDE5E1] flex items-center justify-center text-[#68766F] hover:text-[#00633E] hover:bg-[#F1F7F4] shadow-md transition-all duration-200 hover:scale-105 z-30" title="Help">
-        <i class="ph-bold ph-question text-base"></i>
+    <!-- High-Impact Floating Help Button (Bottom Right) -->
+    <a href="mailto:research@ndmu.edu.ph" class="absolute bottom-5 right-5 group flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#003D29] text-white border border-[#00633E] shadow-xl shadow-[#003D29]/25 hover:bg-[#E5B72E] hover:text-[#002E1F] hover:border-[#E5B72E] hover:scale-105 transition-all duration-300 z-30" title="Get Support">
+        <div class="w-6 h-6 rounded-full bg-white/15 flex items-center justify-center group-hover:bg-[#002E1F]/20 transition-all duration-300">
+            <i class="ph-bold ph-question text-sm"></i>
+        </div>
+        <span class="text-xs font-extrabold tracking-wide">Need Help?</span>
     </a>
 </div>
 @endsection
