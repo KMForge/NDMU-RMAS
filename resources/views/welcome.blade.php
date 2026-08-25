@@ -259,35 +259,6 @@
         </div>
     </div>
 </section>
-
-<!-- Call to Action Section -->
-<section class="hero-pattern relative overflow-hidden border-t border-white/10 px-6 py-20 text-center text-white">
-    <div class="relative mx-auto max-w-4xl">
-        <p class="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#facc15]">
-            <i class="ph ph-lock-key text-base" aria-hidden="true"></i>Authorized university access
-        </p>
-        <h2 class="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
-            Ready to manage your research?
-        </h2>
-        <p class="mx-auto mt-3 max-w-xl text-base text-[#d1e3da]">
-            Access the NDMU Research Management System using your authorized university account.
-        </p>
-        <div class="mt-8 flex flex-col justify-center gap-3.5 sm:flex-row">
-            @if(Route::has('login'))
-                <a href="{{ route('login') }}" class="group inline-flex min-h-[50px] items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-[#facc15] to-[#eab308] px-7 text-sm font-extrabold text-[#043d2e] shadow-lg shadow-[#facc15]/20 transition duration-200 hover:from-[#fde047] hover:to-[#facc15] hover:shadow-xl hover:shadow-[#facc15]/30">
-                    Log in to Continue 
-                    <i class="ph ph-arrow-right text-base transition-transform duration-200 group-hover:translate-x-1"></i>
-                </a>
-            @endif
-            @if(Route::has('register'))
-                <a href="{{ route('register') }}" class="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 text-sm font-bold text-white backdrop-blur-md transition duration-200 hover:border-white/50 hover:bg-white/20">
-                    <i class="ph ph-user-plus text-base" aria-hidden="true"></i>
-                    Create an Account
-                </a>
-            @endif
-        </div>
-    </div>
-</section>
 </main>
 
 <footer class="border-t border-white/10 bg-[#02281e] px-6 py-10 text-center text-[#cbe0d4]">
