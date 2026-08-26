@@ -134,5 +134,13 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('defense-actions', fn (Request $request) => Limit::perMinute(30)->by(
             'defense-action|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
         ));
+
+        RateLimiter::for('reports', fn (Request $request) => Limit::perMinute(60)->by(
+            'reports|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
+        ));
+
+        RateLimiter::for('report-exports', fn (Request $request) => Limit::perMinute(10)->by(
+            'report-export|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
+        ));
     }
 }

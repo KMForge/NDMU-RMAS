@@ -78,6 +78,8 @@ final class AuditEvent
         'evaluation.submitted',
         'evaluation.round.finalized',
         'evaluation.results.released',
+        'report.viewed',
+        'report.exported',
     ];
 
     public static function isAllowed(string $event): bool

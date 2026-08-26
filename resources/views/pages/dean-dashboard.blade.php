@@ -409,17 +409,15 @@
                 </button>
 
                 <!-- Research Reports -->
-                <button 
-                   type="button" 
-                   @click="activeTab = 'reports'"
-                   :class="activeTab === 'reports' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                @can('reports.view')
+                <a href="{{ route('dean.reports.index') }}"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left text-white/90 hover:text-white hover:bg-white/5 font-semibold">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-file-text text-lg"></i>
                         <span>Research Reports</span>
                     </div>
-                    <span x-show="activeTab === 'reports'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </button>
+                </a>
+                @endcan
 
                 <!-- Research Repository -->
                 <button 

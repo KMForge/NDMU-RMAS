@@ -11,12 +11,20 @@ use App\Http\Controllers\Facilitator\ResearchClassGroupController;
 use App\Http\Controllers\Facilitator\ResearchProgressController;
 use App\Http\Controllers\Facilitator\TitlePresentationController;
 use App\Http\Controllers\Facilitator\TitleProposalScreeningController;
+use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('facilitator')->name('facilitator.')->middleware([
     'auth', 'verified', 'active', 'permission:dashboards.facilitator.view', 'workspace.context',
 ])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    Route::prefix('/reports')->middleware(['permission:reports.view', 'throttle:reports'])->group(function (): void {
+        Route::get('/', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/{report}', [ReportController::class, 'show'])->name('reports.show');
+        Route::get('/{report}/csv', [ReportController::class, 'csv'])->middleware(['permission:reports.export', 'throttle:report-exports'])->name('reports.csv');
+        Route::get('/{report}/pdf', [ReportController::class, 'pdf'])->middleware(['permission:reports.export', 'throttle:report-exports'])->name('reports.pdf');
+    });
 
     Route::post('/title-proposals/{document}/screen', TitleProposalScreeningController::class)
         ->middleware(['permission:documents.review', 'throttle:defense-actions'])

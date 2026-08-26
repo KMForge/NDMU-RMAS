@@ -170,18 +170,16 @@
                     <span x-show="activeTab === 'forms'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
 
-                <button 
-                    type="button"
-                    @click="activeTab = 'reports'"
-                    :class="activeTab === 'reports' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                @can('reports.view')
+                <a href="{{ route('admin.reports.index') }}"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]"
                 >
                     <div class="flex items-center gap-3">
                         <i class="ph ph-chart-line-up text-lg"></i>
                         <span>Reports & Analytics</span>
                     </div>
-                    <span x-show="activeTab === 'reports'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </button>
+                </a>
+                @endcan
 
                 @can('audit-logs.view')
                 <button 
