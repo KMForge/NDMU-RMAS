@@ -5,6 +5,8 @@ namespace App\Modules\Classes\Actions;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
+use App\Modules\AuditLogs\Services\AuditLogWriter;
+use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Database\QueryException;
@@ -14,6 +16,7 @@ class AssignAdviserToResearchClassGroup
 {
     public function __construct(
         private readonly WorkflowNotificationDispatcher $notifications,
+        private readonly AuditLogWriter $auditLogs,
     ) {}
 
     public function handle(
@@ -44,6 +47,7 @@ class AssignAdviserToResearchClassGroup
                     throw new ClassOperationException('The class group was not found.');
                 }
 
+                $previousAdviserId = $lockedGroup->adviser_id;
                 $lockedGroup->update(['adviser_id' => $adviser->getKey()]);
 
                 $this->notifications->send(
@@ -60,6 +64,18 @@ class AssignAdviserToResearchClassGroup
                     contextLabel: $lockedGroup->name,
                     actingAs: 'Thesis Adviser',
                     occurrence: 'assigned',
+                );
+
+                $this->auditLogs->write(
+                    actor: $facilitator,
+                    event: 'adviser.assignment.created',
+                    description: 'A thesis adviser was assigned to a research group.',
+                    requestContext: AuditRequestContext::fromRequest(request()),
+                    auditable: $lockedGroup,
+                    subjectName: $lockedGroup->name,
+                    oldValues: ['adviser_id' => $previousAdviserId],
+                    newValues: ['adviser_id' => $adviser->getKey()],
+                    actorContext: 'research-facilitator',
                 );
 
                 return $lockedGroup->refresh();

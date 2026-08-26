@@ -59,9 +59,9 @@
             <span class="text-[10px] font-semibold text-gray-400">Real-time filtering</span>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 items-end">
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-[repeat(15,minmax(0,1fr))] items-end">
             <!-- Search Activity -->
-            <label class="lg:col-span-4 space-y-1.5">
+            <label class="lg:col-span-3 space-y-1.5">
                 <span class="block text-[10px] font-extrabold uppercase tracking-wider text-gray-500">Search Query</span>
                 <div class="relative block">
                     <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
@@ -72,6 +72,26 @@
                         class="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-3 text-xs text-gray-800 placeholder-gray-400 focus:border-[#0e5c3a] focus:outline-none focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all"
                     >
                 </div>
+            </label>
+
+            <label class="lg:col-span-2 space-y-1.5">
+                <span class="block text-[10px] font-extrabold uppercase tracking-wider text-gray-500">Actor Context</span>
+                <select wire:model.live="auditContext" class="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-gray-800 focus:border-[#0e5c3a] focus:outline-none focus:ring-4 focus:ring-[#0e5c3a]/5">
+                    <option value="">All contexts</option>
+                    @foreach ($auditLogContexts as $context)
+                        <option value="{{ $context }}">{{ str($context)->replace('-', ' ')->headline() }}</option>
+                    @endforeach
+                </select>
+            </label>
+
+            <label class="lg:col-span-2 space-y-1.5">
+                <span class="block text-[10px] font-extrabold uppercase tracking-wider text-gray-500">Outcome</span>
+                <select wire:model.live="auditOutcome" class="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-gray-800 focus:border-[#0e5c3a] focus:outline-none focus:ring-4 focus:ring-[#0e5c3a]/5">
+                    <option value="">All outcomes</option>
+                    <option value="succeeded">Succeeded</option>
+                    <option value="denied">Denied</option>
+                    <option value="failed">Failed</option>
+                </select>
             </label>
 
             <!-- Event Type Dropdown -->
@@ -155,12 +175,8 @@
                         @php
                             $actorName = $auditLog->actor?->name ?? $auditLog->actor_name ?? 'System Account';
                             $actorEmail = $auditLog->actor?->email ?? $auditLog->actor_email;
-                            $subjectName = $auditLog->subject_name
-                                ?? $auditLog->auditable?->name
-                                ?? $auditLog->auditable?->display_name
-                                ?? $auditLog->auditable?->system_name
-                                ?? 'Target Record';
-                            $subjectEmail = $auditLog->subject_email ?? $auditLog->auditable?->email;
+                            $subjectName = $auditLog->subject_name ?? 'Target Record';
+                            $subjectEmail = $auditLog->subject_email;
                             $subjectType = $auditLog->auditable_type
                                 ? str(class_basename($auditLog->auditable_type))->headline()
                                 : 'System Object';
@@ -192,6 +208,9 @@
                                         @if ($actorEmail)
                                             <p class="mt-0.5 text-[10px] font-medium text-gray-400">{{ $actorEmail }}</p>
                                         @endif
+                                        @if ($auditLog->actor_context)
+                                            <p class="mt-1 text-[9px] font-bold uppercase tracking-wider text-emerald-700">{{ str($auditLog->actor_context)->replace('-', ' ')->headline() }}</p>
+                                        @endif
                                     </div>
                                 </div>
                             </td>
@@ -201,6 +220,7 @@
                                 <span class="inline-flex items-center rounded-lg px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wider border {{ $badgeStyle }}">
                                     {{ str($auditLog->event)->replace('.', ' ')->headline() }}
                                 </span>
+                                <p class="mt-1 text-[9px] font-bold uppercase tracking-wider {{ $auditLog->outcome === 'succeeded' ? 'text-emerald-700' : 'text-red-700' }}">{{ $auditLog->outcome }}</p>
                             </td>
 
                             <!-- Target -->

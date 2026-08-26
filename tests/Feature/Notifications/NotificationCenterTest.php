@@ -71,6 +71,25 @@ class NotificationCenterTest extends TestCase
             $table->timestamp('reviewed_at')->nullable();
             $table->timestamps();
         });
+
+        Schema::create('audit_logs', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('actor_name')->nullable();
+            $table->string('actor_email')->nullable();
+            $table->string('actor_context', 64)->nullable();
+            $table->string('subject_name')->nullable();
+            $table->string('subject_email')->nullable();
+            $table->string('event', 120);
+            $table->string('outcome', 16)->default('succeeded');
+            $table->nullableMorphs('auditable');
+            $table->text('description')->nullable();
+            $table->json('old_values')->nullable();
+            $table->json('new_values')->nullable();
+            $table->string('ip_address', 45)->nullable();
+            $table->text('user_agent')->nullable();
+            $table->timestampTz('created_at')->useCurrent();
+        });
     }
 
     public function test_guest_cannot_access_notification_endpoints(): void

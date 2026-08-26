@@ -4,6 +4,8 @@ namespace App\Modules\Classes\Actions;
 
 use App\Models\ResearchClass;
 use App\Models\User;
+use App\Modules\AuditLogs\Services\AuditLogWriter;
+use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
 use Illuminate\Database\QueryException;
@@ -13,6 +15,8 @@ use Illuminate\Support\Str;
 
 class CreateResearchClass
 {
+    public function __construct(private readonly AuditLogWriter $auditLogs) {}
+
     public function handle(
         User $facilitator,
         string $creationToken,
@@ -54,6 +58,17 @@ class CreateResearchClass
                 ]);
                 $researchClass->setJoinCode($joinCode);
                 $researchClass->save();
+
+                $this->auditLogs->write(
+                    actor: $facilitator,
+                    event: 'class.created',
+                    description: 'A research class was created.',
+                    requestContext: AuditRequestContext::fromRequest(request()),
+                    auditable: $researchClass,
+                    subjectName: $researchClass->name,
+                    newValues: ['max_students' => $researchClass->max_students, 'is_active' => true],
+                    actorContext: 'research-facilitator',
+                );
 
                 return $researchClass;
             }, 3);

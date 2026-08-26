@@ -89,7 +89,7 @@ Workspace access is permission-based through Spatie Laravel Permission.
 4. The user selects a workspace from the dropdown header component.
 5. The browser sends `POST /workspace/{workspace}` with a valid CSRF token.
 6. The server checks authentication, verified email, active account status, rate limits, and dashboard permissions.
-7. The active workspace is saved in `session('active_workspace')` and logged to `AuditLog`.
+7. A structured `workspace.switched` audit event is written with the verified destination in `actor_context`; the active workspace is then saved in `session('active_workspace')`.
 8. The user is redirected to that workspace dashboard.
 
 ---
@@ -115,6 +115,8 @@ Workspace access is permission-based through Spatie Laravel Permission.
 | Switcher Blade UI | `resources/views/components/workspace-switcher.blade.php` |
 | Audit Model | `app/Models/AuditLog.php` |
 | Audit Database Migration | `database/migrations/2026_08_10_000001_create_audit_logs_table.php` |
+| Reusable Audit Writer | `app/Modules/AuditLogs/Services/AuditLogWriter.php` |
+| Phase 24 Audit Hardening Migration | `database/migrations/2026_08_25_000001_harden_audit_logs_for_phase24.php` |
 | Admin Audit Viewer UI | `resources/views/admin/audit-logs.blade.php` |
 | Route Definitions | `routes/web.php` |
 | Feature Tests | `tests/Feature/Authorization/WorkspaceSwitchingTest.php` |

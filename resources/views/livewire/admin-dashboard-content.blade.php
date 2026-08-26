@@ -183,6 +183,7 @@
                     <span x-show="activeTab === 'reports'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
 
+                @can('audit-logs.view')
                 <button 
                     type="button"
                     @click="activeTab = 'audit'"
@@ -195,6 +196,7 @@
                     </div>
                     <span x-show="activeTab === 'audit'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
+                @endcan
             </div>
         </div>
 
@@ -2448,9 +2450,11 @@
             </div>
 
             <!-- TAB 9: AUDIT LOGS VIEW -->
+            @can('audit-logs.view')
             <div x-show="activeTab === 'audit'" x-cloak class="space-y-8 animate-fade-in">
                 @include('admin.audit-logs')
             </div>
+            @endcan
 
             <div class="hidden" aria-hidden="true">
                 <!-- Header -->

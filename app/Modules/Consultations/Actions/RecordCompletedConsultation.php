@@ -9,6 +9,8 @@ use App\Models\ConsultationRecord;
 use App\Models\ConsultationRequest;
 use App\Models\ResearchClassGroupMember;
 use App\Models\User;
+use App\Modules\AuditLogs\Services\AuditLogWriter;
+use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Consultations\Exceptions\ConsultationException;
 use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Carbon\CarbonImmutable;
@@ -19,6 +21,7 @@ class RecordCompletedConsultation
 {
     public function __construct(
         private readonly WorkflowNotificationDispatcher $notifications,
+        private readonly AuditLogWriter $auditLogs,
     ) {}
 
     /**
@@ -125,6 +128,18 @@ class RecordCompletedConsultation
                     actor: $adviser,
                     contextLabel: $lockedRequest->researchClassGroup?->name,
                     actingAs: 'Student Researcher',
+                );
+
+                $this->auditLogs->write(
+                    actor: $adviser,
+                    event: 'consultation.completed',
+                    description: 'An assigned adviser recorded a completed consultation.',
+                    requestContext: AuditRequestContext::fromRequest(request()),
+                    auditable: $record,
+                    subjectName: $lockedRequest->researchClassGroup?->name ?? 'Research group consultation',
+                    oldValues: ['request_status' => ConsultationStatus::Approved->value],
+                    newValues: ['request_status' => ConsultationStatus::Completed->value, 'record_id' => $record->getKey()],
+                    actorContext: 'thesis-adviser',
                 );
 
                 return $record->fresh(['request', 'researchClassGroup', 'conductedBy', 'attendances.student']);

@@ -7,6 +7,8 @@ use App\Models\ResearchClassGroup;
 use App\Models\ResearchGroupMilestone;
 use App\Models\ResearchGroupMilestoneEvent;
 use App\Models\User;
+use App\Modules\AuditLogs\Services\AuditLogWriter;
+use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +18,7 @@ class TransitionResearchGroupMilestone
 {
     public function __construct(
         private readonly WorkflowNotificationDispatcher $notifications,
+        private readonly AuditLogWriter $auditLogs,
     ) {}
 
     public function execute(
@@ -121,6 +124,22 @@ class TransitionResearchGroupMilestone
                 'ip_address' => $ipAddress,
                 'occurred_at' => $now,
             ]);
+
+            $this->auditLogs->write(
+                actor: $actor,
+                event: in_array($from, [ResearchMilestoneStatus::Completed, ResearchMilestoneStatus::NotApplicable], true)
+                    ? 'research.milestone.corrected'
+                    : 'research.milestone.updated',
+                description: 'A research group milestone changed workflow status.',
+                requestContext: new AuditRequestContext($ipAddress, null, null),
+                auditable: $locked,
+                subjectName: $locked->definition->name,
+                oldValues: ['status' => $from->value, 'research_class_group_id' => $group->getKey()],
+                newValues: ['status' => $target->value, 'research_class_group_id' => $group->getKey()],
+                actorContext: $locked->group->researchClass?->facilitator_id === $actor->getKey()
+                    ? 'research-facilitator'
+                    : 'thesis-adviser',
+            );
 
             $this->notifications->sendToMany(
                 recipients: $group->members()->with('student')->get()->pluck('student')->filter()

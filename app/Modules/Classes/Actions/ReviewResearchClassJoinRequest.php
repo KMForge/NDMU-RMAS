@@ -5,6 +5,8 @@ namespace App\Modules\Classes\Actions;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\User;
+use App\Modules\AuditLogs\Services\AuditLogWriter;
+use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
 use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
@@ -15,6 +17,7 @@ class ReviewResearchClassJoinRequest
 {
     public function __construct(
         private readonly WorkflowNotificationDispatcher $notifications,
+        private readonly AuditLogWriter $auditLogs,
     ) {}
 
     public function approve(
@@ -121,6 +124,19 @@ class ReviewResearchClassJoinRequest
                         occurrence: $decision,
                     );
                 }
+
+                $this->auditLogs->write(
+                    actor: $facilitator,
+                    event: $decision === 'active' ? 'class.join-request.approved' : 'class.join-request.rejected',
+                    description: 'A research class join request was reviewed.',
+                    requestContext: AuditRequestContext::fromRequest(request()),
+                    auditable: $lockedRequest,
+                    subjectName: $student?->name ?? 'Student join request',
+                    subjectEmail: $student?->email,
+                    oldValues: ['status' => 'pending', 'research_class_id' => $lockedClass->getKey()],
+                    newValues: ['status' => $decision, 'research_class_id' => $lockedClass->getKey()],
+                    actorContext: 'research-facilitator',
+                );
 
                 return $lockedRequest->refresh();
             }, 3);

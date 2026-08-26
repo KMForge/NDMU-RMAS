@@ -11,6 +11,8 @@ use App\Models\ResearchClassGroupMember;
 use App\Models\RevisionRequest;
 use App\Models\RevisionRequestEvent;
 use App\Models\User;
+use App\Modules\AuditLogs\Services\AuditLogWriter;
+use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Documents\Exceptions\DocumentUploadFailed;
 use App\Modules\Documents\Exceptions\DuplicateDocumentSubmission;
 use App\Modules\Documents\Support\DocumentFilenameSanitizer;
@@ -30,6 +32,7 @@ class SubmitDocument
         private readonly DocumentFilenameSanitizer $filenameSanitizer,
         private readonly RecordDocumentUploadAttempt $audit,
         private readonly WorkflowNotificationDispatcher $notifications,
+        private readonly AuditLogWriter $auditLogs,
     ) {}
 
     public function handle(
@@ -299,6 +302,31 @@ class SubmitDocument
                         occurrence: (string) $document->version_number,
                     );
                 }
+
+                $this->auditLogs->write(
+                    actor: $user,
+                    event: $lockedRevision === null ? 'document.submitted' : 'revision.submitted',
+                    description: $lockedRevision === null
+                        ? 'A research document version was submitted.'
+                        : 'A revised research document was submitted.',
+                    requestContext: new AuditRequestContext(
+                        filter_var($ipAddress, FILTER_VALIDATE_IP) !== false ? $ipAddress : null,
+                        null,
+                        null,
+                    ),
+                    auditable: $document,
+                    subjectName: $document->original_filename,
+                    newValues: [
+                        'document_id' => $document->getKey(),
+                        'research_class_group_id' => $lockedGroup->getKey(),
+                        'stage' => $documentStage->value,
+                        'version_number' => $document->version_number,
+                        'file_type' => $document->file_type,
+                        'file_size' => $document->file_size,
+                        'status' => $document->status->value,
+                    ],
+                    actorContext: 'student-researcher',
+                );
 
                 return $document;
             }, 3);

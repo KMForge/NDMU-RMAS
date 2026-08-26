@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Authentication;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Authentication\ResetPasswordRequest;
 use App\Models\User;
+use App\Modules\AuditLogs\Services\AuditLogWriter;
+use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -22,17 +24,19 @@ class NewPasswordController extends Controller
         ]);
     }
 
-    public function store(ResetPasswordRequest $request): JsonResponse|RedirectResponse
+    public function store(ResetPasswordRequest $request, AuditLogWriter $auditLogs): JsonResponse|RedirectResponse
     {
+        $resetUser = null;
         $status = Password::reset(
             $request->safe()->only(['email', 'password', 'password_confirmation', 'token']),
-            function (User $user, string $password): void {
+            function (User $user, string $password) use (&$resetUser): void {
                 $user->forceFill([
                     'password' => $password,
                     'remember_token' => Str::random(60),
                 ])->save();
 
                 event(new PasswordReset($user));
+                $resetUser = $user;
             },
         );
 
@@ -47,6 +51,18 @@ class NewPasswordController extends Controller
             return back()
                 ->withInput($request->only('email'))
                 ->withErrors(['email' => __($status)]);
+        }
+
+        if ($resetUser instanceof User) {
+            $auditLogs->write(
+                actor: $resetUser,
+                event: 'auth.password-reset.completed',
+                description: 'Account password reset was completed.',
+                requestContext: AuditRequestContext::fromRequest($request),
+                auditable: $resetUser,
+                subjectName: $resetUser->name,
+                subjectEmail: $resetUser->email,
+            );
         }
 
         $message = 'Your password has been reset. You may now sign in.';
