@@ -39,4 +39,10 @@ final class ReportCatalog
     {
         return compact('title', 'description', 'filters', 'columns') + ['version' => self::VERSION];
     }
+
+    /** @return list<string> */
+    public function allowedFilters(string $identifier): array
+    {
+        return $this->get($identifier)['filters'] ?? [];
+    }
 }

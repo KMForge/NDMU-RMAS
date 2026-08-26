@@ -38,9 +38,14 @@ final class CsvReportExporter
     }
 
     /** @param list<array<string,mixed>> $rows */
-    private function guardLimit(array $rows): void
+    public function guardLimit(array $rows): void
     {
-        abort_if(count($rows) > (int) config('analytics.max_export_rows', 10000), 422, 'This report exceeds the configured export row limit. Narrow the filters and try again.');
+        $this->guardCount(count($rows));
+    }
+
+    public function guardCount(int $count): void
+    {
+        abort_if($count > (int) config('analytics.max_export_rows', 10000), 422, 'This report exceeds the configured export row limit. Narrow the filters and try again.');
     }
 
     private function filename(string $report, string $extension): string

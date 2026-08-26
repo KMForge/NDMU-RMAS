@@ -6,10 +6,13 @@ use App\Enums\UserType;
 use App\Models\ResearchClass;
 use App\Models\User;
 use App\Modules\ReportsAnalytics\Exports\CsvReportExporter;
+use App\Modules\ReportsAnalytics\ReportCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class ReportsAnalyticsTest extends TestCase
@@ -20,16 +23,24 @@ class ReportsAnalyticsTest extends TestCase
     {
         parent::setUp();
         app(PermissionRegistrar::class)->forgetCachedPermissions();
-        foreach (['dashboards.admin.view', 'dashboards.facilitator.view', 'reports.view', 'reports.export'] as $permission) {
+        foreach ([
+            'dashboards.admin.view',
+            'dashboards.dean.view',
+            'dashboards.facilitator.view',
+            'reports.view',
+            'reports.export',
+        ] as $permission) {
             Permission::findOrCreate($permission);
         }
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->withoutMiddleware(ThrottleRequests::class);
     }
 
     public function test_guest_cannot_view_or_export_reports(): void
     {
         $this->get(route('admin.reports.index'))->assertRedirect(route('login'));
         $this->get(route('admin.reports.csv', 'research-summary'))->assertRedirect(route('login'));
+        $this->get(route('admin.reports.pdf', 'research-summary'))->assertRedirect(route('login'));
     }
 
     public function test_admin_access_is_permission_driven(): void
@@ -45,6 +56,27 @@ class ReportsAnalyticsTest extends TestCase
     {
         $admin = $this->user(UserType::Admin, ['dashboards.admin.view', 'reports.view']);
         $this->actingAs($admin)->get(route('admin.reports.csv', 'research-summary'))->assertForbidden();
+        $this->actingAs($admin)->get(route('admin.reports.pdf', 'research-summary'))->assertForbidden();
+    }
+
+    public function test_all_catalog_reports_render_html_csv_and_pdf_successfully(): void
+    {
+        $admin = $this->user(UserType::Admin, ['dashboards.admin.view', 'reports.view', 'reports.export']);
+        $catalog = app(ReportCatalog::class)->all();
+
+        foreach (array_keys($catalog) as $reportKey) {
+            $this->actingAs($admin)
+                ->get(route('admin.reports.show', $reportKey))
+                ->assertOk();
+
+            $csv = $this->actingAs($admin)->get(route('admin.reports.csv', $reportKey));
+            $csv->assertOk();
+            $this->assertStringStartsWith('text/csv', (string) $csv->headers->get('content-type'));
+
+            $pdf = $this->actingAs($admin)->get(route('admin.reports.pdf', $reportKey));
+            $pdf->assertOk();
+            $this->assertSame('application/pdf', $pdf->headers->get('content-type'));
+        }
     }
 
     public function test_authorized_csv_export_has_secure_headers_and_audit_event(): void
@@ -94,6 +126,26 @@ class ReportsAnalyticsTest extends TestCase
         }
         $this->assertSame('ordinary text', $exporter->safeCell('ordinary text'));
         $this->assertSame('a,b"c', $exporter->safeCell('a,b"c'));
+    }
+
+    public function test_unsupported_filter_parameters_are_rejected_with_validation_errors(): void
+    {
+        $admin = $this->user(UserType::Admin, ['dashboards.admin.view', 'reports.view']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.reports.show', ['report' => 'adviser-workload', 'stage' => 'proposal_defense']))
+            ->assertSessionHasErrors('stage');
+    }
+
+    public function test_export_row_limit_exceeded_returns_422(): void
+    {
+        $exporter = app(CsvReportExporter::class);
+        try {
+            $exporter->guardCount(10001);
+            $this->fail('Expected 422 exception not thrown');
+        } catch (HttpException $e) {
+            $this->assertSame(422, $e->getStatusCode());
+        }
     }
 
     /** @param list<string> $permissions */

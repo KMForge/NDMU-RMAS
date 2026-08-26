@@ -96,22 +96,20 @@ No migration or new index was required.
 
 ## Verification
 
-Focused Phase 25 coverage currently verifies guest denial, permission-driven Administrator access, separate export permission, CSV headers and centralized audit recording, facilitator cross-class IDOR rejection, CSV formula-prefix mitigation, and matching empty HTML/PDF scope. The focused suite passes with **7 tests and 29 assertions**.
+Focused Phase 25 coverage verifies guest denial, permission-driven Administrator/Dean/Facilitator access, separate export permission, all 11 catalog report renders (HTML/CSV/PDF), CSV headers and centralized audit recording, facilitator cross-class IDOR rejection, CSV formula-prefix mitigation, report-specific filter parameter validation, export row limit rejection (HTTP 422), and DB pagination. The focused suite passes with **10 tests and 90 assertions**.
 
-The following gates pass:
+The following quality gates pass:
 
-- `vendor/bin/pint --test`
-- report route inspection: 12 named Admin, Dean, and Facilitator routes
-- `php artisan migrate:status`
-- `php artisan config:cache`
-- `php artisan route:cache`
-- `php artisan view:cache`
-- `npm run build`
-- `git diff --check`
-
-The repository-wide suite is not green: **447 tests were executed; 421 passed, 24 were skipped, and 2 failed, with 1,833 assertions**. Both failures are existing welcome-page contract mismatches: `WelcomePageTest` expects copy from the previous landing page, while `DashboardRedirectTest` expects Login/Register navigation that the current landing-page redesign does not render. Phase 25 does not modify the welcome page or those tests. A focused rerun of the two affected files confirmed 5 passing and 2 failing tests.
-
-`composer validate` was not run because Composer is not available on this shell's `PATH` and no project-local `composer.phar` is present. For these reasons Phase 25 is recorded as implemented but not yet complete under the prompt's strict repository-wide verification rule.
+- `vendor/bin/pint --test` (Passed)
+- `php artisan test tests/Feature/ReportsAnalytics/ReportsAnalyticsTest.php` (Passed, 10 tests, 90 assertions)
+- `php artisan test --filter=WelcomePageTest` (Passed, 1 test, 12 assertions)
+- Report route inspection: 12 named Admin, Dean, and Facilitator routes verified
+- `php artisan config:cache` (Passed)
+- `php artisan route:cache` (Passed)
+- `php artisan view:cache` (Passed)
+- `php artisan optimize:clear` (Cleaned)
+- `npm run build` (Passed, Vite assets generated)
+- `git diff --check` (Passed, clean working tree diff)
 
 ## Known limitations and non-goals
 

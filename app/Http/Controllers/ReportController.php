@@ -41,12 +41,29 @@ final class ReportController extends Controller
         $scope = $this->scope($request);
         $filters = $request->filters();
         $definition = $this->catalog->get($report);
-        $result = $this->reports->execute($report, $scope, $filters);
         $page = max(1, (int) $request->integer('page', 1));
         $perPage = 25;
-        $rows = collect($result['rows']);
-        $paginator = new LengthAwarePaginator($rows->forPage($page, $perPage)->values(), $rows->count(), $perPage, $page, ['path' => $request->url(), 'query' => $request->query()]);
-        $this->record($request, 'report.viewed', $report, $scope->label(), count($result['rows']), $filters->toArray());
+
+        if ($this->reports->isDetailReport($report)) {
+            $paginator = $this->reports->paginateDetail($report, $scope, $filters, $perPage, $page);
+            $result = [
+                'columns' => $definition['columns'],
+                'rows' => $paginator->items(),
+                'summary' => ['row_count' => $paginator->total()],
+            ];
+            $this->record($request, 'report.viewed', $report, $scope->label(), $paginator->total(), $filters->toArray());
+        } else {
+            $result = $this->reports->execute($report, $scope, $filters);
+            $rows = collect($result['rows']);
+            $paginator = new LengthAwarePaginator(
+                $rows->forPage($page, $perPage)->values(),
+                $rows->count(),
+                $perPage,
+                $page,
+                ['path' => $request->url(), 'query' => $request->query()]
+            );
+            $this->record($request, 'report.viewed', $report, $scope->label(), count($result['rows']), $filters->toArray());
+        }
 
         return view('pages.reports.show', compact('report', 'definition', 'result', 'scope', 'filters', 'paginator') + [
             'options' => $this->reports->filterOptions($scope),
@@ -57,7 +74,21 @@ final class ReportController extends Controller
     public function csv(ReportFilterRequest $request, string $report, CsvReportExporter $exporter): StreamedResponse
     {
         $this->authorizeExport($request);
-        [$scope, $filters, $definition, $result] = $this->payload($request, $report);
+        $scope = $this->scope($request);
+        $filters = $request->filters();
+        $definition = $this->catalog->get($report);
+
+        if ($this->reports->isDetailReport($report)) {
+            $count = $this->reports->countDetail($report, $scope, $filters);
+            $exporter->guardCount($count);
+            $rows = $this->reports->getDetailRows($report, $scope, $filters);
+            $response = $exporter->download($report, $definition['columns'], $rows);
+            $this->record($request, 'report.exported', $report, $scope->label(), count($rows), $filters->toArray(), 'csv');
+
+            return $response;
+        }
+
+        $result = $this->reports->execute($report, $scope, $filters);
         $response = $exporter->download($report, $definition['columns'], $result['rows']);
         $this->record($request, 'report.exported', $report, $scope->label(), count($result['rows']), $filters->toArray(), 'csv');
 
@@ -67,21 +98,30 @@ final class ReportController extends Controller
     public function pdf(ReportFilterRequest $request, string $report, PdfReportExporter $exporter): Response
     {
         $this->authorizeExport($request);
-        [$scope, $filters, $definition, $result] = $this->payload($request, $report);
-        $response = $exporter->download($report, $definition, $result, ['generated_at' => now(), 'scope' => $scope->label(), 'filters' => $filters->toArray()]);
-        $this->record($request, 'report.exported', $report, $scope->label(), count($result['rows']), $filters->toArray(), 'pdf');
-
-        return $response;
-    }
-
-    /** @return array{0:mixed,1:mixed,2:array<string,mixed>,3:array<string,mixed>} */
-    private function payload(ReportFilterRequest $request, string $report): array
-    {
         $scope = $this->scope($request);
         $filters = $request->filters();
         $definition = $this->catalog->get($report);
 
-        return [$scope, $filters, $definition, $this->reports->execute($report, $scope, $filters)];
+        if ($this->reports->isDetailReport($report)) {
+            $count = $this->reports->countDetail($report, $scope, $filters);
+            $exporter->guardCount($count);
+            $rows = $this->reports->getDetailRows($report, $scope, $filters);
+            $result = [
+                'columns' => $definition['columns'],
+                'rows' => $rows,
+                'summary' => ['row_count' => count($rows)],
+            ];
+            $response = $exporter->download($report, $definition, $result, ['generated_at' => now(), 'scope' => $scope->label(), 'filters' => $filters->toArray()]);
+            $this->record($request, 'report.exported', $report, $scope->label(), count($rows), $filters->toArray(), 'pdf');
+
+            return $response;
+        }
+
+        $result = $this->reports->execute($report, $scope, $filters);
+        $response = $exporter->download($report, $definition, $result, ['generated_at' => now(), 'scope' => $scope->label(), 'filters' => $filters->toArray()]);
+        $this->record($request, 'report.exported', $report, $scope->label(), count($result['rows']), $filters->toArray(), 'pdf');
+
+        return $response;
     }
 
     private function scope(ReportFilterRequest $request)
