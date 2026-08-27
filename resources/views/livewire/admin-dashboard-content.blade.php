@@ -75,153 +75,142 @@
         </div>
 
         <!-- Navigation Links -->
-        <div class="flex-1 px-6 py-4 space-y-6">
-            <div class="space-y-1.5">
+        <div class="flex-1 pl-4 pr-0 py-4 space-y-6">
+            <div class="space-y-1">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
                 
                 <!-- Dashboard Link -->
                 <button
                    type="button"
                    @click="activeTab = 'dashboard'"
-                   :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
+                   :class="activeTab === 'dashboard' ? 'curved-nav-item active' : 'curved-nav-item'">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-squares-four text-lg"></i>
+                        <i class="ph ph-squares-four curved-nav-icon"></i>
                         <span>Dashboard</span>
                     </div>
-                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
                 
                 <!-- User Management Link -->
                 <button
                    type="button"
                    @click="activeTab = 'users'"
-                   :class="['users', 'assign-roles'].includes(activeTab) ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
+                   :class="['users', 'assign-roles'].includes(activeTab) ? 'curved-nav-item active' : 'curved-nav-item'">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-users text-lg"></i>
+                        <i class="ph ph-users curved-nav-icon"></i>
                         <span>User Management</span>
                     </div>
-                    <span x-show="['users', 'assign-roles'].includes(activeTab)" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="['users', 'assign-roles'].includes(activeTab)" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
 
                 <button
                    type="button"
                    @click="activeTab = 'permissions'"
-                   :class="activeTab === 'permissions' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
+                   :class="activeTab === 'permissions' ? 'curved-nav-item active' : 'curved-nav-item'">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-shield-check text-lg"></i>
+                        <i class="ph ph-shield-check curved-nav-icon"></i>
                         <span>Roles &amp; Permissions</span>
                     </div>
-                    <span x-show="activeTab === 'permissions'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'permissions'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
 
                 <button
                    type="button"
                    @click="activeTab = 'research'"
-                   :class="activeTab === 'research' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
+                   :class="activeTab === 'research' ? 'curved-nav-item active' : 'curved-nav-item'">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-book-open text-lg"></i>
+                        <i class="ph ph-book-open curved-nav-icon"></i>
                         <span>Research Management</span>
                     </div>
-                    <span x-show="activeTab === 'research'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'research'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
 
                 <button
                    type="button"
                    @click="activeTab = 'defenses'"
-                   :class="activeTab === 'defenses' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
+                   :class="activeTab === 'defenses' ? 'curved-nav-item active' : 'curved-nav-item'">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-calendar text-lg"></i>
+                        <i class="ph ph-calendar curved-nav-icon"></i>
                         <span>Defense Scheduling</span>
                     </div>
-                    <span x-show="activeTab === 'defenses'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'defenses'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
 
                 <button 
                     type="button"
                     @click="activeTab = 'repository'"
-                    :class="activeTab === 'repository' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]"
+                    :class="activeTab === 'repository' ? 'curved-nav-item active' : 'curved-nav-item'"
                 >
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-folder text-lg"></i>
+                        <i class="ph ph-folder curved-nav-icon"></i>
                         <span>Research Repository</span>
                     </div>
-                    <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
 
                 <button 
                     type="button"
                     @click="activeTab = 'forms'"
-                    :class="activeTab === 'forms' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]"
+                    :class="activeTab === 'forms' ? 'curved-nav-item active' : 'curved-nav-item'"
                 >
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-file-text text-lg"></i>
+                        <i class="ph ph-file-text curved-nav-icon"></i>
                         <span>Forms Management</span>
                     </div>
-                    <span x-show="activeTab === 'forms'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'forms'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
 
                 <button 
                     type="button"
                     @click="activeTab = 'reports'"
-                    :class="activeTab === 'reports' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]"
+                    :class="activeTab === 'reports' ? 'curved-nav-item active' : 'curved-nav-item'"
                 >
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-chart-line-up text-lg"></i>
+                        <i class="ph ph-chart-line-up curved-nav-icon"></i>
                         <span>Reports & Analytics</span>
                     </div>
-                    <span x-show="activeTab === 'reports'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'reports'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
 
                 <button 
                     type="button"
                     @click="activeTab = 'audit'"
-                    :class="activeTab === 'audit' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]"
+                    :class="activeTab === 'audit' ? 'curved-nav-item active' : 'curved-nav-item'"
                 >
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-list-bullets text-lg"></i>
+                        <i class="ph ph-list-bullets curved-nav-icon"></i>
                         <span>Audit Logs</span>
                     </div>
-                    <span x-show="activeTab === 'audit'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'audit'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
             </div>
         </div>
 
         <!-- Sidebar Footer -->
-        <div class="flex-shrink-0 px-6 pb-6 mt-auto">
-            <div class="pt-4 border-t border-white/10 space-y-1">
+        <div class="flex-shrink-0 pl-4 pr-0 pb-6 mt-auto">
+            <div class="pt-4 border-t border-white/10 space-y-1 pr-4">
                 <button
                     type="button"
                     @click="activeTab = 'notifications'"
-                    :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
+                    :class="activeTab === 'notifications' ? 'curved-nav-item active !pr-3' : 'curved-nav-item !pr-3'"
                 >
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-bell text-lg"></i>
+                        <i class="ph ph-bell curved-nav-icon"></i>
                         <span>Notifications</span>
                     </div>
-                    <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-2"></span>
                 </button>
 
                 <button 
                     type="button"
                     @click="activeTab = 'settings'"
-                    :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
+                    :class="activeTab === 'settings' ? 'curved-nav-item active !pr-3' : 'curved-nav-item !pr-3'"
                 >
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-gear text-lg"></i>
+                        <i class="ph ph-gear curved-nav-icon"></i>
                         <span>System Settings</span>
                     </div>
-                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-2"></span>
                 </button>
                 
                 <!-- Real Logout Form -->

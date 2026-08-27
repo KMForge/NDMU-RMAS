@@ -109,16 +109,56 @@
 
     <!-- Right Side: Strictly NON-SCROLLABLE (overflow-hidden) with Floating Card -->
     <div class="w-full md:w-[50%] lg:w-[52%] flex items-center justify-center p-4 sm:p-6 lg:p-8 relative h-full overflow-hidden bg-[#F7FAF8]">
-        <!-- Subtle background graphics -->
-        <svg class="absolute inset-0 w-full h-full opacity-30 pointer-events-none" viewBox="0 0 600 800" aria-hidden="true">
-            <defs>
-                <pattern id="dots-auth-clean-str" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
-                    <circle cx="1.5" cy="1.5" r="0.8" fill="#087443" opacity="0.1" />
-                </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#dots-auth-clean-str)" />
-            <circle cx="500" cy="100" r="220" fill="#087443" opacity="0.03" />
-            <circle cx="100" cy="600" r="180" fill="#087443" opacity="0.04" />
+        <!-- Abstract Topographic Contour Lines — white right panel ONLY, matching reference image -->
+        <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 750 900" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <g stroke="#222" stroke-linecap="round" stroke-linejoin="round" fill="none">
+
+                <!-- LEFT SIDE: two large S-wave columns (most prominent in reference) -->
+                <!-- Outer left S-curve -->
+                <path d="M -30 120 C 30 80, 80 150, 60 240 C 40 330, -10 390, 20 470 C 50 550, 110 590, 90 670 C 70 750, 10 800, -30 860"
+                      stroke-width="1.5" opacity="0.35"/>
+                <!-- Inner left S-curve (offset inward) -->
+                <path d="M 30 140 C 80 100, 130 170, 110 260 C 90 350, 40 400, 70 490 C 100 580, 160 610, 140 700 C 120 780, 50 830, 20 900"
+                      stroke-width="1.4" opacity="0.28"/>
+
+                <!-- UPPER-LEFT blob / kidney shape top-left corner -->
+                <path d="M -30 -10 C 30 -30, 120 10, 170 70 C 220 130, 200 210, 140 240 C 80 270, 10 230, -20 170 C -50 110, -30 20, -30 -10"
+                      stroke-width="1.4" opacity="0.30"/>
+
+                <!-- UPPER-CENTER arc: gentle wave across top -->
+                <path d="M 200 -30 C 280 20, 340 -20, 420 30 C 500 80, 530 30, 620 -10 C 700 -50, 750 10, 780 -20"
+                      stroke-width="1.3" opacity="0.27"/>
+                <path d="M 250 30 C 320 -10, 380 40, 460 10 C 540 -20, 600 30, 680 0"
+                      stroke-width="1.2" opacity="0.20"/>
+
+                <!-- UPPER-RIGHT area: organic loop/lobe -->
+                <path d="M 660 -30 C 720 10, 790 40, 800 110 C 810 180, 760 230, 700 220 C 640 210, 620 160, 650 100 C 680 40, 700 10, 660 -30"
+                      stroke-width="1.4" opacity="0.30"/>
+                <!-- Tail line from upper-right going down right edge -->
+                <path d="M 790 200 C 770 260, 800 310, 790 370 C 780 430, 740 460, 760 520"
+                      stroke-width="1.3" opacity="0.27"/>
+
+                <!-- RIGHT SIDE mid-height S-curves -->
+                <path d="M 800 430 C 740 390, 700 450, 720 540 C 740 630, 800 670, 790 760 C 780 840, 730 880, 760 940"
+                      stroke-width="1.4" opacity="0.30"/>
+                <path d="M 760 460 C 710 420, 680 490, 700 570 C 720 650, 775 690, 770 770 C 765 840, 720 870, 740 930"
+                      stroke-width="1.3" opacity="0.22"/>
+
+                <!-- LOWER-LEFT swirl / flow -->
+                <path d="M -30 780 C 40 740, 130 770, 180 840 C 230 910, 200 970, 120 990 C 40 1010, -20 960, -30 900"
+                      stroke-width="1.4" opacity="0.30"/>
+                <path d="M 30 860 C 90 820, 170 850, 220 920 C 270 990, 240 1040, 160 1050"
+                      stroke-width="1.2" opacity="0.22"/>
+
+                <!-- LOWER-CENTER gentle wave -->
+                <path d="M 250 920 C 330 880, 420 930, 500 900 C 580 870, 620 920, 680 900"
+                      stroke-width="1.3" opacity="0.25"/>
+
+                <!-- LOWER-RIGHT lobe -->
+                <path d="M 680 870 C 720 830, 790 850, 810 910 C 830 970, 790 1010, 740 1000 C 690 990, 670 950, 680 870"
+                      stroke-width="1.3" opacity="0.27"/>
+
+            </g>
         </svg>
 
         <!-- High-Impact Close Button (Top Right) -->

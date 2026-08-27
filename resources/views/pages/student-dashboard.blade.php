@@ -98,8 +98,8 @@
             </div>
         </div>
 
-        <div class="flex-grow px-6 py-4 space-y-6">
-            <div class="space-y-1.5">
+        <div class="flex-grow pl-4 pr-0 py-4 space-y-6">
+            <div class="space-y-1">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
 
                 @foreach ([
@@ -117,14 +117,13 @@
                     <a
                         href="{{ route('student.dashboard', ['tab' => $tab]) }}"
                         wire:navigate
-                        :class="activeTab === '{{ $tab }}' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
+                        :class="activeTab === '{{ $tab }}' ? 'curved-nav-item active' : 'curved-nav-item'"
                     >
                         <div class="flex items-center gap-3">
-                            <i class="ph {{ $icon }} text-lg"></i>
+                            <i class="ph {{ $icon }} curved-nav-icon"></i>
                             <span>{{ $label }}</span>
                         </div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 mr-3">
                             @if ($tab === 'consultation' && ($pendingConsultationsCount ?? 0) > 0)
                                 <span class="px-2 py-0.5 text-[10px] font-black rounded-full bg-amber-400 text-amber-950 shadow-xs">
                                     {{ $pendingConsultationsCount }}
@@ -136,7 +135,7 @@
                 @endforeach
             </div>
 
-            <div class="space-y-1.5 pt-4 mt-4 border-t border-white/10">
+            <div class="space-y-1.5 pt-4 mt-4 pr-4 border-t border-white/10">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Research Forms</span>
                 <button
                     type="button"
@@ -201,30 +200,34 @@
             </div>
         </div>
 
-        <div class="flex-shrink-0 px-6 pb-6 mt-8">
-            <div class="pt-4 border-t border-white/10 space-y-1">
+        <div class="flex-shrink-0 pl-4 pr-0 pb-6 mt-8">
+            <div class="pt-4 border-t border-white/10 space-y-1 pr-4">
                 <a
                     href="{{ route('student.dashboard', ['tab' => 'notifications']) }}"
                     wire:navigate
-                    :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold' : 'text-white/90 hover:bg-white/5 font-semibold'"
-                    class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] text-left transition-all"
+                    :class="activeTab === 'notifications' ? 'curved-nav-item active !pr-3' : 'curved-nav-item !pr-3'"
                 >
-                    <i class="ph ph-bell text-lg"></i>
-                    <span>Notifications</span>
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-bell curved-nav-icon"></i>
+                        <span>Notifications</span>
+                    </div>
+                    <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-2"></span>
                 </a>
                 <a
                     href="{{ route('student.dashboard', ['tab' => 'settings']) }}"
                     wire:navigate
-                    :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold' : 'text-white/90 hover:bg-white/5 font-semibold'"
-                    class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] text-left transition-all"
+                    :class="activeTab === 'settings' ? 'curved-nav-item active !pr-3' : 'curved-nav-item !pr-3'"
                 >
-                    <i class="ph ph-gear text-lg"></i>
-                    <span>Settings</span>
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-gear curved-nav-icon"></i>
+                        <span>Settings</span>
+                    </div>
+                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-2"></span>
                 </a>
             </div>
-            <form method="POST" action="{{ route('logout') }}" data-confirm-logout>
+            <form method="POST" action="{{ route('logout') }}" data-confirm-logout class="pr-4">
                 @csrf
-                <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-xl text-white/90 hover:bg-white/5 font-semibold text-[13px]">
+                <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-xl text-white/90 hover:bg-white/5 font-semibold text-[13px] cursor-pointer">
                     <i class="ph ph-sign-out text-lg"></i>
                     <span>Logout</span>
                 </button>

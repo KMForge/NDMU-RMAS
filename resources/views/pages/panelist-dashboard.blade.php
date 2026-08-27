@@ -399,32 +399,31 @@
         </div>
 
         <!-- Navigation Links -->
-        <div class="flex-grow px-6 py-4 space-y-6">
-            <div class="space-y-1.5">
+        <div class="flex-grow pl-4 pr-0 py-4 space-y-6">
+            <div class="space-y-1">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
                 
                 <!-- Dashboard -->
                 <button 
                    type="button" 
                    @click="activeTab = 'dashboard'"
-                   :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'dashboard' ? 'curved-nav-item active' : 'curved-nav-item'">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-squares-four text-lg"></i>
+                        <i class="ph ph-squares-four curved-nav-icon"></i>
                         <span>Dashboard</span>
                     </div>
-                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
                 
                 <!-- Pending Form Approvals Queue -->
                 <a
                    href="{{ route('official-forms.workspace.index') }}"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer text-white/90 hover:text-white hover:bg-white/5 font-semibold">
+                   class="curved-nav-item">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-check-square-offset text-lg text-amber-300"></i>
+                        <i class="ph ph-check-square-offset curved-nav-icon text-amber-300"></i>
                         <span>Pending Form Approvals</span>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 mr-3">
                         @if (isset($pendingFormInstances) && $pendingFormInstances->count() > 0)
                             <span class="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[10px] font-black text-white shadow-sm">{{ $pendingFormInstances->count() }}</span>
                         @endif
@@ -435,94 +434,88 @@
                 <button 
                    type="button" 
                    @click="activeTab = 'assigned-papers'"
-                   :class="activeTab === 'assigned-papers' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'assigned-papers' ? 'curved-nav-item active' : 'curved-nav-item'">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-file-text text-lg"></i>
+                        <i class="ph ph-file-text curved-nav-icon"></i>
                         <span>Assigned Research Papers</span>
                     </div>
-                    <span x-show="activeTab === 'assigned-papers'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'assigned-papers'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
 
                 <!-- Proposal Evaluation -->
                 <button 
                    type="button" 
                    @click="activeTab = 'proposal-eval'"
-                   :class="activeTab === 'proposal-eval' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'proposal-eval' ? 'curved-nav-item active' : 'curved-nav-item'">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-scroll text-lg"></i>
+                        <i class="ph ph-scroll curved-nav-icon"></i>
                         <span>Proposal Evaluation</span>
                     </div>
-                    <span x-show="activeTab === 'proposal-eval'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'proposal-eval'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
 
                 <!-- Final Defense Evaluation -->
                 <button 
                    type="button" 
                    @click="activeTab = 'final-eval'"
-                   :class="activeTab === 'final-eval' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'final-eval' ? 'curved-nav-item active' : 'curved-nav-item'">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-clipboard-text text-lg"></i>
+                        <i class="ph ph-clipboard-text curved-nav-icon"></i>
                         <span>Final Defense Evaluation</span>
                     </div>
-                    <span x-show="activeTab === 'final-eval'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'final-eval'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
 
                 <!-- My Recommendations -->
                 <button 
                    type="button" 
                    @click="activeTab = 'recommendations'"
-                   :class="activeTab === 'recommendations' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'recommendations' ? 'curved-nav-item active' : 'curved-nav-item'">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-chat-teardrop text-lg"></i>
+                        <i class="ph ph-chat-teardrop curved-nav-icon"></i>
                         <span>My Recommendations</span>
                     </div>
-                    <span x-show="activeTab === 'recommendations'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'recommendations'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
 
                 <!-- My Defense Schedule -->
                 <button 
                    type="button" 
                    @click="activeTab = 'schedule'"
-                   :class="activeTab === 'schedule' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'schedule' ? 'curved-nav-item active' : 'curved-nav-item'">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-calendar text-lg"></i>
+                        <i class="ph ph-calendar curved-nav-icon"></i>
                         <span>My Defense Schedule</span>
                     </div>
-                    <span x-show="activeTab === 'schedule'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'schedule'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
 
                 <!-- Research Repository -->
                 <button 
                    type="button" 
                    @click="activeTab = 'repository'"
-                   :class="activeTab === 'repository' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'repository' ? 'curved-nav-item active' : 'curved-nav-item'">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-folder text-lg"></i>
+                        <i class="ph ph-folder curved-nav-icon"></i>
                         <span>Research Repository</span>
                     </div>
-                    <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
             </div>
 
             <!-- Research Forms Section -->
-            <div class="space-y-1.5 pt-4 border-t border-white/10">
+            <div class="space-y-1.5 pt-4 pr-4 border-t border-white/10">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Research Forms</span>
 
                 <button
                     type="button"
                     @click="formsExpanded = ! formsExpanded; activeTab = 'forms'"
-                    :class="activeTab === 'forms' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                    :class="activeTab === 'forms' ? 'curved-nav-item active' : 'curved-nav-item'"
                     :aria-expanded="formsExpanded"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] transition-all duration-200 text-left cursor-pointer"
                 >
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-file-pdf text-lg"></i>
+                        <i class="ph ph-file-pdf curved-nav-icon"></i>
                         <span>Official Forms</span>
                     </div>
                     <i class="ph ph-caret-right text-xs transition-transform duration-200" :class="formsExpanded && 'rotate-90'"></i>
@@ -569,30 +562,28 @@
         </div>
 
         <!-- Sidebar Footer -->
-        <div class="flex-shrink-0 px-6 pb-6 mt-8">
-            <div class="pt-4 border-t border-white/10 space-y-1">
+        <div class="flex-shrink-0 pl-4 pr-0 pb-6 mt-8">
+            <div class="pt-4 border-t border-white/10 space-y-1 pr-4">
                 <!-- Notifications -->
                 <a href="#" 
                    @click.prevent="activeTab = 'notifications'"
-                   :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
-                   class="flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200">
+                   :class="activeTab === 'notifications' ? 'curved-nav-item active !pr-3' : 'curved-nav-item !pr-3'">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-bell text-lg"></i>
+                        <i class="ph ph-bell curved-nav-icon"></i>
                         <span>Notifications</span>
                     </div>
-                    <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-2"></span>
                 </a>
                 
                 <!-- Settings -->
                 <a href="#" 
                    @click.prevent="activeTab = 'settings'"
-                   :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
-                   class="flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200">
+                   :class="activeTab === 'settings' ? 'curved-nav-item active !pr-3' : 'curved-nav-item !pr-3'">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-gear text-lg"></i>
+                        <i class="ph ph-gear curved-nav-icon"></i>
                         <span>Settings</span>
                     </div>
-                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-2"></span>
                 </a>
 
                 <!-- Logout -->
@@ -604,7 +595,7 @@
                     </button>
                 </form>
             </div>
-            <div class="text-[9px] text-white/30 text-center font-medium mt-6">
+            <div class="text-[9px] text-white/30 text-center font-medium mt-6 pr-4">
                 NDMU © 2026 - v1.0
             </div>
         </div>

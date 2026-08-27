@@ -29,16 +29,16 @@
         </div>
 
         <!-- Navigation Links -->
-        <div class="flex-1 px-6 py-4 space-y-6">
+        <div class="flex-1 pl-4 pr-0 py-4 space-y-6">
             <div class="space-y-1.5">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
                 
-                <a href="{{ route('dashboard') }}" class="flex items-center justify-between px-3 py-2.5 rounded-xl bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm transition-all duration-200">
+                <a href="{{ route('dashboard') }}" class="curved-nav-item active">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-squares-four text-lg"></i>
+                        <i class="ph ph-squares-four curved-nav-icon"></i>
                         <span>Dashboard</span>
                     </div>
-                    <span class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </a>
             </div>
         </div>

@@ -35,19 +35,26 @@
             </div>
         </div>
 
-        <nav class="flex-1 space-y-2 px-6 py-5">
-            <a href="{{ route('facilitator.dashboard') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold text-white/90 hover:bg-white/5">
-                <i class="ph ph-squares-four text-lg"></i><span>Dashboard</span>
+        <nav class="flex-1 space-y-1 pl-4 pr-0 py-5">
+            <a href="{{ route('facilitator.dashboard') }}" class="curved-nav-item">
+                <div class="flex items-center gap-3">
+                    <i class="ph ph-squares-four curved-nav-icon"></i>
+                    <span>Dashboard</span>
+                </div>
             </a>
-            <a href="{{ route('facilitator.dashboard', ['tab' => 'classes']) }}" class="flex items-center gap-3 rounded-xl bg-[#eebc3f] px-3 py-2.5 text-[13px] font-bold text-[#0e5c3a]">
-                <i class="ph ph-chalkboard-teacher text-lg"></i><span>My Classes</span>
+            <a href="{{ route('facilitator.dashboard', ['tab' => 'classes']) }}" class="curved-nav-item active">
+                <div class="flex items-center gap-3">
+                    <i class="ph ph-chalkboard-teacher curved-nav-icon"></i>
+                    <span>My Classes</span>
+                </div>
+                <span class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
             </a>
         </nav>
 
         <div class="px-6 pb-6">
             <form method="POST" action="{{ route('logout') }}" data-confirm-logout>
                 @csrf
-                <button type="submit" class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-semibold text-white/90 hover:bg-white/5">
+                <button type="submit" class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-semibold text-white/90 hover:bg-white/5 cursor-pointer">
                     <i class="ph ph-sign-out text-lg"></i><span>Logout</span>
                 </button>
             </form>

@@ -88,3 +88,87 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     animation: pulse-subtle 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* ==========================================================================
+   Curved Outside Active Tab Sidebar Menu (Concave Cutout Design)
+   ========================================================================== */
+.curved-nav-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px 16px 10px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    border-top-left-radius: 24px;
+    border-bottom-left-radius: 24px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    text-decoration: none;
+    transition: color 0.22s ease, background-color 0.22s ease, transform 0.22s ease;
+    cursor: pointer;
+    user-select: none;
+}
+
+.curved-nav-item:not(.active):hover {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.08);
+    transform: translateX(2px);
+}
+
+.curved-nav-item:not(.active):hover .curved-nav-icon {
+    transform: scale(1.12);
+    color: #eebc3f;
+}
+
+.curved-nav-item.active {
+    background-color: #f4f7f6;
+    color: #0e5c3a;
+    font-weight: 700;
+    z-index: 10;
+    transform: none;
+}
+
+.curved-nav-item.active .curved-nav-icon {
+    color: #0e5c3a;
+    transform: scale(1.08);
+}
+
+/* Concave top curve */
+.curved-nav-item.active::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    background-color: transparent;
+    border-bottom-right-radius: 20px;
+    box-shadow: 6px 6px 0 6px #f4f7f6;
+    pointer-events: none;
+}
+
+/* Concave bottom curve */
+.curved-nav-item.active::after {
+    content: '';
+    position: absolute;
+    bottom: -20px;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    background-color: transparent;
+    border-top-right-radius: 20px;
+    box-shadow: 6px -6px 0 6px #f4f7f6;
+    pointer-events: none;
+}
+
+.curved-nav-icon {
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.22s ease;
+    font-size: 1.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
