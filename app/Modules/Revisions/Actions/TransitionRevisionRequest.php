@@ -6,6 +6,8 @@ use App\Enums\RevisionStatus;
 use App\Models\RevisionRequest;
 use App\Models\RevisionRequestEvent;
 use App\Models\User;
+use App\Modules\AuditLogs\Services\AuditLogWriter;
+use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Revisions\Exceptions\RevisionWorkflowException;
 use App\Notifications\RevisionStatusChanged;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +15,8 @@ use Illuminate\Support\Str;
 
 class TransitionRevisionRequest
 {
+    public function __construct(private readonly AuditLogWriter $auditLogs) {}
+
     public function start(
         User $student,
         RevisionRequest $revisionRequest,
@@ -112,6 +116,23 @@ class TransitionRevisionRequest
                 'ip_address' => $this->safeIpAddress($ipAddress),
                 'occurred_at' => now(),
             ]);
+
+            $this->auditLogs->write(
+                actor: $actor,
+                event: match ($action) {
+                    'started' => 'revision.started',
+                    'resolved' => 'revision.resolved',
+                    'reopened' => 'revision.reopened',
+                    default => 'revision.transitioned',
+                },
+                description: 'A revision request changed workflow status.',
+                requestContext: new AuditRequestContext($this->safeIpAddress($ipAddress), null, null),
+                auditable: $lockedRevision,
+                subjectName: 'Revision request #'.$lockedRevision->getKey(),
+                oldValues: ['status' => $from->value],
+                newValues: ['status' => $to->value],
+                actorContext: $action === 'started' ? 'student-researcher' : 'thesis-adviser',
+            );
 
             // Legacy / Disabled: Direct notifications remain Phase 23
             // $this->notifyCounterparty($lockedRevision, $actor, $action);

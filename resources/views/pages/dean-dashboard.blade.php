@@ -386,16 +386,27 @@
                 </button>
 
                 <!-- Research Reports -->
+<<<<<<< HEAD
                 <button 
                    type="button" 
                    @click="activeTab = 'reports'"
                    :class="activeTab === 'reports' ? 'curved-nav-item active' : 'curved-nav-item'">
+=======
+                @can('reports.view')
+                <a href="{{ route('dean.reports.index') }}"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left text-white/90 hover:text-white hover:bg-white/5 font-semibold">
+>>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
                     <div class="flex items-center gap-3">
                         <i class="ph ph-file-text curved-nav-icon"></i>
                         <span>Research Reports</span>
                     </div>
+<<<<<<< HEAD
                     <span x-show="activeTab === 'reports'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
+=======
+                </a>
+                @endcan
+>>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
 
                 <!-- Research Repository -->
                 <button 

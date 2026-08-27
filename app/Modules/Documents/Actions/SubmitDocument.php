@@ -11,6 +11,8 @@ use App\Models\ResearchClassGroupMember;
 use App\Models\RevisionRequest;
 use App\Models\RevisionRequestEvent;
 use App\Models\User;
+use App\Modules\AuditLogs\Services\AuditLogWriter;
+use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Documents\Exceptions\DocumentUploadFailed;
 use App\Modules\Documents\Exceptions\DuplicateDocumentSubmission;
 use App\Modules\Documents\Support\DocumentFilenameSanitizer;
@@ -28,6 +30,11 @@ class SubmitDocument
     public function __construct(
         private readonly DocumentFilenameSanitizer $filenameSanitizer,
         private readonly RecordDocumentUploadAttempt $audit,
+<<<<<<< HEAD
+=======
+        private readonly WorkflowNotificationDispatcher $notifications,
+        private readonly AuditLogWriter $auditLogs,
+>>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
     ) {}
 
     public function handle(
@@ -274,6 +281,57 @@ class SubmitDocument
                     ]);
                 }
 
+<<<<<<< HEAD
+=======
+                $adviser = $lockedGroup->adviser_id !== null
+                    ? User::query()->find($lockedGroup->adviser_id)
+                    : null;
+
+                if ($adviser !== null && $documentStage !== DocumentStage::TitleProposal) {
+                    $isRevision = $lockedRevision !== null;
+                    $this->notifications->send(
+                        recipient: $adviser,
+                        eventKey: $isRevision ? 'revision.document.submitted' : 'document.submitted',
+                        title: $isRevision ? 'Revised document submitted' : 'Research document submitted',
+                        message: "{$lockedGroup->name} submitted {$document->original_filename} for your attention.",
+                        category: 'document',
+                        routeName: 'adviser.dashboard',
+                        routeParameters: ['tab' => $isRevision ? 'revisions' : 'docreview'],
+                        sourceType: $isRevision ? RevisionRequest::class : Document::class,
+                        sourceId: $isRevision ? $lockedRevision->getKey() : $document->getKey(),
+                        actor: $user,
+                        contextLabel: $lockedGroup->name,
+                        actingAs: 'Thesis Adviser',
+                        occurrence: (string) $document->version_number,
+                    );
+                }
+
+                $this->auditLogs->write(
+                    actor: $user,
+                    event: $lockedRevision === null ? 'document.submitted' : 'revision.submitted',
+                    description: $lockedRevision === null
+                        ? 'A research document version was submitted.'
+                        : 'A revised research document was submitted.',
+                    requestContext: new AuditRequestContext(
+                        filter_var($ipAddress, FILTER_VALIDATE_IP) !== false ? $ipAddress : null,
+                        null,
+                        null,
+                    ),
+                    auditable: $document,
+                    subjectName: $document->original_filename,
+                    newValues: [
+                        'document_id' => $document->getKey(),
+                        'research_class_group_id' => $lockedGroup->getKey(),
+                        'stage' => $documentStage->value,
+                        'version_number' => $document->version_number,
+                        'file_type' => $document->file_type,
+                        'file_size' => $document->file_size,
+                        'status' => $document->status->value,
+                    ],
+                    actorContext: 'student-researcher',
+                );
+
+>>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
                 return $document;
             }, 3);
         } catch (DuplicateDocumentSubmission $exception) {

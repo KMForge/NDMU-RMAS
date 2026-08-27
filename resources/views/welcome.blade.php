@@ -10,7 +10,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
     <style>
         body { font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }

@@ -9,6 +9,8 @@ use App\Models\ConsultationRecord;
 use App\Models\ConsultationRequest;
 use App\Models\ResearchClassGroupMember;
 use App\Models\User;
+use App\Modules\AuditLogs\Services\AuditLogWriter;
+use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Consultations\Exceptions\ConsultationException;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
@@ -16,6 +18,14 @@ use Illuminate\Support\Facades\DB;
 
 class RecordCompletedConsultation
 {
+<<<<<<< HEAD
+=======
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications,
+        private readonly AuditLogWriter $auditLogs,
+    ) {}
+
+>>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
     /**
      * @param  array{
      *     consulted_at?: ?CarbonImmutable,
@@ -107,6 +117,36 @@ class RecordCompletedConsultation
                     ],
                 ]);
 
+<<<<<<< HEAD
+=======
+                $this->notifications->sendToMany(
+                    recipients: User::query()->whereIn('id', $groupMemberUserIds)->get(),
+                    eventKey: 'consultation.completed',
+                    title: 'Consultation record completed',
+                    message: 'Your adviser recorded the completed consultation and its recommendations.',
+                    category: 'consultation',
+                    routeName: 'student.dashboard',
+                    routeParameters: ['tab' => 'consultation'],
+                    sourceType: ConsultationRecord::class,
+                    sourceId: $record->getKey(),
+                    actor: $adviser,
+                    contextLabel: $lockedRequest->researchClassGroup?->name,
+                    actingAs: 'Student Researcher',
+                );
+
+                $this->auditLogs->write(
+                    actor: $adviser,
+                    event: 'consultation.completed',
+                    description: 'An assigned adviser recorded a completed consultation.',
+                    requestContext: AuditRequestContext::fromRequest(request()),
+                    auditable: $record,
+                    subjectName: $lockedRequest->researchClassGroup?->name ?? 'Research group consultation',
+                    oldValues: ['request_status' => ConsultationStatus::Approved->value],
+                    newValues: ['request_status' => ConsultationStatus::Completed->value, 'record_id' => $record->getKey()],
+                    actorContext: 'thesis-adviser',
+                );
+
+>>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
                 return $record->fresh(['request', 'researchClassGroup', 'conductedBy', 'attendances.student']);
             }, 3);
         } catch (ConsultationException $exception) {

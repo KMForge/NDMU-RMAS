@@ -160,18 +160,30 @@
                     <span x-show="activeTab === 'forms'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
 
+<<<<<<< HEAD
                 <button 
                     type="button"
                     @click="activeTab = 'reports'"
                     :class="activeTab === 'reports' ? 'curved-nav-item active' : 'curved-nav-item'"
+=======
+                @can('reports.view')
+                <a href="{{ route('admin.reports.index') }}"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]"
+>>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
                 >
                     <div class="flex items-center gap-3">
                         <i class="ph ph-chart-line-up curved-nav-icon"></i>
                         <span>Reports & Analytics</span>
                     </div>
+<<<<<<< HEAD
                     <span x-show="activeTab === 'reports'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
+=======
+                </a>
+                @endcan
+>>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
 
+                @can('audit-logs.view')
                 <button 
                     type="button"
                     @click="activeTab = 'audit'"
@@ -183,6 +195,7 @@
                     </div>
                     <span x-show="activeTab === 'audit'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
                 </button>
+                @endcan
             </div>
         </div>
 
@@ -2436,9 +2449,11 @@
             </div>
 
             <!-- TAB 9: AUDIT LOGS VIEW -->
+            @can('audit-logs.view')
             <div x-show="activeTab === 'audit'" x-cloak class="space-y-8 animate-fade-in">
                 @include('admin.audit-logs')
             </div>
+            @endcan
 
             <div class="hidden" aria-hidden="true">
                 <!-- Header -->

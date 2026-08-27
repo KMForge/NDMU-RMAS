@@ -5,6 +5,8 @@ namespace App\Modules\Classes\Actions;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\User;
+use App\Modules\AuditLogs\Services\AuditLogWriter;
+use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
 use Illuminate\Database\QueryException;
@@ -12,6 +14,14 @@ use Illuminate\Support\Facades\DB;
 
 class ReviewResearchClassJoinRequest
 {
+<<<<<<< HEAD
+=======
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications,
+        private readonly AuditLogWriter $auditLogs,
+    ) {}
+
+>>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
     public function approve(
         User $facilitator,
         ResearchClass $researchClass,
@@ -96,6 +106,43 @@ class ReviewResearchClassJoinRequest
                     'reviewed_at' => now(),
                 ]);
 
+<<<<<<< HEAD
+=======
+                $student = User::query()->find($lockedRequest->student_id);
+
+                if ($student !== null) {
+                    $decisionLabel = $decision === 'active' ? 'approved' : 'rejected';
+                    $this->notifications->send(
+                        recipient: $student,
+                        eventKey: "class.join-request.{$decisionLabel}",
+                        title: "Class join request {$decisionLabel}",
+                        message: "Your request to join {$lockedClass->name} was {$decisionLabel}.",
+                        category: 'class',
+                        routeName: 'student.dashboard',
+                        routeParameters: ['tab' => 'classes'],
+                        sourceType: ResearchClassEnrollment::class,
+                        sourceId: $lockedRequest->getKey(),
+                        actor: $facilitator,
+                        contextLabel: $lockedClass->name,
+                        actingAs: 'Student Researcher',
+                        occurrence: $decision,
+                    );
+                }
+
+                $this->auditLogs->write(
+                    actor: $facilitator,
+                    event: $decision === 'active' ? 'class.join-request.approved' : 'class.join-request.rejected',
+                    description: 'A research class join request was reviewed.',
+                    requestContext: AuditRequestContext::fromRequest(request()),
+                    auditable: $lockedRequest,
+                    subjectName: $student?->name ?? 'Student join request',
+                    subjectEmail: $student?->email,
+                    oldValues: ['status' => 'pending', 'research_class_id' => $lockedClass->getKey()],
+                    newValues: ['status' => $decision, 'research_class_id' => $lockedClass->getKey()],
+                    actorContext: 'research-facilitator',
+                );
+
+>>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
                 return $lockedRequest->refresh();
             }, 3);
         } catch (QueryException $exception) {

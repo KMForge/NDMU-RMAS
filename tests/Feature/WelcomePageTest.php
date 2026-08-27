@@ -15,7 +15,7 @@ class WelcomePageTest extends TestCase
             ->assertSee('Manage research from', false)
             ->assertSee('How research moves')
             ->assertSee('Everything your research needs')
-            ->assertSee('Ready to manage your research?');
+            ->assertSee('Log in to Continue');
 
         foreach (['home', 'about', 'achievements', 'process', 'events', 'contact'] as $section) {
             $response->assertDontSee("data-section-link=\"{$section}\"", false);

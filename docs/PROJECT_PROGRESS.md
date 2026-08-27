@@ -15,12 +15,21 @@ This tracker records the backend rebuild progress after the baseline reset. GitH
 | Phase 14 foundation commit | `a8320f9 feat: implement document group access and update policies for research class group ownership` |
 | Phase 14 implementation commit | `173e8f2 feat: Implement Phase 14 Research Repository` |
 | Phase 15 implementation commit | `5aa438f feat: Implement adviser document review workflow with correction capabilities` |
+<<<<<<< HEAD
 | Latest completed feature phase | `Phase 22 — Evaluation Records` |
 | Current active feature phase | `Phase 23 — Notifications` |
 | Backend strategy | Rebuild feature modules one at a time |
 | UI strategy | Keep existing UI while reconnecting verified backend modules |
 
 > **Baseline note:** Commit `f701324` remains the functional rebuild baseline. Phases 10 through 22 are complete. Strict roadmap progress: 22 / 27 phases completed (~81.5%). Phase 22 added defense evaluation records, panelist scoring (RES-036), server-side calculations, grade summary generation (RES-037), Phase 20 digital signature finalization, facilitator results release, defense completion, strict student privacy, and cross-module scheduling guard rails.
+=======
+| Latest completed feature phase | `Phase 25 — Reports and Analytics` |
+| Current active feature phase | `Phase 26 — Security Review and Hardening` |
+| Backend strategy | Rebuild feature modules one at a time |
+| UI strategy | Keep existing UI while reconnecting verified backend modules |
+
+> **Baseline note:** Commit `f701324` remains the functional rebuild baseline. Phases 1 through 22 and Phase 24 are complete under their recorded classifications. Phase 23 implementation and repository verification pass, but its required Google Drive synchronization was rejected by the connected Drive tool. Strict official roadmap progress is therefore 23 / 27 phases completed (~85.2%); it must not be reported as 24 / 27 until the Phase 23 documentation gate succeeds.
+>>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
 
 ## Phase Tracker
 
@@ -48,9 +57,15 @@ This tracker records the backend rebuild progress after the baseline reset. GitH
 | Phase 20 | Digital Signature Verification | Completed | Secure Student/Faculty signature enrollment, normalized private PNG specimens, immutable version-bound applied signatures, server-derived academic actor identity, deterministic SHA-256/HMAC attestation, QR-backed public verification, historical signature preservation, RES-049 researcher authorship attestation, print integration, concurrency/IDOR hardening, and verified regression coverage (338 tests, 314 passed, 24 skipped, 0 failures, 1465 assertions). See `PHASE_20_DIGITAL_SIGNATURE_VERIFICATION.md`. |
 | Phase 21 | Defense Scheduling | Completed with External Dependencies | Rebuilt defense scheduling (proposal/final), room catalog management with uppercase code normalization, panelist assignments with faculty account eligibility checks, multi-criteria calendar querying, fail-closed concurrency locking, PostgreSQL RLS, RES-036 authoritative defense schedule source binding, strict Phase 21/22 evaluation boundary enforcement, live dashboard schedule integration (Student, Adviser, Facilitator, Panelist). Reopened corrections verified: cancellation ends active panel assignments, cancelled Defense rejects panel mutation, transactional re-authorization on all mutation actions, Student group-membership schedule scoping, Student/Adviser/Facilitator dashboard database-backed integration. Strict roadmap progress: 21 / 27 phases completed (~77.8%). See `PHASE_21_DEFENSE_SCHEDULING.md`. |
 | Phase 22 | Evaluation Records | Completed with External Dependencies | Rebuilt panelist evaluation scoring (RES-036), weighted server-derived totals, authoritative grade summaries (RES-037), EvaluationAuthorization service, pre-freeze panelist candidate eligibility validation, summary signer candidate capability checks, fail-closed student IDOR protections, overposting guards, Phase 20 digital signature finalization, facilitator results release, facilitator defense completion, strict student privacy, and cross-module defense scheduling guard rails. Strict roadmap progress: 22 / 27 phases completed (~81.5%). See `PHASE_22_EVALUATION_RECORDS.md`. |
+<<<<<<< HEAD
 | Phase 23 | Notifications | Ready | Rebuild system notifications for requests, reviews, revisions, consultations, and approvals. Sidebar presence does not mean the notification backend is complete. |
 | Phase 24 | Audit Logs | Planned | Rebuild feature-level audit logs beyond the admin/auth and feature-specific audit foundations already present. |
 | Phase 25 | Reports and Analytics | Planned | Rebuild dashboard metrics, exports, and reporting queries. |
+=======
+| Phase 23 | Notifications | Implemented; Documentation Sync Pending | Persistent database notifications, exact contextual recipients, multi-role Faculty context, unread counts, mark-one/read-all lifecycle, safe allowlisted navigation, after-commit and duplicate protection, shared notification UI, and core workflow integrations are implemented. Verified by 8 focused tests (32 assertions) and the full suite (428 tests, 404 passed, 24 skipped, 1,780 assertions, 0 failures); Pint, Vite build, Blade cache, migration, Composer, route, and diff checks passed. The required Google Drive detailed-documentation write was rejected, so the phase is not yet marked Completed. See `PHASE_23_NOTIFICATIONS.md`. |
+| Phase 24 | Audit Logs | Completed | Implemented a centralized append-only accountability trail with a stable event catalog, server-derived actor/context/outcome, durable actor/subject snapshots, recursive sensitive-data redaction and size bounds, transactionally consistent representative workflow integrations, strict `audit-logs.view` enforcement, permission-safe dashboard caching, fail-closed filters, and PostgreSQL database-level UPDATE/DELETE protection. Specialized academic evidence tables remain authoritative. Verified by 11 focused audit tests plus the full suite (440 tests, 416 passed, 24 skipped, 1,814 assertions, 0 failures); Pint, Vite build, Blade cache, migration apply/rollback/re-apply, PostgreSQL mutation probes, Composer validation, route inspection, and diff checks passed. See `PHASE_24_AUDIT_LOGS.md`. Strict roadmap progress: 23 / 27 (~85.2%) because Phase 23 Drive synchronization remains pending. |
+| Phase 25 | Reports and Analytics | Completed | Re-architected aggregate and detail data retrieval, DB-level pagination for detail reports, bounded streaming CSV exports with export row limit enforcement (422), formula injection protection, strict report-specific filter validation, optimized filter dropdown queries, honest delayed status handling, audit event logging, and full test suite passing (10 tests, 90 assertions in Phase 25 suite; Pint and Vite production build passed). See `PHASE_25_REPORTS_AND_ANALYTICS.md`. |
+>>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
 | Phase 26 | Security Review and Hardening | Planned | Validate authorization, rate limits, file handling, SQL injection protection, XSS handling, error safety, and cross-feature security. |
 | Phase 27 | Testing and Final Documentation | Planned | Complete integration/system tests, user guide, technical documentation, and final capstone evidence. |
 

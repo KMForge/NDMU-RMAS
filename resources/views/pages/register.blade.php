@@ -118,6 +118,7 @@
 
     <!-- Right Side: Strictly NON-SCROLLABLE (overflow-hidden) with Floating Card -->
     <div class="w-full md:w-[50%] lg:w-[52%] flex items-center justify-center p-4 sm:p-6 lg:p-8 relative h-full overflow-hidden bg-[#F7FAF8]">
+<<<<<<< HEAD
         <!-- Abstract Topographic Contour Lines — white right panel ONLY, matching reference image -->
         <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 750 900" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
             <g stroke="#222" stroke-linecap="round" stroke-linejoin="round" fill="none">
@@ -168,6 +169,18 @@
                       stroke-width="1.3" opacity="0.27"/>
 
             </g>
+=======
+        <!-- Subtle background graphics -->
+        <svg class="absolute inset-0 w-full h-full opacity-30 pointer-events-none" viewBox="0 0 600 800" aria-hidden="true">
+            <defs>
+                <pattern id="dots-auth-clean-reg-str" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
+                    <circle cx="1.5" cy="1.5" r="0.8" fill="#087443" opacity="0.1" />
+                </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#dots-auth-clean-reg-str)" />
+            <circle cx="500" cy="100" r="220" fill="#087443" opacity="0.03" />
+            <circle cx="100" cy="600" r="180" fill="#087443" opacity="0.04" />
+>>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
         </svg>
 
         <!-- High-Impact Close Button (Top Right) -->

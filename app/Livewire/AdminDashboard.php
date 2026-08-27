@@ -10,6 +10,7 @@ use App\Models\AuditLog;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Modules\Administration\Actions\UpdateSystemSettings;
+use App\Modules\AuditLogs\Queries\GetAuditLogsForAdmin;
 use App\Modules\Dashboard\Queries\GetAdminDashboardData;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\UserManagement\Actions\ManageRoleAccess;
@@ -36,6 +37,10 @@ class AdminDashboard extends Component
     public string $auditSearch = '';
 
     public string $auditEvent = '';
+
+    public string $auditContext = '';
+
+    public string $auditOutcome = '';
 
     public string $auditDateFrom = '';
 
@@ -93,6 +98,8 @@ class AdminDashboard extends Component
         'selectedRole' => ['except' => ''],
         'auditSearch' => ['except' => ''],
         'auditEvent' => ['except' => ''],
+        'auditContext' => ['except' => ''],
+        'auditOutcome' => ['except' => ''],
         'auditDateFrom' => ['except' => ''],
         'auditDateTo' => ['except' => ''],
     ];
@@ -100,6 +107,9 @@ class AdminDashboard extends Component
     public function mount(): void
     {
         Gate::authorize('viewAny', User::class);
+        if ($this->tab === 'audit') {
+            Gate::authorize('audit-logs.view');
+        }
         $this->department = (string) config('academic.college.name');
         $this->loadSystemSettings();
     }
@@ -131,6 +141,25 @@ class AdminDashboard extends Component
         $this->resetPage('auditPage');
     }
 
+    public function updatedAuditContext(string $value): void
+    {
+        $this->auditContext = mb_substr(strip_tags($value), 0, 64);
+        $this->resetPage('auditPage');
+    }
+
+    public function updatedAuditOutcome(string $value): void
+    {
+        $this->auditOutcome = in_array($value, ['succeeded', 'denied', 'failed'], true) ? $value : '';
+        $this->resetPage('auditPage');
+    }
+
+    public function updatedTab(string $value): void
+    {
+        if ($value === 'audit') {
+            Gate::authorize('audit-logs.view');
+        }
+    }
+
     public function updatedAuditDateFrom(): void
     {
         $this->resetPage('auditPage');
@@ -143,7 +172,8 @@ class AdminDashboard extends Component
 
     public function clearAuditFilters(): void
     {
-        $this->reset(['auditSearch', 'auditEvent', 'auditDateFrom', 'auditDateTo']);
+        Gate::authorize('audit-logs.view');
+        $this->reset(['auditSearch', 'auditEvent', 'auditContext', 'auditOutcome', 'auditDateFrom', 'auditDateTo']);
         $this->resetPage('auditPage');
     }
 
@@ -439,7 +469,107 @@ class AdminDashboard extends Component
         $this->resetValidation();
     }
 
+<<<<<<< HEAD
     public function render(GetAdminDashboardData $getAdminDashboardData, GetDocumentRepositoryData $repositoryData)
+=======
+    public function seedAcademicCycle(): void
+    {
+        abort_unless($this->administrator()->can('settings.manage'), 403);
+
+        $ay2025 = AcademicYear::query()->firstOrCreate(
+            ['name' => '2025–2026'],
+            ['starts_at' => '2025-08-01', 'ends_at' => '2026-05-31', 'is_current' => false]
+        );
+
+        AcademicTerm::query()->firstOrCreate(
+            ['academic_year_id' => $ay2025->id, 'name' => 'First Semester'],
+            ['starts_at' => '2025-08-01', 'ends_at' => '2025-12-20', 'is_current' => false]
+        );
+        AcademicTerm::query()->firstOrCreate(
+            ['academic_year_id' => $ay2025->id, 'name' => 'Second Semester'],
+            ['starts_at' => '2026-01-12', 'ends_at' => '2026-05-31', 'is_current' => false]
+        );
+
+        $ay2026 = AcademicYear::query()->firstOrCreate(
+            ['name' => '2026–2027'],
+            ['starts_at' => '2026-08-01', 'ends_at' => '2027-05-31', 'is_current' => true]
+        );
+
+        $term1 = AcademicTerm::query()->firstOrCreate(
+            ['academic_year_id' => $ay2026->id, 'name' => 'First Semester'],
+            ['starts_at' => '2026-08-01', 'ends_at' => '2026-12-20', 'is_current' => true]
+        );
+        AcademicTerm::query()->firstOrCreate(
+            ['academic_year_id' => $ay2026->id, 'name' => 'Second Semester'],
+            ['starts_at' => '2027-01-11', 'ends_at' => '2027-05-31', 'is_current' => false]
+        );
+        AcademicTerm::query()->firstOrCreate(
+            ['academic_year_id' => $ay2026->id, 'name' => 'Summer Term'],
+            ['starts_at' => '2027-06-07', 'ends_at' => '2027-07-16', 'is_current' => false]
+        );
+
+        $this->settingsAcademicYearId = $ay2026->id;
+        $this->settingsAcademicTermId = $term1->id;
+        $this->successMessage = 'Academic cycle seeded successfully.';
+        $this->resetValidation();
+    }
+
+    public function openAcademicYearModal(): void
+    {
+        abort_unless($this->administrator()->can('settings.manage'), 403);
+        $this->reset(['newAcademicYearName', 'newAcademicYearStartDate', 'newAcademicYearEndDate']);
+        $this->showAcademicYearModal = true;
+        $this->resetValidation();
+    }
+
+    public function closeAcademicYearModal(): void
+    {
+        $this->reset(['newAcademicYearName', 'newAcademicYearStartDate', 'newAcademicYearEndDate']);
+        $this->showAcademicYearModal = false;
+        $this->resetValidation();
+    }
+
+    public function createAcademicYear(): void
+    {
+        abort_unless($this->administrator()->can('settings.manage'), 403);
+
+        $this->newAcademicYearName = trim(strip_tags($this->newAcademicYearName));
+        $this->validate([
+            'newAcademicYearName' => ['required', 'string', 'max:50', 'unique:academic_years,name'],
+            'newAcademicYearStartDate' => ['required', 'date'],
+            'newAcademicYearEndDate' => ['required', 'date', 'after:newAcademicYearStartDate'],
+        ]);
+
+        $ay = AcademicYear::query()->create([
+            'name' => $this->newAcademicYearName,
+            'starts_at' => $this->newAcademicYearStartDate,
+            'ends_at' => $this->newAcademicYearEndDate,
+            'is_current' => false,
+        ]);
+
+        $term1 = AcademicTerm::query()->create([
+            'academic_year_id' => $ay->id,
+            'name' => 'First Semester',
+            'starts_at' => $ay->starts_at,
+            'ends_at' => Carbon::parse($ay->starts_at)->addMonths(4)->endOfMonth(),
+            'is_current' => false,
+        ]);
+        AcademicTerm::query()->create([
+            'academic_year_id' => $ay->id,
+            'name' => 'Second Semester',
+            'starts_at' => Carbon::parse($ay->starts_at)->addMonths(5)->startOfMonth(),
+            'ends_at' => $ay->ends_at,
+            'is_current' => false,
+        ]);
+
+        $this->settingsAcademicYearId = $ay->id;
+        $this->settingsAcademicTermId = $term1->id;
+        $this->successMessage = "Academic Year {$ay->name} created successfully.";
+        $this->closeAcademicYearModal();
+    }
+
+    public function render(GetAdminDashboardData $getAdminDashboardData, GetDocumentRepositoryData $repositoryData, GetAuditLogsForAdmin $auditLogs)
+>>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
     {
         $data = [
             'totalUsersCount' => 0,
@@ -461,7 +591,7 @@ class AdminDashboard extends Component
             $this->userManagementData(),
             $getAdminDashboardData->get(),
             $this->roleManagementData(),
-            $this->auditLogData(),
+            $this->auditLogData($auditLogs),
             $this->systemSettingsData(),
             $repositoryData->for($this->administrator(), request()->query()),
         );
@@ -475,7 +605,7 @@ class AdminDashboard extends Component
     private function dashboardData(): array
     {
         return Cache::remember(
-            'admin-dashboard.overview',
+            'admin-dashboard.overview.'.($this->administrator()->can('audit-logs.view') ? 'with-audit' : 'without-audit'),
             now()->addSeconds(30),
             fn (): array => $this->freshDashboardData(),
         );
@@ -499,10 +629,9 @@ class AdminDashboard extends Component
 
         $recentActivities = [];
 
-        $auditLogs = AuditLog::query()
-            ->latest('created_at')
-            ->limit(5)
-            ->get();
+        $auditLogs = $this->administrator()->can('audit-logs.view')
+            ? AuditLog::query()->latest('created_at')->latest('id')->limit(5)->get()
+            : collect();
 
         if ($auditLogs->isNotEmpty()) {
             foreach ($auditLogs as $log) {
@@ -648,44 +777,21 @@ class AdminDashboard extends Component
     }
 
     /** @return array<string, mixed> */
-    private function auditLogData(): array
+    private function auditLogData(GetAuditLogsForAdmin $query): array
     {
-        $search = trim(mb_substr(strip_tags($this->auditSearch), 0, 100));
-        $event = trim(mb_substr(strip_tags($this->auditEvent), 0, 120));
-        $dateFrom = preg_match('/^\d{4}-\d{2}-\d{2}$/', $this->auditDateFrom) === 1 ? $this->auditDateFrom : null;
-        $dateTo = preg_match('/^\d{4}-\d{2}-\d{2}$/', $this->auditDateTo) === 1 ? $this->auditDateTo : null;
+        if (! $this->administrator()->can('audit-logs.view')) {
+            return [];
+        }
 
-        $auditLogs = AuditLog::query()
-            ->with(['actor:id,name,email', 'auditable'])
-            ->when($search !== '', function ($query) use ($search): void {
-                $query->where(function ($query) use ($search): void {
-                    $query->where('actor_name', 'like', '%'.$search.'%')
-                        ->orWhere('actor_email', 'like', '%'.$search.'%')
-                        ->orWhere('subject_name', 'like', '%'.$search.'%')
-                        ->orWhere('subject_email', 'like', '%'.$search.'%')
-                        ->orWhere('event', 'like', '%'.$search.'%')
-                        ->orWhere('description', 'like', '%'.$search.'%')
-                        ->orWhere('ip_address', 'like', '%'.$search.'%');
-                });
-            })
-            ->when($event !== '', fn ($query) => $query->where('event', $event))
-            ->when($dateFrom !== null, fn ($query) => $query->whereDate('created_at', '>=', $dateFrom))
-            ->when($dateTo !== null, fn ($query) => $query->whereDate('created_at', '<=', $dateTo))
-            ->latest('created_at')
-            ->paginate(20, ['*'], 'auditPage');
-
-        return [
-            'auditLogs' => $auditLogs,
-            'auditLogEvents' => AuditLog::query()
-                ->distinct()
-                ->orderBy('event')
-                ->pluck('event'),
-            'auditLogStats' => [
-                'today' => AuditLog::query()->where('created_at', '>=', now()->startOfDay())->count(),
-                'workspace_switches' => AuditLog::query()->where('event', 'workspace.switched')->count(),
-                'access_changes' => AuditLog::query()->whereIn('event', ['user.access-updated', 'role.created', 'role.updated', 'role.deleted'])->count(),
-            ],
-        ];
+        return $query->get(
+            $this->administrator(),
+            $this->auditSearch,
+            $this->auditEvent,
+            $this->auditContext,
+            $this->auditOutcome,
+            $this->auditDateFrom,
+            $this->auditDateTo,
+        );
     }
 
     private function authorizeRoleManagement(): void

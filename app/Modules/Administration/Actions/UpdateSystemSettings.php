@@ -6,12 +6,15 @@ use App\Models\AcademicTerm;
 use App\Models\AcademicYear;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Modules\AuditLogs\Services\AuditLogWriter;
+use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class UpdateSystemSettings
 {
+    public function __construct(private readonly AuditLogWriter $auditLogs) {}
+
     /**
      * @param  array{system_name: string, support_email: string, student_registration_enabled: bool, email_notifications_enabled: bool, maintenance_notice: string|null, academic_year_id: int|null, academic_term_id: int|null}  $values
      */
@@ -55,25 +58,16 @@ class UpdateSystemSettings
     /** @param array<string, mixed> $oldValues @param array<string, mixed> $newValues */
     private function audit(User $actor, SystemSetting $settings, array $oldValues, array $newValues): void
     {
-        if (! Schema::hasTable('audit_logs')) {
-            return;
-        }
-
-        DB::table('audit_logs')->insert([
-            'user_id' => $actor->getKey(),
-            'actor_name' => $actor->name,
-            'actor_email' => $actor->email,
-            'subject_name' => 'System Settings',
-            'subject_email' => null,
-            'event' => 'system-settings.updated',
-            'auditable_type' => SystemSetting::class,
-            'auditable_id' => $settings->getKey(),
-            'description' => 'Protected system configuration was updated.',
-            'old_values' => json_encode($oldValues, JSON_THROW_ON_ERROR),
-            'new_values' => json_encode($newValues, JSON_THROW_ON_ERROR),
-            'ip_address' => request()->ip(),
-            'user_agent' => mb_substr((string) request()->userAgent(), 0, 1000),
-            'created_at' => now(),
-        ]);
+        $this->auditLogs->write(
+            actor: $actor,
+            event: 'system-settings.updated',
+            description: 'Protected system configuration was updated.',
+            requestContext: AuditRequestContext::fromRequest(request()),
+            auditable: $settings,
+            subjectName: 'System Settings',
+            oldValues: $oldValues,
+            newValues: $newValues,
+            actorContext: 'administrator',
+        );
     }
 }

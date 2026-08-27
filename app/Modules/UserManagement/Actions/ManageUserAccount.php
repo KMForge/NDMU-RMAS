@@ -5,12 +5,15 @@ namespace App\Modules\UserManagement\Actions;
 use App\Enums\AccountStatus;
 use App\Enums\UserType;
 use App\Models\User;
+use App\Modules\AuditLogs\Services\AuditLogWriter;
+use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class ManageUserAccount
 {
+    public function __construct(private readonly AuditLogWriter $auditLogs) {}
+
     public function approveStudent(User $student, User $actor): User
     {
         if ($student->user_type !== UserType::Student && ! $student->hasRole('student-researcher')) {
@@ -117,25 +120,17 @@ class ManageUserAccount
      */
     private function audit(User $actor, User $subject, string $event, ?array $oldValues, array $newValues): void
     {
-        if (! Schema::hasTable('audit_logs')) {
-            return;
-        }
-
-        DB::table('audit_logs')->insert([
-            'user_id' => $actor->getKey(),
-            'actor_name' => $actor->name,
-            'actor_email' => $actor->email,
-            'subject_name' => $subject->name,
-            'subject_email' => $subject->email,
-            'event' => $event,
-            'auditable_type' => User::class,
-            'auditable_id' => $subject->getKey(),
-            'description' => "User account action performed for {$subject->email}.",
-            'old_values' => $oldValues === null ? null : json_encode($oldValues, JSON_THROW_ON_ERROR),
-            'new_values' => json_encode($newValues, JSON_THROW_ON_ERROR),
-            'ip_address' => request()->ip(),
-            'user_agent' => mb_substr((string) request()->userAgent(), 0, 1000),
-            'created_at' => now(),
-        ]);
+        $this->auditLogs->write(
+            actor: $actor,
+            event: $event,
+            description: 'User account administration action completed.',
+            requestContext: AuditRequestContext::fromRequest(request()),
+            auditable: $subject,
+            subjectName: $subject->name,
+            subjectEmail: $subject->email,
+            oldValues: $oldValues,
+            newValues: $newValues,
+            actorContext: 'administrator',
+        );
     }
 }

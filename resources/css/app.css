@@ -87,6 +87,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 .animate-pulse-subtle {
     animation: pulse-subtle 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+<<<<<<< HEAD
 
 /* ==========================================================================
    Curved Outside Active Tab Sidebar Menu (Concave Cutout Design)
@@ -172,3 +173,5 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 }
 
 
+=======
+>>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03

@@ -4,14 +4,17 @@ namespace App\Modules\UserManagement\Actions;
 
 use App\Enums\UserType;
 use App\Models\User;
+use App\Modules\AuditLogs\Services\AuditLogWriter;
+use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class ManageRoleAccess
 {
+    public function __construct(private readonly AuditLogWriter $auditLogs) {}
+
     /**
      * @param  list<string>  $permissions
      */
@@ -82,10 +85,9 @@ class ManageRoleAccess
                 'name' => $role->name,
                 'permissions' => $role->permissions()->pluck('name')->sort()->values()->all(),
             ];
-            $roleId = (int) $role->getKey();
+            $this->audit($actor, $role, 'role.deleted', $oldValues, null);
             $role->delete();
             app(PermissionRegistrar::class)->forgetCachedPermissions();
-            $this->audit($actor, $roleId, 'role.deleted', $oldValues, null);
         });
     }
 
@@ -212,35 +214,25 @@ class ManageRoleAccess
      * @param  array<string, mixed>|null  $oldValues
      * @param  array<string, mixed>|null  $newValues
      */
-    private function audit(User $actor, Role|User|int $subject, string $event, ?array $oldValues, ?array $newValues): void
+    private function audit(User $actor, Role|User $subject, string $event, ?array $oldValues, ?array $newValues): void
     {
-        if (! Schema::hasTable('audit_logs')) {
-            return;
-        }
-
         $isUser = $subject instanceof User;
-        $id = is_int($subject) ? $subject : (int) $subject->getKey();
         $subjectName = match (true) {
             $subject instanceof User => $subject->name,
             $subject instanceof Role => $subject->display_name ?: str($subject->name)->headline()->toString(),
-            default => (string) data_get($oldValues, 'name', 'Deleted role'),
         };
 
-        DB::table('audit_logs')->insert([
-            'user_id' => $actor->getKey(),
-            'actor_name' => $actor->name,
-            'actor_email' => $actor->email,
-            'subject_name' => $subjectName,
-            'subject_email' => $isUser ? $subject->email : null,
-            'event' => $event,
-            'auditable_type' => $isUser ? User::class : Role::class,
-            'auditable_id' => $id,
-            'description' => $isUser ? 'User role assignments were updated.' : 'Role access configuration was updated.',
-            'old_values' => $oldValues === null ? null : json_encode($oldValues, JSON_THROW_ON_ERROR),
-            'new_values' => $newValues === null ? null : json_encode($newValues, JSON_THROW_ON_ERROR),
-            'ip_address' => request()->ip(),
-            'user_agent' => mb_substr((string) request()->userAgent(), 0, 1000),
-            'created_at' => now(),
-        ]);
+        $this->auditLogs->write(
+            actor: $actor,
+            event: $event,
+            description: $isUser ? 'User role assignments were updated.' : 'Role access configuration was updated.',
+            requestContext: AuditRequestContext::fromRequest(request()),
+            auditable: $subject,
+            subjectName: $subjectName,
+            subjectEmail: $isUser ? $subject->email : null,
+            oldValues: $oldValues,
+            newValues: $newValues,
+            actorContext: 'administrator',
+        );
     }
 }

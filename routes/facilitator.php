@@ -9,6 +9,12 @@ use App\Http\Controllers\Facilitator\ResearchClassController;
 use App\Http\Controllers\Facilitator\ResearchClassFormActorController;
 use App\Http\Controllers\Facilitator\ResearchClassGroupController;
 use App\Http\Controllers\Facilitator\ResearchProgressController;
+<<<<<<< HEAD
+=======
+use App\Http\Controllers\Facilitator\TitlePresentationController;
+use App\Http\Controllers\Facilitator\TitleProposalScreeningController;
+use App\Http\Controllers\ReportController;
+>>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('facilitator')->name('facilitator.')->middleware([
@@ -16,6 +22,28 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
 ])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
+<<<<<<< HEAD
+=======
+    Route::prefix('/reports')->middleware(['permission:reports.view', 'throttle:reports'])->group(function (): void {
+        Route::get('/', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/{report}', [ReportController::class, 'show'])->name('reports.show');
+        Route::get('/{report}/csv', [ReportController::class, 'csv'])->middleware(['permission:reports.export', 'throttle:report-exports'])->name('reports.csv');
+        Route::get('/{report}/pdf', [ReportController::class, 'pdf'])->middleware(['permission:reports.export', 'throttle:report-exports'])->name('reports.pdf');
+    });
+
+    Route::post('/title-proposals/{document}/screen', TitleProposalScreeningController::class)
+        ->middleware(['permission:documents.review', 'throttle:defense-actions'])
+        ->whereNumber('document')
+        ->name('title-proposals.screen');
+
+    Route::prefix('/title-presentations')->middleware(['permission:defenses.manage', 'throttle:defense-actions'])->group(function (): void {
+        Route::post('/forms/{instance}', [TitlePresentationController::class, 'store'])->whereNumber('instance')->name('title-presentations.store');
+        Route::put('/{presentation}/panel', [TitlePresentationController::class, 'assignPanel'])->whereNumber('presentation')->name('title-presentations.panel');
+        Route::patch('/{presentation}/complete', [TitlePresentationController::class, 'complete'])->whereNumber('presentation')->name('title-presentations.complete');
+        Route::patch('/{presentation}/result', [TitlePresentationController::class, 'recordResult'])->whereNumber('presentation')->name('title-presentations.result');
+    });
+
+>>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
     Route::prefix('/defense-rooms')
         ->middleware(['permission:defenses.manage', 'throttle:30,1'])
         ->group(function (): void {

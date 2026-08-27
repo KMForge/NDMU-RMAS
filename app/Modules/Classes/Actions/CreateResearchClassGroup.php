@@ -5,6 +5,8 @@ namespace App\Modules\Classes\Actions;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
+use App\Modules\AuditLogs\Services\AuditLogWriter;
+use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
 use App\Modules\ResearchProgress\Actions\InitializeGroupMilestones;
@@ -15,7 +17,10 @@ use Illuminate\Support\Facades\DB;
 
 class CreateResearchClassGroup
 {
-    public function __construct(private readonly InitializeGroupMilestones $initializeMilestones) {}
+    public function __construct(
+        private readonly InitializeGroupMilestones $initializeMilestones,
+        private readonly AuditLogWriter $auditLogs,
+    ) {}
 
     public function handle(
         User $facilitator,
@@ -61,6 +66,17 @@ class CreateResearchClassGroup
                 ]);
 
                 $this->initializeMilestones->execute($group);
+
+                $this->auditLogs->write(
+                    actor: $facilitator,
+                    event: 'research-group.created',
+                    description: 'A research class group was created.',
+                    requestContext: AuditRequestContext::fromRequest(request()),
+                    auditable: $group,
+                    subjectName: $group->name,
+                    newValues: ['research_class_id' => $lockedClass->getKey(), 'status' => 'active'],
+                    actorContext: 'research-facilitator',
+                );
 
                 return $group;
             }, 3);
