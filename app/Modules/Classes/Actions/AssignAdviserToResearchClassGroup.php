@@ -8,19 +8,17 @@ use App\Models\User;
 use App\Modules\AuditLogs\Services\AuditLogWriter;
 use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Classes\Exceptions\ClassOperationException;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 class AssignAdviserToResearchClassGroup
 {
-<<<<<<< HEAD
-=======
     public function __construct(
         private readonly WorkflowNotificationDispatcher $notifications,
         private readonly AuditLogWriter $auditLogs,
     ) {}
 
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
     public function handle(
         User $facilitator,
         ResearchClass $researchClass,
@@ -52,8 +50,6 @@ class AssignAdviserToResearchClassGroup
                 $previousAdviserId = $lockedGroup->adviser_id;
                 $lockedGroup->update(['adviser_id' => $adviser->getKey()]);
 
-<<<<<<< HEAD
-=======
                 $this->notifications->send(
                     recipient: $adviser,
                     eventKey: 'adviser.assignment.created',
@@ -82,7 +78,6 @@ class AssignAdviserToResearchClassGroup
                     actorContext: 'research-facilitator',
                 );
 
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
                 return $lockedGroup->refresh();
             }, 3);
         } catch (QueryException $exception) {

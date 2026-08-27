@@ -16,6 +16,7 @@ use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Documents\Exceptions\DocumentUploadFailed;
 use App\Modules\Documents\Exceptions\DuplicateDocumentSubmission;
 use App\Modules\Documents\Support\DocumentFilenameSanitizer;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use App\Modules\Revisions\Exceptions\RevisionWorkflowException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
@@ -30,11 +31,8 @@ class SubmitDocument
     public function __construct(
         private readonly DocumentFilenameSanitizer $filenameSanitizer,
         private readonly RecordDocumentUploadAttempt $audit,
-<<<<<<< HEAD
-=======
         private readonly WorkflowNotificationDispatcher $notifications,
         private readonly AuditLogWriter $auditLogs,
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
     ) {}
 
     public function handle(
@@ -219,7 +217,6 @@ class SubmitDocument
                 $latestVersion = (int) Document::query()
                     ->where('research_class_group_id', $lockedGroup->getKey())
                     ->where('document_stage', $documentStage->value)
-                    ->lockForUpdate()
                     ->max('version_number');
                 $nextVersion = max(1, $latestVersion + 1);
 
@@ -248,7 +245,9 @@ class SubmitDocument
                     'storage_path' => $storedPath,
                     'content_sha256' => $hash,
                     'submitted_at' => now(),
-                    'status' => DocumentStatus::Pending,
+                    'status' => $documentStage === DocumentStage::TitleProposal
+                        ? DocumentStatus::Draft
+                        : DocumentStatus::Pending,
                 ]);
 
                 $this->audit->success($document, $user, $file, $ipAddress, $lockedGroup);
@@ -281,8 +280,6 @@ class SubmitDocument
                     ]);
                 }
 
-<<<<<<< HEAD
-=======
                 $adviser = $lockedGroup->adviser_id !== null
                     ? User::query()->find($lockedGroup->adviser_id)
                     : null;
@@ -331,7 +328,6 @@ class SubmitDocument
                     actorContext: 'student-researcher',
                 );
 
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
                 return $document;
             }, 3);
         } catch (DuplicateDocumentSubmission $exception) {

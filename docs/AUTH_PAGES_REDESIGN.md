@@ -1,12 +1,7 @@
 # NDMU Research Management System - Authentication Pages Redesign
 
-<<<<<<< HEAD
-**Date:** 2026  
-**Status:** ✅ Implementation Complete  
-=======
 **Date:** 2026
 **Status:** ✅ Implementation Complete
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
 **Files Modified:** 3 (login.blade.php, register.blade.php, app.css)
 
 ---

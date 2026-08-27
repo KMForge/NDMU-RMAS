@@ -75,6 +75,23 @@ class AdminDashboardTest extends TestCase
             ->assertSee('Administrator');
     }
 
+    public function test_admin_sidebar_shows_pending_student_approval_count(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+
+        User::factory()->count(2)->create([
+            'user_type' => UserType::Student,
+            'status' => AccountStatus::Pending,
+            'approved_at' => null,
+        ]);
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->assertSeeHtml('aria-label="2 student registrations awaiting approval"');
+    }
+
     public function test_admin_can_render_and_save_system_settings(): void
     {
         $admin = User::factory()->create();
@@ -122,6 +139,43 @@ class AdminDashboardTest extends TestCase
         $this->assertSame($admin->id, $settings->updated_by);
         $this->assertDatabaseHas('academic_years', ['id' => $academicYearId, 'is_current' => true]);
         $this->assertDatabaseHas('academic_terms', ['id' => $academicTermId, 'is_current' => true]);
+    }
+
+    public function test_admin_can_seed_academic_cycle(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->call('seedAcademicCycle')
+            ->assertHasNoErrors()
+            ->assertSet('successMessage', 'Academic cycle seeded successfully.');
+
+        $this->assertDatabaseHas('academic_years', ['name' => '2026–2027']);
+        $this->assertDatabaseHas('academic_terms', ['name' => 'First Semester']);
+    }
+
+    public function test_admin_can_create_new_academic_year(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->call('openAcademicYearModal')
+            ->assertSet('showAcademicYearModal', true)
+            ->set('newAcademicYearName', '2027–2028')
+            ->set('newAcademicYearStartDate', '2027-08-01')
+            ->set('newAcademicYearEndDate', '2028-05-31')
+            ->call('createAcademicYear')
+            ->assertHasNoErrors()
+            ->assertSet('showAcademicYearModal', false)
+            ->assertSet('successMessage', 'Academic Year 2027–2028 created successfully.');
+
+        $this->assertDatabaseHas('academic_years', ['name' => '2027–2028']);
     }
 
     public function test_admin_dashboard_does_not_render_sample_records(): void

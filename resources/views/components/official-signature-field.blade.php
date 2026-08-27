@@ -9,7 +9,7 @@
 
 <div {{ $attributes->class(['space-y-2 text-center']) }}>
     @php
-        $officialFormInstance = request()->routeIs('official-forms.workspace.show', 'official-forms.print') ? request()->route('instance') : null;
+        $officialFormInstance = $instance ?? (request()->route('instance') instanceof \App\Models\OfficialFormInstance ? request()->route('instance') : null);
         
         // If signature prop wasn't passed explicitly, attempt to resolve from instance currentVersion
         $appliedSignature = $signature;
@@ -19,7 +19,10 @@
                     if ($actorType && $sig->actor_type !== $actorType) return false;
                     if ($academicAction && $sig->academic_action !== $academicAction) return false;
                     if (! $actorType && ! $academicAction) {
-                        return str_contains(strtolower($sig->actor_type), strtolower(str_replace(' ', '_', $label)));
+                        $normActor = strtolower(str_replace('_', ' ', $sig->actor_type));
+                        $normLabel = strtolower(trim($label));
+                        return str_contains($normActor, $normLabel) || str_contains($normLabel, $normActor)
+                            || str_contains(strtolower($sig->actor_type), strtolower(str_replace(' ', '_', $label)));
                     }
                     return true;
                 });
@@ -32,6 +35,7 @@
             $effectiveActorType = $actorType ?? \Illuminate\Support\Str::snake(\Illuminate\Support\Str::lower($label));
             $classAssignments = $officialFormInstance->researchClass?->officialFormActorAssignments
                 ?? $officialFormInstance->group?->researchClass?->officialFormActorAssignments;
+            $titlePanelAssignments = $officialFormInstance->titlePresentation?->defense?->activePanelAssignments?->keyBy('panel_position');
 
             $authoritativeName = match ($effectiveActorType) {
                 'research_adviser', 'adviser' => $officialFormInstance->group?->adviser?->name,
@@ -39,8 +43,10 @@
                     ?? $officialFormInstance->group?->researchClass?->facilitator?->name,
                 'program_coordinator' => $officialFormInstance->actorAssignments->firstWhere('actor_type', 'program_coordinator')?->user?->name
                     ?? $classAssignments?->firstWhere('actor_type', 'program_coordinator')?->user?->name
-                    ?? $officialFormInstance->researchClass?->facilitator?->name
-                    ?? $officialFormInstance->group?->researchClass?->facilitator?->name,
+                    ,
+                'title_panel_chairperson' => $titlePanelAssignments?->get('chairperson')?->user?->name,
+                'title_panel_member_1' => $titlePanelAssignments?->get('member_1')?->user?->name,
+                'title_panel_member_2' => $titlePanelAssignments?->get('member_2')?->user?->name,
                 default => $officialFormInstance->actorAssignments->firstWhere('actor_type', $effectiveActorType)?->user?->name
                     ?? $classAssignments?->firstWhere('actor_type', $effectiveActorType)?->user?->name,
             };

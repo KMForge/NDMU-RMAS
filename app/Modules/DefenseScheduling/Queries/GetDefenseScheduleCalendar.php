@@ -19,6 +19,7 @@ class GetDefenseScheduleCalendar
         $query = DefenseSchedule::query()
             ->with([
                 'defense.group.researchClass',
+                'defense.group.researchGroup.currentProject',
                 'defense.activePanelAssignments.user',
                 'room',
             ]);
@@ -69,11 +70,20 @@ class GetDefenseScheduleCalendar
                     'id' => $pUser->id,
                     'name' => $pUser->name,
                     'email' => $pUser->email,
+                    'position' => $assignment->panel_position,
+                    'position_label' => match ($assignment->panel_position) {
+                        'chairperson' => 'Chairperson',
+                        'member_1' => 'Panel Member 1',
+                        'member_2' => 'Panel Member 2',
+                        default => 'Panel Member',
+                    },
                 ];
             })->values()->toArray() ?? [];
 
             $defenseTypeLabel = match ($defense?->defense_type) {
+                'title_presentation' => 'Title Proposal',
                 'proposal_defense' => 'Proposal Defense',
+                'pre_final_defense' => 'Pre-Final Defense',
                 'final_defense' => 'Final Oral Defense',
                 default => 'Research Defense',
             };
@@ -95,7 +105,7 @@ class GetDefenseScheduleCalendar
                 'location_notes' => $room?->location_notes,
                 'group_id' => $group?->id,
                 'group_name' => $group?->name ?? 'Group #'.$group?->id,
-                'research_title' => $group?->title ?? $group?->name ?? 'Untitled Research',
+                'research_title' => $group?->researchGroup?->currentProject?->title ?? $group?->name ?? 'Untitled Research',
                 'panelists' => $panelists,
                 'reason' => $schedule->reason,
                 'can_manage' => $isFacilitator && $user->can('defenses.manage'),

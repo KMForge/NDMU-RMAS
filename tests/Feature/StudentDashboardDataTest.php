@@ -188,6 +188,50 @@ class StudentDashboardDataTest extends TestCase
             ->assertSee('tab-scoped-paper.pdf');
     }
 
+    public function test_my_research_uses_the_current_group_document_and_class_group_adviser(): void
+    {
+        $student = $this->student('Research Profile Student');
+        $group = $this->activeClassGroupFor($student);
+        $adviser = User::factory()->create(['name' => 'Assigned Thesis Adviser']);
+        $adviser->assignRole('thesis-adviser');
+
+        DB::table('research_groups')->insert(['id' => 30]);
+        $group->update([
+            'research_group_id' => 30,
+            'adviser_id' => $adviser->getKey(),
+        ]);
+        $this->attachProject($student, 30, 'Canonical Research Title', 'Structured project abstract.');
+
+        Document::query()->create([
+            'user_id' => $student->getKey(),
+            'research_class_group_id' => $group->getKey(),
+            'submission_token' => (string) Str::uuid(),
+            'original_filename' => 'approved-proposal-defense.pdf',
+            'stored_filename' => Str::uuid().'.pdf',
+            'file_type' => 'pdf',
+            'mime_type' => 'application/pdf',
+            'document_stage' => 'proposal_defense',
+            'version_number' => 1,
+            'is_current' => true,
+            'file_size' => 4096,
+            'storage_disk' => 'local',
+            'storage_path' => 'documents/test/approved-proposal-defense.pdf',
+            'content_sha256' => str_repeat('c', 64),
+            'submitted_at' => now(),
+            'status' => 'accepted',
+        ]);
+
+        $this->actingAs($student)
+            ->get(route('student.dashboard', ['tab' => 'research']))
+            ->assertOk()
+            ->assertViewHas('currentResearchDocument', fn (?Document $document): bool => $document?->original_filename === 'approved-proposal-defense.pdf')
+            ->assertSee('Canonical Research Title')
+            ->assertSee('approved-proposal-defense.pdf')
+            ->assertSee('Proposal Defense')
+            ->assertSee('Accepted')
+            ->assertSee('Assigned Thesis Adviser');
+    }
+
     public function test_dashboard_calculates_progress_from_real_milestone_records(): void
     {
         $student = $this->student('Milestone Student');
@@ -237,6 +281,7 @@ class StudentDashboardDataTest extends TestCase
         if (! Schema::hasTable('research_groups')) {
             Schema::create('research_groups', function (Blueprint $table): void {
                 $table->id();
+                $table->unsignedBigInteger('program_id')->nullable();
             });
         }
 

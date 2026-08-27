@@ -12,5 +12,12 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  adminer:
+    image: adminer:latest
+    container_name: ndmu_rmas_adminer
+    restart: always
+    ports:
+      - "8080:8080"
+
 volumes:
   pgdata:

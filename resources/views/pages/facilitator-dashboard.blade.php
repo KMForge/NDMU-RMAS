@@ -5,6 +5,8 @@
     $initialTab = in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard';
     $classes = $classes ?? $researchClasses ?? collect();
     $classRequestStats = $classRequestStats ?? ['pending' => 0, 'approved' => 0, 'rejected' => 0, 'total' => 0];
+    $pendingTitleProposalScreeningCount = collect($titleProposalScreeningQueue ?? [])->count();
+    $defenseSchedulingReadyCount = collect($adviserApprovedDefenseDocuments ?? [])->count();
     $officialFormPhases = $officialFormPhases ?? [];
     $officialForms = $officialForms ?? [];
     $officialFormsByPhase = collect($officialForms)->groupBy('phase', preserveKeys: true);
@@ -20,13 +22,22 @@
         'id' => $d['id'] ?? null,
         'defense_id' => $d['defense_id'] ?? null,
         'type' => $d['defense_type_label'] ?? 'Research Defense',
-        'status' => ucfirst($d['schedule_status'] ?? 'Scheduled'),
+        'status' => match ($d['defense_status'] ?? null) {
+            'completed' => 'Completed',
+            'cancelled' => 'Cancelled',
+            default => 'Scheduled',
+        },
         'title' => $d['research_title'] ?? ($d['group_name'] ?? 'Research Title'),
         'student' => $d['group_name'] ?? ('Group #' . ($d['group_id'] ?? '')),
         'date' => $d['formatted_date'] ?? 'TBA',
         'time' => $d['formatted_time'] ?? 'TBA',
+        'starts_at' => $d['starts_at'] ?? null,
         'venue' => $d['room_name'] ?? ($d['room_code'] ?? 'TBA'),
-        'panel' => array_map(fn($p) => $p['name'], $d['panelists'] ?? []),
+        'panel' => array_map(fn($p) => [
+            'name' => $p['name'],
+            'position' => $p['position'] ?? null,
+            'position_label' => $p['position_label'] ?? 'Panel Member',
+        ], $d['panelists'] ?? []),
         'expected_current_schedule_id' => $d['id'] ?? null,
         'can_manage' => $d['can_manage'] ?? false,
     ])->values()->all();
@@ -57,6 +68,25 @@
     activeOfficialForm: @js($initialOfficialForm),
     officialForms: @js($officialForms),
     formsExpanded: @js($initialTab === 'forms'),
+    dashboardUrl: @js(route('facilitator.dashboard')),
+    persistTabTimer: null,
+    queuePersistTab(tab) {
+        window.clearTimeout(this.persistTabTimer);
+        this.persistTabTimer = window.setTimeout(() => this.persistTab(tab), 0);
+    },
+    persistTab(tab) {
+        const url = new URL(this.dashboardUrl, window.location.origin);
+        url.searchParams.set('tab', tab);
+        if (tab === 'forms' && this.activeOfficialForm) {
+            url.searchParams.set('form', this.activeOfficialForm);
+        }
+
+        if (`${url.pathname}${url.search}` === `${window.location.pathname}${window.location.search}`) return;
+
+        window.Livewire?.navigate
+            ? window.Livewire.navigate(url.toString())
+            : window.location.assign(url.toString());
+    },
     notificationsFilter: 'all',
     showApprovalModal: false,
     selectedApproval: null,
@@ -412,25 +442,43 @@
 
     defenseTypeFilter: 'All',
     defenseStatusFilter: 'All',
-    showScheduleModal: false,
-    editingDefenseId: null,
+    showVenueManager: @js(($defenseRooms ?? collect())->isEmpty() || $errors->has('code') || $errors->has('name') || $errors->has('location_notes')),
+    showScheduleModal: @js($errors->has('defense_schedule') || $errors->has('research_class_group_id') || $errors->has('defense_type') || $errors->has('room_id') || $errors->has('starts_at') || $errors->has('ends_at') || $errors->has('chairperson_user_id') || $errors->has('panel_user_ids')),
+    defenseSchedulingGroups: @js($defenseSchedulingGroups ?? []),
+    defensePanelCandidates: @js($defensePanelCandidates ?? []),
     scheduleForm: {
-        title: '',
-        student: '',
-        type: 'Proposal Defense',
-        date: '',
-        time: '',
-        venue: '',
-        panel: ''
+        groupId: @js((string) old('research_class_group_id', '')),
+        type: @js(old('defense_type', 'title_presentation')),
+        chairpersonId: @js((string) old('chairperson_user_id', '')),
+        memberOneId: @js((string) old('panel_user_ids.0', '')),
+        memberTwoId: @js((string) old('panel_user_ids.1', '')),
     },
-    defenseList: @json($defenseListData),
+    defenseList: @js($defenseListData),
+
+    get selectedDefenseGroup() {
+        return this.defenseSchedulingGroups.find(group => String(group.id) === String(this.scheduleForm.groupId)) || null;
+    },
+
+    get eligibleChairpersons() {
+        const adviserId = this.selectedDefenseGroup?.adviser_id;
+        return this.defensePanelCandidates.filter(candidate => String(candidate.id) !== String(adviserId || ''));
+    },
 
     get totalScheduledCount() {
         return this.defenseList.filter(d => d.status !== 'Completed').length;
     },
     get thisWeekCount() {
-        // May 25, 2026 and May 28, 2026 are this week
-        return this.defenseList.filter(d => d.date.includes('May') && d.status === 'Scheduled').length;
+        const now = new Date();
+        const startOfWeek = new Date(now);
+        startOfWeek.setHours(0, 0, 0, 0);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+        return this.defenseList.filter(defense => {
+            const startsAt = defense.starts_at ? new Date(defense.starts_at) : null;
+            return defense.status === 'Scheduled' && startsAt && startsAt >= startOfWeek && startsAt < endOfWeek;
+        }).length;
     },
     get pendingDefenseCount() {
         return this.defenseList.filter(d => d.status === 'Pending').length;
@@ -450,78 +498,8 @@
         return list;
     },
 
-    openScheduleModal(id = null) {
-        if (id) {
-            let def = this.defenseList.find(d => d.id === id);
-            if (def) {
-                this.editingDefenseId = id;
-                this.scheduleForm.title = def.title;
-                this.scheduleForm.student = def.student;
-                this.scheduleForm.type = def.type;
-                this.scheduleForm.date = def.date;
-                this.scheduleForm.time = def.time;
-                this.scheduleForm.venue = def.venue;
-                this.scheduleForm.panel = def.panel.join(', ');
-            }
-        } else {
-            this.editingDefenseId = null;
-            this.scheduleForm.title = '';
-            this.scheduleForm.student = '';
-            this.scheduleForm.type = 'Proposal Defense';
-            this.scheduleForm.date = '';
-            this.scheduleForm.time = '';
-            this.scheduleForm.venue = '';
-            this.scheduleForm.panel = '';
-        }
+    openScheduleModal() {
         this.showScheduleModal = true;
-    },
-
-    deleteDefense(id) {
-        if (confirm('Are you sure you want to delete this defense schedule?')) {
-            this.defenseList = this.defenseList.filter(d => d.id !== id);
-        }
-    },
-
-    submitSchedule() {
-        if (!this.scheduleForm.title || !this.scheduleForm.student) {
-            alert('Please fill in Proposal Title and Student Name fields.');
-            return;
-        }
-
-        let panelArray = this.scheduleForm.panel ? this.scheduleForm.panel.split(',').map(s => s.trim()).filter(s => s) : [];
-
-        if (this.editingDefenseId) {
-            let def = this.defenseList.find(d => d.id === this.editingDefenseId);
-            if (def) {
-                def.title = this.scheduleForm.title;
-                def.student = this.scheduleForm.student;
-                def.type = this.scheduleForm.type;
-                def.date = this.scheduleForm.date || 'TBA';
-                def.time = this.scheduleForm.time || 'TBA';
-                def.venue = this.scheduleForm.venue || 'TBA';
-                def.panel = panelArray;
-                def.status = (def.date !== 'TBA' && def.time !== 'TBA') ? 'Scheduled' : 'Pending';
-                alert('Defense schedule updated successfully!');
-            }
-        } else {
-            let newId = this.defenseList.length ? Math.max(...this.defenseList.map(d => d.id)) + 1 : 1;
-            let statusVal = (this.scheduleForm.date && this.scheduleForm.time) ? 'Scheduled' : 'Pending';
-            
-            this.defenseList.push({
-                id: newId,
-                type: this.scheduleForm.type,
-                status: statusVal,
-                title: this.scheduleForm.title,
-                student: this.scheduleForm.student,
-                date: this.scheduleForm.date || 'TBA',
-                time: this.scheduleForm.time || 'TBA',
-                venue: this.scheduleForm.venue || 'TBA',
-                panel: panelArray
-            });
-            alert('Defense scheduled successfully!');
-        }
-
-        this.showScheduleModal = false;
     },
 
     statisticsYear: '2025-2026',
@@ -714,7 +692,16 @@
 
         return list;
     }
-}">
+}"
+    x-init="
+        $watch('activeTab', (tab, previousTab) => {
+            if (tab !== previousTab) queuePersistTab(tab);
+        });
+        $watch('activeOfficialForm', (form, previousForm) => {
+            if (activeTab === 'forms' && form !== previousForm) queuePersistTab('forms');
+        });
+    "
+>
     <!-- Left Sidebar: Navigation -->
     <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5 overflow-y-auto">
         <div class="flex-shrink-0">
@@ -742,34 +729,33 @@
         </div>
 
         <!-- Navigation Links -->
-        <div class="flex-grow pl-4 pr-0 py-4 space-y-6">
-            <div class="space-y-1">
+        <div class="flex-grow px-6 py-4 space-y-6">
+            <div class="space-y-1.5">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
                 
                 <!-- Dashboard -->
                 <button 
                    type="button" 
                    @click="activeTab = 'dashboard'"
-                   :class="activeTab === 'dashboard' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-squares-four curved-nav-icon"></i>
+                        <i class="ph ph-squares-four text-lg"></i>
                         <span>Dashboard</span>
                     </div>
-                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
 
                 <!-- Pending Form Approvals Queue -->
                 <a
                    href="{{ route('official-forms.workspace.index') }}"
-                   class="curved-nav-item">
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer text-white/90 hover:text-white hover:bg-white/5 font-semibold">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-check-square-offset curved-nav-icon text-amber-300"></i>
+                        <i class="ph ph-check-square-offset text-lg text-amber-300"></i>
                         <span>Pending Form Approvals</span>
                     </div>
-                    <div class="flex items-center gap-2 mr-3">
-                        @if (isset($pendingFormInstances) && $pendingFormInstances->count() > 0)
-                            <span class="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[10px] font-black text-white shadow-sm">{{ $pendingFormInstances->count() }}</span>
-                        @endif
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['forms'] ?? 0" label="forms awaiting approval" />
                     </div>
                 </a>
 
@@ -777,118 +763,118 @@
                 <button
                    type="button"
                    @click="activeTab = 'classes'"
-                   :class="activeTab === 'classes' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'classes' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-chalkboard-teacher curved-nav-icon"></i>
+                        <i class="ph ph-chalkboard-teacher text-lg"></i>
                         <span>Capstone Classes</span>
                     </div>
-                    <span x-show="activeTab === 'classes'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <span x-show="activeTab === 'classes'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
 
                 <!-- Class Join Requests -->
                 <button
                    type="button"
                    @click="activeTab = 'join-requests'"
-                   :class="activeTab === 'join-requests' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'join-requests' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-user-plus curved-nav-icon"></i>
+                        <i class="ph ph-user-plus text-lg"></i>
                         <span>Join Requests</span>
                     </div>
-                    <div class="flex items-center gap-2 mr-3">
-                        @if (($classRequestStats['pending'] ?? 0) > 0)
-                            <span class="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[9px] font-bold text-white">{{ $classRequestStats['pending'] }}</span>
-                        @endif
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['join-requests'] ?? 0" label="pending class join requests" />
                         <span x-show="activeTab === 'join-requests'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                     </div>
                 </button>
                 
                 <!-- Research Monitoring -->
-                <button 
-                   type="button" 
-                   @click="activeTab = 'monitoring'"
-                   :class="activeTab === 'monitoring' ? 'curved-nav-item active' : 'curved-nav-item'">
+                <a
+                   href="{{ route('facilitator.dashboard', ['tab' => 'monitoring']) }}"
+                   :class="activeTab === 'monitoring' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-chart-line-up curved-nav-icon"></i>
+                        <i class="ph ph-chart-line-up text-lg"></i>
                         <span>Research Monitoring</span>
                     </div>
-                    <span x-show="activeTab === 'monitoring'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
-                </button>
+                    <span x-show="activeTab === 'monitoring'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                </a>
 
 
                 <!-- Research Screening -->
                 <button 
                    type="button" 
                    @click="activeTab = 'screening'"
-                   :class="activeTab === 'screening' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'screening' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-file-search curved-nav-icon"></i>
+                        <i class="ph ph-file-search text-lg"></i>
                         <span>Research Screening</span>
                     </div>
-                    <span x-show="activeTab === 'screening'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge
+                            :count="$sidebarBadges['screening'] ?? 0"
+                            :label="$defenseSchedulingReadyCount > 0
+                                ? Str::plural('document', $sidebarBadges['screening'] ?? 0).' awaiting facilitator action'
+                                : Str::plural('title proposal', $sidebarBadges['screening'] ?? 0).' awaiting screening'"
+                        />
+                        <span x-show="activeTab === 'screening'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    </div>
                 </button>
 
                 <!-- Defense Management -->
                 <button 
                    type="button" 
                    @click="activeTab = 'defenses'"
-                   :class="activeTab === 'defenses' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'defenses' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-calendar curved-nav-icon"></i>
+                        <i class="ph ph-calendar text-lg"></i>
                         <span>Defense Management</span>
                     </div>
-                    <span x-show="activeTab === 'defenses'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <span x-show="activeTab === 'defenses'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
 
                 <!-- Research Statistics -->
-<<<<<<< HEAD
-                <button 
-                   type="button" 
-                   @click="activeTab = 'statistics'"
-                   :class="activeTab === 'statistics' ? 'curved-nav-item active' : 'curved-nav-item'">
-=======
                 @can('reports.view')
                 <a href="{{ route('facilitator.reports.index') }}"
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left text-white/90 hover:text-white hover:bg-white/5 font-semibold">
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-chart-bar curved-nav-icon"></i>
+                        <i class="ph ph-chart-bar text-lg"></i>
                         <span>Research Statistics</span>
                     </div>
-<<<<<<< HEAD
-                    <span x-show="activeTab === 'statistics'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
-                </button>
-=======
                 </a>
                 @endcan
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
 
                 <!-- Research Reports -->
                 <button 
                    type="button" 
                    @click="activeTab = 'reports'"
-                   :class="activeTab === 'reports' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'reports' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-file-text curved-nav-icon"></i>
+                        <i class="ph ph-file-text text-lg"></i>
                         <span>Research Reports</span>
                     </div>
-                    <span x-show="activeTab === 'reports'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <span x-show="activeTab === 'reports'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
 
                 <!-- Research Repository -->
                 <button 
                    type="button" 
                    @click="activeTab = 'repository'"
-                   :class="activeTab === 'repository' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'repository' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-folder curved-nav-icon"></i>
+                        <i class="ph ph-folder text-lg"></i>
                         <span>Research Repository</span>
                     </div>
-                    <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
             </div>
 
             <!-- Research Forms Section -->
-            <div class="space-y-1.5 pt-4 pr-4 border-t border-white/10">
+            <div class="space-y-1.5 pt-4 border-t border-white/10">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Research Forms</span>
 
                 <button
@@ -930,28 +916,32 @@
         </div>
 
         <!-- Sidebar Footer -->
-        <div class="flex-shrink-0 pl-4 pr-0 pb-6 mt-8">
-            <div class="pt-4 border-t border-white/10 space-y-1 pr-4">
+        <div class="flex-shrink-0 px-6 pb-6 mt-8">
+            <div class="pt-4 border-t border-white/10 space-y-1">
                 <!-- Notifications -->
-                <a href="#" 
-                   @click.prevent="activeTab = 'notifications'"
-                   :class="activeTab === 'notifications' ? 'curved-nav-item active !pr-3' : 'curved-nav-item !pr-3'">
+                <a href="{{ route('notifications.index') }}"
+                   :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
+                   class="flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-bell curved-nav-icon"></i>
+                        <i class="ph ph-bell text-lg"></i>
                         <span>Notifications</span>
                     </div>
-                    <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-2"></span>
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['notifications'] ?? 0" label="unread notifications" />
+                        <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    </div>
                 </a>
                 
                 <!-- Settings -->
                 <a href="#" 
                    @click.prevent="activeTab = 'settings'"
-                   :class="activeTab === 'settings' ? 'curved-nav-item active !pr-3' : 'curved-nav-item !pr-3'">
+                   :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
+                   class="flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-gear curved-nav-icon"></i>
+                        <i class="ph ph-gear text-lg"></i>
                         <span>Settings</span>
                     </div>
-                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-2"></span>
+                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </a>
 
                 <!-- Logout -->
@@ -988,11 +978,7 @@
             <!-- Right profile area matching "F / Dr. Facilitator Portal" -->
             <div class="flex items-center gap-4">
                 <x-workspace-switcher current="facilitator" />
-                <!-- Notification Bell -->
-                <button @click="activeTab = 'notifications'" class="relative w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
-                    <i class="ph ph-bell text-lg"></i>
-                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                </button>
+                <x-notification-dropdown />
                 
                 <!-- Facilitator Portal Profile Badge -->
                 <div class="flex items-center gap-3 pl-2 border-l border-gray-150">
@@ -1062,6 +1048,8 @@
                         </button>
                     </div>
                 </div>
+
+                <x-pending-academic-actions-card :pendingActions="$pendingAcademicActions ?? []" />
 
                 <!-- Stats Cards Row (4 Columns matching widgets) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -1649,6 +1637,69 @@
                     </div>
                 </div>
 
+                <section class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                    <div class="flex items-center justify-between gap-3">
+                        <div><h2 class="font-bold text-gray-850">Title Proposals Awaiting Screening</h2><p class="mt-1 text-xs text-gray-455">Approval here only unlocks RES-026; it does not finalize the research title.</p></div>
+                        <span class="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-700">{{ $pendingTitleProposalScreeningCount }}</span>
+                    </div>
+                    <div class="mt-4 space-y-3">
+                        @forelse ($titleProposalScreeningQueue ?? [] as $titleDocument)
+                            <article class="rounded-xl border border-gray-150 p-4">
+                                <div class="flex flex-wrap items-start justify-between gap-3">
+                                    <div><p class="text-sm font-bold text-gray-850">{{ $titleDocument->researchClassGroup?->name }}</p><p class="mt-1 text-xs text-gray-500">{{ $titleDocument->original_filename }} · Version {{ $titleDocument->version_number }} · {{ $titleDocument->user?->name }}</p></div>
+                                    <div class="flex gap-2"><a href="{{ route('documents.view', $titleDocument) }}" target="_blank" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold">View</a><a href="{{ route('documents.download', $titleDocument) }}" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold">Download</a></div>
+                                </div>
+                                <form method="POST" action="{{ route('facilitator.title-proposals.screen', $titleDocument) }}" class="mt-3 grid gap-2 md:grid-cols-[1fr_auto_auto]">
+                                    @csrf
+                                    <textarea name="remarks" maxlength="2000" placeholder="Required revision remarks when returning the proposal" class="min-h-16 rounded-xl border border-gray-200 px-3 py-2 text-xs"></textarea>
+                                    <button name="decision" value="revision_required" class="rounded-xl border border-red-200 px-4 py-2 text-xs font-bold text-red-700">Require Revision</button>
+                                    <button name="decision" value="approved_for_presentation" class="rounded-xl bg-[#0e5c3a] px-4 py-2 text-xs font-bold text-white">Approve for Title Presentation</button>
+                                </form>
+                            </article>
+                        @empty
+                            <p class="py-6 text-center text-xs text-gray-400">No Title Proposal document is awaiting your screening.</p>
+                        @endforelse
+                    </div>
+                </section>
+
+                <section class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <h2 class="font-bold text-gray-850">Adviser-Approved Documents Ready for Scheduling</h2>
+                            <p class="mt-1 text-xs text-gray-455">These current defense-stage documents passed adviser review and now require facilitator scheduling.</p>
+                        </div>
+                        <span class="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-700">{{ $defenseSchedulingReadyCount }}</span>
+                    </div>
+                    <div class="mt-4 space-y-3">
+                        @forelse ($adviserApprovedDefenseDocuments ?? [] as $approvedDocument)
+                            <article class="rounded-xl border border-gray-150 p-4">
+                                <div class="flex flex-wrap items-start justify-between gap-3">
+                                    <div>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <p class="text-sm font-bold text-gray-850">{{ $approvedDocument->researchClassGroup?->name }}</p>
+                                            <span class="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-black uppercase text-emerald-700">Adviser approved</span>
+                                            <span class="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-black text-blue-700">{{ $approvedDocument->stageLabel() }}</span>
+                                        </div>
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            {{ $approvedDocument->original_filename }} · Version {{ $approvedDocument->version_number }}
+                                            · Adviser: {{ $approvedDocument->researchClassGroup?->adviser?->name ?? 'Not assigned' }}
+                                        </p>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <a href="{{ route('documents.view', $approvedDocument) }}" target="_blank" rel="noopener" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold">View</a>
+                                        <a href="{{ route('documents.download', $approvedDocument) }}" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold">Download</a>
+                                        <button type="button" @click="activeTab = 'defenses'; queuePersistTab('defenses'); $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))" class="rounded-lg bg-[#0e5c3a] px-3 py-2 text-xs font-bold text-white">
+                                            Schedule Defense
+                                        </button>
+                                    </div>
+                                </div>
+                            </article>
+                        @empty
+                            <p class="py-6 text-center text-xs text-gray-400">No adviser-approved defense document is waiting for scheduling.</p>
+                        @endforelse
+                    </div>
+                </section>
+
                 <!-- Stats Widgets Cards Row (4 Columns matching screenshots) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Approved -->
@@ -1812,17 +1863,103 @@
                             <p class="text-xs text-gray-455 mt-1">Manage and schedule research defense presentations</p>
                         </div>
                         
-                        <!-- Schedule Defense Button -->
-                        <button 
-                            type="button"
-                            @click="openScheduleModal(null)"
-                            class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md shadow-[#0e5c3a]/10 hover:shadow-lg flex items-center gap-2 cursor-pointer transition-all duration-200"
-                        >
-                            <i class="ph ph-plus text-base font-bold"></i>
-                            <span>Schedule Defense</span>
-                        </button>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                @click="showVenueManager = !showVenueManager"
+                                class="flex items-center gap-2 rounded-xl border border-[#0e5c3a]/20 bg-white px-5 py-3 text-xs font-bold text-[#0e5c3a] shadow-sm transition-colors hover:bg-emerald-50"
+                            >
+                                <i class="ph ph-buildings text-base"></i>
+                                <span>Manage Venues</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="openScheduleModal()"
+                                @disabled(($defenseRooms ?? collect())->isEmpty())
+                                class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] disabled:cursor-not-allowed disabled:bg-gray-300 text-white text-xs font-bold rounded-xl shadow-md shadow-[#0e5c3a]/10 hover:shadow-lg flex items-center gap-2 cursor-pointer transition-all duration-200"
+                                title="{{ ($defenseRooms ?? collect())->isEmpty() ? 'Create an active venue before scheduling a defense.' : 'Schedule a defense' }}"
+                            >
+                                <i class="ph ph-plus text-base font-bold"></i>
+                                <span>Schedule Defense</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
+
+                <section x-show="showVenueManager" x-transition class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h2 class="text-base font-bold text-gray-850">Defense Venue Catalog</h2>
+                            <p class="mt-1 text-xs text-gray-500">Create and maintain the rooms available for defense scheduling.</p>
+                        </div>
+                        <span class="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-bold text-emerald-700">
+                            {{ ($defenseRooms ?? collect())->count() }} active {{ Str::plural('venue', ($defenseRooms ?? collect())->count()) }}
+                        </span>
+                    </div>
+
+                    @if ($errors->has('code') || $errors->has('name') || $errors->has('location_notes'))
+                        <div class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">
+                            {{ $errors->first('code') ?: ($errors->first('name') ?: $errors->first('location_notes')) }}
+                        </div>
+                    @endif
+
+                    <form method="POST" action="{{ route('facilitator.defense-rooms.store') }}" class="mt-5 grid gap-3 lg:grid-cols-[0.7fr_1.2fr_1.6fr_auto]">
+                        @csrf
+                        <div>
+                            <label for="venue-code" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-gray-500">Room Code</label>
+                            <input id="venue-code" name="code" value="{{ old('code') }}" maxlength="50" required placeholder="CEAC-301" class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-xs outline-none focus:border-[#0e5c3a]">
+                        </div>
+                        <div>
+                            <label for="venue-name" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-gray-500">Venue Name</label>
+                            <input id="venue-name" name="name" value="{{ old('name') }}" maxlength="255" required placeholder="CEAC Conference Room" class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-xs outline-none focus:border-[#0e5c3a]">
+                        </div>
+                        <div>
+                            <label for="venue-location" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-gray-500">Location Notes</label>
+                            <input id="venue-location" name="location_notes" value="{{ old('location_notes') }}" maxlength="1000" placeholder="Third floor, CEAC Building" class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-xs outline-none focus:border-[#0e5c3a]">
+                        </div>
+                        <button type="submit" class="self-end rounded-xl bg-[#0e5c3a] px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-[#0a4a2e]">
+                            Add Venue
+                        </button>
+                    </form>
+
+                    <div class="mt-5 space-y-3">
+                        @forelse ($allDefenseRooms ?? [] as $venue)
+                            <article class="flex flex-col gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3 xl:flex-row xl:items-end">
+                                <form method="POST" action="{{ route('facilitator.defense-rooms.update', $venue) }}" class="grid flex-1 gap-3 md:grid-cols-[0.7fr_1.2fr_1.6fr_auto]">
+                                    @csrf
+                                    @method('PATCH')
+                                    <div>
+                                        <label for="venue-code-{{ $venue->id }}" class="mb-1 block text-[9px] font-bold uppercase text-gray-400">Code</label>
+                                        <input id="venue-code-{{ $venue->id }}" name="code" value="{{ $venue->code }}" maxlength="50" required class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0e5c3a]">
+                                    </div>
+                                    <div>
+                                        <label for="venue-name-{{ $venue->id }}" class="mb-1 block text-[9px] font-bold uppercase text-gray-400">Name</label>
+                                        <input id="venue-name-{{ $venue->id }}" name="name" value="{{ $venue->name }}" maxlength="255" required class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0e5c3a]">
+                                    </div>
+                                    <div>
+                                        <label for="venue-location-{{ $venue->id }}" class="mb-1 block text-[9px] font-bold uppercase text-gray-400">Location</label>
+                                        <input id="venue-location-{{ $venue->id }}" name="location_notes" value="{{ $venue->location_notes }}" maxlength="1000" class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0e5c3a]">
+                                    </div>
+                                    <button type="submit" class="self-end rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100">Save</button>
+                                </form>
+
+                                <form method="POST" action="{{ $venue->is_active ? route('facilitator.defense-rooms.deactivate', $venue) : route('facilitator.defense-rooms.activate', $venue) }}">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button type="submit" class="w-full rounded-lg px-4 py-2 text-xs font-bold xl:w-auto {{ $venue->is_active ? 'border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' }}">
+                                        {{ $venue->is_active ? 'Deactivate' : 'Activate' }}
+                                    </button>
+                                </form>
+                            </article>
+                        @empty
+                            <div class="rounded-xl border border-dashed border-gray-200 py-6 text-center text-xs text-gray-400">
+                                No defense venues exist yet. Add the first venue above to enable defense scheduling.
+                            </div>
+                        @endforelse
+                    </div>
+
+                    <p class="mt-4 text-[10px] text-gray-400">Deactivated venues remain in historical schedules but are removed from new schedule selections.</p>
+                </section>
 
                 <!-- Stats Widgets Cards Row (4 Columns matching screenshots) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -1881,7 +2018,9 @@
                         class="bg-gray-50 border border-gray-150 text-gray-700 text-xs px-3.5 py-2 rounded-xl outline-none focus:border-[#0e5c3a] cursor-pointer"
                     >
                         <option value="All">All Defense Types</option>
+                        <option value="Title Proposal">Title Proposal</option>
                         <option value="Proposal Defense">Proposal Defense</option>
+                        <option value="Pre-Final Defense">Pre-Final Defense</option>
                         <option value="Final Defense">Final Defense</option>
                     </select>
 
@@ -1926,33 +2065,9 @@
                                     <p class="text-xs text-gray-450 font-bold">Student: <span class="text-gray-700 font-extrabold" x-text="def.student">Juan Dela Cruz</span></p>
                                 </div>
 
-                                <!-- Action Buttons -->
-                                <div class="flex items-center gap-2 flex-shrink-0">
-                                    <button 
-                                        type="button" 
-                                        @click="alert(`Viewing defense details for:\n${def.title}`)"
-                                        class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl cursor-pointer transition-colors text-sm"
-                                        title="View Details"
-                                    >
-                                        <i class="ph ph-eye"></i>
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        @click="openScheduleModal(def.id)"
-                                        class="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl cursor-pointer transition-colors text-sm"
-                                        title="Edit Schedule"
-                                    >
-                                        <i class="ph ph-pencil-simple"></i>
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        @click="deleteDefense(def.id)"
-                                        class="p-2 bg-red-50 hover:bg-red-100 text-red-650 rounded-xl cursor-pointer transition-colors text-sm"
-                                        title="Delete Schedule"
-                                    >
-                                        <i class="ph ph-trash"></i>
-                                    </button>
-                                </div>
+                                <span class="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-[10px] font-bold text-gray-500">
+                                    Group-specific schedule
+                                </span>
                             </div>
 
                             <hr class="border-gray-50/80">
@@ -1994,8 +2109,8 @@
                             <div class="space-y-2 pt-2">
                                 <span class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider block">Panel Members</span>
                                 <div class="flex flex-wrap gap-2">
-                                    <template x-for="p in def.panel" :key="p">
-                                        <span class="px-3 py-1.5 bg-gray-50 border border-gray-150 text-gray-600 rounded-full text-[10px] font-bold" x-text="p">Panelist Name</span>
+                                    <template x-for="p in def.panel" :key="`${p.position}-${p.name}`">
+                                        <span class="px-3 py-1.5 bg-gray-50 border border-gray-150 text-gray-600 rounded-full text-[10px] font-bold" x-text="`${p.position_label}: ${p.name}`">Panelist Name</span>
                                     </template>
                                     <template x-if="def.panel.length === 0">
                                         <span class="text-gray-400 text-[10px] font-bold italic">No panel members assigned yet.</span>
@@ -2797,115 +2912,112 @@
         </div>
     </div>
 
-    <!-- Schedule/Edit Defense Modal Mockup -->
+    <!-- Authoritative Defense Scheduler -->
     <div x-show="showScheduleModal" x-transition x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-        <div @click.away="showScheduleModal = false" class="bg-white rounded-2xl w-full max-w-xl p-6 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto animate-scale-up">
+        <div @click.away="showScheduleModal = false" class="bg-white rounded-2xl w-full max-w-3xl p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto animate-scale-up">
             <div class="flex justify-between items-start">
                 <div>
-                    <h3 class="font-bold text-gray-800 text-sm" x-text="editingDefenseId ? 'Edit Defense Schedule' : 'Schedule Defense Presentation'">Schedule Defense</h3>
-                    <p class="text-[10px] text-gray-400 mt-0.5">Configure details, date, time, and panel assignments</p>
+                    <h3 class="font-bold text-gray-800 text-base">Schedule Group Defense</h3>
+                    <p class="text-[11px] text-gray-500 mt-1">Choose an existing group. Its research title, students, and adviser are fetched automatically.</p>
                 </div>
-                <button @click="showScheduleModal = false" class="text-gray-400 hover:text-gray-600 text-lg cursor-pointer">
+                <button type="button" @click="showScheduleModal = false" class="text-gray-400 hover:text-gray-600 text-lg cursor-pointer">
                     <i class="ph ph-x"></i>
                 </button>
             </div>
             <hr class="border-gray-100">
-            
-            <form @submit.prevent="submitSchedule()" class="space-y-4 text-xs">
-                <!-- Proposal Title -->
-                <div class="space-y-1.5">
-                    <label for="def-title" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Proposal Title</label>
-                    <input 
-                        id="def-title"
-                        type="text" 
-                        x-model="scheduleForm.title"
-                        placeholder="Enter the title of the research paper"
-                        class="w-full px-4 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 outline-none transition-all"
-                        required
-                    >
-                </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <!-- Student Name -->
+            @if ($errors->has('defense_schedule') || $errors->has('research_class_group_id') || $errors->has('defense_type') || $errors->has('room_id') || $errors->has('starts_at') || $errors->has('ends_at') || $errors->has('chairperson_user_id') || $errors->has('panel_user_ids'))
+                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">
+                    {{ $errors->first('defense_schedule') ?: $errors->first() }}
+                </div>
+            @endif
+
+            <div class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-[11px] leading-5 text-blue-800">
+                <strong>Defense-day setup:</strong> all groups may defend on the same date, but each group receives its own time slot, room, Chairperson, and panel roster. The server blocks overlapping groups, rooms, and Faculty schedules.
+            </div>
+
+            <form method="POST" action="{{ route('facilitator.defenses.store') }}" class="space-y-5 text-xs">
+                @csrf
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div class="space-y-1.5">
-                        <label for="def-student" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Student Name</label>
-                        <input 
-                            id="def-student"
-                            type="text" 
-                            x-model="scheduleForm.student"
-                            placeholder="Lead Student researcher"
-                            class="w-full px-4 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 outline-none transition-all"
-                            required
-                        >
+                        <label for="def-group" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Research Group</label>
+                        <select id="def-group" name="research_class_group_id" x-model="scheduleForm.groupId" @change="if (String(scheduleForm.chairpersonId) === String(selectedDefenseGroup?.adviser_id || '')) scheduleForm.chairpersonId = ''" required class="w-full px-4 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none cursor-pointer">
+                            <option value="">Select one of your groups</option>
+                            @foreach ($defenseSchedulingGroups ?? [] as $groupOption)
+                                <option value="{{ $groupOption['id'] }}">{{ $groupOption['name'] }} - {{ $groupOption['class_name'] }}{{ $groupOption['adviser_name'] ? ' - Adviser: '.$groupOption['adviser_name'] : ' - No adviser assigned' }}</option>
+                            @endforeach
+                        </select>
                     </div>
 
-                    <!-- Type -->
                     <div class="space-y-1.5">
                         <label for="def-type" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Defense Type</label>
-                        <select 
-                            id="def-type"
-                            x-model="scheduleForm.type"
-                            class="w-full px-4 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none cursor-pointer"
-                        >
-                            <option value="Proposal Defense">Proposal Defense</option>
-                            <option value="Final Defense">Final Defense</option>
+                        <select id="def-type" name="defense_type" x-model="scheduleForm.type" required class="w-full px-4 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none cursor-pointer">
+                            <option value="title_presentation">Title Proposal / Title Presentation</option>
+                            <option value="proposal_defense">Proposal Defense</option>
+                            <option value="pre_final_defense">Pre-Final Defense</option>
+                            <option value="final_defense">Final Defense</option>
                         </select>
                     </div>
                 </div>
 
+                <div x-show="selectedDefenseGroup" class="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-[11px] text-emerald-900">
+                    <p><strong>Research:</strong> <span x-text="selectedDefenseGroup?.research_title || 'No canonical research title yet'"></span></p>
+                    <p class="mt-1"><strong>Group Leader:</strong> <span x-text="selectedDefenseGroup?.leader_name || 'Not assigned'"></span> - <strong>Adviser:</strong> <span x-text="selectedDefenseGroup?.adviser_name || 'Not assigned'"></span></p>
+                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <!-- Date -->
                     <div class="space-y-1.5">
-                        <label for="def-date" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Date</label>
-                        <input 
-                            id="def-date"
-                            type="text" 
-                            x-model="scheduleForm.date"
-                            placeholder="e.g. May 25, 2026"
-                            class="w-full px-4 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none"
-                        >
+                        <label for="def-start" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Starts At</label>
+                        <input id="def-start" type="datetime-local" name="starts_at" value="{{ old('starts_at') }}" required class="w-full px-3 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none">
                     </div>
-
-                    <!-- Time -->
                     <div class="space-y-1.5">
-                        <label for="def-time" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Time Range</label>
-                        <input 
-                            id="def-time"
-                            type="text" 
-                            x-model="scheduleForm.time"
-                            placeholder="e.g. 9:00 AM - 11:00 AM"
-                            class="w-full px-4 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none"
-                        >
+                        <label for="def-end" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Ends At</label>
+                        <input id="def-end" type="datetime-local" name="ends_at" value="{{ old('ends_at') }}" required class="w-full px-3 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none">
                     </div>
-
-                    <!-- Venue -->
                     <div class="space-y-1.5">
                         <label for="def-venue" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Venue</label>
-                        <input 
-                            id="def-venue"
-                            type="text" 
-                            x-model="scheduleForm.venue"
-                            placeholder="Room or Hall name"
-                            class="w-full px-4 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none"
-                        >
+                        <select id="def-venue" name="room_id" required class="w-full px-3 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none cursor-pointer">
+                            <option value="">Select active room</option>
+                            @foreach ($defenseRooms as $room)
+                                <option value="{{ $room->id }}" @selected((string) old('room_id') === (string) $room->id)>{{ $room->code }} - {{ $room->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
 
-                <!-- Panel Assignment -->
-                <div class="space-y-1.5">
-                    <label for="def-panel" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Assign Panel Members</label>
-                    <input 
-                        id="def-panel"
-                        type="text" 
-                        x-model="scheduleForm.panel"
-                        placeholder="Comma separated names: e.g. Dr. Maria Santos, Dr. John Reyes"
-                        class="w-full px-4 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none"
-                    >
-                    <p class="text-[9px] text-gray-400">Separate multiple panel members with a comma.</p>
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div class="space-y-1.5">
+                        <label for="def-chair" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Chairperson</label>
+                        <select id="def-chair" name="chairperson_user_id" x-model="scheduleForm.chairpersonId" required class="w-full px-3 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none cursor-pointer">
+                            <option value="">Select Chairperson</option>
+                            <template x-for="candidate in eligibleChairpersons" :key="candidate.id">
+                                <option :value="candidate.id" x-text="candidate.name"></option>
+                            </template>
+                        </select>
+                        <p class="text-[9px] leading-4 text-amber-700">The selected group's adviser is excluded from Chairperson choices.</p>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label for="def-member-one" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Panel Member 1</label>
+                        <select id="def-member-one" name="panel_user_ids[]" x-model="scheduleForm.memberOneId" required class="w-full px-3 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none cursor-pointer">
+                            <option value="">Select Panel Member</option>
+                            <template x-for="candidate in defensePanelCandidates" :key="candidate.id">
+                                <option :value="candidate.id" :disabled="String(candidate.id) === String(scheduleForm.chairpersonId) || String(candidate.id) === String(scheduleForm.memberTwoId)" x-text="candidate.name + (String(candidate.id) === String(selectedDefenseGroup?.adviser_id || '') ? ' (Group Adviser - panel only)' : '')"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label for="def-member-two" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Panel Member 2</label>
+                        <select id="def-member-two" name="panel_user_ids[]" x-model="scheduleForm.memberTwoId" required class="w-full px-3 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none cursor-pointer">
+                            <option value="">Select Panel Member</option>
+                            <template x-for="candidate in defensePanelCandidates" :key="candidate.id">
+                                <option :value="candidate.id" :disabled="String(candidate.id) === String(scheduleForm.chairpersonId) || String(candidate.id) === String(scheduleForm.memberOneId)" x-text="candidate.name + (String(candidate.id) === String(selectedDefenseGroup?.adviser_id || '') ? ' (Group Adviser - panel only)' : '')"></option>
+                            </template>
+                        </select>
+                    </div>
                 </div>
 
                 <hr class="border-gray-100 mt-6">
-                <!-- Submit -->
                 <div class="flex justify-end gap-3 pt-2">
                     <button 
                         type="button" 
@@ -2917,7 +3029,6 @@
                     <button 
                         type="submit" 
                         class="px-6 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md cursor-pointer transition-colors"
-                        x-text="editingDefenseId ? 'Save Changes' : 'Schedule Defense'"
                     >
                         Schedule Defense
                     </button>

@@ -29,16 +29,16 @@
         </div>
 
         <!-- Navigation Links -->
-        <div class="flex-1 pl-4 pr-0 py-4 space-y-6">
+        <div class="flex-1 px-6 py-4 space-y-6">
             <div class="space-y-1.5">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
                 
-                <a href="{{ route('dashboard') }}" class="curved-nav-item active">
+                <a href="{{ route('dashboard') }}" class="flex items-center justify-between px-3 py-2.5 rounded-xl bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm transition-all duration-200">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-squares-four curved-nav-icon"></i>
+                        <i class="ph ph-squares-four text-lg"></i>
                         <span>Dashboard</span>
                     </div>
-                    <span class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </a>
             </div>
         </div>
@@ -78,10 +78,7 @@
 
             <!-- Right profile area -->
             <div class="flex items-center gap-4">
-                <button class="relative w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors">
-                    <i class="ph ph-bell text-lg"></i>
-                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                </button>
+                <x-notification-dropdown />
                 
                 <div class="flex items-center gap-3 pl-2 border-l border-gray-150">
                     <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-xs">

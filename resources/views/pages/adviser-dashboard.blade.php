@@ -46,6 +46,25 @@
     activeOfficialForm: @js($initialOfficialForm),
     officialForms: @js($officialForms),
     formsExpanded: @js($initialTab === 'forms'),
+    dashboardUrl: @js(route('adviser.dashboard')),
+    persistTabTimer: null,
+    queuePersistTab(tab) {
+        window.clearTimeout(this.persistTabTimer);
+        this.persistTabTimer = window.setTimeout(() => this.persistTab(tab), 0);
+    },
+    persistTab(tab) {
+        const url = new URL(this.dashboardUrl, window.location.origin);
+        url.searchParams.set('tab', tab);
+        if (tab === 'forms' && this.activeOfficialForm) {
+            url.searchParams.set('form', this.activeOfficialForm);
+        }
+
+        if (`${url.pathname}${url.search}` === `${window.location.pathname}${window.location.search}`) return;
+
+        window.Livewire?.navigate
+            ? window.Livewire.navigate(url.toString())
+            : window.location.assign(url.toString());
+    },
     notificationsFilter: 'all',
     showClassModal: @js($showClassModal),
     showConsultationModal: false,
@@ -55,7 +74,16 @@
     assignedResearchers: @js($adviserOverviewAdvisees),
     confirmingAcceptId: null,
     confirmingDeclineId: null
-}">
+}"
+    x-init="
+        $watch('activeTab', (tab, previousTab) => {
+            if (tab !== previousTab) queuePersistTab(tab);
+        });
+        $watch('activeOfficialForm', (form, previousForm) => {
+            if (activeTab === 'forms' && form !== previousForm) queuePersistTab('forms');
+        });
+    "
+>
     <!-- SIDEBAR NAV -->
     <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5 overflow-y-auto">
         <div class="flex-shrink-0">
@@ -83,37 +111,35 @@
         </div>
 
         <!-- Navigation Links -->
-        <div class="flex-grow pl-4 pr-0 py-4 space-y-6">
-            <div class="space-y-1">
+        <div class="flex-grow px-6 py-4 space-y-6">
+            <div class="space-y-1.5">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
 
                 <!-- Dashboard -->
                 <a 
                    href="{{ route('adviser.dashboard', ['tab' => 'dashboard']) }}"
                    wire:navigate
-                   :class="activeTab === 'dashboard' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-squares-four curved-nav-icon"></i>
+                        <i class="ph ph-squares-four text-lg"></i>
                         <span>Dashboard</span>
                     </div>
-                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </a>
                 
                 <!-- My Classes -->
                 <a
                    href="{{ route('adviser.dashboard', ['tab' => 'classes']) }}"
                    wire:navigate
-                   :class="activeTab === 'classes' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'classes' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-book curved-nav-icon"></i>
+                        <i class="ph ph-book text-lg"></i>
                         <span>My Classes</span>
                     </div>
-                    <div class="flex items-center gap-2 mr-3">
-                        @if ($pendingCount > 0)
-                            <span class="px-2 py-0.5 text-[10px] font-black rounded-full bg-rose-500 text-white shadow-xs">
-                                {{ $pendingCount }}
-                            </span>
-                        @endif
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['classes'] ?? 0" label="adviser invitations requiring attention" />
                         <span x-show="activeTab === 'classes'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                     </div>
                 </a>
@@ -122,53 +148,53 @@
                 <a
                    href="{{ route('adviser.dashboard', ['tab' => 'researchers']) }}"
                    wire:navigate
-                   :class="activeTab === 'researchers' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'researchers' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-users-three curved-nav-icon"></i>
+                        <i class="ph ph-users-three text-lg"></i>
                         <span>Assigned Researchers</span>
                     </div>
-                    <span x-show="activeTab === 'researchers'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <span x-show="activeTab === 'researchers'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </a>
 
                 <!-- Proposal Review -->
                 <a
                    href="{{ route('adviser.dashboard', ['tab' => 'proposal']) }}"
                    wire:navigate
-                   :class="activeTab === 'proposal' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'proposal' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-file-magnifying-glass curved-nav-icon"></i>
+                        <i class="ph ph-file-magnifying-glass text-lg"></i>
                         <span>Proposal Review</span>
                     </div>
-                    <span x-show="activeTab === 'proposal'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <span x-show="activeTab === 'proposal'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </a>
 
                 <!-- Research Monitoring -->
                 <a
                    href="{{ route('adviser.dashboard', ['tab' => 'monitoring']) }}"
                    wire:navigate
-                   :class="activeTab === 'monitoring' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'monitoring' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-chart-line-up curved-nav-icon"></i>
+                        <i class="ph ph-chart-line-up text-lg"></i>
                         <span>Research Monitoring</span>
                     </div>
-                    <span x-show="activeTab === 'monitoring'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <span x-show="activeTab === 'monitoring'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </a>
 
                 <!-- Document Review -->
                 <a
                    href="{{ route('adviser.dashboard', ['tab' => 'docreview']) }}"
                    wire:navigate
-                   :class="activeTab === 'docreview' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'docreview' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-file-text curved-nav-icon"></i>
+                        <i class="ph ph-file-text text-lg"></i>
                         <span>Document Review</span>
                     </div>
-                    <div class="flex items-center gap-2 mr-3">
-                        @if (($pendingDocReviewsCount ?? 0) > 0)
-                            <span class="px-2 py-0.5 text-[10px] font-black rounded-full bg-amber-400 text-amber-950 shadow-xs">
-                                {{ $pendingDocReviewsCount }}
-                            </span>
-                        @endif
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['docreview'] ?? 0" label="documents awaiting review" />
                         <span x-show="activeTab === 'docreview'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                     </div>
                 </a>
@@ -177,17 +203,14 @@
                 <a
                    href="{{ route('adviser.dashboard', ['tab' => 'consultation']) }}"
                    wire:navigate
-                   :class="activeTab === 'consultation' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'consultation' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-chats-teardrop curved-nav-icon"></i>
+                        <i class="ph ph-chats-teardrop text-lg"></i>
                         <span>Consultations</span>
                     </div>
-                    <div class="flex items-center gap-2 mr-3">
-                        @if (($pendingConsultationsCount ?? 0) > 0)
-                            <span class="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[9px] font-bold text-white">
-                                {{ $pendingConsultationsCount }}
-                            </span>
-                        @endif
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['consultation'] ?? 0" label="consultations requiring attention" />
                         <span x-show="activeTab === 'consultation'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                     </div>
                 </a>
@@ -196,68 +219,68 @@
                 <a
                    href="{{ route('adviser.dashboard', ['tab' => 'revisions']) }}"
                    wire:navigate
-                   :class="activeTab === 'revisions' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'revisions' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-arrows-counter-clockwise curved-nav-icon"></i>
+                        <i class="ph ph-arrows-counter-clockwise text-lg"></i>
                         <span>Revision Tracker</span>
                     </div>
-                    <span x-show="activeTab === 'revisions'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <span x-show="activeTab === 'revisions'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </a>
 
                 <!-- Defense Endorsement -->
                 <a
                    href="{{ route('adviser.dashboard', ['tab' => 'endorsement']) }}"
                    wire:navigate
-                   :class="activeTab === 'endorsement' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'endorsement' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-seal-check curved-nav-icon"></i>
+                        <i class="ph ph-seal-check text-lg"></i>
                         <span>Defense Endorsement</span>
                     </div>
-                    <span x-show="activeTab === 'endorsement'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <span x-show="activeTab === 'endorsement'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </a>
 
                 <!-- Evaluation Records -->
                 <a
                    href="{{ route('adviser.dashboard', ['tab' => 'evaluations']) }}"
                    wire:navigate
-                   :class="activeTab === 'evaluations' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'evaluations' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-clipboard-text curved-nav-icon"></i>
+                        <i class="ph ph-clipboard-text text-lg"></i>
                         <span>Evaluation Records</span>
                     </div>
-                    <span x-show="activeTab === 'evaluations'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <span x-show="activeTab === 'evaluations'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </a>
 
                 <!-- Research Repository -->
                 <a
                    href="{{ route('adviser.dashboard', ['tab' => 'repository']) }}"
                    wire:navigate
-                   :class="activeTab === 'repository' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'repository' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-archive curved-nav-icon"></i>
+                        <i class="ph ph-archive text-lg"></i>
                         <span>Research Repository</span>
                     </div>
-                    <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
-                </a>
-
+                    <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 <!-- Pending Form Approvals Queue -->
                 <a
                    href="{{ route('official-forms.workspace.index') }}"
-                   class="curved-nav-item">
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer text-white/90 hover:text-white hover:bg-white/5 font-semibold">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-check-square-offset curved-nav-icon text-amber-300"></i>
+                        <i class="ph ph-check-square-offset text-lg text-amber-300"></i>
                         <span>Pending Form Approvals</span>
                     </div>
-                    <div class="flex items-center gap-2 mr-3">
-                        @if (isset($pendingFormInstances) && $pendingFormInstances->count() > 0)
-                            <span class="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[10px] font-black text-white shadow-sm">{{ $pendingFormInstances->count() }}</span>
-                        @endif
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['forms'] ?? 0" label="forms awaiting approval" />
                     </div>
                 </a>
             </div>
 
             <!-- Official Forms Section -->
-            <div class="space-y-1.5 pt-4 pr-4 border-t border-white/10">
+            <div class="space-y-1.5 pt-4 border-t border-white/10">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Research Forms</span>
                 <button 
                    type="button" 
@@ -324,41 +347,46 @@
         </div>
 
         <!-- User Logout Footer -->
-        <div class="flex-shrink-0 pl-4 pr-0 pb-6 mt-8">
-            <div class="pt-4 border-t border-white/10 space-y-1 pr-4">
+        <div class="flex-shrink-0 px-6 pb-6 mt-8">
+            <div class="pt-4 border-t border-white/10 space-y-1">
                 <!-- Notifications -->
                 <a
-                   href="{{ route('adviser.dashboard', ['tab' => 'notifications']) }}"
+                   href="{{ route('notifications.index') }}"
                    wire:navigate
-                   :class="activeTab === 'notifications' ? 'curved-nav-item active !pr-3' : 'curved-nav-item !pr-3'">
+                   :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-bell curved-nav-icon"></i>
+                        <i class="ph ph-bell text-lg"></i>
                         <span>Notifications</span>
                     </div>
-                    <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-2"></span>
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['notifications'] ?? 0" label="unread notifications" />
+                        <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    </div>
                 </a>
 
                 <!-- System Settings -->
                 <a
                    href="{{ route('adviser.dashboard', ['tab' => 'settings']) }}"
                    wire:navigate
-                   :class="activeTab === 'settings' ? 'curved-nav-item active !pr-3' : 'curved-nav-item !pr-3'">
+                   :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-gear curved-nav-icon"></i>
+                        <i class="ph ph-gear text-lg"></i>
                         <span>Settings</span>
                     </div>
-                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-2"></span>
+                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </a>
             </div>
 
-            <form method="POST" action="{{ route('logout') }}" data-confirm-logout class="pr-4">
+            <form method="POST" action="{{ route('logout') }}" data-confirm-logout>
                 @csrf
                 <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all cursor-pointer">
                     <i class="ph ph-sign-out text-lg"></i>
                     <span>Logout</span>
                 </button>
             </form>
-            <div class="text-[9px] text-white/30 text-center font-medium mt-6 pr-4">
+            <div class="text-[9px] text-white/30 text-center font-medium mt-6">
                 NDMU © {{ now()->year }} - v1.0
             </div>
         </div>
@@ -376,6 +404,7 @@
 
             <div class="flex items-center gap-4">
                 <x-workspace-switcher current="adviser" />
+                <x-notification-dropdown />
                 <span class="text-xs font-bold text-gray-700">{{ $adviser->name }}</span>
             </div>
         </header>
@@ -422,6 +451,8 @@
                     <h1 class="text-2xl font-bold font-heading text-gray-850">Welcome back, {{ $adviser->name }}</h1>
                     <p class="text-xs text-gray-500 mt-1">Research Adviser Dashboard Overview</p>
                 </div>
+
+                <x-pending-academic-actions-card :pendingActions="$pendingAcademicActions ?? []" />
                 <!-- Metrics Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-2">

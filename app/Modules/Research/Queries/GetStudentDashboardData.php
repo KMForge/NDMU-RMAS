@@ -3,6 +3,7 @@
 namespace App\Modules\Research\Queries;
 
 use App\Models\Document;
+use App\Models\DocumentReviewComment;
 use App\Models\User;
 use App\Modules\Documents\Support\DocumentGroupAccess;
 use App\Modules\ResearchProgress\Queries\GetResearchGroupProgress;
@@ -45,6 +46,9 @@ class GetStudentDashboardData
         $revisions = $empty;
         $defenses = $empty;
         $evaluations = $empty;
+        $currentResearchDocument = null;
+        $documentFeedback = $empty;
+        $documentFeedbackCount = 0;
 
         $isDashboard = $activeTab === 'dashboard';
         $searchQuery = $isDashboard
@@ -127,6 +131,35 @@ class GetStudentDashboardData
         $activeGroupMember = $this->documentGroupAccess->activeMembershipFor($user);
         $activeGroup = $activeGroupMember?->researchClassGroup;
 
+        if ($activeGroup !== null) {
+            $documentFeedbackQuery = DocumentReviewComment::query()
+                ->whereHas('document', fn ($query) => $query
+                    ->where('research_class_group_id', $activeGroup->getKey()));
+
+            $documentFeedbackCount = (clone $documentFeedbackQuery)
+                ->whereNull('resolved_at')
+                ->count();
+
+            if ($activeTab === 'revisions') {
+                $documentFeedback = $documentFeedbackQuery
+                    ->with([
+                        'author:id,name',
+                        'document:id,research_class_group_id,original_filename,file_type,document_stage,version_number,is_current',
+                    ])
+                    ->latest()
+                    ->limit(100)
+                    ->get();
+            }
+        }
+
+        if ($project !== null && $adviser === null && $activeGroup?->adviser !== null) {
+            $adviser = (object) [
+                'user_id' => $activeGroup->adviser->getKey(),
+                'name' => $activeGroup->adviser->name,
+                'academic_rank' => null,
+            ];
+        }
+
         if (($isDashboard || $activeTab === 'defense') && $activeGroup !== null && $defenses->isEmpty()) {
             $defenses = $this->defensesFor((int) $activeGroup->id);
         }
@@ -154,6 +187,13 @@ class GetStudentDashboardData
         $groupDocumentQuery = $activeGroup === null
             ? null
             : Document::query()->where('research_class_group_id', $activeGroup->getKey());
+
+        if ($activeTab === 'research' && $groupDocumentQuery !== null) {
+            $currentResearchDocument = (clone $groupDocumentQuery)
+                ->where('is_current', true)
+                ->latest('submitted_at')
+                ->first();
+        }
 
         if ($isDashboard && $groupDocumentQuery !== null) {
             $documentQuery = clone $groupDocumentQuery;
@@ -244,6 +284,9 @@ class GetStudentDashboardData
             'documents' => $documents,
             'activeGroup' => $activeGroup,
             'groupDocuments' => $groupDocuments,
+            'currentResearchDocument' => $currentResearchDocument,
+            'documentFeedback' => $documentFeedback,
+            'documentFeedbackCount' => $documentFeedbackCount,
             'notifications' => $notifications,
             'classes' => $classes,
             'classJoinRequests' => $classJoinRequests,

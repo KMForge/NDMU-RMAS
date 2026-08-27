@@ -9,6 +9,7 @@ use App\Models\DocumentReviewComment;
 use App\Models\User;
 use App\Modules\Documents\Exceptions\DocumentReviewException;
 use App\Modules\Documents\Support\DocumentReviewerAccess;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -16,6 +17,7 @@ class AddDocumentReviewComment
 {
     public function __construct(
         private readonly DocumentReviewerAccess $reviewerAccess,
+        private readonly WorkflowNotificationDispatcher $notifications,
     ) {}
 
     /**
@@ -46,11 +48,14 @@ class AddDocumentReviewComment
                     );
                 }
 
+                $isAssignedPanelist = $this->reviewerAccess
+                    ->canCommentAsAssignedPanelist($reviewer, $lockedDocument);
+
                 if (in_array($lockedDocument->status, [
                     DocumentStatus::Accepted,
                     DocumentStatus::Rejected,
                     DocumentStatus::RevisionRequested,
-                ], true)) {
+                ], true) && ! ($lockedDocument->status === DocumentStatus::Accepted && $isAssignedPanelist)) {
                     throw new DocumentReviewException(
                         'Cannot add new findings to a document that has already received a final review decision. Use decision correction first.',
                     );
@@ -87,6 +92,36 @@ class AddDocumentReviewComment
                         'page_number' => $comment->page_number,
                     ],
                 ]);
+
+                if ($lockedDocument->research_class_group_id !== null) {
+                    $studentRecipients = User::query()
+                        ->whereIn('id', function ($query) use ($lockedDocument): void {
+                            $query->select('student_id')
+                                ->from('research_class_group_members')
+                                ->where('research_class_group_id', $lockedDocument->research_class_group_id)
+                                ->whereIn('research_class_enrollment_id', function ($enrollments): void {
+                                    $enrollments->select('id')
+                                        ->from('research_class_enrollments')
+                                        ->where('status', 'active');
+                                });
+                        })
+                        ->get();
+
+                    $this->notifications->sendToMany(
+                        recipients: $studentRecipients,
+                        eventKey: 'document.feedback.posted',
+                        title: 'New research paper feedback',
+                        message: "{$reviewer->name} posted feedback on {$lockedDocument->original_filename}.",
+                        category: 'document',
+                        routeName: 'student.dashboard',
+                        routeParameters: ['tab' => 'revisions'],
+                        sourceType: DocumentReviewComment::class,
+                        sourceId: $comment->getKey(),
+                        actor: $reviewer,
+                        contextLabel: $lockedDocument->researchClassGroup?->name,
+                        actingAs: 'Student Researcher',
+                    );
+                }
 
                 return $comment->load('author:id,name');
             }, 3);

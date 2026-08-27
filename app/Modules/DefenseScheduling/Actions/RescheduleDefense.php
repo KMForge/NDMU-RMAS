@@ -12,6 +12,7 @@ use App\Models\DefenseRoom;
 use App\Models\DefenseSchedule;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,10 @@ use InvalidArgumentException;
 
 class RescheduleDefense
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications = new WorkflowNotificationDispatcher,
+    ) {}
+
     public function handle(
         User $actor,
         Defense $defense,
@@ -186,6 +191,38 @@ class RescheduleDefense
                     'reason' => $reason,
                 ],
             ]);
+
+            $students = $lockedGroup->members()->with('student')->get()->pluck('student')->filter();
+            $this->notifications->sendToMany(
+                recipients: $students,
+                eventKey: 'defense.rescheduled',
+                title: 'Defense schedule changed',
+                message: "Your defense was rescheduled to {$newStartsAt->format('M j, Y g:i A')}.",
+                category: 'defense',
+                routeName: 'student.dashboard',
+                routeParameters: ['tab' => 'defense'],
+                sourceType: DefenseSchedule::class,
+                sourceId: $newSchedule->getKey(),
+                actor: $actor,
+                contextLabel: $lockedGroup->name,
+                actingAs: 'Student Researcher',
+            );
+
+            $panelists = User::query()->whereIn('id', $panelUserIds)->get();
+            $this->notifications->sendToMany(
+                recipients: $panelists,
+                eventKey: 'defense.rescheduled',
+                title: 'Assigned defense rescheduled',
+                message: "{$lockedGroup->name}'s defense was rescheduled to {$newStartsAt->format('M j, Y g:i A')}.",
+                category: 'defense',
+                routeName: 'panelist.dashboard',
+                routeParameters: ['tab' => 'schedule'],
+                sourceType: DefenseSchedule::class,
+                sourceId: $newSchedule->getKey(),
+                actor: $actor,
+                contextLabel: $lockedGroup->name,
+                actingAs: 'Panel Member',
+            );
 
             return $newSchedule->fresh(['room', 'defense']);
         });

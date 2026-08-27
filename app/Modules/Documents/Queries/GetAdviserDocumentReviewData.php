@@ -38,7 +38,7 @@ class GetAdviserDocumentReviewData
     public function for(
         User $reviewer,
         string $search = '',
-        string $status = 'needs_attention',
+        string $status = 'all',
         ?string $stage = null,
         ?int $groupId = null,
         ?string $fileType = null,

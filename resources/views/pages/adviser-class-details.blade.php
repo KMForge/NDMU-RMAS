@@ -36,26 +36,21 @@
             </div>
         </div>
 
-        <nav class="flex-1 space-y-1 pl-4 pr-0 py-5">
-            <a href="{{ route('adviser.dashboard') }}" wire:navigate class="curved-nav-item">
-                <div class="flex items-center gap-3">
-                    <i class="ph ph-squares-four curved-nav-icon"></i>
-                    <span>Dashboard</span>
-                </div>
+        <nav class="flex-1 px-6 py-5 space-y-2">
+            <a href="{{ route('adviser.dashboard') }}" wire:navigate class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/90 hover:bg-white/5 text-[13px] font-semibold">
+                <i class="ph ph-squares-four text-lg"></i>
+                <span>Dashboard</span>
             </a>
-            <a href="{{ route('adviser.dashboard', ['tab' => 'classes']) }}" wire:navigate class="curved-nav-item active">
-                <div class="flex items-center gap-3">
-                    <i class="ph ph-chalkboard-teacher curved-nav-icon"></i>
-                    <span>My Classes</span>
-                </div>
-                <span class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+            <a href="{{ route('adviser.dashboard', ['tab' => 'classes']) }}" wire:navigate class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[#eebc3f] text-[#0e5c3a] text-[13px] font-bold">
+                <i class="ph ph-chalkboard-teacher text-lg"></i>
+                <span>My Classes</span>
             </a>
         </nav>
 
         <div class="px-6 pb-6">
             <form method="POST" action="{{ route('logout') }}" data-confirm-logout>
                 @csrf
-                <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/90 hover:bg-white/5 font-semibold text-[13px] cursor-pointer">
+                <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/90 hover:bg-white/5 font-semibold text-[13px]">
                     <i class="ph ph-sign-out text-lg"></i>
                     <span>Logout</span>
                 </button>

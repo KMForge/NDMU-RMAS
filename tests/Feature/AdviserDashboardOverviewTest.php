@@ -65,6 +65,7 @@ class AdviserDashboardOverviewTest extends TestCase
         $this->actingAs($adviser)
             ->get(route('adviser.dashboard', ['tab' => 'docreview']))
             ->assertOk()
+            ->assertSee("activeTab: 'docreview'", false)
             ->assertSee($document->original_filename);
     }
 

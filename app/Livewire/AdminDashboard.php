@@ -15,9 +15,11 @@ use App\Modules\Dashboard\Queries\GetAdminDashboardData;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\UserManagement\Actions\ManageRoleAccess;
 use App\Modules\UserManagement\Actions\ManageUserAccount;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -86,6 +88,14 @@ class AdminDashboard extends Component
     public ?int $settingsAcademicYearId = null;
 
     public ?int $settingsAcademicTermId = null;
+
+    public bool $showAcademicYearModal = false;
+
+    public string $newAcademicYearName = '';
+
+    public string $newAcademicYearStartDate = '';
+
+    public string $newAcademicYearEndDate = '';
 
     public string $tab = 'dashboard';
 
@@ -469,9 +479,6 @@ class AdminDashboard extends Component
         $this->resetValidation();
     }
 
-<<<<<<< HEAD
-    public function render(GetAdminDashboardData $getAdminDashboardData, GetDocumentRepositoryData $repositoryData)
-=======
     public function seedAcademicCycle(): void
     {
         abort_unless($this->administrator()->can('settings.manage'), 403);
@@ -569,7 +576,6 @@ class AdminDashboard extends Component
     }
 
     public function render(GetAdminDashboardData $getAdminDashboardData, GetDocumentRepositoryData $repositoryData, GetAuditLogsForAdmin $auditLogs)
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
     {
         $data = [
             'totalUsersCount' => 0,
@@ -595,6 +601,13 @@ class AdminDashboard extends Component
             $this->systemSettingsData(),
             $repositoryData->for($this->administrator(), request()->query()),
         );
+
+        $data['sidebarBadges'] = [
+            'users' => (int) ($data['pendingApprovalCount'] ?? 0),
+            'notifications' => Schema::hasTable('notifications')
+                ? $data['administrator']->unreadNotifications()->count()
+                : 0,
+        ];
 
         return view('livewire.admin-dashboard-content', $data);
     }

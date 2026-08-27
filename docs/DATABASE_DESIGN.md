@@ -2,14 +2,16 @@
 
 ## Current Verified Runtime Baseline
 
-NDMU-RMAS is a Laravel modular monolith using Eloquent ORM. The current authoritative runtime for Phase 18 is **PostgreSQL hosted by Supabase**, accessed directly through Laravel's `pgsql` driver.
+NDMU-RMAS is a Laravel modular monolith using Eloquent ORM. The current verified development runtime is **PostgreSQL 17 in the project's local Docker environment**, accessed directly through Laravel's `pgsql` driver.
 
 - `DB_CONNECTION=pgsql`
-- Supabase pooled PostgreSQL connection from server-only environment variables
+- `DB_HOST=127.0.0.1`, `DB_PORT=5432`, and `DB_DATABASE=ndmu_rmas`
 - Laravel Eloquent/query builder for bound SQL and transactions
-- Supabase HTTP APIs only where PostgreSQL cannot provide the required capability
+- PostgreSQL-compatible deployment remains supported, including Supabase when configured through server-only environment variables
 
-Local MySQL/WAMP is preserved as a development alternative, and automated tests use SQLite where configured. New schema/query code therefore remains database-neutral unless a guarded PostgreSQL-only security operation is required. Phase 18 RLS enablement is explicitly guarded by the `pgsql` driver and is a no-op on MySQL/SQLite.
+The repository may preserve configuration history for other database environments, but those are not the active runtime documented here. Automated tests use in-memory SQLite as configured in `phpunit.xml`. New schema/query code therefore remains database-neutral unless a guarded PostgreSQL-only operation is required.
+
+For the exact current physical schema—including every table, column, constraint, foreign key, index, RLS setting, migration, and model mapping—see [DATABASE_REFERENCE.md](DATABASE_REFERENCE.md). That reference is generated from the live PostgreSQL system catalog; this document explains the intended architecture and domain design.
 
 The project currently uses Laravel's integer primary-key convention. Do not introduce UUID/ULID primary keys without an explicit migration strategy. UUIDs are used for private stored document filenames and submission/idempotency values independently of database primary keys.
 

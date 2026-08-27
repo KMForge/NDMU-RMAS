@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AcademicTerm extends Model
 {
+    protected $guarded = [];
+
     public function academicYear(): BelongsTo
     {
         return $this->belongsTo(AcademicYear::class);

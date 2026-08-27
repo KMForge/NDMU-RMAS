@@ -9,6 +9,7 @@ use App\Models\DefenseSchedule;
 use App\Models\OfficialFormActorAssignment;
 use App\Models\OfficialFormInstance;
 use App\Models\User;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -16,7 +17,8 @@ use InvalidArgumentException;
 class AssignOfficialFormActor
 {
     public function __construct(
-        private readonly OfficialFormAuthorization $authorization = new OfficialFormAuthorization
+        private readonly OfficialFormAuthorization $authorization = new OfficialFormAuthorization,
+        private readonly WorkflowNotificationDispatcher $notifications = new WorkflowNotificationDispatcher,
     ) {}
 
     /** @var array<string, list<string>> */
@@ -130,6 +132,25 @@ class AssignOfficialFormActor
                 'auditable_id' => $instance->id,
                 'description' => "Assigned {$user->name} as {$actorType} on form instance #{$instance->id}.",
             ]);
+
+            $instance->loadMissing(['definition', 'group']);
+            $formCode = strtoupper($instance->definition->code);
+
+            $this->notifications->send(
+                recipient: $user,
+                eventKey: 'official-form.action-required',
+                title: "{$formCode} requires your action",
+                message: 'You were assigned as '.str($actorType)->headline()->lower()." for {$instance->definition->title}.",
+                category: 'form',
+                routeName: 'official-forms.workspace.show',
+                routeParameters: ['instance' => $instance->getKey()],
+                sourceType: OfficialFormActorAssignment::class,
+                sourceId: $assignment->getKey(),
+                actor: $assigner,
+                contextLabel: $instance->group?->name,
+                actingAs: str($actorType)->headline()->toString(),
+                occurrence: $assignment->status,
+            );
 
             return $assignment;
         });

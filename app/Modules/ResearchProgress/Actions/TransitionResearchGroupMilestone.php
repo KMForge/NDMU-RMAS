@@ -7,26 +7,20 @@ use App\Models\ResearchClassGroup;
 use App\Models\ResearchGroupMilestone;
 use App\Models\ResearchGroupMilestoneEvent;
 use App\Models\User;
-<<<<<<< HEAD
-=======
 use App\Modules\AuditLogs\Services\AuditLogWriter;
 use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class TransitionResearchGroupMilestone
 {
-<<<<<<< HEAD
-=======
     public function __construct(
         private readonly WorkflowNotificationDispatcher $notifications,
         private readonly AuditLogWriter $auditLogs,
     ) {}
 
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
     public function execute(
         User $actor,
         ResearchGroupMilestone $milestone,
@@ -131,8 +125,6 @@ class TransitionResearchGroupMilestone
                 'occurred_at' => $now,
             ]);
 
-<<<<<<< HEAD
-=======
             $this->auditLogs->write(
                 actor: $actor,
                 event: in_array($from, [ResearchMilestoneStatus::Completed, ResearchMilestoneStatus::NotApplicable], true)
@@ -184,7 +176,6 @@ class TransitionResearchGroupMilestone
                 );
             }
 
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
             return $locked->load(['definition', 'evidences', 'events.actor:id,name,email']);
         }, 3);
     }

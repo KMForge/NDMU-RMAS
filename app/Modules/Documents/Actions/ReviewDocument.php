@@ -10,6 +10,7 @@ use App\Models\DocumentReviewComment;
 use App\Models\User;
 use App\Modules\Documents\Exceptions\DocumentReviewException;
 use App\Modules\Documents\Support\DocumentReviewerAccess;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use App\Modules\Revisions\Actions\CreateRevisionCycleFromReview;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,7 @@ class ReviewDocument
 {
     public function __construct(
         private readonly DocumentReviewerAccess $reviewerAccess,
+        private readonly WorkflowNotificationDispatcher $notifications,
     ) {}
 
     public function handle(
@@ -107,6 +109,26 @@ class ReviewDocument
                     app(CreateRevisionCycleFromReview::class)
                         ->handle($lockedDocument, $review);
                 }
+
+                $group = $lockedDocument->researchClassGroup;
+                $students = $group?->members()->with('student')->get()->pluck('student')->filter() ?? collect();
+                $decisionLabel = str($decision)->headline()->lower();
+
+                $this->notifications->sendToMany(
+                    recipients: $students,
+                    eventKey: 'document.review.decision-recorded',
+                    title: 'Document review decision available',
+                    message: "{$lockedDocument->original_filename} was marked {$decisionLabel} by {$reviewer->name}.",
+                    category: 'document',
+                    routeName: 'student.dashboard',
+                    routeParameters: ['tab' => $decision === DocumentStatus::RevisionRequested->value ? 'revisions' : 'proposal'],
+                    sourceType: DocumentReview::class,
+                    sourceId: $review->getKey(),
+                    actor: $reviewer,
+                    contextLabel: $group?->name,
+                    actingAs: 'Student Researcher',
+                    occurrence: $decision,
+                );
 
                 return $review->load('reviewer:id,name');
             }, 3);

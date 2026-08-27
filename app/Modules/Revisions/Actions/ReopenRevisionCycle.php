@@ -6,12 +6,17 @@ use App\Enums\RevisionStatus;
 use App\Models\RevisionRequest;
 use App\Models\RevisionRequestEvent;
 use App\Models\User;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use App\Modules\Revisions\Exceptions\RevisionWorkflowException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 
 class ReopenRevisionCycle
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications,
+    ) {}
+
     public function handle(User $user, RevisionRequest $revisionRequest, string $reason): RevisionRequest
     {
         if (trim($reason) === '') {
@@ -61,6 +66,23 @@ class ReopenRevisionCycle
                     'submitted_document_id' => $lockedRevision->submitted_document_id,
                 ],
             ]);
+
+            $students = $group->members()->with('student')->get()->pluck('student')->filter();
+            $this->notifications->sendToMany(
+                recipients: $students,
+                eventKey: 'revision.reopened',
+                title: 'Revision reopened',
+                message: "{$lockedRevision->title} was reopened by {$user->name}.",
+                category: 'revision',
+                routeName: 'student.dashboard',
+                routeParameters: ['tab' => 'revisions'],
+                sourceType: RevisionRequest::class,
+                sourceId: $lockedRevision->getKey(),
+                actor: $user,
+                contextLabel: $group->name,
+                actingAs: 'Student Researcher',
+                occurrence: 'controlled_reopened',
+            );
 
             return $lockedRevision;
         }, 3);

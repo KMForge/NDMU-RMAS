@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Adviser;
 
+use App\Enums\DocumentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\OfficialFormWorkspaceController;
 use App\Models\ConsultationRequest;
@@ -13,6 +14,7 @@ use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Documents\Queries\GetAdviserDocumentReviewData;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
+use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use App\Modules\Research\Queries\GetAdviserDashboardOverview;
 use App\Modules\ResearchProgress\Queries\GetResearchGroupProgress;
 use Illuminate\Contracts\View\View;
@@ -84,7 +86,12 @@ class DashboardController extends Controller
 
         $pendingDocReviewsCount = Document::query()
             ->whereHas('researchClassGroup', fn ($g) => $g->where('adviser_id', $user->getKey())->where('status', 'active')->whereNull('disbanded_at'))
-            ->where('status', 'needs_attention')
+            ->where('is_current', true)
+            ->whereIn('status', [
+                DocumentStatus::Pending->value,
+                DocumentStatus::Submitted->value,
+                DocumentStatus::UnderReview->value,
+            ])
             ->count();
 
         $viewData['pendingAdviserRequests'] = $pendingAdviserRequests;
@@ -92,6 +99,16 @@ class DashboardController extends Controller
         $viewData['pendingConsultationsCount'] = $pendingConsultationsCount;
         $viewData['pendingDocReviewsCount'] = $pendingDocReviewsCount;
         $viewData['pendingFormInstances'] = app(OfficialFormWorkspaceController::class)->pendingInstances($request);
+        $viewData['pendingAcademicActions'] = app(GetPendingAcademicActionsForUser::class)->execute($user);
+        $viewData['sidebarBadges'] = [
+            'classes' => $pendingAdviserRequests->count(),
+            'docreview' => $pendingDocReviewsCount,
+            'consultation' => $pendingConsultationsCount,
+            'forms' => $viewData['pendingFormInstances']->count(),
+            'notifications' => Schema::hasTable('notifications')
+                ? $user->unreadNotifications()->count()
+                : 0,
+        ];
         $viewData['assignedGroups'] = $assignedGroups;
         $viewData['adviserDefenses'] = $defenseCalendar->execute($user);
         $evalQuery = app(GetEvaluationRoundData::class);
@@ -115,7 +132,7 @@ class DashboardController extends Controller
             $viewData = [...$viewData, ...$reviewData->for(
                 $user,
                 (string) $request->query('document_search', ''),
-                (string) $request->query('document_status', 'needs_attention'),
+                (string) $request->query('document_status', 'all'),
                 $request->query('document_stage') ? (string) $request->query('document_stage') : null,
                 $request->query('document_group_id') ? (int) $request->query('document_group_id') : null,
                 $request->query('document_file_type') ? (string) $request->query('document_file_type') : null,
@@ -171,7 +188,7 @@ class DashboardController extends Controller
             'documentReviewComments' => new Collection,
             'documentReviewStats' => ['approved' => 0, 'revisions' => 0, 'comments' => 0, 'critical' => 0],
             'documentReviewSearch' => '',
-            'documentReviewStatus' => 'needs_attention',
+            'documentReviewStatus' => 'all',
             'documentReviewStage' => null,
             'documentReviewGroup' => null,
             'documentReviewFileType' => null,

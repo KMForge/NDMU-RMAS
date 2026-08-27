@@ -8,12 +8,17 @@ use App\Models\ConsultationRequest;
 use App\Models\ConsultationScheduleProposal;
 use App\Models\User;
 use App\Modules\Consultations\Exceptions\ConsultationException;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 class RespondToConsultationReschedule
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications,
+    ) {}
+
     public function handle(User $requester, ConsultationRequest $request, string $responseAction): ConsultationRequest
     {
         $responseAction = strtolower(trim($responseAction));
@@ -116,6 +121,27 @@ class RespondToConsultationReschedule
                             'proposal_id' => $proposal->id,
                         ],
                     ]);
+                }
+
+                $adviser = User::query()->find($lockedRequest->assigned_adviser_id);
+
+                if ($adviser !== null) {
+                    $responseLabel = $responseAction === 'accept' ? 'accepted' : 'declined';
+                    $this->notifications->send(
+                        recipient: $adviser,
+                        eventKey: "consultation.reschedule-{$responseLabel}",
+                        title: "Consultation reschedule {$responseLabel}",
+                        message: "{$requester->name} {$responseLabel} your consultation reschedule proposal.",
+                        category: 'consultation',
+                        routeName: 'adviser.dashboard',
+                        routeParameters: ['tab' => 'consultation'],
+                        sourceType: ConsultationScheduleProposal::class,
+                        sourceId: $proposal->getKey(),
+                        actor: $requester,
+                        contextLabel: $lockedRequest->researchClassGroup?->name,
+                        actingAs: 'Thesis Adviser',
+                        occurrence: $responseAction,
+                    );
                 }
 
                 return $lockedRequest->fresh(['researchClassGroup', 'assignedAdviser', 'requester', 'proposals']);

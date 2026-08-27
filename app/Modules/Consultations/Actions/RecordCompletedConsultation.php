@@ -12,20 +12,18 @@ use App\Models\User;
 use App\Modules\AuditLogs\Services\AuditLogWriter;
 use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Consultations\Exceptions\ConsultationException;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 class RecordCompletedConsultation
 {
-<<<<<<< HEAD
-=======
     public function __construct(
         private readonly WorkflowNotificationDispatcher $notifications,
         private readonly AuditLogWriter $auditLogs,
     ) {}
 
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
     /**
      * @param  array{
      *     consulted_at?: ?CarbonImmutable,
@@ -117,8 +115,6 @@ class RecordCompletedConsultation
                     ],
                 ]);
 
-<<<<<<< HEAD
-=======
                 $this->notifications->sendToMany(
                     recipients: User::query()->whereIn('id', $groupMemberUserIds)->get(),
                     eventKey: 'consultation.completed',
@@ -146,7 +142,6 @@ class RecordCompletedConsultation
                     actorContext: 'thesis-adviser',
                 );
 
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
                 return $record->fresh(['request', 'researchClassGroup', 'conductedBy', 'attendances.student']);
             }, 3);
         } catch (ConsultationException $exception) {

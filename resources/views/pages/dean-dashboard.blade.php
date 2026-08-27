@@ -1,5 +1,10 @@
 @extends('layouts.blank')
 
+@php
+    $allowedTabs = ['dashboard', 'pending', 'manuscript', 'appointments', 'schedule', 'reports', 'repository', 'notifications', 'settings'];
+    $initialTab = in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard';
+@endphp
+
 @section('content')
 <style>
     [x-cloak] { display: none !important; }
@@ -20,7 +25,18 @@
 </style>
 
 <div class="min-h-screen flex font-sans bg-[#f4f7f6]" x-data="{ 
-    activeTab: 'dashboard',
+    activeTab: @js($initialTab),
+    dashboardUrl: @js(route('dean.dashboard')),
+    persistTab(tab) {
+        const url = new URL(this.dashboardUrl, window.location.origin);
+        url.searchParams.set('tab', tab);
+
+        if (`${url.pathname}${url.search}` === `${window.location.pathname}${window.location.search}`) return;
+
+        window.Livewire?.navigate
+            ? window.Livewire.navigate(url.toString())
+            : window.location.assign(url.toString());
+    },
     notificationsFilter: 'all',
     showDetailsModal: false,
     selectedRequest: null,
@@ -288,7 +304,11 @@
             unread: false
         }
     ]
-}">
+}"
+    x-init="$watch('activeTab', (tab, previousTab) => {
+        if (tab !== previousTab) $nextTick(() => persistTab(tab));
+    })"
+>
     <!-- Left Sidebar: Navigation -->
     <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5 overflow-y-auto">
         <div class="flex-shrink-0">
@@ -316,35 +336,35 @@
         </div>
 
         <!-- Navigation Links -->
-        <div class="flex-grow pl-4 pr-0 py-4 space-y-6">
-            <div class="space-y-1">
+        <div class="flex-grow px-6 py-4 space-y-6">
+            <div class="space-y-1.5">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
                 
                 <!-- Dashboard -->
                 <button 
                    type="button" 
                    @click="activeTab = 'dashboard'"
-                   :class="activeTab === 'dashboard' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-squares-four curved-nav-icon"></i>
+                        <i class="ph ph-squares-four text-lg"></i>
                         <span>Dashboard</span>
                     </div>
-                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
                 
                 <!-- Pending Approvals -->
                 <button 
                    type="button" 
                    @click="activeTab = 'pending'"
-                   :class="activeTab === 'pending' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'pending' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-clipboard curved-nav-icon"></i>
+                        <i class="ph ph-clipboard text-lg"></i>
                         <span>Pending Approvals</span>
                     </div>
-                    <div class="flex items-center gap-2 mr-3">
-                        @if (isset($pendingFormInstances) && $pendingFormInstances->count() > 0)
-                            <span class="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[10px] font-black text-white shadow-sm">{{ $pendingFormInstances->count() }}</span>
-                        @endif
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['pending'] ?? 0" label="approvals requiring attention" />
                         <span x-show="activeTab === 'pending'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                     </div>
                 </button>
@@ -353,90 +373,80 @@
                 <button 
                    type="button" 
                    @click="activeTab = 'manuscript'"
-                   :class="activeTab === 'manuscript' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'manuscript' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-certificate curved-nav-icon"></i>
+                        <i class="ph ph-certificate text-lg"></i>
                         <span>Manuscript Approvals</span>
                     </div>
-                    <span x-show="activeTab === 'manuscript'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <span x-show="activeTab === 'manuscript'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
 
                 <!-- Faculty Appointments -->
                 <button 
                    type="button" 
                    @click="activeTab = 'appointments'"
-                   :class="activeTab === 'appointments' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'appointments' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-users curved-nav-icon"></i>
+                        <i class="ph ph-users text-lg"></i>
                         <span>Faculty Appointments</span>
                     </div>
-                    <span x-show="activeTab === 'appointments'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <span x-show="activeTab === 'appointments'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
 
                 <!-- Defense Schedules -->
                 <button 
                    type="button" 
                    @click="activeTab = 'schedule'"
-                   :class="activeTab === 'schedule' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'schedule' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-calendar curved-nav-icon"></i>
+                        <i class="ph ph-calendar text-lg"></i>
                         <span>Defense Schedules</span>
                     </div>
-                    <span x-show="activeTab === 'schedule'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <span x-show="activeTab === 'schedule'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
 
                 <!-- Research Reports -->
-<<<<<<< HEAD
-                <button 
-                   type="button" 
-                   @click="activeTab = 'reports'"
-                   :class="activeTab === 'reports' ? 'curved-nav-item active' : 'curved-nav-item'">
-=======
                 @can('reports.view')
                 <a href="{{ route('dean.reports.index') }}"
                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left text-white/90 hover:text-white hover:bg-white/5 font-semibold">
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-file-text curved-nav-icon"></i>
+                        <i class="ph ph-file-text text-lg"></i>
                         <span>Research Reports</span>
                     </div>
-<<<<<<< HEAD
-                    <span x-show="activeTab === 'reports'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
-                </button>
-=======
                 </a>
                 @endcan
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
 
                 <!-- Research Repository -->
                 <button 
                    type="button" 
                    @click="activeTab = 'repository'"
-                   :class="activeTab === 'repository' ? 'curved-nav-item active' : 'curved-nav-item'">
+                   :class="activeTab === 'repository' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-folder curved-nav-icon"></i>
+                        <i class="ph ph-folder text-lg"></i>
                         <span>Research Repository</span>
                     </div>
-                    <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-3"></span>
+                    <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </button>
             </div>
 
             <!-- Research Forms Section -->
-            <div class="space-y-1.5 pt-4 pr-4 border-t border-white/10">
+            <div class="space-y-1.5 pt-4 border-t border-white/10">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Research Forms</span>
                 
                 <a 
                     href="{{ route('official-forms.workspace.index') }}"
-                    class="curved-nav-item"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200 text-left cursor-pointer"
                 >
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-file-pdf curved-nav-icon text-amber-300"></i>
+                        <i class="ph ph-file-pdf text-lg"></i>
                         <span>Official Forms Workspace</span>
                     </div>
-                    <div class="flex items-center gap-2 mr-3">
-                        @if (isset($pendingFormInstances) && $pendingFormInstances->count() > 0)
-                            <span class="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[10px] font-black text-white shadow-sm">{{ $pendingFormInstances->count() }}</span>
-                        @endif
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['forms'] ?? 0" label="forms awaiting approval" />
                         <i class="ph ph-caret-right text-xs text-white/60"></i>
                     </div>
                 </a>
@@ -444,28 +454,32 @@
         </div>
 
         <!-- Sidebar Footer -->
-        <div class="flex-shrink-0 pl-4 pr-0 pb-6 mt-8">
-            <div class="pt-4 border-t border-white/10 space-y-1 pr-4">
+        <div class="flex-shrink-0 px-6 pb-6 mt-8">
+            <div class="pt-4 border-t border-white/10 space-y-1">
                 <!-- Notifications -->
-                <a href="#" 
-                   @click.prevent="activeTab = 'notifications'"
-                   :class="activeTab === 'notifications' ? 'curved-nav-item active !pr-3' : 'curved-nav-item !pr-3'">
+                <a href="{{ route('notifications.index') }}"
+                   :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
+                   class="flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-bell curved-nav-icon"></i>
+                        <i class="ph ph-bell text-lg"></i>
                         <span>Notifications</span>
                     </div>
-                    <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-2"></span>
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['notifications'] ?? 0" label="unread notifications" />
+                        <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    </div>
                 </a>
                 
                 <!-- Settings -->
                 <a href="#" 
                    @click.prevent="activeTab = 'settings'"
-                   :class="activeTab === 'settings' ? 'curved-nav-item active !pr-3' : 'curved-nav-item !pr-3'">
+                   :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
+                   class="flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-gear curved-nav-icon"></i>
+                        <i class="ph ph-gear text-lg"></i>
                         <span>Settings</span>
                     </div>
-                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-2"></span>
+                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                 </a>
 
                 <!-- Logout -->
@@ -477,7 +491,7 @@
                     </button>
                 </form>
             </div>
-            <div class="text-[9px] text-white/30 text-center font-medium mt-6 pr-4">
+            <div class="text-[9px] text-white/30 text-center font-medium mt-6">
                 NDMU © 2026 - v1.0
             </div>
         </div>
@@ -502,11 +516,7 @@
             <!-- Right profile area matching "D / Dr. Dean's Portal" -->
             <div class="flex items-center gap-4">
                 <x-workspace-switcher current="dean" />
-                <!-- Notification Bell -->
-                <button @click="activeTab = 'notifications'" class="relative w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
-                    <i class="ph ph-bell text-lg"></i>
-                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                </button>
+                <x-notification-dropdown />
                 
                 <!-- Dean's Portal Profile Badge -->
                 <div class="flex items-center gap-3 pl-2 border-l border-gray-150">
@@ -563,6 +573,8 @@
                         </button>
                     </div>
                 </div>
+
+                <x-pending-academic-actions-card :pendingActions="$pendingAcademicActions ?? []" />
 
                 <!-- Stats Cards Row (4 Columns matching layout widgets) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">

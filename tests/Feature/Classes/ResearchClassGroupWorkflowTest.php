@@ -130,6 +130,31 @@ class ResearchClassGroupWorkflowTest extends TestCase
         $this->assertSame(4, ResearchClassGroupMember::query()->where('research_class_group_id', $group->getKey())->count());
     }
 
+    public function test_facilitator_can_bulk_assign_multiple_students_to_a_group(): void
+    {
+        $facilitator = $this->userWithRole('research-facilitator');
+        $researchClass = $this->createClass($facilitator);
+        $group = $this->createGroup($researchClass, $facilitator, 'Capstone Group 1');
+
+        $student1 = $this->userWithRole('student-researcher');
+        $student2 = $this->userWithRole('student-researcher');
+        $student3 = $this->userWithRole('student-researcher');
+
+        $enrollment1 = $this->enroll($researchClass, $student1, 'active');
+        $enrollment2 = $this->enroll($researchClass, $student2, 'active');
+        $enrollment3 = $this->enroll($researchClass, $student3, 'active');
+
+        $this->actingAs($facilitator)
+            ->postJson(route('facilitator.classes.groups.students.bulk-assign', $researchClass), [
+                'group_id' => $group->getKey(),
+                'enrollment_ids' => [$enrollment1->getKey(), $enrollment2->getKey(), $enrollment3->getKey()],
+            ])
+            ->assertOk()
+            ->assertJsonPath('assigned_count', 3);
+
+        $this->assertSame(3, ResearchClassGroupMember::query()->where('research_class_group_id', $group->getKey())->count());
+    }
+
     public function test_facilitator_can_send_adviser_request_and_adviser_can_accept_or_decline(): void
     {
         $facilitator = $this->userWithRole('research-facilitator');

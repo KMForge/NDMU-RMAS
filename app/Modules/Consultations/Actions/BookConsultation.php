@@ -10,6 +10,7 @@ use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupMember;
 use App\Models\User;
 use App\Modules\Consultations\Exceptions\ConsultationException;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,10 @@ use Illuminate\Support\Str;
 
 class BookConsultation
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications,
+    ) {}
+
     /**
      * @param  array{
      *     preferred_at: CarbonImmutable,
@@ -119,6 +124,25 @@ class BookConsultation
                         'mode' => $data['consultation_mode'],
                     ],
                 ]);
+
+                $adviser = User::query()->find($group->adviser_id);
+
+                if ($adviser !== null) {
+                    $this->notifications->send(
+                        recipient: $adviser,
+                        eventKey: 'consultation.requested',
+                        title: 'New consultation request',
+                        message: "{$group->name} requested a consultation for {$preferredAt->format('M j, Y g:i A')}.",
+                        category: 'consultation',
+                        routeName: 'adviser.dashboard',
+                        routeParameters: ['tab' => 'consultation'],
+                        sourceType: ConsultationRequest::class,
+                        sourceId: $request->getKey(),
+                        actor: $requester,
+                        contextLabel: $group->name,
+                        actingAs: 'Thesis Adviser',
+                    );
+                }
 
                 return $request->load(['researchClassGroup', 'assignedAdviser', 'requester']);
             }, 3);

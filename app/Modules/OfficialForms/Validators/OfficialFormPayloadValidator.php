@@ -155,7 +155,7 @@ class OfficialFormPayloadValidator
         }
 
         if ($code === 'RES-026' && isset($payload['topics']) && count($payload['topics']) > 3) {
-            throw new InvalidArgumentException('RES-026 permits at most three proposed topics.');
+            throw new InvalidArgumentException('RES-026 permits exactly three proposed topics when submitted.');
         }
 
         if ($code === 'RES-041') {

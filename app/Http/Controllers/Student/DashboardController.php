@@ -8,7 +8,9 @@ use App\Modules\Consultations\Queries\GetStudentConsultationData;
 use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
+use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use App\Modules\Research\Queries\GetStudentDashboardData;
+use App\Modules\ResearchProgress\Services\ResearchJourneyService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -22,6 +24,8 @@ class DashboardController extends Controller
         GetStudentConsultationData $consultationData,
         GetDefenseScheduleCalendar $defenseCalendar,
         GetEvaluationRoundData $evaluationQuery,
+        ResearchJourneyService $journeyService,
+        GetPendingAcademicActionsForUser $pendingActionsService,
     ): View {
         $allowedTabs = [
             'dashboard',
@@ -81,10 +85,27 @@ class DashboardController extends Controller
             })
             ->all();
 
+        $activeGroup = $data['activeGroup'] ?? null;
+        $journey = $activeGroup ? $journeyService->getJourneyForGroup($activeGroup, $request->user()) : null;
+        $pendingAcademicActions = $pendingActionsService->execute($request->user());
+
+        $data['sidebarBadges'] = [
+            'consultation' => $pendingConsultationsCount,
+            'revisions' => collect($data['revisions'] ?? [])
+                ->whereIn('status', ['open', 'in_progress'])
+                ->count() + (int) ($data['documentFeedbackCount'] ?? 0),
+            'forms' => $pendingAcademicActions->count(),
+            'notifications' => Schema::hasTable('notifications')
+                ? $request->user()->unreadNotifications()->count()
+                : 0,
+        ];
+
         return view('pages.student-dashboard', [
             'area' => 'Student Portal',
             'student' => $request->user(),
             'activeDashboardTab' => $activeTab,
+            'journey' => $journey,
+            'pendingAcademicActions' => $pendingAcademicActions,
             ...$data,
         ]);
     }

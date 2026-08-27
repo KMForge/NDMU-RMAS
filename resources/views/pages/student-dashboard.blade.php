@@ -62,18 +62,34 @@
         formsExpanded: @js($initialTab === 'forms'),
         showConsultationModal: @js($showConsultationModal),
         showJoinClassModal: @js($showJoinClassModal),
-        dashboardUrl: @js(route('student.dashboard'))
+        dashboardUrl: @js(route('student.dashboard')),
+        persistTabTimer: null,
+        queuePersistTab(tab) {
+            window.clearTimeout(this.persistTabTimer);
+            this.persistTabTimer = window.setTimeout(() => this.persistTab(tab), 0);
+        },
+        persistTab(tab) {
+            const url = new URL(this.dashboardUrl, window.location.origin);
+            url.searchParams.set('tab', tab);
+            if (tab === 'forms' && this.activeOfficialForm) {
+                url.searchParams.set('form', this.activeOfficialForm);
+            }
+
+            if (`${url.pathname}${url.search}` === `${window.location.pathname}${window.location.search}`) return;
+
+            window.Livewire?.navigate
+                ? window.Livewire.navigate(url.toString())
+                : window.location.assign(url.toString());
+        }
     }"
-    x-init="$watch('activeTab', (tab, previousTab) => {
-        if (tab === previousTab) return;
-
-        const url = new URL(dashboardUrl, window.location.origin);
-        url.searchParams.set('tab', tab);
-
-        window.Livewire?.navigate
-            ? window.Livewire.navigate(url.toString())
-            : window.location.assign(url.toString());
-    })"
+    x-init="
+        $watch('activeTab', (tab, previousTab) => {
+            if (tab !== previousTab) queuePersistTab(tab);
+        });
+        $watch('activeOfficialForm', (form, previousForm) => {
+            if (activeTab === 'forms' && form !== previousForm) queuePersistTab('forms');
+        });
+    "
 >
     <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5 overflow-y-auto">
         <div class="flex-shrink-0">
@@ -98,8 +114,8 @@
             </div>
         </div>
 
-        <div class="flex-grow pl-4 pr-0 py-4 space-y-6">
-            <div class="space-y-1">
+        <div class="flex-grow px-6 py-4 space-y-6">
+            <div class="space-y-1.5">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
 
                 @foreach ([
@@ -117,25 +133,25 @@
                     <a
                         href="{{ route('student.dashboard', ['tab' => $tab]) }}"
                         wire:navigate
-                        :class="activeTab === '{{ $tab }}' ? 'curved-nav-item active' : 'curved-nav-item'"
+                        :class="activeTab === '{{ $tab }}' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
                     >
                         <div class="flex items-center gap-3">
-                            <i class="ph {{ $icon }} curved-nav-icon"></i>
+                            <i class="ph {{ $icon }} text-lg"></i>
                             <span>{{ $label }}</span>
                         </div>
-                        <div class="flex items-center gap-2 mr-3">
-                            @if ($tab === 'consultation' && ($pendingConsultationsCount ?? 0) > 0)
-                                <span class="px-2 py-0.5 text-[10px] font-black rounded-full bg-amber-400 text-amber-950 shadow-xs">
-                                    {{ $pendingConsultationsCount }}
-                                </span>
-                            @endif
+                        <div class="flex items-center gap-2">
+                            <x-sidebar-count-badge
+                                :count="$sidebarBadges[$tab] ?? 0"
+                                :label="strtolower($label).' requiring attention'"
+                            />
                             <span x-show="activeTab === '{{ $tab }}'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
                         </div>
                     </a>
                 @endforeach
             </div>
 
-            <div class="space-y-1.5 pt-4 mt-4 pr-4 border-t border-white/10">
+            <div class="space-y-1.5 pt-4 mt-4 border-t border-white/10">
                 <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Research Forms</span>
                 <button
                     type="button"
@@ -148,7 +164,10 @@
                         <i class="ph ph-file-pdf text-lg"></i>
                         <span>Official Forms</span>
                     </div>
-                    <i class="ph ph-caret-right text-xs transition-transform duration-200" :class="formsExpanded && 'rotate-90'"></i>
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['forms'] ?? 0" label="official form actions requiring attention" />
+                        <i class="ph ph-caret-right text-xs transition-transform duration-200" :class="formsExpanded && 'rotate-90'"></i>
+                    </div>
                 </button>
 
                 <div x-show="formsExpanded" x-cloak x-transition class="mt-1 space-y-0.5">
@@ -200,34 +219,33 @@
             </div>
         </div>
 
-        <div class="flex-shrink-0 pl-4 pr-0 pb-6 mt-8">
-            <div class="pt-4 border-t border-white/10 space-y-1 pr-4">
+        <div class="flex-shrink-0 px-6 pb-6 mt-8">
+            <div class="pt-4 border-t border-white/10 space-y-1">
                 <a
-                    href="{{ route('student.dashboard', ['tab' => 'notifications']) }}"
+                    href="{{ route('notifications.index') }}"
                     wire:navigate
-                    :class="activeTab === 'notifications' ? 'curved-nav-item active !pr-3' : 'curved-nav-item !pr-3'"
+                    :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold' : 'text-white/90 hover:bg-white/5 font-semibold'"
+                    class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-[13px] text-left transition-all"
                 >
-                    <div class="flex items-center gap-3">
-                        <i class="ph ph-bell curved-nav-icon"></i>
+                    <span class="flex items-center gap-3">
+                        <i class="ph ph-bell text-lg"></i>
                         <span>Notifications</span>
-                    </div>
-                    <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-2"></span>
+                    </span>
+                    <x-sidebar-count-badge :count="$sidebarBadges['notifications'] ?? 0" label="unread notifications" />
                 </a>
                 <a
                     href="{{ route('student.dashboard', ['tab' => 'settings']) }}"
                     wire:navigate
-                    :class="activeTab === 'settings' ? 'curved-nav-item active !pr-3' : 'curved-nav-item !pr-3'"
+                    :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold' : 'text-white/90 hover:bg-white/5 font-semibold'"
+                    class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] text-left transition-all"
                 >
-                    <div class="flex items-center gap-3">
-                        <i class="ph ph-gear curved-nav-icon"></i>
-                        <span>Settings</span>
-                    </div>
-                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a] mr-2"></span>
+                    <i class="ph ph-gear text-lg"></i>
+                    <span>Settings</span>
                 </a>
             </div>
-            <form method="POST" action="{{ route('logout') }}" data-confirm-logout class="pr-4">
+            <form method="POST" action="{{ route('logout') }}" data-confirm-logout>
                 @csrf
-                <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-xl text-white/90 hover:bg-white/5 font-semibold text-[13px] cursor-pointer">
+                <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-xl text-white/90 hover:bg-white/5 font-semibold text-[13px]">
                     <i class="ph ph-sign-out text-lg"></i>
                     <span>Logout</span>
                 </button>
@@ -254,12 +272,7 @@
             </form>
             <div class="flex items-center gap-3">
                 <x-workspace-switcher current="student" />
-                <button type="button" @click="activeTab = 'notifications'" class="w-9 h-9 rounded-full hover:bg-gray-50 text-gray-500 flex items-center justify-center relative">
-                    <i class="ph ph-bell text-lg"></i>
-                    @if ($notifications->whereNull('read_at')->isNotEmpty())
-                        <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 border border-white"></span>
-                    @endif
-                </button>
+                <x-notification-dropdown />
                 <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-xs">
                     {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($student->name, 0, 1)) }}
                 </div>
@@ -338,6 +351,10 @@
                     </div>
 
                 </div>
+
+                <x-pending-academic-actions-card :pendingActions="$pendingAcademicActions ?? []" />
+
+                <x-research-journey-card :journey="$journey ?? null" />
 
                 @if ($dashboardSearchQuery !== '')
                     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -717,6 +734,39 @@
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div class="lg:col-span-2 space-y-8">
                             <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200">
+                                <div class="flex flex-wrap items-start justify-between gap-4">
+                                    <div>
+                                        <h2 class="font-bold text-gray-850 text-lg">Current Research Document</h2>
+                                        <p class="mt-1 text-xs text-gray-500">The latest current paper submitted by your Research Group.</p>
+                                    </div>
+                                    @if ($currentResearchDocument)
+                                        <span class="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase text-emerald-700">
+                                            {{ \Illuminate\Support\Str::headline($currentResearchDocument->status->value) }}
+                                        </span>
+                                    @endif
+                                </div>
+
+                                @if ($currentResearchDocument)
+                                    <div class="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
+                                        <div class="min-w-0">
+                                            <p class="truncate text-sm font-bold text-gray-850">{{ $currentResearchDocument->original_filename }}</p>
+                                            <p class="mt-1 text-xs text-gray-500">
+                                                {{ $currentResearchDocument->stageLabel() }}
+                                                · Version {{ $currentResearchDocument->version_number }}
+                                                · {{ $currentResearchDocument->formattedFileSize() }}
+                                                · {{ $currentResearchDocument->submitted_at?->format('M j, Y g:i A') }}
+                                            </p>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <a href="{{ route('documents.view', $currentResearchDocument) }}" target="_blank" rel="noopener" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-700">View</a>
+                                            <a href="{{ route('documents.download', $currentResearchDocument) }}" class="rounded-lg bg-[#0e5c3a] px-3 py-2 text-xs font-bold text-white">Download</a>
+                                        </div>
+                                    </div>
+                                @else
+                                    <p class="mt-5 text-sm text-gray-500">No current research document has been submitted for your group.</p>
+                                @endif
+                            </div>
+                            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200">
                                 <h2 class="font-bold text-gray-850 text-lg">Abstract</h2>
                                 <p class="text-sm text-gray-600 leading-7 mt-4">{{ $researchProject->abstract ?: 'No abstract has been provided.' }}</p>
                             </div>
@@ -879,7 +929,8 @@
                                                 </p>
                                             </div>
                                         </div>
-                                        <div>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <span class="px-3 py-1 bg-slate-100 text-slate-700 text-[10px] font-black rounded-full uppercase tracking-wider border border-slate-200">{{ str($doc->status->value)->headline() }}</span>
                                             @if ($doc->is_current)
                                                 <span class="px-3 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-full uppercase tracking-wider border border-emerald-200">
                                                     CURRENT
@@ -888,6 +939,9 @@
                                                 <span class="px-3 py-1 bg-gray-100 text-gray-500 text-[10px] font-bold rounded-full uppercase tracking-wider border border-gray-200">
                                                     VOID
                                                 </span>
+                                            @endif
+                                            @if ($activeGroup->isLeader(auth()->user()) && $doc->is_current && $doc->document_stage === \App\Enums\DocumentStage::TitleProposal && $doc->status === \App\Enums\DocumentStatus::Draft)
+                                                <form method="POST" action="{{ route('student.documents.title-proposal.submit', $doc) }}">@csrf<button class="rounded-lg bg-[#0e5c3a] px-3 py-2 text-[10px] font-black uppercase tracking-wide text-white">Submit for Screening</button></form>
                                             @endif
                                         </div>
                                     </div>
@@ -1156,7 +1210,56 @@
             </section>
 
             <section x-show="activeTab === 'revisions'" x-cloak class="space-y-8">
-                <x-student-section-heading title="Revision Tracker" description="Revision requests for your research." />
+                <x-student-section-heading title="Revision Tracker" description="Panel feedback and revision requests for your research." />
+
+                <div class="space-y-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-900">Panel Feedback</h2>
+                        <p class="mt-1 text-xs text-gray-500">Comments posted by your assigned reviewers appear here automatically.</p>
+                    </div>
+
+                    @forelse ($documentFeedback as $feedback)
+                        @php
+                            $feedbackDocument = $feedback->document;
+                        @endphp
+                        <article class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide {{ $feedback->severity === 'critical' ? 'bg-red-50 text-red-700' : ($feedback->severity === 'warning' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700') }}">
+                                            {{ \Illuminate\Support\Str::headline($feedback->severity) }}
+                                        </span>
+                                        @if ($feedback->resolved_at)
+                                            <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-700">Resolved</span>
+                                        @endif
+                                    </div>
+                                    <h3 class="mt-3 truncate font-bold text-gray-900">{{ $feedbackDocument?->original_filename ?? 'Research document' }}</h3>
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        {{ $feedback->author?->name ?? 'Assigned reviewer' }}
+                                        @if ($feedback->page_number)
+                                            · Page {{ $feedback->page_number }}
+                                        @endif
+                                        · {{ $feedback->created_at?->format('M j, Y g:i A') }}
+                                    </p>
+                                    <p class="mt-3 whitespace-pre-line text-sm leading-6 text-gray-700">{{ $feedback->comment }}</p>
+                                </div>
+
+                                @if ($feedbackDocument)
+                                    <a href="{{ route('documents.view', $feedbackDocument) }}" target="_blank" rel="noopener" class="shrink-0 rounded-xl border border-[#0e5c3a] px-4 py-2.5 text-center text-xs font-bold text-[#0e5c3a]">
+                                        View Paper
+                                    </a>
+                                @endif
+                            </div>
+                        </article>
+                    @empty
+                        <x-student-empty-state message="No panel feedback has been posted." />
+                    @endforelse
+                </div>
+
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">Formal Revision Requests</h2>
+                    <p class="mt-1 text-xs text-gray-500">Required revision cycles issued for your research group.</p>
+                </div>
                 <div class="space-y-4">
                     @forelse ($revisions as $revision)
                         <div class="space-y-3">
@@ -1219,6 +1322,12 @@
 
             <section x-show="activeTab === 'defense'" x-cloak class="space-y-8">
                 <x-student-section-heading title="My Defense Schedule" description="Defense requests and confirmed schedules." />
+                @php
+                    $title = 'Research Defense';
+                    $status = 'Scheduled';
+                    $date = 'TBA';
+                    $venue = 'Venue not assigned';
+                @endphp
                 <div class="space-y-4">
                     @forelse ($defenses as $defense)
                         @php

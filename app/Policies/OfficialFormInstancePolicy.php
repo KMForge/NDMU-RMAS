@@ -25,8 +25,18 @@ class OfficialFormInstancePolicy
     public function view(User $user, OfficialFormInstance $instance): bool
     {
         $code = strtolower($instance->definition->code);
+        $isAssignedRes026Panelist = $code === 'res-026'
+            && $user->can('evaluations.create')
+            && $instance->titlePresentation !== null
+            && $instance->titlePresentation->defense->activePanelAssignments()
+                ->where('user_id', $user->id)
+                ->exists();
         $hasViewPermission = $user->hasPermissionTo("forms.{$code}.view")
-            || $user->getAllPermissions()->contains(fn ($p) => str_starts_with($p->name, "forms.{$code}."));
+            || $user->getAllPermissions()->contains(fn ($p) => str_starts_with($p->name, "forms.{$code}."))
+            || $isAssignedRes026Panelist
+            || $user->can('dashboards.dean.view')
+            || $user->hasRole('college-dean')
+            || $user->hasRole('dean');
 
         if (! $hasViewPermission && ! $user->can('users.manage')) {
             return false;
@@ -78,6 +88,21 @@ class OfficialFormInstancePolicy
         }
 
         return $this->authorization->canCertify($user, $instance);
+    }
+
+    public function sign_chairperson(User $user, OfficialFormInstance $instance): bool
+    {
+        return $this->authorization->canPerformAction($user, $instance, 'sign_chairperson');
+    }
+
+    public function sign_member_1(User $user, OfficialFormInstance $instance): bool
+    {
+        return $this->authorization->canPerformAction($user, $instance, 'sign_member_1');
+    }
+
+    public function sign_member_2(User $user, OfficialFormInstance $instance): bool
+    {
+        return $this->authorization->canPerformAction($user, $instance, 'sign_member_2');
     }
 
     public function approve(User $user, OfficialFormInstance $instance): bool

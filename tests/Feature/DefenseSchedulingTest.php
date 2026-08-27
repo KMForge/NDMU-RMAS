@@ -116,6 +116,88 @@ class DefenseSchedulingTest extends TestCase
         ]);
     }
 
+    public function test_pre_final_defense_stores_chairperson_and_two_panel_positions(): void
+    {
+        $chairperson = $this->eligiblePanelCandidate();
+        $secondPanelist = $this->eligiblePanelCandidate();
+        $startsAt = Carbon::now()->addDays(2)->setHour(9)->setMinute(0)->setSecond(0);
+
+        $defense = app(ScheduleDefense::class)->handle(
+            $this->facilitator,
+            $this->group,
+            'pre_final_defense',
+            $this->room->id,
+            $startsAt,
+            (clone $startsAt)->addHours(2),
+            [$this->panelist->id, $secondPanelist->id],
+            $chairperson->id,
+        );
+
+        $this->assertSame('pre_final_defense', $defense->defense_type);
+        $this->assertDatabaseHas('defense_panel_assignments', [
+            'defense_id' => $defense->id,
+            'user_id' => $chairperson->id,
+            'panel_position' => 'chairperson',
+        ]);
+        $this->assertDatabaseHas('defense_panel_assignments', [
+            'defense_id' => $defense->id,
+            'user_id' => $this->panelist->id,
+            'panel_position' => 'member_1',
+        ]);
+        $this->assertDatabaseHas('defense_panel_assignments', [
+            'defense_id' => $defense->id,
+            'user_id' => $secondPanelist->id,
+            'panel_position' => 'member_2',
+        ]);
+    }
+
+    public function test_group_adviser_cannot_be_the_chairperson(): void
+    {
+        $adviser = $this->eligiblePanelCandidate();
+        $secondPanelist = $this->eligiblePanelCandidate();
+        $this->group->update(['adviser_id' => $adviser->id]);
+        $startsAt = Carbon::now()->addDays(2)->setHour(9)->setMinute(0)->setSecond(0);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('cannot serve as Chairperson');
+
+        app(ScheduleDefense::class)->handle(
+            $this->facilitator,
+            $this->group->fresh('researchClass'),
+            'proposal_defense',
+            $this->room->id,
+            $startsAt,
+            (clone $startsAt)->addHours(2),
+            [$this->panelist->id, $secondPanelist->id],
+            $adviser->id,
+        );
+    }
+
+    public function test_group_adviser_may_serve_as_a_panel_member(): void
+    {
+        $adviser = $this->eligiblePanelCandidate();
+        $chairperson = $this->eligiblePanelCandidate();
+        $this->group->update(['adviser_id' => $adviser->id]);
+        $startsAt = Carbon::now()->addDays(2)->setHour(9)->setMinute(0)->setSecond(0);
+
+        $defense = app(ScheduleDefense::class)->handle(
+            $this->facilitator,
+            $this->group->fresh('researchClass'),
+            'final_defense',
+            $this->room->id,
+            $startsAt,
+            (clone $startsAt)->addHours(2),
+            [$adviser->id, $this->panelist->id],
+            $chairperson->id,
+        );
+
+        $this->assertDatabaseHas('defense_panel_assignments', [
+            'defense_id' => $defense->id,
+            'user_id' => $adviser->id,
+            'panel_position' => 'member_1',
+        ]);
+    }
+
     public function test_cannot_schedule_overlapping_room_defense(): void
     {
         $action = app(ScheduleDefense::class);
@@ -531,6 +613,35 @@ class DefenseSchedulingTest extends TestCase
         ]);
     }
 
+    public function test_facilitator_can_update_and_toggle_a_defense_room(): void
+    {
+        $this->actingAs($this->facilitator)
+            ->patch(route('facilitator.defense-rooms.update', $this->room), [
+                'code' => 'ceac-301',
+                'name' => 'CEAC Conference Room',
+                'location_notes' => 'Third floor',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('defense_rooms', [
+            'id' => $this->room->id,
+            'code' => 'CEAC-301',
+            'name' => 'CEAC Conference Room',
+            'location_notes' => 'Third floor',
+            'is_active' => 1,
+        ]);
+
+        $this->actingAs($this->facilitator)
+            ->patch(route('facilitator.defense-rooms.deactivate', $this->room))
+            ->assertRedirect();
+        $this->assertDatabaseHas('defense_rooms', ['id' => $this->room->id, 'is_active' => 0]);
+
+        $this->actingAs($this->facilitator)
+            ->patch(route('facilitator.defense-rooms.activate', $this->room))
+            ->assertRedirect();
+        $this->assertDatabaseHas('defense_rooms', ['id' => $this->room->id, 'is_active' => 1]);
+    }
+
     public function test_admin_can_create_defense_room(): void
     {
         $admin = User::factory()->create([
@@ -554,5 +665,18 @@ class DefenseSchedulingTest extends TestCase
             'name' => 'Main Auditorium',
             'is_active' => 1,
         ]);
+    }
+
+    private function eligiblePanelCandidate(): User
+    {
+        $candidate = User::factory()->create([
+            'user_type' => UserType::Faculty,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+        $candidate->givePermissionTo('evaluations.create');
+
+        return $candidate;
     }
 }

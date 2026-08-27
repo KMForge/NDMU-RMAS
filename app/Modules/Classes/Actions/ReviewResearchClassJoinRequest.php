@@ -9,19 +9,17 @@ use App\Modules\AuditLogs\Services\AuditLogWriter;
 use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 class ReviewResearchClassJoinRequest
 {
-<<<<<<< HEAD
-=======
     public function __construct(
         private readonly WorkflowNotificationDispatcher $notifications,
         private readonly AuditLogWriter $auditLogs,
     ) {}
 
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
     public function approve(
         User $facilitator,
         ResearchClass $researchClass,
@@ -106,8 +104,6 @@ class ReviewResearchClassJoinRequest
                     'reviewed_at' => now(),
                 ]);
 
-<<<<<<< HEAD
-=======
                 $student = User::query()->find($lockedRequest->student_id);
 
                 if ($student !== null) {
@@ -142,7 +138,6 @@ class ReviewResearchClassJoinRequest
                     actorContext: 'research-facilitator',
                 );
 
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
                 return $lockedRequest->refresh();
             }, 3);
         } catch (QueryException $exception) {

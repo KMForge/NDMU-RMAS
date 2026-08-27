@@ -9,12 +9,9 @@ use App\Http\Controllers\Facilitator\ResearchClassController;
 use App\Http\Controllers\Facilitator\ResearchClassFormActorController;
 use App\Http\Controllers\Facilitator\ResearchClassGroupController;
 use App\Http\Controllers\Facilitator\ResearchProgressController;
-<<<<<<< HEAD
-=======
 use App\Http\Controllers\Facilitator\TitlePresentationController;
 use App\Http\Controllers\Facilitator\TitleProposalScreeningController;
 use App\Http\Controllers\ReportController;
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('facilitator')->name('facilitator.')->middleware([
@@ -22,8 +19,6 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
 ])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
-<<<<<<< HEAD
-=======
     Route::prefix('/reports')->middleware(['permission:reports.view', 'throttle:reports'])->group(function (): void {
         Route::get('/', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/{report}', [ReportController::class, 'show'])->name('reports.show');
@@ -43,7 +38,6 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
         Route::patch('/{presentation}/result', [TitlePresentationController::class, 'recordResult'])->whereNumber('presentation')->name('title-presentations.result');
     });
 
->>>>>>> 8b15011507c76d76c221e8be36e9a204fbd67a03
     Route::prefix('/defense-rooms')
         ->middleware(['permission:defenses.manage', 'throttle:30,1'])
         ->group(function (): void {
@@ -122,6 +116,10 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
                 ->middleware(['permission:classes.manage-groups', 'throttle:class-join-decisions'])
                 ->whereNumber(['group', 'enrollment'])
                 ->name('classes.groups.students.assign');
+
+            Route::post('/groups/assign-students', [ResearchClassGroupController::class, 'bulkAssignStudents'])
+                ->middleware(['permission:classes.manage-groups', 'throttle:class-join-decisions'])
+                ->name('classes.groups.students.bulk-assign');
 
             Route::put('/groups/{group}/leader', [ResearchClassGroupController::class, 'assignLeader'])
                 ->middleware(['permission:classes.manage-groups', 'throttle:class-creation'])

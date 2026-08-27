@@ -4,6 +4,7 @@ use App\Http\Controllers\AccessPendingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentAccessController;
 use App\Http\Controllers\Facilitator\ResearchClassFormActorController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OfficialFormController;
 use App\Http\Controllers\OfficialFormSignatureController;
 use App\Http\Controllers\OfficialFormVerificationController;
@@ -28,6 +29,17 @@ Route::post('/workspace/{workspace}', WorkspaceController::class)
     ->middleware(['auth', 'verified', 'active', 'throttle:30,1'])
     ->whereIn('workspace', ['admin', 'facilitator', 'dean', 'adviser', 'panelist', 'student'])
     ->name('workspace.switch');
+
+Route::middleware(['auth', 'verified', 'active', 'throttle:120,1'])
+    ->prefix('notifications')
+    ->name('notifications.')
+    ->group(function (): void {
+        Route::get('/', [NotificationController::class, 'index'])->name('index');
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread-count');
+        Route::get('/{notification}/open', [NotificationController::class, 'open'])->whereUuid('notification')->name('open');
+        Route::patch('/{notification}/read', [NotificationController::class, 'read'])->whereUuid('notification')->name('read');
+        Route::patch('/read-all', [NotificationController::class, 'readAll'])->name('read-all');
+    });
 
 Route::middleware(['auth', 'verified', 'active'])
     ->prefix('documents')
@@ -100,7 +112,17 @@ Route::middleware(['auth', 'verified', 'active'])
             ->whereNumber('instance')->whereIn('action', ['endorse', 'receive', 'approve', 'certify', 'validate'])
             ->middleware('throttle:30,1')->name('action');
         Route::post('/instances/{instance}/actions/{action}/sign', [OfficialFormWorkspaceController::class, 'signAction'])
-            ->whereNumber('instance')->whereIn('action', ['endorse', 'receive', 'approve', 'certify', 'validate', 'sign_authorship'])
+            ->whereNumber('instance')->whereIn('action', [
+                'endorse',
+                'receive',
+                'approve',
+                'certify',
+                'validate',
+                'sign_authorship',
+                'sign_chairperson',
+                'sign_member_1',
+                'sign_member_2',
+            ])
             ->middleware('throttle:30,1')->name('sign-action');
         Route::get('/signatures/{signature}/image', [OfficialFormSignatureController::class, 'image'])
             ->whereNumber('signature')->middleware('throttle:120,1')->name('signature-image');

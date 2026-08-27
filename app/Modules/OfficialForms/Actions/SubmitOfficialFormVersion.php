@@ -37,6 +37,25 @@ class SubmitOfficialFormVersion
         $formCode = strtoupper($instance->definition->code);
         $validatedPayload = $this->payloadValidator->validate($formCode, $payload);
 
+        if ($formCode === 'RES-026') {
+            $topics = array_values(array_filter(
+                array_map(static fn (mixed $title): string => trim((string) $title), $validatedPayload['topics'] ?? []),
+                static fn (string $title): bool => $title !== ''
+            ));
+
+            if (count($topics) !== 3) {
+                throw new InvalidArgumentException('RES-026 requires exactly three non-blank proposed research titles.');
+            }
+
+            foreach ($topics as $title) {
+                if (mb_strlen($title) > 500) {
+                    throw new InvalidArgumentException('Each proposed research title must not exceed 500 characters.');
+                }
+            }
+
+            $validatedPayload['topics'] = $topics;
+        }
+
         return DB::transaction(function () use ($actor, $instance, $nextStatus, $validatedPayload) {
             /** @var OfficialFormInstance $lockedInstance */
             $lockedInstance = OfficialFormInstance::query()
@@ -61,7 +80,7 @@ class SubmitOfficialFormVersion
                     'user_id' => $actor->id,
                     'actor_name' => $actor->name,
                     'actor_email' => $actor->email,
-                    'event' => 'official_form.submitted',
+                    'event' => strtoupper($lockedInstance->definition->code) === 'RES-026' ? 'RES026_SUBMITTED' : 'official_form.submitted',
                     'auditable_type' => OfficialFormInstance::class,
                     'auditable_id' => $lockedInstance->id,
                     'description' => "Submitted unchanged official form version v{$currentVersion->version_number} (status: {$nextStatus}).",
@@ -100,7 +119,7 @@ class SubmitOfficialFormVersion
                 'user_id' => $actor->id,
                 'actor_name' => $actor->name,
                 'actor_email' => $actor->email,
-                'event' => 'official_form.version_submitted',
+                'event' => strtoupper($lockedInstance->definition->code) === 'RES-026' ? 'RES026_SUBMITTED' : 'official_form.version_submitted',
                 'auditable_type' => OfficialFormInstance::class,
                 'auditable_id' => $lockedInstance->id,
                 'description' => "Submitted official form version v{$nextVersionNumber} (status: {$nextStatus}).",

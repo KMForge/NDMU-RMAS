@@ -11,6 +11,7 @@ use App\Models\DefenseRoom;
 use App\Models\DefenseSchedule;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
+use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,10 @@ use InvalidArgumentException;
 
 class ScheduleDefense
 {
+    public function __construct(
+        private readonly WorkflowNotificationDispatcher $notifications = new WorkflowNotificationDispatcher,
+    ) {}
+
     public function handle(
         User $actor,
         ResearchClassGroup $group,
@@ -25,7 +30,8 @@ class ScheduleDefense
         int $roomId,
         CarbonInterface $startsAt,
         CarbonInterface $endsAt,
-        array $panelUserIds
+        array $panelUserIds,
+        ?int $chairpersonUserId = null,
     ): Defense {
         if ($actor->user_type !== UserType::Faculty || $actor->status !== AccountStatus::Active || ! $actor->can('defenses.manage')) {
             throw new AuthorizationException('Unauthorized to manage defense schedules.');
@@ -35,7 +41,7 @@ class ScheduleDefense
             throw new AuthorizationException('Unauthorized: You do not own the research class for this group.');
         }
 
-        if (! in_array($defenseType, ['proposal_defense', 'final_defense'], true)) {
+        if (! in_array($defenseType, ['title_presentation', 'proposal_defense', 'pre_final_defense', 'final_defense'], true)) {
             throw new InvalidArgumentException("Invalid defense type: {$defenseType}.");
         }
 
@@ -47,7 +53,17 @@ class ScheduleDefense
             throw new InvalidArgumentException('Duplicate panel user IDs in request.');
         }
 
-        return DB::transaction(function () use ($actor, $group, $defenseType, $roomId, $startsAt, $endsAt, $panelUserIds) {
+        if ($chairpersonUserId !== null) {
+            if (count($panelUserIds) !== 2 || in_array($chairpersonUserId, $panelUserIds, true)) {
+                throw new InvalidArgumentException('The Chairperson and two Panel Members must be three distinct Faculty users.');
+            }
+
+            if ((int) $group->adviser_id === $chairpersonUserId) {
+                throw new InvalidArgumentException("The assigned Thesis Adviser cannot serve as Chairperson for the same group's defense, but may serve as a Panel Member.");
+            }
+        }
+
+        return DB::transaction(function () use ($actor, $group, $defenseType, $roomId, $startsAt, $endsAt, $panelUserIds, $chairpersonUserId) {
             // 1. Lock Group
             $lockedGroup = ResearchClassGroup::where('id', $group->id)->lockForUpdate()->firstOrFail();
 
@@ -57,6 +73,10 @@ class ScheduleDefense
 
             if (! $lockedGroup->researchClass || (int) $lockedGroup->researchClass->facilitator_id !== (int) $actor->id) {
                 throw new AuthorizationException('Unauthorized: You do not own the research class for this group.');
+            }
+
+            if ($chairpersonUserId !== null && (int) $lockedGroup->adviser_id === $chairpersonUserId) {
+                throw new InvalidArgumentException("The assigned Thesis Adviser cannot serve as Chairperson for the same group's defense, but may serve as a Panel Member.");
             }
 
             // Fail-Closed Initial Defense Rule: Only 1 initial defense aggregate per group and defense type
@@ -75,13 +95,18 @@ class ScheduleDefense
             }
 
             // 3. Lock Panel Users sorted by user ID ASC
-            sort($panelUserIds);
-            $panelUsers = User::whereIn('id', $panelUserIds)
+            $assignedUserIds = $panelUserIds;
+            if ($chairpersonUserId !== null) {
+                $assignedUserIds[] = $chairpersonUserId;
+            }
+            $assignedUserIds = array_values(array_unique($assignedUserIds));
+            sort($assignedUserIds);
+            $panelUsers = User::whereIn('id', $assignedUserIds)
                 ->orderBy('id', 'asc')
                 ->lockForUpdate()
                 ->get();
 
-            if ($panelUsers->count() !== count($panelUserIds)) {
+            if ($panelUsers->count() !== count($assignedUserIds)) {
                 throw new InvalidArgumentException('One or more panel user IDs were not found.');
             }
 
@@ -117,7 +142,7 @@ class ScheduleDefense
             }
 
             // Panelist conflict
-            $panelConflict = DefensePanelAssignment::whereIn('user_id', $panelUserIds)
+            $panelConflict = DefensePanelAssignment::whereIn('user_id', $assignedUserIds)
                 ->whereNull('ended_at')
                 ->whereHas('defense.currentSchedule', function ($q) use ($startsAt, $endsAt) {
                     $q->where('status', 'current')
@@ -152,10 +177,19 @@ class ScheduleDefense
             $defense->save();
 
             // 7. Create Active Panel Assignments
-            foreach ($panelUserIds as $uId) {
+            $positionedAssignments = [];
+            if ($chairpersonUserId !== null) {
+                $positionedAssignments['chairperson'] = $chairpersonUserId;
+            }
+            foreach ($panelUserIds as $index => $userId) {
+                $positionedAssignments['member_'.($index + 1)] = $userId;
+            }
+
+            foreach ($positionedAssignments as $position => $uId) {
                 DefensePanelAssignment::create([
                     'defense_id' => $defense->id,
                     'user_id' => $uId,
+                    'panel_position' => $position,
                     'assigned_by' => $actor->id,
                     'assigned_at' => now(),
                 ]);
@@ -174,9 +208,60 @@ class ScheduleDefense
                     'starts_at' => $startsAt->toIso8601String(),
                     'ends_at' => $endsAt->toIso8601String(),
                     'room_id' => $roomId,
+                    'chairperson_user_id' => $chairpersonUserId,
                     'panel_user_ids' => $panelUserIds,
                 ],
             ]);
+
+            $label = str($defenseType)->headline()->toString();
+            $students = $lockedGroup->members()->with('student')->get()->pluck('student')->filter();
+            $this->notifications->sendToMany(
+                recipients: $students,
+                eventKey: 'defense.scheduled',
+                title: "{$label} scheduled",
+                message: "Your {$label} is scheduled for {$startsAt->format('M j, Y g:i A')} in {$room->name}.",
+                category: 'defense',
+                routeName: 'student.dashboard',
+                routeParameters: ['tab' => 'defense'],
+                sourceType: DefenseSchedule::class,
+                sourceId: $schedule->getKey(),
+                actor: $actor,
+                contextLabel: $lockedGroup->name,
+                actingAs: 'Student Researcher',
+            );
+
+            $adviser = $lockedGroup->adviser_id !== null ? User::query()->find($lockedGroup->adviser_id) : null;
+            if ($adviser !== null) {
+                $this->notifications->send(
+                    recipient: $adviser,
+                    eventKey: 'defense.scheduled',
+                    title: "{$label} scheduled",
+                    message: "{$lockedGroup->name} is scheduled for {$startsAt->format('M j, Y g:i A')}.",
+                    category: 'defense',
+                    routeName: 'adviser.dashboard',
+                    routeParameters: ['tab' => 'evaluations'],
+                    sourceType: DefenseSchedule::class,
+                    sourceId: $schedule->getKey(),
+                    actor: $actor,
+                    contextLabel: $lockedGroup->name,
+                    actingAs: 'Thesis Adviser',
+                );
+            }
+
+            $this->notifications->sendToMany(
+                recipients: $panelUsers,
+                eventKey: 'defense.panel-assigned',
+                title: "Assigned to {$label}",
+                message: "You were assigned to {$lockedGroup->name}'s {$label} on {$startsAt->format('M j, Y g:i A')}.",
+                category: 'defense',
+                routeName: 'panelist.dashboard',
+                routeParameters: ['tab' => 'schedule'],
+                sourceType: Defense::class,
+                sourceId: $defense->getKey(),
+                actor: $actor,
+                contextLabel: $lockedGroup->name,
+                actingAs: 'Panel Member',
+            );
 
             return $defense->fresh(['currentSchedule.room', 'activePanelAssignments.user']);
         });
