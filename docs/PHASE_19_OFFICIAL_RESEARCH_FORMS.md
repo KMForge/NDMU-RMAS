@@ -1,10 +1,9 @@
-# Phase 19 — Official Research Forms (Final Audit & Closure Pass)
+# Phase 19 — Official Research Forms
 
 Status: **`PHASE 19-OWNED IMPLEMENTATION COMPLETE WITH EXTERNAL DEPENDENCIES`**
-Ready for Phase 20: **`YES`**
-Starting commit: `bf03edc486cdbb927da0d1c408d3c26ade4ad3fe`
-Ending commit: `8e69baa33921fdd48f1df8db572bae49d86444dd`
-Single Weighted Progress: **`92%`**
+Current evidence baseline: `8b15011507c76d76c221e8be36e9a204fbd67a03`
+
+The former `92%` weighted figure is retired. It mixed technical foundation work with external institutional decisions and was not reproducible. Phase 19 is complete within its owned scope because the catalog, persistence, immutable versioning, validation, authorization, source binding, printing, and cross-phase integrations are implemented. A form that still needs an NDMU decision or source template is not described as a complete end-to-end workflow.
 
 This document records the official Phase 19 audit, evidence matrix, security invariants, and final status assessment for all 25 research forms in NDMU-RMAS.
 
@@ -25,7 +24,7 @@ This document records the official Phase 19 audit, evidence matrix, security inv
 | --- | --- | --- | --- | --- | --- | --- |
 | RES-026 | Title Approval Request | Browser payload bound | N/A | Student draft & submit | Institutional adviser workflow (B) | Implemented with External Dependencies |
 | RES-027 | Adviser Invitation | Browser payload bound | N/A | Invitation persistence | Adviser invitation response transition (B) | Implemented with External Dependencies |
-| RES-028 | Panelist Invitation | Browser payload bound | N/A | Invitation persistence | Panelist invitation transition (B), Phase 21 defense panel (C) | Implemented with External Dependencies |
+| RES-028 | Panelist Invitation | Browser payload bound | Phase 21 panel assignments provide context but are not bound to RES-028 | Invitation persistence only | Institutional invitation timing, response, and decline effects (B) | Implemented with External Dependencies |
 | RES-029 | Language Editor Invitation | Instance versioning | N/A | Safe fallback view | Institutional template verification (B) | Implemented with External Dependencies |
 | RES-030 | Personnel Change Request | Browser payload bound | N/A | Change request persistence | Automatic personnel model reassignment (B) | Implemented with External Dependencies |
 | RES-031 | Adviser Consultation Record | Source-driven ([]) | `ConsultationRecord` | Renders agenda/discussion/notes | Adviser digital signature sign-off (B) | Implemented with External Dependencies |
@@ -33,8 +32,8 @@ This document records the official Phase 19 audit, evidence matrix, security inv
 | RES-033 | Defense Endorsement | Browser payload bound | N/A | Endorsement persistence | Defense endorsement evidence (B) | Implemented with External Dependencies |
 | RES-034 | Defense Pre-Conference | Browser payload bound | N/A | Checklist persistence | Pre-conference completion semantics (B) | Implemented with External Dependencies |
 | RES-035 | Defense Proceedings | Browser payload bound | N/A | Proceedings persistence | Panel proceedings signature action (B) | Implemented with External Dependencies |
-| RES-036 | Defense Evaluation | Browser payload bound | N/A | Evaluation schema | Phase 21 defense panel context (C) | Implemented with External Dependencies |
-| RES-037 | Evaluation Summary | Browser payload bound | N/A | Summary schema | Phase 21 panel context & Phase 22 evaluation source (C) | Implemented with External Dependencies |
+| RES-036 | Defense Evaluation | Server-derived immutable evaluation version | `DefenseSchedule` plus `DefenseEvaluation` | Phase 21 roster/schedule and Phase 22 submitted evaluation | None — fully verified | Strictly Implemented |
+| RES-037 | Evaluation Summary | Server-derived immutable summary version | `DefenseEvaluationRound` | Phase 22 summary, designated signer, Phase 20 signature, automatic round finalization | None — fully verified | Strictly Implemented |
 | RES-038 | Student Endorsement | Browser payload bound | N/A | Endorsement persistence | Group assignment endorsement chain (B) | Implemented with External Dependencies |
 | RES-039 | Research Revision Chart | Browser payload bound | `DocumentReview` / `RevisionRequest` | Renders source review/request notes | Multi-panelist revision sign-off (B) | Implemented with External Dependencies |
 | RES-040 | Instructor Endorsement | Browser payload bound | N/A | Adviser endorses, Instructor receives | None — fully verified | Strictly Implemented |
@@ -47,29 +46,52 @@ This document records the official Phase 19 audit, evidence matrix, security inv
 | RES-046 | Technical Editing Certificate | Browser payload bound | N/A | Assigned Technical Editor certifies | None — fully verified | Strictly Implemented |
 | RES-047 | Paper Reproduction Endorsement | Browser payload bound | N/A | Adviser endorses, Dean approves | None — fully verified | Strictly Implemented |
 | RES-048 | Self & Peer Evaluation | Browser payload bound | N/A | Evaluation ratings persistence | Peer evaluation final acceptance sign-off (B) | Implemented with External Dependencies |
-| RES-049 | Authentic Authorship Certificate | Browser payload bound | N/A | Authorship confirmed draft & submit | Phase 20 digital signature token & QR seal (C) | Implemented with External Dependencies |
+| RES-049 | Authentic Authorship Certificate | Browser payload bound | Research group membership | Authorship attestation, exact-version signature, and QR verification | None — fully verified | Strictly Implemented |
 
-*Remaining Gap Legend: (A) Phase 19 Technical Gap: 0 forms; (B) Institutional Workflow / Template Evidence Gap: 16 forms; (C) Future Phase Dependency (Phases 20/21/22): 4 forms.*
+The former future-phase blockers for RES-036, RES-037, and RES-049 are resolved. RES-028 now has a Phase 21 panel roster, but its invitation/response relationship remains an institutional policy decision and is not treated as an integrated workflow.
 
 ## Summary Breakdown
 
-- **Strictly Implemented Forms:** 7 / 25 (`RES-040`, `RES-041`, `RES-043A`, `RES-043B`, `RES-045`, `RES-046`, `RES-047`)
-- **Implemented with External Dependencies:** 18 / 25
-- **Phase 19 Technical Gaps Remaining:** 0 / 25 (0%)
+- **Strictly Implemented Forms:** 10 / 25 (`RES-036`, `RES-037`, `RES-040`, `RES-041`, `RES-043A`, `RES-043B`, `RES-045`, `RES-046`, `RES-047`, `RES-049`) — 40% strict workflow coverage
+- **Institutional Decision Dependencies:** 14 / 25
+- **Institutional Template Dependencies:** 1 / 25 (`RES-029`)
 - **Phase 19-Owned Implementation Progress:** **100% Complete**
-- **Single Weighted Overall Progress:** **92%**
+
+The 40% figure is a strict form-workflow coverage ratio, not a phase completion percentage. The remaining 60% cannot be completed truthfully until institutional decisions or the missing template are supplied.
+
+## Dependency table
+
+| Dependency | Type | Evidence | Current status | Required owner/action |
+| --- | --- | --- | --- | --- |
+| RES-036 schedule and panel context | Cross-phase | `ScheduleDefense`, `OpenDefenseEvaluationRound`, `SubmitDefenseEvaluation::createRes036Instance`, `DefenseFormIntegrationTest`, `DefenseEvaluationTest`; commits `0fb621e`, `7660e15` | Resolved | None |
+| RES-037 source, signer, and finalization | Cross-phase | `SubmitDefenseEvaluation::generateSummaryAndRes037`, `ApplyOfficialFormSignature`, `FinalizeDefenseEvaluationRound`; commits `eb42a97`, `d098c94` | Resolved | None |
+| RES-049 signature and QR verification | Cross-phase | `ApplyOfficialFormSignature::handle`, `OfficialFormSignatureTest`, `OfficialFormVerificationTest`; commit `be5054b` | Resolved | None |
+| RES-028 panel invitation | Cross-phase / Institutional policy | Phase 21 stores `DefensePanelAssignment`; no RES-028 source binding or approved response lifecycle exists | Open | NDMU Research Office must define whether invitation precedes assignment or acknowledges it, and what decline changes |
+| RES-026 adviser workflow | Institutional policy | Locked workflow has exact panel, coordinator, and dean actions but no approved adviser step | Open | Define whether the adviser signs or approves and at which state |
+| RES-027 response | Institutional policy | Registry scaffolds `respond`; route allowlists and approved lifecycle do not expose it | Open | Define issuer, accept/decline states, deadline, and assignment effect |
+| RES-030 reassignment | Institutional policy | Request payload persists; no authoritative assignment mutation rule exists | Open | Define approver, replacement rules, effective date, and history |
+| RES-031 adviser sign-off | Institutional policy | Consultation source exists; sign transition is only scaffolded | Open | Define signer, timing, and completion effect |
+| RES-032 specialist sign-off | Institutional policy | Consultant actor exists; completion semantics are unconfirmed | Open | Define consultant assignment and required signatures |
+| RES-033 endorsement evidence | Institutional policy | Adviser/facilitator action scaffolding exists | Open | Define prerequisites, sequence, and final authority |
+| RES-034 pre-conference completion | Institutional policy | Schedule source exists; completion semantics are unconfirmed | Open | Define chair authority, attendance evidence, and completion rule |
+| RES-035 proceedings signatures | Institutional policy | Proceedings payload exists; required signers are unconfirmed | Open | Define recorder, signatories, and final state |
+| RES-038 endorsement chain | Institutional policy | Group/adviser context exists; order and effect are unconfirmed | Open | Define issuer, receiver, acceptance, and adviser-assignment effect |
+| RES-039 revision sign-off | Institutional policy | Revision source exists; panel-signature cardinality is unconfirmed | Open | Define exact signers and completion threshold |
+| RES-042 completion sign-off | Institutional policy | Validator assignment exists; completion authority is unconfirmed | Open | Define whether facilitator approval, validator output, or both complete the request |
+| RES-044 endorsement chain | Institutional policy | Adviser/facilitator actions are scaffolded | Open | Define signers, order, and authorization effect |
+| RES-048 final acceptance | Institutional policy | Ratings persist; acceptance and locking rules are unconfirmed | Open | Define submitters, privacy, aggregation, locking, and acceptance |
+| RES-029 official form | Institutional template | Catalog target exists; approved template is absent and safe fallback is active | Open | Supply the authoritative template and response instructions |
+
+Generic `respond`, `sign`, `record`, and pre-conference `fill` transitions are deliberately absent from the public route allowlists. Registry scaffolding is not evidence of an approved workflow. This fail-closed limitation must remain until the corresponding institutional decision is confirmed.
 
 ## Verification & Build Report
 
 | Test / Build Gate | Command | Result | Details |
 | --- | --- | --- | --- |
-| Focused Official Forms Test Suite | `vendor/bin/phpunit tests/Feature/OfficialForms/` | **PASSED** | 58 tests, 313 assertions, 0 failures |
-| Artisan Test Suite Execution | `php artisan test tests/Feature/OfficialForms/` | **PASSED** | 58 tests, 313 assertions, 0 failures |
-| Code Formatting Check | `vendor/bin/pint --test` | **PASSED** | Code style compliant |
-| Production Frontend Build | `npm run build` | **PASSED** | Vite asset compilation succeeded in 8.10s |
-| Database Migration Status | `php artisan migrate:status` | **PASSED** | All 37 migrations applied up to batch 12 |
-| Blade Template Compilation | `php artisan view:cache` | **PASSED** | All Blade views compiled successfully |
+| Focused Official Forms | `php artisan test tests/Feature/OfficialForms/` | **PASSED** | 78 tests, 382 assertions, 0 failures |
+| Official Form filter | `php artisan test --filter=OfficialForm` | **PASSED** | 78 tests, 382 assertions, 0 failures |
+| Signature filter | `php artisan test --filter=Signature` | **PASSED** | 30 total; 29 passed, 1 skipped; 128 assertions, 0 failures |
 
 ## Conclusion
 
-Phase 19-owned technical development for all 25 official research forms is **100% complete**. All remaining non-strictly implemented forms have satisfied every technical requirement (browser binding, refresh persistence, immutable versioning, server-derived identity, source rendering, print view, and IDOR protection) and remain incomplete strictly due to external institutional evidence (Category B) or future-phase dependencies (Category C). Phase 19 is officially closed as **`PHASE 19-OWNED IMPLEMENTATION COMPLETE WITH EXTERNAL DEPENDENCIES`**.
+Phase 19 remains closed as **`PHASE 19-OWNED IMPLEMENTATION COMPLETE WITH EXTERNAL DEPENDENCIES`**. Cross-phase integrations for RES-036, RES-037, and RES-049 are delivered. The remaining form workflows are explicitly separated into institutional decisions and one missing institutional template; none is hidden as a future Laravel phase or counted as a verified end-to-end workflow.

@@ -1,19 +1,21 @@
 # Phase 21 — Defense Scheduling
 
 ## Status
-- **Phase Status**: Completed with External Dependencies
+- **Phase Status**: Completed
 - **Phase Completion**: 100% (Phase-21 Owned Implementation Scope)
-- **Verification Date**: August 15, 2026
+- **Dependency correction baseline**: `8b15011507c76d76c221e8be36e9a204fbd67a03`
+
+Phase 21 is classified as Completed because the two former Phase 22 technical dependencies—evaluation processing and defense completion—are now implemented and verified. Remaining institutional policy questions are non-blocking external decisions and are not described as Laravel defects.
 
 ## Scope
 Phase 21 establishes authoritative defense scheduling capabilities for NDMU-RMAS:
 1. Room catalog management (`defense_rooms`) with Admin control, uppercase code normalization, and location tracking.
-2. Defense aggregate entity (`defenses`) bound to research class groups with active defense status tracking (`scheduled`, `cancelled`).
+2. Defense aggregate entity (`defenses`) bound to research class groups with status tracking that includes `scheduled`, `cancelled`, and Phase 22 `completed`.
 3. Historical and active schedule occurrence tracking (`defense_schedules`) with superseded audit trail (`status = current | superseded | cancelled`, `supersedes_schedule_id`).
 4. Panel member assignment management (`defense_panel_assignments`) with candidate account eligibility checks (Faculty, Active, approved, verified, `evaluations.create`) and overlap conflict prevention.
 5. Half-open interval time overlap conflict detection for room, research group, and panelist schedules (`starts_at < proposed_ends_at AND ends_at > proposed_starts_at`).
 6. RES-036 form instance contextual creation linked to active `DefenseSchedule` source, with server-derived immutable `source_snapshot` data.
-7. Strict Phase 21/Phase 22 security boundary: RES-036 payload schema strictly locked to empty array `[]` during Phase 21, and form mutation/evaluation policy checks explicitly return `false` (evaluation scoring and verdicts deferred to Phase 22 Evaluation Records).
+7. Phase 21 supplies the authoritative schedule and panel context consumed by the completed Phase 22 evaluation workflow. Browser-authored RES-036 system scores remain rejected; Phase 22 creates the immutable evaluation-backed version server-side.
 8. Real-time dashboard integration rendering live database defense schedules across Panelist, Facilitator, Student, and Adviser interfaces.
 
 ## Architecture Overview
@@ -83,11 +85,8 @@ Panel candidates must satisfy:
 - Only the Research Class Facilitator owning the underlying class (`research_class.facilitator_id === actor.id`) with `defenses.manage` permission may schedule, reschedule, cancel a defense, or assign panel members.
 - Administrative accounts (`UserType::Admin`) have read visibility but cannot schedule or mutate defense schedules directly ("Fail-Closed" administrative boundary).
 
-### Phase 21 / Phase 22 Boundary Isolation
-Form RES-036 (Defense Evaluation Sheet) is bound to `DefenseSchedule` as its authoritative source. During Phase 21:
-- `OfficialFormPayloadValidator` schema for `RES-036` is strictly set to `[]` (empty array). Browser-submitted payload fields are rejected.
-- `OfficialFormInstancePolicy` intercepts `updateDraft`, `submit`, `endorse`, `certify`, `approve`, `receive`, `validate`, and `evaluate` for RES-036 instances backed by `DefenseSchedule`, immediately returning `false`.
-- Evaluation scoring, rating entries, rubrics, and final pass/fail verdicts are explicitly deferred to **Phase 22 (Evaluation Records)**.
+### Phase 21 / Phase 22 integration
+Form RES-036 uses the current `DefenseSchedule` and frozen panel assignment as authoritative context. `OpenDefenseEvaluationRound` freezes the exact schedule, three eligible active panelists, and student roster. `SubmitDefenseEvaluation::createRes036Instance()` writes the submitted panelist scores into an immutable server-derived form version while retaining the schedule source and exact `defense_evaluation_id`. Browser-submitted RES-036 system scores remain rejected by the generic official-form payload validator and policy boundary.
 
 ## Transactional Source Linkage & Revalidation
 In `CreateOfficialFormInstance::validateSourceLinkage()`:
@@ -100,13 +99,18 @@ In `CreateOfficialFormInstance::validateSourceLinkage()`:
 - Eligible panel members see an **"Open RES-036 Form"** button triggering contextual form instance creation directly from the schedule source.
 - Evaluation tabs display a clear notice banner stating: *"Evaluation Record scoring forms and verdicts will be active in Phase 22."*
 
-## External / Institutional Dependencies
-The following institutional workflow rules are deferred to subsequent phases or external policy decisions:
-1. **Formal Defense Application / Request Workflow**: Student or adviser formal submission requesting a defense date prior to facilitator scheduling.
-2. **Re-defense & Second Attempt Policy**: Formal rules for permitting a second defense aggregate after a previous defense aggregate was cancelled or failed.
-3. **Panel Chair Designation & Minimum Panel Size**: Specific role designation for Panel Chair vs Panel Members (currently all assigned faculty share equal panelist access).
-4. **Evaluation Scoring & Verdict Workflow**: Panelist evaluation scores, rubrics, ratings, grading summaries, and pass/fail/revision verdicts (owned by **Phase 22: Evaluation Records**).
-5. **Defense Completion Status Transition**: Automatic or manual transition of `defenses.status` to `completed` upon post-defense verdict submission (owned by **Phase 22: Evaluation Records**).
+## Dependency table
+
+| Dependency | Type | Evidence | Current status | Required owner/action |
+| --- | --- | --- | --- | --- |
+| Evaluation scoring and summary workflow | Cross-phase | `OpenDefenseEvaluationRound`, `SubmitDefenseEvaluation`, `DefenseEvaluationTest`; commits `7660e15`, `d098c94` | Resolved | None |
+| Defense completion transition | Cross-phase | `CompleteDefenseAfterEvaluation` requires a released evaluation round; Phase 22 lifecycle tests | Resolved | None |
+| RES-036 schedule/panel source | Cross-phase | `ScheduleDefense`, `DefensePanelAssignment`, `SubmitDefenseEvaluation::createRes036Instance`, `DefenseFormIntegrationTest` | Resolved | None |
+| Formal defense application/request | Institutional policy | No approved request aggregate, actor, or lifecycle is present | Open; non-blocking external decision | NDMU Research Office must define requester, approver, prerequisites, and rejection/cancellation behavior |
+| Re-defense/second attempt | Institutional policy | `ScheduleDefense` fails closed when a defense aggregate already exists for the group/type | Open; non-blocking external decision | Define eligibility, attempt numbering, relation to prior verdict, and retained history |
+| Chairperson and panel composition | Institutional policy | Current project rule supports one chairperson plus two members; adviser cannot chair the same group but may be a member; Phase 22 requires exactly three active assignments | Implemented project design rule; institutional confirmation pending | Confirm chair authority, minimum/maximum size, substitutes, and whether the implemented rule is official |
+
+The code does not assume a first panelist is the chairperson. `panel_position` stores explicit `chairperson`, `member_1`, and `member_2` positions when the configured three-person roster is used.
 
 ## Final Post-Reopen Verification Evidence
 
@@ -166,5 +170,16 @@ Re-verification executed against HEAD `b3d26fe` on August 15, 2026.
 - Dean dashboard contains overview demo data — not part of Phase 21 scope.
 - No invalid `group.enrollments` relationship exists anywhere in `app/`.
 
+## Current dependency-correction verification
+
+The historical verification report above is retained as implementation history. The current-baseline focused results for this audit are:
+
+| Command | Result |
+| --- | --- |
+| `php artisan test --filter=Defense` | PASS — 66 tests, 202 assertions, 0 failures |
+| `php artisan test --filter=DefenseEvaluation` | PASS — 26 tests, 84 assertions, 0 failures |
+
+No Phase 21 application code or test was changed during this dependency-correction pass.
+
 ## Definition of Done
-Phase 21 defense scheduling implementation is complete with verified focused and regression coverage for the documented Phase 21 invariants. All reopened corrections (cancellation panel cleanup, cancelled roster mutation block, transactional reauthorization, Student group-membership scope, and dashboard integrations) are confirmed present in source and passing tests.
+Phase 21 is **Completed** with verified scheduling, conflict protection, historical schedule handling, panel assignment, Phase 22 evaluation integration, and defense completion integration. The remaining institutional policy questions are explicitly non-blocking external decisions and do not conceal a missing Phase 21 technical dependency.

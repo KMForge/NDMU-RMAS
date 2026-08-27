@@ -20,7 +20,7 @@ The Research Title Presentation stage follows this order and may not be skipped:
 12. The exact class-scoped Program Coordinator performs an explicit signed action.
 13. The exact class-scoped Dean performs the explicit final signed action.
 14. Only the Dean action writes the selected title to the canonical `research_projects.title` record.
-15. The owning facilitator separately completes the Phase 18 `research-title-presentation` milestone. Form finalization never completes it automatically.
+15. The Dean's final signed action also completes the Phase 18 `research-title-presentation` milestone through `SynchronizeWorkflowMilestone` in the same transaction. No separate facilitator milestone action is required for this locked workflow.
 
 ## State model
 

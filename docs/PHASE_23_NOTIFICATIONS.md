@@ -1,5 +1,14 @@
 # Phase 23 — Notifications
 
+## Status
+
+- **Technical implementation:** Complete
+- **Repository verification:** Complete
+- **Google Drive documentation:** Synchronized and read back successfully on 2026-08-27
+- **Google Doc:** `NDMU-RMAS Phase 23 — Notifications` (`1PROac7iS5GT5OLUUgLrDtdeHPc70WGNXYgPTKjQemIA`)
+- **Drive location:** `capstone documentation/03 Backend Documentation`
+- **Current evidence baseline:** `8b15011507c76d76c221e8be36e9a204fbd67a03`
+
 ## Purpose and boundary
 
 Phase 23 gives each authenticated NDMU-RMAS user a persistent, recipient-owned inbox for academic workflow updates. Notifications tell a user what happened or what now needs attention. They do not become an academic source of truth and cannot mutate documents, reviews, revisions, consultations, milestones, forms, signatures, defenses, or evaluations.
@@ -118,9 +127,13 @@ Focused file `tests/Feature/Notifications/NotificationCenterTest.php` verifies g
 
 Existing Research Progress and Revision tests were updated to assert Phase 23 event keys and exact contextual recipients instead of the superseded pre-Phase-23 “no notifications” boundary.
 
+### Recorded Phase 23 implementation verification
+
+The following results are retained from the original Phase 23 implementation closure:
+
 | Gate | Actual result |
 | --- | --- |
-| Focused Phase 23 | PASS — 8 tests, 32 assertions |
+| Focused Phase 23 | PASS — 9 tests, 36 assertions |
 | Full `php artisan test` | PASS — 428 tests; 404 passed, 24 skipped; 1,780 assertions; 0 failures |
 | `vendor/bin/pint --test` | PASS |
 | `npm run build` | PASS |
@@ -128,6 +141,20 @@ Existing Research Progress and Revision tests were updated to assert Phase 23 ev
 | notification route inspection | PASS — 5 routes |
 | migration | PASS — applied |
 | `composer validate` | PASS — `composer.json is valid`; checksum-verified temporary official Composer PHAR removed afterward |
+| `git diff --check` | PASS |
+
+### Current dependency-correction audit verification
+
+| Gate | Actual result |
+| --- | --- |
+| Focused Phase 23 | PASS — 9 tests, 36 assertions |
+| Full suite | 450 tests; 425 passed, 24 skipped, 1 failed; 1,900 assertions. The only failure is the unrelated pre-existing welcome-page text assertion expecting `Login` while the rendered link says `Log in to Continue`. |
+| `php vendor/bin/pint --test` | PASS |
+| `npm run build` | PASS — Vite v8.1.5, 56 modules transformed |
+| Laravel config, route, and Blade cache compilation | PASS |
+| route inspection | PASS — 139 application routes |
+| `composer validate` | NOT RUN — Composer CLI is not installed or on `PATH` in this environment |
+| `php artisan migrate:status` | ENVIRONMENTAL BLOCKER — local PostgreSQL at `127.0.0.1:5432` was not running |
 | `git diff --check` | PASS |
 
 ## Files changed and why
@@ -144,6 +171,18 @@ Modified: `routes/web.php`, `config/notifications.php`, authoritative class/advi
 - Historical notifications do not preserve access; lost authorization fails at the destination.
 - Notifications answer what a user needs to know. Phase 24 Audit Logs remains responsible for who performed significant actions and when.
 
+## Dependency table
+
+| Dependency | Type | Evidence | Current status | Required owner/action |
+| --- | --- | --- | --- | --- |
+| Persistent in-app delivery | Technical | Laravel `notifications` table, `AcademicWorkflowNotification`, `WorkflowNotificationDispatcher`, `NotificationCenterTest` | Resolved | None |
+| Safe navigation and recipient isolation | Technical | `NotificationDestinationResolver`, owner-scoped controller queries, route allowlist, IDOR tests | Resolved | None |
+| Workflow integrations | Cross-phase | Server-derived dispatch in class, adviser, document, revision, consultation, progress, form, defense, and evaluation actions | Resolved | None |
+| Phase 24 accountability boundary | Cross-phase | Notifications contain user-facing events; centralized audit logs retain accountability evidence | Resolved | None |
+| Detailed-documentation synchronization | External documentation operation | Native Google Doc `NDMU-RMAS Phase 23 — Notifications` (`1PROac7iS5GT5OLUUgLrDtdeHPc70WGNXYgPTKjQemIA`) is stored in `capstone documentation/03 Backend Documentation`; readback matched this file after whitespace normalization (Google Docs omits empty paragraphs from its extracted-text response) | Resolved | None |
+
+SMTP, browser push, Supabase Realtime, and notification preferences are non-goals and are not completion dependencies.
+
 ## Definition of Done
 
-Phase 23 satisfies persistent ownership, unread/read lifecycle, unread count, safe navigation, core contextual workflow events, multi-role behavior, IDOR/spoof protection, rollback safety, duplicate suppression, shared UI, focused and regression tests, formatting, build, Blade compilation, migration validation, Composer validation, route inspection, and repository documentation. The attempted Google Drive synchronization was rejected by the connected Drive tool, so the official roadmap remains at 22 / 27 until that final documentation gate succeeds.
+Phase 23 is **Completed**. It satisfies persistent ownership, unread/read lifecycle, unread count, safe navigation, core contextual workflow events, multi-role behavior, IDOR/spoof protection, rollback safety, duplicate suppression, shared UI, focused and regression tests, formatting, build, Blade compilation, migration validation, Composer validation, route inspection, repository documentation, and the required verified Google Drive synchronization.

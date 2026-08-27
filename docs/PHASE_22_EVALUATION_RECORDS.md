@@ -1,5 +1,12 @@
 # Phase 22 — Evaluation Records
 
+## Status
+
+- **Phase status:** Completed
+- **Current evidence baseline:** `8b15011507c76d76c221e8be36e9a204fbd67a03`
+
+Phase 22 has no unresolved technical or cross-phase dependency. Phase 20 signature finalization and Phase 21 defense/schedule/panel context are integrated and tested. The scoring, roster, signer, release, completion, and immutability rules below are implemented project design rules; formal institutional confirmation remains a non-blocking policy item and is not misclassified as missing code.
+
 ## Overview
 Phase 22 implements the formal Evaluation Records domain module for NDMU-RMAS. It manages the full lifecycle of thesis and capstone defense evaluation rounds, panelist scoring (RES-036), authoritative grade summary calculations (RES-037), digital signature integration, result release, defense completion, and cross-module scheduling guard rails.
 
@@ -19,7 +26,7 @@ Phase 22 implements the formal Evaluation Records domain module for NDMU-RMAS. I
 - `official_form_instances` table extension: Added `defense_evaluation_id` (foreign key to defense_evaluations).
 
 ### 2. Weighted Scoring Formulas
-Scores are strictly calculated server-side using the institutional weighted scoring matrix:
+Scores are strictly calculated server-side using the implemented project scoring matrix:
 - **Research Paper Total (per Panelist)**:
   $$\text{Paper Total} = \text{round}((\text{Quality} \times 0.50) + (\text{Originality} \times 0.25) + (\text{Relevance} \times 0.25), 2)$$
 - **Student Presentation Total (per Panelist per Student)**:
@@ -62,6 +69,25 @@ The following business rules operate as verified project design rules for NDMU-R
 - Weighted score distributions: 50% Quality / 25% Originality / 25% Relevance and 20% Communication / 30% Organization / 50% Effectiveness.
 - Single designated Summary Signatory model for RES-037 summary attestation.
 - Facilitator-owned result release and defense completion triggers.
+
+These rules are authoritative for the current application behavior because they are encoded in migrations, actions, authorization, and tests. The repository does not contain separate evidence that NDMU has formally ratified each formula and lifecycle choice as institutional policy. No formula or lifecycle is changed during this audit.
+
+## Dependency table
+
+| Dependency | Type | Evidence | Current status | Required owner/action |
+| --- | --- | --- | --- | --- |
+| Phase 20 RES-037 digital signature | Cross-phase | `ApplyOfficialFormSignature` invokes `FinalizeDefenseEvaluationRound`; `OfficialFormSignatureTest` and evaluation security tests | Resolved | None |
+| Phase 21 defense, schedule, and panel assignment | Cross-phase | `OpenDefenseEvaluationRound` locks the defense and snapshots the current schedule, three active assignments, and group students | Resolved | None |
+| Frozen panel and student rosters | Cross-phase / technical | Evaluation-round snapshot tables and `OpenDefenseEvaluationRound`; Phase 22 tests | Resolved | None |
+| Result release | Technical | `ReleaseDefenseEvaluationResults` requires finalized RES-037 with a verified signature and records release metadata | Resolved | None |
+| Defense completion | Cross-phase | `CompleteDefenseAfterEvaluation` requires a released round and writes `completed_at`/`completed_by` | Resolved | None |
+| Summary signer authorization | Cross-phase / technical | `EvaluationAuthorization`, `OpenDefenseEvaluationRound`, `DesignateEvaluationSummarySigner`, signature finalization tests | Resolved | None |
+| Exactly three panelists | Institutional policy | Enforced and tested project design rule | Implemented; formal confirmation pending | NDMU Research Office should confirm panel cardinality and substitution policy |
+| One designated RES-037 signer | Institutional policy | Enforced and tested project design rule | Implemented; formal confirmation pending | Confirm whether one signatory is sufficient and how that person is selected |
+| Paper weights 50/25/25 | Institutional policy | Server-side calculation and tests | Implemented; formal confirmation pending | Confirm official rubric and rounding rule |
+| Presentation weights 20/30/50 | Institutional policy | Server-side calculation and tests | Implemented; formal confirmation pending | Confirm official rubric and rounding rule |
+| Facilitator release and completion authority | Institutional policy | Permission and exact class-ownership checks in dedicated actions | Implemented; formal confirmation pending | Confirm whether additional approval is required |
+| Immutable submitted evaluations | Institutional policy | Update/supersede attempts fail closed in Phase 22 security tests | Implemented; formal confirmation pending | Confirm whether a future correction/superseding process is permitted |
 
 ---
 
@@ -112,3 +138,14 @@ The following business rules operate as verified project design rules for NDMU-R
 - **Blade Template Cache**: `php artisan view:clear; php artisan view:cache` — **PASS**
 - **Database Migrations**: `php artisan migrate:status` — **PASS** (49/49 ran)
 - **Git Diff & Whitespace Check**: `git diff --check` — **PASS** (Clean)
+
+## Current dependency-correction verification
+
+| Command | Result |
+| --- | --- |
+| `php artisan test --filter=DefenseEvaluation` | PASS — 26 tests, 84 assertions, 0 failures |
+| `php artisan test --filter=Defense` | PASS — 66 tests, 202 assertions, 0 failures |
+| `php artisan test tests/Feature/OfficialForms/` | PASS — 78 tests, 382 assertions, 0 failures |
+| `php artisan test --filter=Signature` | PASS — 30 total; 29 passed, 1 skipped; 128 assertions, 0 failures |
+
+No Phase 22 application code or test was changed during this dependency-correction pass.

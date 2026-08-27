@@ -19,12 +19,11 @@ The Student journey is derived from authoritative records rather than a manually
 | Result recorded | Waiting on the three exact Panel signatures |
 | Panel signatures complete | Waiting on Program Coordinator |
 | Coordinator signed | Waiting on College Dean |
-| Dean signed | Canonical research title finalized; waiting on explicit Phase 18 milestone completion |
-| Milestone completed | Proceed to the next research stage |
+| Dean signed | Canonical research title finalized and the Phase 18 milestone is completed atomically; proceed to the next research stage |
 
 ## Role work queues
 
-- Facilitator: document screening, schedule, panel assignment, presentation completion, approved-number recording, and separate milestone completion.
+- Facilitator: document screening, schedule, panel assignment, presentation completion, and approved-number recording. The Dean's final signed action completes the linked milestone automatically.
 - Assigned Title Panel: schedule/venue, read-only RES-026, and matching signature action.
 - Program Coordinator: RES-026 becomes actionable only after all three Panel signatures.
 - Dean: RES-026 becomes actionable only after the Coordinator signature.
