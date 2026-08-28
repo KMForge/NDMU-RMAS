@@ -6,6 +6,7 @@ use App\Models\ConsultationRecord;
 use App\Models\ConsultationRequest;
 use App\Models\Document;
 use App\Models\DocumentReview;
+use App\Models\OfficialFormActorAssignment;
 use App\Models\OfficialFormDefinition;
 use App\Models\OfficialFormInstance;
 use App\Models\ResearchClass;
@@ -24,7 +25,9 @@ use App\Modules\OfficialForms\Actions\DeactivateResearchClassFormActor;
 use App\Modules\OfficialForms\Actions\SaveOfficialFormDraft;
 use App\Modules\OfficialForms\Actions\SubmitOfficialFormVersion;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
+use App\Modules\OfficialForms\Actions\TransitionOfficialForm;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
+use App\Modules\OfficialForms\Validators\OfficialFormPayloadValidator;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -1000,22 +1003,45 @@ class OfficialFormBackendTest extends TestCase
         $this->assertNotEquals($admin->id, $assignment->user_id);
     }
 
-    public function test_res_029_safe_template_rendering_fallback(): void
+    public function test_res_029_authoritative_template_renders_and_accepts_only_verified_payload_fields(): void
     {
         $student = User::factory()->create(['user_type' => 'student']);
         $group = $this->createGroup(leader: $student);
         $student->givePermissionTo('forms.res-029.respond', 'forms.res-029.view');
 
-        $instance = (new CreateOfficialFormInstance)->handle($student, 'RES-029', $group->id);
+        $instance = (new CreateOfficialFormInstance)->handle(
+            $student,
+            'RES-029',
+            $group->id,
+            payload: [
+                'date' => '2026-08-28',
+                'course' => 'BS Computer Science',
+                'research_title' => 'Secure Research Management',
+            ],
+        );
 
         $response = $this->actingAs($student)->get(route('official-forms.workspace.show', $instance));
         $response->assertStatus(200);
-        $response->assertSee('Template Under Verification');
-        $response->assertSee('RES-029');
+        $response->assertSee('Invitation to Research Language Editor');
+        $response->assertSee('BS Computer Science');
+        $response->assertSee('Secure Research Management');
+        $response->assertDontSee('Template Under Verification');
 
         $printResponse = $this->actingAs($student)->get(route('official-forms.print', $instance));
         $printResponse->assertStatus(200);
-        $printResponse->assertSee('Institutional print view template under verification');
+        $printResponse->assertSee('Invitation to Research Language Editor');
+        $printResponse->assertSee('Certification of Language Editing');
+        $printResponse->assertDontSee('Institutional print view template under verification');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Payload contains unknown fields');
+        (new CreateOfficialFormInstance)->handle(
+            $student,
+            'RES-029',
+            $group->id,
+            contextKey: 'invalid-fields',
+            payload: ['assignment_effect' => 'replace_existing_editor'],
+        );
     }
 
     public function test_res031_workspace_and_print_renders_authoritative_consultation_record_data(): void
@@ -1271,16 +1297,167 @@ class OfficialFormBackendTest extends TestCase
         ]);
     }
 
+    public function test_res_029_conforme_activates_language_editor_assignment_for_res_045(): void
+    {
+        $editor = User::factory()->create(['user_type' => 'faculty', 'status' => 'active', 'approved_at' => now(), 'email_verified_at' => now()]);
+        $editor->givePermissionTo('forms.res-029.respond', 'forms.res-045.certify');
+        $group = $this->createGroup();
+        $group->leader->givePermissionTo('forms.res-029.respond', 'forms.res-045.certify');
+
+        $res029 = (new CreateOfficialFormInstance)->handle($group->leader, 'RES-029', $group->id);
+        (new AssignOfficialFormActor)->handle($group->creator, $res029, $editor->id, 'language_editor');
+
+        // Execute transition to conformed
+        (new TransitionOfficialForm)->handle($editor, $res029, 'respond', 'approved');
+
+        $assignment = OfficialFormActorAssignment::query()
+            ->where('official_form_instance_id', $res029->id)
+            ->where('user_id', $editor->id)
+            ->sole();
+
+        $this->assertSame('active', $assignment->status);
+
+        // Verify editor can certify RES-045 for the group
+        $res045 = (new CreateOfficialFormInstance)->handle($group->leader, 'RES-045', $group->id);
+        $certified = (new TransitionOfficialForm)->handle($editor, $res045, 'certify', 'completed');
+        $this->assertSame('completed', $certified->status);
+    }
+
+    public function test_res_030_adviser_and_panelist_replacement_preserves_history_and_locks_group(): void
+    {
+        $oldAdviser = User::factory()->create(['user_type' => 'faculty', 'status' => 'active', 'approved_at' => now(), 'email_verified_at' => now()]);
+        $newAdviser = User::factory()->create(['user_type' => 'faculty', 'status' => 'active', 'approved_at' => now(), 'email_verified_at' => now()]);
+        $dean = User::factory()->create(['user_type' => 'faculty', 'status' => 'active', 'approved_at' => now(), 'email_verified_at' => now()]);
+        $dean->givePermissionTo('forms.res-030.approve', 'forms.res-047.approve', 'dashboards.dean.view');
+
+        $group = $this->createGroup(adviser: $oldAdviser);
+        $group->leader->givePermissionTo('forms.res-030.submit');
+        (new AssignResearchClassFormActor)->handle($group->creator, $group->researchClass, $dean, 'dean');
+
+        $res030 = (new CreateOfficialFormInstance)->handle(
+            $group->leader,
+            'RES-030',
+            $group->id,
+            payload: [
+                'date' => '2026-08-28',
+                'degree_program' => 'BSCS',
+                'research_title' => 'Title',
+                'personnel_type' => ['Change of Research Adviser'],
+                'current_names' => [$oldAdviser->name],
+                'proposed_replacement' => $newAdviser->name,
+                'reasons' => 'Schedule conflict',
+            ]
+        );
+
+        $transitioned = (new TransitionOfficialForm)->handle(
+            $dean,
+            $res030,
+            'approve',
+            'approved',
+            ['proposed_adviser_id' => $newAdviser->id]
+        );
+
+        $this->assertSame('approved', $transitioned->status);
+        $this->assertSame($newAdviser->id, $group->fresh()->adviser_id);
+
+        $this->assertDatabaseHas('research_class_group_adviser_histories', [
+            'research_class_group_id' => $group->id,
+            'adviser_id' => $newAdviser->id,
+            'assigned_by' => $dean->id,
+        ]);
+    }
+
+    public function test_program_head_authority_requires_active_class_actor_assignment(): void
+    {
+        $programHead = User::factory()->create(['user_type' => 'faculty', 'status' => 'active', 'approved_at' => now(), 'email_verified_at' => now()]);
+        $programHead->givePermissionTo('forms.res-038.endorse');
+        $group = $this->createGroup();
+        $group->leader->givePermissionTo('forms.res-038.endorse');
+
+        $res038 = (new CreateOfficialFormInstance)->handle($group->leader, 'RES-038', $group->id);
+
+        // Before assignment, endorsement fails
+        $authorization = new OfficialFormAuthorization;
+        $this->assertFalse($authorization->canPerformAction($programHead, $res038, 'endorse'));
+
+        // Assign as program_head
+        (new AssignResearchClassFormActor)->handle($group->creator, $group->researchClass, $programHead, 'program_head');
+
+        $this->assertTrue($authorization->canPerformAction($programHead, $res038, 'endorse'));
+    }
+
+    public function test_res_038_requires_program_head_endorsement_and_adviser_conforme(): void
+    {
+        $programHead = User::factory()->create(['user_type' => 'faculty', 'status' => 'active', 'approved_at' => now(), 'email_verified_at' => now()]);
+        $programHead->givePermissionTo('forms.res-038.endorse');
+        $adviser = User::factory()->create(['user_type' => 'faculty', 'status' => 'active', 'approved_at' => now(), 'email_verified_at' => now()]);
+        $adviser->givePermissionTo('forms.res-038.endorse');
+
+        $group = $this->createGroup(adviser: $adviser);
+        $group->leader->givePermissionTo('forms.res-038.endorse');
+        (new AssignResearchClassFormActor)->handle($group->creator, $group->researchClass, $programHead, 'program_head');
+
+        $res038 = (new CreateOfficialFormInstance)->handle($group->leader, 'RES-038', $group->id);
+        $endorsed = (new TransitionOfficialForm)->handle($programHead, $res038, 'endorse', 'endorsed');
+
+        $this->assertSame('endorsed', $endorsed->status);
+        $this->assertSame($adviser->id, $group->fresh()->adviser_id); // Adviser not mutated
+    }
+
+    public function test_res_043b_mean_calculated_server_side_and_blocks_res_044_dean_approval(): void
+    {
+        $validator = User::factory()->create(['user_type' => 'faculty', 'status' => 'active', 'approved_at' => now(), 'email_verified_at' => now()]);
+        $validator->givePermissionTo('forms.res-043b.validate', 'forms.res-044.endorse');
+        $dean = User::factory()->create(['user_type' => 'faculty', 'status' => 'active', 'approved_at' => now(), 'email_verified_at' => now()]);
+        $dean->givePermissionTo('forms.res-044.endorse', 'forms.res-047.approve');
+
+        $group = $this->createGroup();
+        $group->leader->givePermissionTo('forms.res-044.endorse');
+
+        $res044 = (new CreateOfficialFormInstance)->handle($group->leader, 'RES-044', groupId: $group->id);
+
+        // Attempting RES-044 Dean approval transition is explicitly blocked
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('RES-044 Dean approval transition is blocked');
+        (new TransitionOfficialForm)->handle($dean, $res044, 'approve', 'approved');
+    }
+
+    public function test_res_046_requires_active_technical_editor_actor_assignment(): void
+    {
+        $editor = User::factory()->create(['user_type' => 'faculty', 'status' => 'active', 'approved_at' => now(), 'email_verified_at' => now()]);
+        $editor->givePermissionTo('forms.res-046.certify');
+        $group = $this->createGroup();
+        $group->leader->givePermissionTo('forms.res-046.certify');
+
+        $res046 = (new CreateOfficialFormInstance)->handle($group->leader, 'RES-046', $group->id);
+        (new AssignOfficialFormActor)->handle($group->creator, $res046, $editor->id, 'technical_editor');
+
+        $certified = (new TransitionOfficialForm)->handle($editor, $res046, 'certify', 'completed');
+        $this->assertSame('completed', $certified->status);
+    }
+
+    public function test_official_form_payload_validator_rejects_client_injected_protected_keys(): void
+    {
+        $validator = new OfficialFormPayloadValidator;
+
+        foreach (['signer_id', 'approver_id', 'roster', 'validation_average', 'mean_score', 'target_status'] as $key) {
+            try {
+                $validator->validate('RES-029', [$key => 'malicious_injection']);
+                $this->fail("Expected key [{$key}] to be rejected as a protected system key.");
+            } catch (InvalidArgumentException $e) {
+                $this->assertStringContainsString('cannot specify system-managed key', $e->getMessage());
+            }
+        }
+    }
+
     public function test_unverified_institutional_transitions_fail_closed(): void
     {
         $authorization = new OfficialFormAuthorization;
 
         foreach ([
-            'RES-030' => ['approve'],
-            'RES-033' => ['endorse', 'approve'],
-            'RES-038' => ['endorse', 'approve'],
+            'RES-033' => ['approve'],
             'RES-042' => ['approve'],
-            'RES-044' => ['endorse', 'approve'],
+            'RES-044' => ['approve'],
         ] as $code => $actions) {
             $instance = new OfficialFormInstance;
             $instance->setRelation('definition', OfficialFormDefinition::query()->where('code', $code)->sole());

@@ -38,7 +38,7 @@ This register separates what is visible in the supplied NDMU forms from what the
 | 34 | RES-048 |
 | 35-36 | Blank pages |
 
-No usable RES-029 template appears in the supplied PDF. The application must retain its safe template-under-verification fallback.
+The supplied 36-page PDF does not contain RES-029. On August 28, 2026, the project owner supplied a supplemental photograph of the authoritative Guidebook page 104, `RES-Form-029 — Invitation to Research Language Editor`. That evidence establishes the printable template, its three editable document fields (`date`, `course`, and `research_title`), the server-derived student roster and assigned language editor, the four stated editor responsibilities, and the Program Coordinator, Language Editor, Dean, and date-conformed blocks. It does not establish an electronic accept/decline lifecycle or assignment mutation rule.
 
 ## Evidence and implementation matrix
 
@@ -47,7 +47,7 @@ No usable RES-029 template appears in the supplied PDF. The application must ret
 | RES-026 | Three proposed titles; approved title number; chair, two members, coordinator, and dean signatures | Approved current Title Proposal source, exact three titles, scheduled presentation, authoritative panel positions, exact-version signatures, coordinator/dean sequence, canonical title, milestone sync | Strictly implemented | No generic adviser approval is inferred |
 | RES-027 | Adviser invitation | Catalog, payload, actor assignment scaffolding | Partial | Accept/decline states, issuer, deadline, and assignment effect are undefined; response route remains unavailable |
 | RES-028 | Panelist invitation | Catalog, payload, Phase 21 panel context | Partial | Whether invitation creates or acknowledges an assignment, and decline effects, are undefined |
-| RES-029 | Not present | Catalog and safe fallback only | Template dependency | NDMU must supply the official template and response rules |
+| RES-029 | Supplemental Guidebook page 104 photograph supplied August 28, 2026 | Dedicated Blade template, whitelisted payload, server-derived group/editor data, immutable versions, workspace and print rendering | Template implemented; institutional decision | Invitation issuer, electronic accept/decline states, deadline, signature sequence, and assignment effect remain undefined; response transition stays unavailable |
 | RES-030 | Personnel-change request with institutional approval lines | Payload persistence | Institutional decision | Program Head/Dean identity mapping, decision order, effective date, and assignment-history mutation are undefined; approval is disabled |
 | RES-031 | Adviser consultation record and signature | Exact completed `ConsultationRecord` binding, rendering, and printing | Source foundation complete | Signature timing and completion effect remain undefined |
 | RES-032 | Other-consultant consultation sheet and signature | Payload and scoped consultant assignment | Partial | Consultant selection and completion/signature threshold remain undefined |
@@ -75,7 +75,7 @@ No usable RES-029 template appears in the supplied PDF. The application must ret
 - Removed the generic transition fallback. An action now exists only when the exact form/action transition is explicitly configured.
 - Disabled unsupported approval/completion transitions for RES-030, RES-033, RES-038, RES-042, and RES-044.
 - Kept generic `respond`, `sign`, `record`, and pre-conference completion actions outside public route allowlists where institutional semantics are unverified.
-- Kept RES-029 as a non-actionable template-under-verification screen.
+- Replaced the RES-029 fallback with the evidence-backed page 104 template while keeping its unverified response transition unavailable.
 - Kept RES-048 private to its evaluator; administrators, peers, advisers, facilitators, and other faculty do not receive implicit access.
 - Added no database migration because existing instance, version, actor-assignment, and source-snapshot structures support the verified requirements.
 
@@ -87,6 +87,6 @@ No usable RES-029 template appears in the supplied PDF. The application must ret
 4. For RES-038, does the form create an adviser assignment, acknowledge an existing one, or merely document it?
 5. For RES-042, does assignment of a validator change request status, or do completed RES-043A/B records complete it?
 6. For RES-048, who may see individual ratings, when are aggregates released, can a student correct a submission, and which action is final acceptance?
-7. What is the authoritative RES-029 template and response lifecycle?
+7. For RES-029, who issues the invitation, what electronic accept/decline states are required, what is the deadline, in what order do the Coordinator, Language Editor, and Dean sign, and does acceptance create or only confirm an editor assignment?
 
 Until NDMU answers these questions, the listed workflows must remain non-actionable rather than infer institutional policy from printed labels.

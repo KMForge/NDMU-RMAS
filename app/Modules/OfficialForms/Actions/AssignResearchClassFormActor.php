@@ -16,6 +16,7 @@ class AssignResearchClassFormActor
     private const ACTOR_PERMISSIONS = [
         'research_instructor' => ['forms.res-041.fill', 'forms.res-041.endorse'],
         'program_coordinator' => ['forms.res-041.receive'],
+        'program_head' => ['forms.res-030.approve', 'forms.res-033.endorse', 'forms.res-038.endorse'],
         'dean' => ['forms.res-047.approve'],
     ];
 

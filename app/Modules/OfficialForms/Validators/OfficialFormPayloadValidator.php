@@ -12,7 +12,8 @@ class OfficialFormPayloadValidator
         'id', 'definition_id', 'official_form_definition_id', 'research_class_group_id',
         'research_class_id', 'initiated_by', 'assigned_by', 'approved_by', 'certified_by',
         'status', 'current_version_id', 'source_type', 'source_id', 'created_at', 'updated_at',
-        'deleted_at', 'actor_user_id', 'user_id', 'signature_id',
+        'deleted_at', 'actor_user_id', 'user_id', 'signature_id', 'signer_id', 'approver_id',
+        'roster', 'validation_average', 'mean_score', 'target_status',
     ];
 
     /**
@@ -26,7 +27,7 @@ class OfficialFormPayloadValidator
         'RES-026' => ['date' => 'string', 'topics' => 'array'],
         'RES-027' => ['date' => 'string', 'course' => 'string', 'research_title' => 'string'],
         'RES-028' => ['date' => 'string', 'panel_role' => 'string', 'defense' => 'string', 'course' => 'string', 'defense_date' => 'string', 'time' => 'string', 'venue' => 'string', 'research_title' => 'string'],
-        'RES-029' => [],
+        'RES-029' => ['date' => 'string', 'course' => 'string', 'research_title' => 'string'],
         'RES-030' => ['date' => 'string', 'degree_program' => 'string', 'research_title' => 'string', 'personnel_type' => 'array', 'current_names' => 'array', 'proposed_replacement' => 'string', 'reasons' => 'string'],
         'RES-031' => [],
         'RES-032' => ['date' => 'string', 'consultant_types' => 'array', 'specific_concerns' => 'string', 'recommendations' => 'string', 'follow_up_date' => 'string'],
