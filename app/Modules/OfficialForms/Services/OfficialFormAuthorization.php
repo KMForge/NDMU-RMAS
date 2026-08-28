@@ -30,22 +30,22 @@ class OfficialFormAuthorization
         'res-027' => ['fill' => ['forms.res-027.respond'], 'respond' => ['forms.res-027.respond']],
         'res-028' => ['fill' => ['forms.res-028.respond'], 'respond' => ['forms.res-028.respond']],
         'res-029' => ['fill' => ['forms.res-029.respond'], 'respond' => ['forms.res-029.respond']],
-        'res-030' => ['fill' => ['forms.res-030.submit'], 'approve' => ['forms.res-030.approve', 'dashboards.facilitator.view']],
+        'res-030' => ['fill' => ['forms.res-030.submit']],
         'res-031' => ['fill' => ['forms.res-031.fill'], 'sign' => ['forms.res-031.fill']],
         'res-032' => ['fill' => ['forms.res-032.fill'], 'sign' => ['forms.res-032.fill']],
-        'res-033' => ['fill' => ['forms.res-033.endorse'], 'endorse' => ['forms.res-033.endorse'], 'approve' => ['dashboards.facilitator.view']],
+        'res-033' => ['fill' => ['forms.res-033.endorse']],
         'res-034' => ['fill' => ['forms.res-034.fill']],
         'res-035' => ['fill' => ['forms.res-035.record'], 'record' => ['forms.res-035.record']],
         'res-036' => ['fill' => ['forms.res-036.evaluate'], 'evaluate' => ['forms.res-036.evaluate']],
         'res-037' => ['fill' => ['forms.res-037.sign'], 'sign' => ['forms.res-037.sign']],
-        'res-038' => ['fill' => ['forms.res-038.endorse'], 'endorse' => ['forms.res-038.endorse'], 'approve' => ['dashboards.facilitator.view']],
+        'res-038' => ['fill' => ['forms.res-038.endorse']],
         'res-039' => ['fill' => ['forms.res-039.fill'], 'sign' => ['forms.res-039.fill']],
         'res-040' => ['view' => ['forms.res-040.view'], 'fill' => ['forms.res-040.endorse'], 'endorse' => ['forms.res-040.endorse'], 'receive' => ['forms.res-040.receive', 'dashboards.facilitator.view']],
         'res-041' => ['view' => ['forms.res-041.view'], 'fill' => ['forms.res-041.fill'], 'endorse' => ['forms.res-041.endorse'], 'receive' => ['forms.res-041.receive']],
-        'res-042' => ['fill' => ['forms.res-042.submit'], 'approve' => ['forms.res-042.submit']],
+        'res-042' => ['fill' => ['forms.res-042.submit']],
         'res-043a' => ['view' => ['forms.res-043a.view'], 'fill' => ['forms.res-043a.validate'], 'validate' => ['forms.res-043a.validate']],
         'res-043b' => ['view' => ['forms.res-043b.view'], 'fill' => ['forms.res-043b.validate'], 'validate' => ['forms.res-043b.validate']],
-        'res-044' => ['fill' => ['forms.res-044.endorse'], 'endorse' => ['forms.res-044.endorse'], 'approve' => ['dashboards.facilitator.view']],
+        'res-044' => ['fill' => ['forms.res-044.endorse']],
         'res-045' => ['view' => ['forms.res-045.view'], 'fill' => ['forms.res-045.certify'], 'certify' => ['forms.res-045.certify']],
         'res-046' => ['view' => ['forms.res-046.view'], 'fill' => ['forms.res-046.certify'], 'certify' => ['forms.res-046.certify']],
         'res-047' => ['fill' => ['forms.res-047.endorse'], 'approve' => ['forms.res-047.approve'], 'endorse' => ['forms.res-047.endorse']],
@@ -65,25 +65,21 @@ class OfficialFormAuthorization
         'res-027' => ['respond' => 'adviser'],
         'res-028' => ['respond' => 'panelist'],
         'res-029' => ['respond' => 'language_editor'],
-        'res-030' => ['approve' => 'facilitator'],
         'res-031' => ['sign' => 'adviser'],
         'res-032' => ['sign' => 'specialist'],
-        'res-033' => ['endorse' => 'adviser', 'approve' => 'facilitator'],
         'res-034' => ['fill' => 'panel_chair'],
         'res-035' => ['record' => 'panel_chair'],
         'res-036' => ['evaluate' => 'panelist'],
         'res-037' => ['sign' => 'panel_chair'],
-        'res-038' => ['endorse' => 'facilitator', 'approve' => 'adviser'],
         'res-039' => ['sign' => 'adviser'],
         'res-040' => ['fill' => 'adviser', 'endorse' => 'adviser', 'receive' => 'research_instructor'],
         'res-041' => ['fill' => 'research_instructor', 'endorse' => 'research_instructor', 'receive' => 'program_coordinator'],
-        'res-042' => ['approve' => 'facilitator'],
         'res-043a' => ['fill' => 'instrument_validator', 'validate' => 'instrument_validator'],
         'res-043b' => ['fill' => 'instrument_validator', 'validate' => 'instrument_validator'],
-        'res-044' => ['endorse' => 'adviser', 'approve' => 'facilitator'],
         'res-045' => ['fill' => 'language_editor', 'certify' => 'language_editor'],
         'res-046' => ['fill' => 'technical_editor', 'certify' => 'technical_editor'],
         'res-047' => ['fill' => 'adviser', 'endorse' => 'adviser', 'approve' => 'dean'],
+        'res-048' => ['fill' => 'student_researcher'],
         'res-049' => ['sign_authorship' => 'student_researcher'],
     ];
 
@@ -110,18 +106,11 @@ class OfficialFormAuthorization
         'res-029' => [
             'respond' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'approved'],
         ],
-        'res-030' => [
-            'approve' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'approved'],
-        ],
         'res-031' => [
             'sign' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'signed'],
         ],
         'res-032' => [
             'sign' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'completed'],
-        ],
-        'res-033' => [
-            'endorse' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'endorsed'],
-            'approve' => ['from' => ['draft', 'submitted', 'endorsed', 'in_progress'], 'to' => 'approved'],
         ],
         'res-034' => [
             'fill' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'completed'],
@@ -130,10 +119,6 @@ class OfficialFormAuthorization
             'record' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'completed'],
         ],
         'res-037' => ['sign' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'signed']],
-        'res-038' => [
-            'endorse' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'endorsed'],
-            'approve' => ['from' => ['draft', 'submitted', 'endorsed', 'in_progress'], 'to' => 'approved'],
-        ],
         'res-039' => [
             'sign' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'approved'],
         ],
@@ -145,15 +130,8 @@ class OfficialFormAuthorization
             'endorse' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'endorsed'],
             'receive' => ['from' => ['draft', 'submitted', 'endorsed', 'in_progress'], 'to' => 'approved'],
         ],
-        'res-042' => [
-            'approve' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'approved'],
-        ],
         'res-043a' => ['validate' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'completed']],
         'res-043b' => ['validate' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'completed']],
-        'res-044' => [
-            'endorse' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'endorsed'],
-            'approve' => ['from' => ['draft', 'submitted', 'endorsed', 'in_progress'], 'to' => 'approved'],
-        ],
         'res-045' => ['certify' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'completed']],
         'res-046' => ['certify' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'completed']],
         'res-047' => [
@@ -365,16 +343,8 @@ class OfficialFormAuthorization
     public function transitionFor(OfficialFormInstance $instance, string $action): ?array
     {
         $code = strtolower($instance->definition->code);
-        if (isset(self::FORM_WORKFLOWS[$code][$action])) {
-            return self::FORM_WORKFLOWS[$code][$action];
-        }
 
-        return match ($action) {
-            'endorse' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'endorsed'],
-            'receive', 'approve' => ['from' => ['draft', 'submitted', 'endorsed', 'in_progress', 'pending_action'], 'to' => 'approved'],
-            'certify', 'validate' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'completed'],
-            default => null,
-        };
+        return self::FORM_WORKFLOWS[$code][$action] ?? null;
     }
 
     public function requiredActorType(OfficialFormInstance $instance, string $action): ?string

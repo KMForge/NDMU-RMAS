@@ -56,7 +56,7 @@ class DashboardRedirectTest extends TestCase
     {
         $this->get(route('home'))
             ->assertOk()
-            ->assertSee('Login')
+            ->assertSee('Log in')
             ->assertSee('Register');
 
         $student = User::factory()->create();
@@ -65,7 +65,7 @@ class DashboardRedirectTest extends TestCase
         $this->actingAs($student)
             ->get(route('home'))
             ->assertOk()
-            ->assertSee('Login')
+            ->assertSee('Log in')
             ->assertSee('Register');
     }
 

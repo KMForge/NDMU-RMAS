@@ -45,7 +45,7 @@ class OfficialFormPayloadValidator
         'RES-045' => ['date' => 'string'],
         'RES-046' => ['date' => 'string'],
         'RES-047' => ['date' => 'string', 'salutation' => 'string'],
-        'RES-048' => ['evaluation_phase' => 'string', 'ratings' => 'array', 'date' => 'string'],
+        'RES-048' => ['evaluation_phase' => 'string', 'ratings' => 'array', 'evaluation_date' => 'string'],
         'RES-049' => ['authorship_confirmed' => 'boolean'],
     ];
 
@@ -138,7 +138,7 @@ class OfficialFormPayloadValidator
     /** @param array<string, mixed> $payload */
     private function validateSemantics(string $code, array $payload): void
     {
-        foreach (['date', 'defense_date', 'follow_up_date'] as $dateField) {
+        foreach (['date', 'defense_date', 'follow_up_date', 'evaluation_date'] as $dateField) {
             if (! isset($payload[$dateField]) || $payload[$dateField] === '') {
                 continue;
             }
@@ -171,10 +171,35 @@ class OfficialFormPayloadValidator
             }
         }
 
-        if (in_array($code, ['RES-043B', 'RES-048'], true)) {
+        if ($code === 'RES-043B') {
             foreach ($payload['ratings'] ?? [] as $rating) {
                 if (! is_numeric($rating) || (float) $rating < 1 || (float) $rating > 5) {
                     throw new InvalidArgumentException("Ratings for {$code} must be between 1 and 5.");
+                }
+            }
+        }
+
+        if ($code === 'RES-048') {
+            if (isset($payload['evaluation_phase'])
+                && $payload['evaluation_phase'] !== ''
+                && ! in_array($payload['evaluation_phase'], ['proposal', 'final'], true)) {
+                throw new InvalidArgumentException('RES-048 evaluation phase must be proposal or final.');
+            }
+
+            $ratings = $payload['ratings'] ?? [];
+            if (count($ratings) > 10) {
+                throw new InvalidArgumentException('RES-048 permits exactly ten criteria when submitted.');
+            }
+
+            foreach ($ratings as $row) {
+                if (! is_array($row) || count($row) > 4) {
+                    throw new InvalidArgumentException('RES-048 ratings must contain no more than four student columns.');
+                }
+
+                foreach ($row as $rating) {
+                    if (! is_numeric($rating) || (int) $rating < 1 || (int) $rating > 4 || (string) (int) $rating !== trim((string) $rating)) {
+                        throw new InvalidArgumentException('RES-048 ratings must be whole numbers between 1 and 4.');
+                    }
                 }
             }
         }

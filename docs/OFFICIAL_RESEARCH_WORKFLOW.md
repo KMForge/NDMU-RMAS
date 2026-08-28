@@ -62,5 +62,5 @@ Rejected document versions, document reviews, superseded schedules, ended panel 
 - No OCR or AI title extraction.
 - No automatic signatures or multi-role action chaining.
 - No assumption that a Title Presentation Chairperson is the RES-037 summary signatory.
-- No automatic Phase 18 milestone completion.
+- No generic form action automatically changes Phase 18 progress. The sole locked exception is RES-026: the Dean's final signed approval completes `research-title-presentation` atomically through `SynchronizeWorkflowMilestone`, as specified in the sequence above.
 - No same-group-adviser ban for ordinary Panel Members.

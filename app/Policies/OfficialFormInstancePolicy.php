@@ -25,6 +25,13 @@ class OfficialFormInstancePolicy
     public function view(User $user, OfficialFormInstance $instance): bool
     {
         $code = strtolower($instance->definition->code);
+
+        // RES-048 contains confidential peer ratings. Until an institutional
+        // release policy is approved, only the student evaluator may view it.
+        if ($code === 'res-048' && (int) $instance->initiated_by !== (int) $user->id) {
+            return false;
+        }
+
         $isAssignedRes026Panelist = $code === 'res-026'
             && $user->can('evaluations.create')
             && $instance->titlePresentation !== null

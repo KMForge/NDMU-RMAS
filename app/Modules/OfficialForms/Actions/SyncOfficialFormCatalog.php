@@ -33,7 +33,7 @@ class SyncOfficialFormCatalog
             ['code' => 'RES-045', 'title' => 'Certificate of Language Editing', 'default_category' => 'Language Editing Certification', 'ownership_scope' => 'research_group', 'cardinality' => 'single_per_group', 'template_view' => 'pages.facilitator.forms.res-045', 'sort_order' => 21],
             ['code' => 'RES-046', 'title' => 'Certificate of Technical Editing', 'default_category' => 'Technical Editing Certification', 'ownership_scope' => 'research_group', 'cardinality' => 'single_per_group', 'template_view' => 'pages.facilitator.forms.res-046', 'sort_order' => 22],
             ['code' => 'RES-047', 'title' => 'Endorsement for Reproduction', 'default_category' => 'Paper Reproduction Endorsement', 'ownership_scope' => 'research_group', 'cardinality' => 'single_per_group', 'template_view' => 'pages.facilitator.forms.res-047', 'sort_order' => 23],
-            ['code' => 'RES-048', 'title' => 'Self and Peer Evaluation', 'default_category' => 'Peer Evaluation', 'ownership_scope' => 'research_group', 'cardinality' => 'single_per_group', 'template_view' => 'pages.student.forms.res-048', 'sort_order' => 24],
+            ['code' => 'RES-048', 'title' => 'Self and Peer Evaluation', 'default_category' => 'Peer Evaluation', 'ownership_scope' => 'research_group', 'cardinality' => 'per_actor', 'template_view' => 'pages.student.forms.res-048', 'sort_order' => 24],
             ['code' => 'RES-049', 'title' => 'Certificate of Authentic Authorship', 'default_category' => 'Authorship Declaration', 'ownership_scope' => 'research_group', 'cardinality' => 'single_per_group', 'template_view' => 'pages.student.forms.res-049', 'sort_order' => 25],
         ];
     }

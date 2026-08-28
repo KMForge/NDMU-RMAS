@@ -4,7 +4,7 @@
 
 Phase 18 records where a `ResearchClassGroup` is in NDMU's official research process. It is group-owned: every current member sees the same state and verified former members retain historical read-only access.
 
-This workflow remains separate from document stages, adviser reviews, consultations, and revision cycles. Those records may be linked as evidence, but they never start, complete, or reverse a milestone automatically. Phase 18 sends no notifications and does not implement forms, signatures, defense scheduling, or evaluation logic.
+This workflow remains separate from document stages, adviser reviews, consultations, and revision cycles. Those records may be linked as evidence, but they do not generically start, complete, or reverse a milestone. The single locked cross-phase exception is RES-026: its Dean-finalized signed approval completes `research-title-presentation` atomically through `SynchronizeWorkflowMilestone`. Phase 18 otherwise does not implement forms, signatures, defense scheduling, or evaluation logic.
 
 ## Authoritative milestones
 

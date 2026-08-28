@@ -6,9 +6,12 @@ use App\Models\ConsultationRecord;
 use App\Models\ConsultationRequest;
 use App\Models\Document;
 use App\Models\DocumentReview;
+use App\Models\OfficialFormDefinition;
 use App\Models\OfficialFormInstance;
 use App\Models\ResearchClass;
+use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
+use App\Models\ResearchClassGroupMember;
 use App\Models\RevisionRequest;
 use App\Models\User;
 use App\Modules\OfficialForms\Actions\ApproveOfficialForm;
@@ -21,6 +24,7 @@ use App\Modules\OfficialForms\Actions\DeactivateResearchClassFormActor;
 use App\Modules\OfficialForms\Actions\SaveOfficialFormDraft;
 use App\Modules\OfficialForms\Actions\SubmitOfficialFormVersion;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
+use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -78,6 +82,24 @@ class OfficialFormBackendTest extends TestCase
             'created_by' => $facilitator->id,
             'creation_token' => (string) Str::uuid(),
             'status' => 'active',
+        ]);
+
+        $enrollment = ResearchClassEnrollment::query()->create([
+            'research_class_id' => $class->id,
+            'student_id' => $leaderUser->id,
+            'status' => 'active',
+            'requested_at' => now()->subDay(),
+            'joined_at' => now(),
+            'reviewed_by' => $facilitator->id,
+            'reviewed_at' => now(),
+        ]);
+
+        ResearchClassGroupMember::query()->create([
+            'research_class_group_id' => $group->id,
+            'research_class_id' => $class->id,
+            'research_class_enrollment_id' => $enrollment->id,
+            'student_id' => $leaderUser->id,
+            'assigned_by' => $facilitator->id,
         ]);
 
         Document::query()->forceCreate([
@@ -1188,5 +1210,84 @@ class OfficialFormBackendTest extends TestCase
         $this->actingAs($otherStudent)
             ->get(route('official-forms.print', $instance))
             ->assertStatus(403);
+    }
+
+    public function test_res048_is_private_per_evaluator_and_uses_a_frozen_roster_with_server_totals(): void
+    {
+        $evaluator = User::factory()->create(['user_type' => 'student']);
+        $peer = User::factory()->create(['user_type' => 'student']);
+        $evaluator->givePermissionTo('forms.res-048.fill', 'forms.res-048.view');
+        $peer->givePermissionTo('forms.res-048.fill', 'forms.res-048.view');
+        $group = $this->createGroup(leader: $evaluator);
+
+        $peerEnrollment = ResearchClassEnrollment::query()->create([
+            'research_class_id' => $group->research_class_id,
+            'student_id' => $peer->id,
+            'status' => 'active',
+            'requested_at' => now()->subDay(),
+            'joined_at' => now(),
+            'reviewed_by' => $group->created_by,
+            'reviewed_at' => now(),
+        ]);
+        ResearchClassGroupMember::query()->create([
+            'research_class_group_id' => $group->id,
+            'research_class_id' => $group->research_class_id,
+            'research_class_enrollment_id' => $peerEnrollment->id,
+            'student_id' => $peer->id,
+            'assigned_by' => $group->created_by,
+        ]);
+
+        $create = new CreateOfficialFormInstance;
+        $evaluatorInstance = $create->handle($evaluator, 'RES-048', $group->id);
+        $peerInstance = $create->handle($peer, 'RES-048', $group->id);
+
+        $this->assertSame(2, OfficialFormInstance::query()
+            ->where('official_form_definition_id', $evaluatorInstance->official_form_definition_id)
+            ->where('research_class_group_id', $group->id)
+            ->count());
+        $this->assertSame($evaluator->id, $evaluatorInstance->currentVersion->source_snapshot['evaluator_user_id']);
+        $this->assertSame([$evaluator->id, $peer->id], array_column($evaluatorInstance->currentVersion->source_snapshot['roster'], 'user_id'));
+
+        $this->actingAs($peer)
+            ->get(route('official-forms.workspace.show', $evaluatorInstance))
+            ->assertForbidden();
+
+        $ratings = array_fill(0, 10, [4, 2]);
+        $submitted = (new SubmitOfficialFormVersion)->handle($evaluator, $evaluatorInstance, [
+            'evaluation_phase' => 'proposal',
+            'evaluation_date' => '2026-08-28',
+            'ratings' => $ratings,
+        ]);
+
+        $this->assertSame([40, 20], $submitted->payload['totals']);
+        $this->assertSame($evaluator->id, $submitted->source_snapshot['evaluator_user_id']);
+        $this->assertSame('submitted', $evaluatorInstance->fresh()->status);
+
+        $this->expectException(InvalidArgumentException::class);
+        (new SubmitOfficialFormVersion)->handle($peer, $peerInstance, [
+            'evaluation_phase' => 'final',
+            'evaluation_date' => '2026-08-28',
+            'ratings' => array_fill(0, 10, [5, 1]),
+        ]);
+    }
+
+    public function test_unverified_institutional_transitions_fail_closed(): void
+    {
+        $authorization = new OfficialFormAuthorization;
+
+        foreach ([
+            'RES-030' => ['approve'],
+            'RES-033' => ['endorse', 'approve'],
+            'RES-038' => ['endorse', 'approve'],
+            'RES-042' => ['approve'],
+            'RES-044' => ['endorse', 'approve'],
+        ] as $code => $actions) {
+            $instance = new OfficialFormInstance;
+            $instance->setRelation('definition', OfficialFormDefinition::query()->where('code', $code)->sole());
+
+            foreach ($actions as $action) {
+                $this->assertNull($authorization->transitionFor($instance, $action), "{$code}.{$action} must fail closed.");
+            }
+        }
     }
 }

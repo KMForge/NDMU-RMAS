@@ -3,6 +3,7 @@
 namespace App\Modules\OfficialForms\Actions;
 
 use App\Enums\AccountStatus;
+use App\Enums\UserType;
 use App\Models\AuditLog;
 use App\Models\DefensePanelAssignment;
 use App\Models\DefenseSchedule;
@@ -42,6 +43,7 @@ class AssignOfficialFormActor
         'RES-045' => ['language_editor'],
         'RES-046' => ['technical_editor'],
         'RES-047' => ['dean', 'program_coordinator'],
+        'RES-048' => ['student_researcher'],
     ];
 
     /** @var array<string, list<string>> */
@@ -58,6 +60,7 @@ class AssignOfficialFormActor
         'RES-045:language_editor' => ['forms.res-045.certify'],
         'RES-046:technical_editor' => ['forms.res-046.certify'],
         'RES-047:dean' => ['forms.res-047.approve'],
+        'RES-048:student_researcher' => ['forms.res-048.fill'],
     ];
 
     public function handle(
@@ -89,6 +92,14 @@ class AssignOfficialFormActor
             if ($userTypeVal !== 'faculty' || $user->status !== AccountStatus::Active || $user->approved_at === null) {
                 throw new InvalidArgumentException("Specialist actor type [{$actorType}] requires a faculty user.");
             }
+        }
+
+        if ($actorType === 'student_researcher'
+            && ($user->user_type !== UserType::Student
+                || $user->status !== AccountStatus::Active
+                || $user->approved_at === null
+                || $user->email_verified_at === null)) {
+            throw new InvalidArgumentException('Student researcher actor type requires an active, approved, verified student account.');
         }
 
         $requiredPermissions = self::ACTOR_PERMISSION_REQUIREMENTS["{$formCode}:{$actorType}"] ?? [];

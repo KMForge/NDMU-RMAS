@@ -84,7 +84,7 @@
                 @endif
                 @if(Route::has('register'))
                     <a href="{{ route('register') }}" class="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-8 text-sm font-bold text-white backdrop-blur-md transition duration-200 hover:border-white/40 hover:bg-white/20 hover:-translate-y-0.5">
-                        Create an Account
+                        Register an Account
                     </a>
                 @endif
             </div>

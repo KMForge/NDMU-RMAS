@@ -73,6 +73,14 @@ class SubmitOfficialFormVersion
             $currentVersion = $lockedInstance->currentVersion;
             $oldStatus = $lockedInstance->status;
 
+            if (strtoupper($lockedInstance->definition->code) === 'RES-048') {
+                $validatedPayload = $this->preparePeerEvaluationPayload(
+                    $actor,
+                    $currentVersion?->source_snapshot,
+                    $validatedPayload,
+                );
+            }
+
             if ($currentVersion !== null && $currentVersion->payload === $validatedPayload) {
                 $lockedInstance->update(['status' => $nextStatus]);
 
@@ -105,6 +113,7 @@ class SubmitOfficialFormVersion
                 'official_form_instance_id' => $lockedInstance->id,
                 'version_number' => $nextVersionNumber,
                 'payload' => $validatedPayload,
+                'source_snapshot' => $currentVersion?->source_snapshot,
                 'created_by' => $actor->id,
                 'supersedes_version_id' => $currentVersion?->id,
                 'is_current' => true,
@@ -133,5 +142,69 @@ class SubmitOfficialFormVersion
 
             return $newVersion;
         });
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $sourceSnapshot
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function preparePeerEvaluationPayload(User $actor, ?array $sourceSnapshot, array $payload): array
+    {
+        if ((int) ($sourceSnapshot['evaluator_user_id'] ?? 0) !== (int) $actor->id) {
+            throw new InvalidArgumentException('RES-048 evaluator identity does not match its frozen roster.');
+        }
+
+        $roster = $sourceSnapshot['roster'] ?? null;
+        if (! is_array($roster) || count($roster) < 1 || count($roster) > 4) {
+            throw new InvalidArgumentException('RES-048 has no valid frozen group roster.');
+        }
+
+        if (! in_array($payload['evaluation_phase'] ?? null, ['proposal', 'final'], true)) {
+            throw new InvalidArgumentException('RES-048 requires a proposal or final evaluation phase.');
+        }
+
+        if (($payload['evaluation_date'] ?? '') === '') {
+            throw new InvalidArgumentException('RES-048 requires an evaluation date.');
+        }
+
+        $rows = array_values($payload['ratings'] ?? []);
+        if (count($rows) !== 10) {
+            throw new InvalidArgumentException('RES-048 requires ratings for all ten criteria.');
+        }
+
+        $columnCount = count($roster);
+        $normalizedRows = [];
+        $totals = array_fill(0, $columnCount, 0);
+
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                throw new InvalidArgumentException('RES-048 contains a malformed rating row.');
+            }
+
+            $values = array_values($row);
+            if (count($values) !== $columnCount) {
+                throw new InvalidArgumentException('RES-048 rating columns must exactly match the frozen group roster.');
+            }
+
+            $normalizedRow = [];
+            foreach ($values as $column => $rating) {
+                if (! is_numeric($rating) || (int) $rating < 1 || (int) $rating > 4 || (string) (int) $rating !== trim((string) $rating)) {
+                    throw new InvalidArgumentException('RES-048 ratings must be whole numbers between 1 and 4.');
+                }
+
+                $normalizedRow[] = (int) $rating;
+                $totals[$column] += (int) $rating;
+            }
+
+            $normalizedRows[] = $normalizedRow;
+        }
+
+        return [
+            'evaluation_phase' => $payload['evaluation_phase'],
+            'ratings' => $normalizedRows,
+            'evaluation_date' => $payload['evaluation_date'],
+            'totals' => $totals,
+        ];
     }
 }

@@ -1,7 +1,8 @@
 @php
     $officialFormInstance = $officialFormInstance ?? null;
     $payload = $payload ?? [];
-    $members = $officialFormInstance?->group?->members?->values() ?? collect();
+    $roster = collect($officialFormInstance?->currentVersion?->source_snapshot['roster'] ?? []);
+    $totals = $payload['totals'] ?? [];
 @endphp
 <div x-show="activeOfficialForm === 'RES-048'" x-cloak><x-student-official-form code="RES-Form-048" title="Self and Peer Evaluation" guidebook-page="134">
     <fieldset><legend class="font-bold">Type of Evaluation Phase:</legend>
@@ -16,22 +17,29 @@
         <thead>
             <tr>
                 <th>Area</th>
-                <th class="w-20">Self</th>
-                <th><input value="{{ $members->get(0)?->student?->name ?? 'Member 1' }}" placeholder="Member 1" class="w-full" readonly></th>
-                <th><input value="{{ $members->get(1)?->student?->name ?? 'Member 2' }}" placeholder="Member 2" class="w-full" readonly></th>
-                <th><input value="{{ $members->get(2)?->student?->name ?? 'Member 3' }}" placeholder="Member 3" class="w-full" readonly></th>
+                @foreach ($roster as $person)
+                    <th class="min-w-24 text-center">
+                        <span class="block font-bold">{{ ($person['role'] ?? '') === 'self' ? 'Self' : 'Peer' }}</span>
+                        <span class="block text-[10px] font-normal">{{ $person['name'] ?? 'Student' }}</span>
+                    </th>
+                @endforeach
             </tr>
         </thead>
         <tbody>
             @foreach (['Participated willingly in all activities of the group.','Took extra effort to contribute for the development of the research paper.','Did best in doing the assigned research tasks.','Was consistent and punctual in attending group activities/meetings.','Contributed bright ideas in order to improve the research paper.','Did the assigned tasks on or before the deadline.','Took the initiative to perform some unaccomplished parts of the research.','Encouraged other members of the group to participate actively.','Showed favorable attitude towards other members of the group.','Accepted/listened to the opinions of other members of the group.'] as $criterionIndex => $criterion)
                 <tr>
                     <td>{{ $criterionIndex + 1 }}. {{ $criterion }}</td>
-                    @for ($i=0;$i<4;$i++)
-                        <td><input type="number" min="1" max="4" name="payload[ratings][{{ $criterionIndex }}][{{ $i }}]" value="{{ $payload['ratings'][$criterionIndex][$i] ?? '' }}" class="w-full text-center"></td>
-                    @endfor
+                    @foreach ($roster as $column => $person)
+                        <td><input type="number" min="1" max="4" step="1" required name="payload[ratings][{{ $criterionIndex }}][{{ $column }}]" value="{{ $payload['ratings'][$criterionIndex][$column] ?? '' }}" class="w-full text-center"></td>
+                    @endforeach
                 </tr>
             @endforeach
-            <tr><td class="font-bold">TOTAL</td>@for ($i=0;$i<4;$i++)<td></td>@endfor</tr>
+            <tr>
+                <td class="font-bold">TOTAL (server calculated)</td>
+                @foreach ($roster as $column => $person)
+                    <td class="text-center font-bold">{{ $totals[$column] ?? '-' }}</td>
+                @endforeach
+            </tr>
         </tbody>
     </table>
     <div class="mx-auto mt-10 grid max-w-xl gap-6 md:grid-cols-2">

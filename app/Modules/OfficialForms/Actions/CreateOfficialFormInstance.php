@@ -19,6 +19,7 @@ use App\Models\OfficialFormInstance;
 use App\Models\OfficialFormVersion;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
+use App\Models\ResearchClassGroupMember;
 use App\Models\RevisionRequest;
 use App\Models\User;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
@@ -97,6 +98,15 @@ class CreateOfficialFormInstance
         $group = $groupId !== null ? ResearchClassGroup::query()->find($groupId) : null;
         $class = $classId !== null ? ResearchClass::query()->find($classId) : null;
 
+        if ($formCodeUpper === 'RES-048') {
+            if ($group === null || ! $group->isActive()) {
+                throw new InvalidArgumentException('RES-048 requires an active research class group.');
+            }
+
+            $targetActorId = $initiator->id;
+            $sourceSnapshot = $this->buildPeerEvaluationSnapshot($initiator, $group);
+        }
+
         if ($formCodeUpper === 'RES-026' && $group !== null && $sourceType === null) {
             $approvedDocument = Document::query()
                 ->where('research_class_group_id', $group->id)
@@ -131,7 +141,9 @@ class CreateOfficialFormInstance
             }
         }
 
-        $targetActorId = $actorUserId ?? $initiator->id;
+        $targetActorId = $formCodeUpper === 'RES-048'
+            ? $initiator->id
+            : ($actorUserId ?? $initiator->id);
 
         // Authoritative Source Enforcements per form
         if (in_array($formCodeUpper, ['RES-043A', 'RES-043B'], true)) {
@@ -252,6 +264,40 @@ class CreateOfficialFormInstance
         }
 
         return $targetActorId;
+    }
+
+    /** @return array{evaluator_user_id: int, roster: list<array{user_id: int, name: string, role: string}>, captured_at: string} */
+    private function buildPeerEvaluationSnapshot(User $initiator, ResearchClassGroup $group): array
+    {
+        $members = ResearchClassGroupMember::query()
+            ->where('research_class_group_id', $group->id)
+            ->with('student:id,name')
+            ->orderBy('student_id')
+            ->get();
+
+        if (! $members->contains(fn (ResearchClassGroupMember $member): bool => (int) $member->student_id === (int) $initiator->id)) {
+            throw new InvalidArgumentException('Only a current member of the research group may create RES-048.');
+        }
+
+        if ($members->isEmpty() || $members->count() > 4) {
+            throw new InvalidArgumentException('RES-048 requires a frozen research group roster of one to four students.');
+        }
+
+        $roster = $members
+            ->sortBy(fn (ResearchClassGroupMember $member): int => (int) $member->student_id === (int) $initiator->id ? 0 : 1)
+            ->values()
+            ->map(fn (ResearchClassGroupMember $member): array => [
+                'user_id' => (int) $member->student_id,
+                'name' => (string) $member->student?->name,
+                'role' => (int) $member->student_id === (int) $initiator->id ? 'self' : 'peer',
+            ])
+            ->all();
+
+        return [
+            'evaluator_user_id' => (int) $initiator->id,
+            'roster' => $roster,
+            'captured_at' => now()->toIso8601String(),
+        ];
     }
 
     private function validateEditorAssignment(?int $groupId, int $targetActorId, string $requiredActorType): void
