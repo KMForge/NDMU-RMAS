@@ -67,6 +67,13 @@ class AdviserDashboardOverviewTest extends TestCase
             ->assertOk()
             ->assertSee("activeTab: 'docreview'", false)
             ->assertSee($document->original_filename);
+
+        $this->actingAs($adviser)
+            ->get(route('adviser.dashboard', ['tab' => 'evaluations']))
+            ->assertOk()
+            ->assertSee("activeTab: 'evaluations'", false)
+            ->assertSee('Evaluation Records')
+            ->assertDontSee('Evaluation records backend will be rebuilt in the evaluation phase.');
     }
 
     private function enroll(User $adviser, User $student): void

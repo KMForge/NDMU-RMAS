@@ -3,18 +3,17 @@
 namespace App\Http\Controllers\Facilitator;
 
 use App\Enums\AccountStatus;
-use App\Enums\DocumentStage;
-use App\Enums\DocumentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\OfficialFormWorkspaceController;
 use App\Models\DefenseRoom;
-use App\Models\Document;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
 use App\Modules\Classes\Queries\GetFacilitatorClassData;
 use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
+use App\Modules\Documents\Queries\GetFacilitatorScreeningData;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
+use App\Modules\Notifications\Queries\GetNotificationsForUser;
 use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use App\Modules\ResearchProgress\Queries\GetFacilitatorProgressData;
 use Illuminate\Contracts\View\View;
@@ -27,9 +26,11 @@ class DashboardController extends Controller
         Request $request,
         GetFacilitatorClassData $classData,
         GetDocumentRepositoryData $repositoryData,
+        GetFacilitatorScreeningData $screeningData,
         GetFacilitatorProgressData $progressData,
         GetDefenseScheduleCalendar $defenseCalendar,
         GetPendingAcademicActionsForUser $pendingActionsService,
+        GetNotificationsForUser $notificationQuery,
     ): View {
         $repository = $request->query('tab') === 'repository'
             ? $repositoryData->for($request->user(), $request->query())
@@ -40,8 +41,20 @@ class DashboardController extends Controller
                 $request->query('progress_search'),
                 $request->query('progress_group_status'),
                 $request->query('progress_page'),
+                $request->query('progress_group_id'),
             )
             : [];
+        $notificationsData = $request->query('tab') === 'notifications'
+            ? [
+                'userNotifications' => $notificationQuery->execute($request->user(), (string) $request->query('notification_filter', 'all')),
+                'userUnreadCount' => $request->user()->unreadNotifications()->count(),
+                'notificationFilter' => (string) $request->query('notification_filter', 'all'),
+            ]
+            : [
+                'userNotifications' => collect(),
+                'userUnreadCount' => $request->user()->unreadNotifications()->count(),
+                'notificationFilter' => 'all',
+            ];
 
         $defenses = $defenseCalendar->execute($request->user());
         $allDefenseRooms = DefenseRoom::query()
@@ -82,36 +95,9 @@ class DashboardController extends Controller
             ->whereNotNull('email_verified_at')
             ->orderBy('name')
             ->get(['id', 'name', 'email']);
-        $titleProposalScreeningQueue = Document::query()
-            ->with(['user:id,name,email', 'researchClassGroup:id,research_class_id,name'])
-            ->where('document_stage', DocumentStage::TitleProposal->value)
-            ->where('status', DocumentStatus::Submitted->value)
-            ->where('is_current', true)
-            ->whereHas('researchClassGroup.researchClass', fn ($query) => $query->where('facilitator_id', $request->user()->id))
-            ->latest('submitted_at')
-            ->get();
-        $adviserApprovedDefenseDocuments = Document::query()
-            ->with([
-                'user:id,name,email',
-                'researchClassGroup:id,research_class_id,name,adviser_id',
-                'researchClassGroup.adviser:id,name',
-            ])
-            ->whereIn('document_stage', [
-                DocumentStage::ProposalDefense->value,
-                DocumentStage::PreFinalDefense->value,
-                DocumentStage::FinalDefense->value,
-            ])
-            ->where('status', DocumentStatus::Accepted->value)
-            ->where('is_current', true)
-            ->whereHas('researchClassGroup.researchClass', fn ($query) => $query->where('facilitator_id', $request->user()->id))
-            ->whereNotExists(function ($query): void {
-                $query->selectRaw('1')
-                    ->from('defenses')
-                    ->whereColumn('defenses.research_class_group_id', 'documents.research_class_group_id')
-                    ->whereColumn('defenses.defense_type', 'documents.document_stage');
-            })
-            ->latest('submitted_at')
-            ->get();
+        $screening = $screeningData->for($request->user());
+        $titleProposalScreeningQueue = $screening['titleProposalScreeningQueue'];
+        $adviserApprovedDefenseDocuments = $screening['adviserApprovedDefenseDocuments'];
         $pendingFormInstances = app(OfficialFormWorkspaceController::class)->pendingInstances($request);
         $classDashboardData = $classData->for(
             $request->user(),
@@ -137,12 +123,17 @@ class DashboardController extends Controller
             'defensePanelCandidates' => $defensePanelCandidates,
             'titleProposalScreeningQueue' => $titleProposalScreeningQueue,
             'adviserApprovedDefenseDocuments' => $adviserApprovedDefenseDocuments,
+            'facilitatorScreeningHistory' => $screening['facilitatorScreeningHistory'],
+            'facilitatorScreeningStats' => $screening['facilitatorScreeningStats'],
             'sidebarBadges' => [
                 'forms' => $pendingFormInstances->count(),
+                'classes' => count($classDashboardData['classes'] ?? []),
                 'join-requests' => (int) ($classDashboardData['classRequestStats']['pending'] ?? 0),
+                'join_requests' => (int) ($classDashboardData['classRequestStats']['pending'] ?? 0),
                 'screening' => $titleProposalScreeningQueue->count() + $adviserApprovedDefenseDocuments->count(),
                 'title-proposal-screening' => $titleProposalScreeningQueue->count(),
                 'defense-scheduling-ready' => $adviserApprovedDefenseDocuments->count(),
+                'defenses' => count($defenseSchedulingGroups),
                 'notifications' => Schema::hasTable('notifications')
                     ? $request->user()->unreadNotifications()->count()
                     : 0,
@@ -150,6 +141,7 @@ class DashboardController extends Controller
             ...$classDashboardData,
             ...$repository,
             ...$progress,
+            ...$notificationsData,
         ]);
     }
 }

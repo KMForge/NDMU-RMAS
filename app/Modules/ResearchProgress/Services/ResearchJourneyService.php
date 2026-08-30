@@ -65,7 +65,7 @@ class ResearchJourneyService
             }
         }
 
-        $percentage = round(($completedStageCount / 13) * 100, 1);
+        $percentage = (int) round(($completedStageCount / 13) * 100);
 
         return [
             'current_stage' => $currentStageNumber,
@@ -94,6 +94,10 @@ class ResearchJourneyService
     ): array {
         if ($stageNum === 1) {
             return $this->evaluateTitlePresentationStage($group, $instances, $milestones);
+        }
+
+        if ($stageNum === 2) {
+            return $this->evaluateProposalFormulationStage($group, $instances, $milestones);
         }
 
         $stageConfig = $this->getStageConfig($stageNum);
@@ -262,6 +266,89 @@ class ResearchJourneyService
                 'label' => $nextLabel,
                 'route' => $instance ? route('official-forms.workspace.show', $instance) : route('student.dashboard', ['tab' => 'proposal']),
                 'form_code' => $nextActionType === 'form' ? 'res-026' : null,
+                'action_type' => $nextActionType,
+                'actor_type' => $actorType,
+            ],
+            'completed_requirements' => array_values(array_unique($completed)),
+            'pending_requirements' => array_values(array_unique($pending)),
+            'blockers' => [],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function evaluateProposalFormulationStage(ResearchClassGroup $group, Collection $instances, Collection $milestones): array
+    {
+        $milestone = $milestones->get('formulation-research-proposal');
+        $document = Document::query()
+            ->where('research_class_group_id', $group->id)
+            ->whereIn('document_stage', [
+                DocumentStage::ProposalDefense->value,
+                'proposal',
+                'proposal_manuscript',
+            ])
+            ->where('is_current', true)
+            ->latest('version_number')
+            ->first();
+
+        $completed = [];
+        $pending = [];
+        $waitingOn = null;
+        $nextLabel = null;
+        $nextRoute = route('student.dashboard', ['tab' => 'proposal']);
+        $nextActionType = 'document';
+        $actorType = 'student_researcher';
+
+        // 1. Consultation Records (Ongoing cumulative log)
+        $consultationCount = $group->consultationRecords()->where('is_superseded', false)->count();
+        if ($consultationCount > 0) {
+            $completed[] = "{$consultationCount} consultation session(s) logged on RES-031";
+        }
+
+        // 2. Proposal Document workflow
+        if ($document === null) {
+            $pending[] = 'Draft and upload Research Proposal document (Chapters 1-3)';
+            $nextLabel = 'Upload Research Proposal';
+            $waitingOn = 'Student Researchers to upload proposal document';
+        } elseif ($document->status === DocumentStatus::Draft) {
+            $completed[] = 'Research Proposal document uploaded';
+            $pending[] = 'Submit Research Proposal for adviser review';
+            $nextLabel = 'Submit Research Proposal';
+            $waitingOn = 'Student Researchers to submit proposal';
+        } elseif ($document->status === DocumentStatus::Submitted) {
+            $completed[] = 'Research Proposal document submitted';
+            $pending[] = 'Assigned Research Adviser review';
+            $waitingOn = 'Assigned Research Adviser review';
+            $actorType = 'adviser';
+        } elseif ($document->status === DocumentStatus::RevisionRequested || $document->status === DocumentStatus::Rejected) {
+            $completed[] = 'Adviser review feedback recorded';
+            $pending[] = 'Upload revised Research Proposal';
+            $nextLabel = 'Upload Revised Proposal';
+            $waitingOn = 'Student Researchers to upload revised proposal';
+        } else {
+            $completed[] = 'Research Proposal approved by Research Adviser';
+            if ($milestone?->status !== ResearchMilestoneStatus::Completed) {
+                $pending[] = 'Facilitator/Adviser completes proposal formulation milestone';
+                $waitingOn = 'Research Facilitator / Adviser milestone confirmation';
+                $actorType = 'research_facilitator';
+            }
+        }
+
+        $isMilestoneCompleted = $milestone !== null && $milestone->status === ResearchMilestoneStatus::Completed;
+        $isDocApproved = $document !== null && in_array($document->status, [DocumentStatus::Accepted, DocumentStatus::ApprovedForPresentation], true);
+        $isCompleted = $isMilestoneCompleted || $isDocApproved;
+
+        return [
+            'stage' => 2,
+            'code' => 'formulation-research-proposal',
+            'name' => 'Formulation of Research Proposal',
+            'is_completed' => $isCompleted,
+            'primary_form' => 'res-031',
+            'form_status' => 'draft',
+            'waiting_on' => $waitingOn,
+            'next_action' => $nextLabel === null ? null : [
+                'label' => $nextLabel,
+                'route' => $nextRoute,
+                'form_code' => null,
                 'action_type' => $nextActionType,
                 'actor_type' => $actorType,
             ],

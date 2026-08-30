@@ -103,6 +103,8 @@ class AdviserDocumentReviewTest extends TestCase
             ->assertOk()
             ->assertSee('Adviser-Approved Documents Ready for Scheduling')
             ->assertSee('proposal-for-defense.pdf')
+            ->assertSee('Screening &amp; Review History', false)
+            ->assertSee('Accepted')
             ->assertSee('aria-label="1 document awaiting facilitator action"', false);
     }
 

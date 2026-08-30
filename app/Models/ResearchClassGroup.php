@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 #[Fillable([
     'research_class_id',
@@ -78,6 +79,41 @@ class ResearchClassGroup extends Model
     public function adviserHistories(): HasMany
     {
         return $this->hasMany(ResearchClassGroupAdviserHistory::class);
+    }
+
+    public function consultationRecords(): HasMany
+    {
+        return $this->hasMany(ConsultationRecord::class, 'research_class_group_id');
+    }
+
+    public function getTitleAttribute(): ?string
+    {
+        if ($this->research_group_id !== null) {
+            $title = DB::table('research_projects')
+                ->where('research_group_id', $this->research_group_id)
+                ->value('title');
+            if (! empty($title)) {
+                return $title;
+            }
+        }
+
+        $res026 = OfficialFormInstance::query()
+            ->where('research_class_group_id', $this->id)
+            ->whereHas('definition', fn ($q) => $q->where('code', 'RES-026'))
+            ->with(['titlePresentation.formVersion'])
+            ->latest('id')
+            ->first();
+
+        if ($res026?->titlePresentation?->approved_title_number) {
+            $topics = $res026->titlePresentation->formVersion?->payload['topics'] ?? [];
+            $num = (int) $res026->titlePresentation->approved_title_number;
+            $title = trim((string) ($topics[$num - 1] ?? ''));
+            if (! empty($title)) {
+                return $title;
+            }
+        }
+
+        return null;
     }
 
     public function isActive(): bool

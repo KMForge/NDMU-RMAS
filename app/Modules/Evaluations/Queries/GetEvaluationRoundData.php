@@ -190,13 +190,17 @@ class GetEvaluationRoundData
     {
         $query = DefenseEvaluationRound::query()
             ->with([
-                'defense.group',
+                'defense.group.members.student',
+                'defense.group.researchClass',
+                'defenseSchedule.room',
+                'roundPanelists.panelist',
+                'roundStudents.student',
                 'summary.studentSummaries.student',
+                'evaluations.panelist',
             ])
             ->whereHas('defense.group', function ($q) use ($adviser) {
                 $q->where('adviser_id', $adviser->id);
-            })
-            ->whereIn('status', ['released', 'finalized', 'complete']);
+            });
 
         if ($defense) {
             $query->where('defense_id', $defense->id);
@@ -206,14 +210,38 @@ class GetEvaluationRoundData
 
         return [
             'rounds' => $rounds->map(function ($round) {
+                $recommendations = $round->evaluations
+                    ->filter(fn ($e) => ! empty($e->recommendations) || ! empty($e->general_comments))
+                    ->map(fn ($e) => [
+                        'panelist_name' => $e->panelist?->name ?? 'Panel Member',
+                        'recommendations' => $e->recommendations,
+                        'general_comments' => $e->general_comments,
+                    ])->values()->all();
+
                 return [
                     'id' => $round->id,
                     'defense_id' => $round->defense_id,
                     'defense_type' => $round->defense->defense_type,
+                    'group_id' => $round->research_class_group_id,
                     'group_name' => $round->defense->group?->name,
+                    'class_name' => $round->defense->group?->researchClass?->name,
                     'research_title' => $round->defense->group?->title ?? $round->defense->group?->name,
                     'status' => $round->status,
+                    'opened_at' => $round->opened_at?->toIso8601String(),
+                    'finalized_at' => $round->finalized_at?->toIso8601String(),
                     'released_at' => $round->released_at?->toIso8601String(),
+                    'scheduled_at' => $round->defenseSchedule?->scheduled_at?->toIso8601String(),
+                    'room_name' => $round->defenseSchedule?->room?->name,
+                    'panelists' => $round->roundPanelists->map(fn ($p) => [
+                        'user_id' => $p->panelist_user_id,
+                        'name' => $p->panelist?->name,
+                        'position' => $p->position,
+                        'has_submitted' => $round->evaluations->contains(fn ($e) => (int) $e->panelist_user_id === (int) $p->panelist_user_id && $e->status === 'submitted'),
+                    ])->values()->all(),
+                    'students' => $round->roundStudents->map(fn ($s) => [
+                        'user_id' => $s->student_id,
+                        'name' => $s->student_name_snapshot ?? $s->student?->name,
+                    ])->values()->all(),
                     'summary' => $round->summary ? [
                         'research_paper_average' => $round->summary->research_paper_average,
                         'student_summaries' => $round->summary->studentSummaries->map(fn ($ss) => [
@@ -222,6 +250,7 @@ class GetEvaluationRoundData
                             'presentation_average' => $ss->presentation_average,
                         ])->values()->all(),
                     ] : null,
+                    'recommendations' => $recommendations,
                 ];
             })->values()->all(),
         ];

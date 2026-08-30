@@ -14,8 +14,10 @@ use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Documents\Queries\GetAdviserDocumentReviewData;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
+use App\Modules\Notifications\Queries\GetNotificationsForUser;
 use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use App\Modules\Research\Queries\GetAdviserDashboardOverview;
+use App\Modules\ResearchProgress\Queries\GetAdviserProgressData;
 use App\Modules\ResearchProgress\Queries\GetResearchGroupProgress;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -31,14 +33,15 @@ class DashboardController extends Controller
         GetAdviserDocumentReviewData $reviewData,
         GetAdviserConsultationData $consultationData,
         GetResearchGroupProgress $groupProgress,
+        GetAdviserProgressData $adviserProgressData,
         GetAdviserDashboardOverview $overviewData,
         GetDefenseScheduleCalendar $defenseCalendar,
+        GetNotificationsForUser $notificationQuery,
     ): View {
         $allowedTabs = [
             'dashboard',
             'classes',
             'researchers',
-            'proposal',
             'monitoring',
             'consultation',
             'docreview',
@@ -50,8 +53,12 @@ class DashboardController extends Controller
             'notifications',
             'settings',
         ];
-        $activeTab = in_array($request->query('tab'), $allowedTabs, true)
-            ? (string) $request->query('tab')
+        $tabParam = (string) $request->query('tab');
+        if ($tabParam === 'proposal') {
+            $tabParam = 'docreview';
+        }
+        $activeTab = in_array($tabParam, $allowedTabs, true)
+            ? $tabParam
             : 'dashboard';
 
         $user = $request->user();
@@ -145,16 +152,24 @@ class DashboardController extends Controller
             $viewData = [...$viewData, ...$consultationData->for(
                 $user,
                 (string) $request->query('consultation_search', ''),
-                (string) $request->query('consultation_status', 'pending'),
+                (string) $request->query('consultation_status', 'all'),
             )];
         }
 
         if ($activeTab === 'monitoring') {
-            $viewData['adviserProgressGroups'] = $assignedGroups->map(function (ResearchClassGroup $group) use ($groupProgress): ResearchClassGroup {
-                $group->setAttribute('progress_summary', $groupProgress->for($group));
+            $viewData = [...$viewData, ...$adviserProgressData->for(
+                $user,
+                $request->query('progress_search'),
+                $request->query('progress_group_status'),
+                $request->query('progress_page'),
+                $request->query('progress_group_id'),
+            )];
+        }
 
-                return $group;
-            });
+        if ($activeTab === 'notifications') {
+            $viewData['userNotifications'] = $notificationQuery->execute($user, (string) $request->query('notification_filter', 'all'));
+            $viewData['userUnreadCount'] = $user->unreadNotifications()->count();
+            $viewData['notificationFilter'] = (string) $request->query('notification_filter', 'all');
         }
 
         return view('pages.adviser-dashboard', [
@@ -182,7 +197,7 @@ class DashboardController extends Controller
                 'total' => 0,
             ],
             'consultationSearch' => '',
-            'consultationStatus' => 'pending',
+            'consultationStatus' => 'all',
             'reviewDocuments' => new LengthAwarePaginator([], 0, 8),
             'selectedReviewDocument' => null,
             'documentReviewComments' => new Collection,
@@ -195,6 +210,9 @@ class DashboardController extends Controller
             'documentReviewSort' => 'newest',
             'assignedGroupOptions' => new Collection,
             'adviserNotifications' => new Collection,
+            'userNotifications' => new LengthAwarePaginator([], 0, 20),
+            'userUnreadCount' => 0,
+            'notificationFilter' => 'all',
             'adviserOverviewAdvisees' => new Collection,
             'pendingConsultationsCount' => 0,
             'pendingDocReviewsCount' => 0,

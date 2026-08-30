@@ -7,6 +7,7 @@ use App\Http\Controllers\OfficialFormWorkspaceController;
 use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Documents\Queries\GetPanelistAssignedDocuments;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
+use App\Modules\Notifications\Queries\GetNotificationsForUser;
 use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -14,8 +15,14 @@ use Illuminate\Support\Facades\Schema;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request, GetDefenseScheduleCalendar $defenseCalendar, GetEvaluationRoundData $evaluationQuery, GetPendingAcademicActionsForUser $pendingActionsService, GetPanelistAssignedDocuments $assignedDocumentsQuery): View
-    {
+    public function __invoke(
+        Request $request,
+        GetDefenseScheduleCalendar $defenseCalendar,
+        GetEvaluationRoundData $evaluationQuery,
+        GetPendingAcademicActionsForUser $pendingActionsService,
+        GetPanelistAssignedDocuments $assignedDocumentsQuery,
+        GetNotificationsForUser $notificationQuery,
+    ): View {
         $officialForms = config('official-forms.panelist', []);
         $assignedPhases = array_flip(array_unique(array_column($officialForms, 'phase')));
         $assignedDefenses = $defenseCalendar->execute($request->user());
@@ -34,10 +41,23 @@ class DashboardController extends Controller
             fn (array $round): bool => in_array($round['status'] ?? null, ['open', 'in_progress'], true)
                 && data_get($round, 'evaluation.status') !== 'submitted',
         );
+        $tab = (string) $request->query('tab', 'dashboard');
+        $notificationsData = $tab === 'notifications'
+            ? [
+                'userNotifications' => $notificationQuery->execute($request->user(), (string) $request->query('notification_filter', 'all')),
+                'userUnreadCount' => $request->user()->unreadNotifications()->count(),
+                'notificationFilter' => (string) $request->query('notification_filter', 'all'),
+            ]
+            : [
+                'userNotifications' => collect(),
+                'userUnreadCount' => $request->user()->unreadNotifications()->count(),
+                'notificationFilter' => 'all',
+            ];
 
         return view('pages.panelist-dashboard', [
             'area' => 'Panelist',
             'panelist' => $request->user(),
+            ...$notificationsData,
             'pendingFormInstances' => $pendingFormInstances,
             'pendingAcademicActions' => $pendingActionsService->execute($request->user()),
             'officialFormPhases' => array_intersect_key(

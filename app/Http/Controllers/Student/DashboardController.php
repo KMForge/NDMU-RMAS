@@ -8,6 +8,7 @@ use App\Modules\Consultations\Queries\GetStudentConsultationData;
 use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
+use App\Modules\Notifications\Queries\GetNotificationsForUser;
 use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use App\Modules\Research\Queries\GetStudentDashboardData;
 use App\Modules\ResearchProgress\Services\ResearchJourneyService;
@@ -26,6 +27,7 @@ class DashboardController extends Controller
         GetEvaluationRoundData $evaluationQuery,
         ResearchJourneyService $journeyService,
         GetPendingAcademicActionsForUser $pendingActionsService,
+        GetNotificationsForUser $notificationQuery,
     ): View {
         $allowedTabs = [
             'dashboard',
@@ -60,6 +62,16 @@ class DashboardController extends Controller
             $data = [...$data, ...$consultationData->for($request->user())];
         }
 
+        if ($activeTab === 'notifications') {
+            $data['userNotifications'] = $notificationQuery->execute($request->user(), (string) $request->query('notification_filter', 'all'));
+            $data['userUnreadCount'] = $request->user()->unreadNotifications()->count();
+            $data['notificationFilter'] = (string) $request->query('notification_filter', 'all');
+        } else {
+            $data['userNotifications'] = collect();
+            $data['userUnreadCount'] = $request->user()->unreadNotifications()->count();
+            $data['notificationFilter'] = 'all';
+        }
+
         $pendingConsultationsCount = Schema::hasTable('consultation_requests')
             ? ConsultationRequest::query()
                 ->where('requested_by', $request->user()->getKey())
@@ -90,10 +102,13 @@ class DashboardController extends Controller
         $pendingAcademicActions = $pendingActionsService->execute($request->user());
 
         $data['sidebarBadges'] = [
+            'classes' => count($data['classes'] ?? []),
             'consultation' => $pendingConsultationsCount,
             'revisions' => collect($data['revisions'] ?? [])
                 ->whereIn('status', ['open', 'in_progress'])
                 ->count() + (int) ($data['documentFeedbackCount'] ?? 0),
+            'defense' => is_countable($data['defenses'] ?? null) ? count($data['defenses']) : 0,
+            'evaluations' => is_countable($data['releasedEvaluations'] ?? null) ? count($data['releasedEvaluations']) : 0,
             'forms' => $pendingAcademicActions->count(),
             'notifications' => Schema::hasTable('notifications')
                 ? $request->user()->unreadNotifications()->count()

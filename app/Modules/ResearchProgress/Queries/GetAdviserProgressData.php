@@ -6,13 +6,13 @@ use App\Models\ResearchClassGroup;
 use App\Models\User;
 use Illuminate\Support\Str;
 
-class GetFacilitatorProgressData
+class GetAdviserProgressData
 {
     public function __construct(private readonly GetResearchGroupProgress $progress) {}
 
     /** @return array<string, mixed> */
     public function for(
-        User $facilitator,
+        User $adviser,
         mixed $search = null,
         mixed $status = null,
         mixed $page = null,
@@ -23,12 +23,12 @@ class GetFacilitatorProgressData
         $groupId = is_numeric($groupId) && (int) $groupId > 0 ? (int) $groupId : null;
 
         $allFilterGroups = ResearchClassGroup::query()
-            ->whereHas('researchClass', fn ($query) => $query->where('facilitator_id', $facilitator->getKey()))
+            ->where('adviser_id', $adviser->getKey())
             ->orderBy('name')
             ->get(['id', 'name', 'research_class_id', 'research_group_id']);
 
         $groups = ResearchClassGroup::query()
-            ->whereHas('researchClass', fn ($query) => $query->where('facilitator_id', $facilitator->getKey()))
+            ->where('adviser_id', $adviser->getKey())
             ->when($status === 'active', fn ($query) => $query->where('status', 'active')->whereNull('disbanded_at'))
             ->when($status === 'disbanded', fn ($query) => $query->where('status', 'disbanded'))
             ->when($groupId !== null, fn ($query) => $query->where('id', $groupId))
