@@ -1,4 +1,7 @@
 {{-- Livewire UI rendered by the AdminDashboard component. --}}
+@php
+    $pendingUsersCount = $pendingApprovalCount ?? ($pendingUsersCount ?? (isset($pendingStudents) ? $pendingStudents->count() : 0));
+@endphp
 <div
     class="min-h-screen flex font-sans bg-[#f4f7f6]"
     x-data="{
@@ -49,133 +52,155 @@
 >
     <style>[x-cloak] { display: none !important; }</style>
     <!-- Left Sidebar: Navigation -->
-    <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5">
+    <aside class="fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-[#09472d] via-[#0e5c3a] to-[#073622] text-white flex flex-col justify-between z-20 border-r border-emerald-800/40 shadow-2xl overflow-y-auto">
         <div class="flex-shrink-0">
-            <!-- Logo -->
-            <div class="flex items-center gap-3 p-6 border-b border-white/10">
-                <div class="p-1 bg-white/10 rounded-xl border border-white/20">
-                    <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto">
+            <!-- Brand Logo Header -->
+            <div class="p-6 pb-4 flex items-center gap-3.5">
+                <div class="p-2 bg-gradient-to-br from-white/15 to-white/5 rounded-2xl border border-white/20 shadow-lg backdrop-blur-md">
+                    <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto drop-shadow-sm">
                 </div>
                 <div class="flex flex-col leading-none">
-                    <span class="font-heading font-extrabold text-xl text-white tracking-tight">NDMU</span>
-                    <span class="text-[9px] font-bold text-[#eebc3f] tracking-wider uppercase mt-1">Research Management</span>
+                    <span class="font-heading font-black text-xl text-white tracking-tight">NDMU</span>
+                    <span class="text-[9px] font-black text-[#eebc3f] tracking-[0.16em] uppercase mt-1">Research Management</span>
                 </div>
             </div>
 
-            <!-- Profile Badge -->
-            <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
-                <div class="w-10 h-10 rounded-full bg-[#eebc3f] text-[#0e5c3a] font-bold flex items-center justify-center text-lg flex-shrink-0">
-                    {{ mb_strtoupper(mb_substr($administrator?->name ?? 'A', 0, 1)) }}
-                </div>
-                <div class="flex flex-col leading-tight overflow-hidden">
-                    <span class="font-semibold text-sm text-white truncate">{{ $administrator?->name ?? 'Administrator' }}</span>
-                    <span class="text-[10px] text-white/60 font-medium mt-0.5">Administrator</span>
+            <!-- Designer Decorative Underline under Logo -->
+            <div class="px-6 my-2 flex items-center justify-center gap-2">
+                <div class="h-px flex-1 bg-gradient-to-r from-transparent via-[#eebc3f]/60 to-[#eebc3f]"></div>
+                <div class="h-1 w-8 rounded-full bg-gradient-to-r from-[#eebc3f] to-[#ffd76f] shadow-[0_0_8px_rgba(238,188,63,0.7)]"></div>
+                <div class="h-px flex-1 bg-gradient-to-l from-transparent via-[#eebc3f]/60 to-[#eebc3f]"></div>
+            </div>
+
+            <!-- Floating Profile Card -->
+            <div class="px-5 py-3">
+                <div class="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.06] border border-white/10 shadow-inner backdrop-blur-xs hover:bg-white/[0.09] transition-all">
+                    <div class="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-[#eebc3f] to-[#ffd76f] text-[#09472d] font-black flex items-center justify-center text-lg flex-shrink-0 shadow-md">
+                        {{ mb_strtoupper(mb_substr($administrator?->name ?? 'A', 0, 1)) }}
+                        <span class="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-[#09472d]"></span>
+                        </span>
+                    </div>
+                    <div class="flex flex-col leading-tight overflow-hidden min-w-0">
+                        <span class="font-bold text-xs text-white truncate">{{ $administrator?->name ?? 'Administrator' }}</span>
+                        <span class="text-[10px] text-white/70 font-medium mt-0.5 truncate">System Administrator</span>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Navigation Links -->
-        <div class="flex-1 px-6 py-4 space-y-6">
-            <div class="space-y-1.5">
-                <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
+        <div class="flex-grow px-5 py-3 space-y-6">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2 px-3 mb-2.5">
+                    <span class="w-1 h-3 rounded-full bg-[#eebc3f]"></span>
+                    <span class="text-[10px] font-black tracking-[0.18em] text-emerald-300/80 uppercase">Navigation</span>
+                </div>
                 
                 <!-- Dashboard Link -->
                 <button
                    type="button"
                    @click="activeTab = 'dashboard'"
-                   :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
+                   :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-squares-four text-lg"></i>
+                        <i class="ph ph-squares-four text-lg transition-transform group-hover:scale-110"></i>
                         <span>Dashboard</span>
                     </div>
-                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
                 
                 <!-- User Management Link -->
                 <button
                    type="button"
                    @click="activeTab = 'users'"
-                   :class="['users', 'assign-roles'].includes(activeTab) ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
+                   :class="['users', 'assign-roles'].includes(activeTab) ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-users text-lg"></i>
+                        <i class="ph ph-users text-lg transition-transform group-hover:scale-110"></i>
                         <span>User Management</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <x-sidebar-count-badge :count="$sidebarBadges['users'] ?? 0" label="student registrations awaiting approval" />
-                        <span x-show="['users', 'assign-roles'].includes(activeTab)" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                        <span x-show="['users', 'assign-roles'].includes(activeTab)" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                     </div>
                 </button>
 
                 <button
                    type="button"
                    @click="activeTab = 'permissions'"
-                   :class="activeTab === 'permissions' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
+                   :class="activeTab === 'permissions' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-shield-check text-lg"></i>
+                        <i class="ph ph-shield-check text-lg transition-transform group-hover:scale-110"></i>
                         <span>Roles &amp; Permissions</span>
                     </div>
-                    <span x-show="activeTab === 'permissions'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'permissions'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
 
                 <button
                    type="button"
                    @click="activeTab = 'research'"
-                   :class="activeTab === 'research' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
+                   :class="activeTab === 'research' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-book-open text-lg"></i>
+                        <i class="ph ph-book-open text-lg transition-transform group-hover:scale-110"></i>
                         <span>Research Management</span>
                     </div>
-                    <span x-show="activeTab === 'research'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['research'] ?? 0" label="active research studies" />
+                        <span x-show="activeTab === 'research'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
+                    </div>
                 </button>
 
                 <button
                    type="button"
                    @click="activeTab = 'defenses'"
-                   :class="activeTab === 'defenses' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]">
+                   :class="activeTab === 'defenses' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-calendar text-lg"></i>
+                        <i class="ph ph-calendar text-lg transition-transform group-hover:scale-110"></i>
                         <span>Defense Scheduling</span>
                     </div>
-                    <span x-show="activeTab === 'defenses'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['defenses'] ?? 0" label="scheduled defenses" />
+                        <span x-show="activeTab === 'defenses'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
+                    </div>
                 </button>
 
                 <button 
                     type="button"
                     @click="activeTab = 'repository'"
-                    :class="activeTab === 'repository' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]"
+                    :class="activeTab === 'repository' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group"
                 >
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-folder text-lg"></i>
+                        <i class="ph ph-folder text-lg transition-transform group-hover:scale-110"></i>
                         <span>Research Repository</span>
                     </div>
-                    <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
 
                 <button 
                     type="button"
                     @click="activeTab = 'forms'"
-                    :class="activeTab === 'forms' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]"
+                    :class="activeTab === 'forms' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group"
                 >
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-file-text text-lg"></i>
+                        <i class="ph ph-file-text text-lg transition-transform group-hover:scale-110"></i>
                         <span>Forms Management</span>
                     </div>
-                    <span x-show="activeTab === 'forms'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'forms'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
 
                 @can('reports.view')
                 <a href="{{ route('admin.reports.index') }}"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold group"
                 >
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-chart-line-up text-lg"></i>
+                        <i class="ph ph-chart-line-up text-lg transition-transform group-hover:scale-110"></i>
                         <span>Reports & Analytics</span>
                     </div>
                 </a>
@@ -185,26 +210,32 @@
                 <button 
                     type="button"
                     @click="activeTab = 'audit'"
-                    :class="activeTab === 'audit' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px]"
+                    :class="activeTab === 'audit' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group"
                 >
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-list-bullets text-lg"></i>
+                        <i class="ph ph-list-bullets text-lg transition-transform group-hover:scale-110"></i>
                         <span>Audit Logs</span>
                     </div>
-                    <span x-show="activeTab === 'audit'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'audit'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
                 @endcan
             </div>
         </div>
 
         <!-- Sidebar Footer -->
-        <div class="flex-shrink-0 px-6 pb-6 mt-auto">
-            <div class="pt-4 border-t border-white/10 space-y-1">
-                <a
-                    href="{{ route('notifications.index') }}"
-                    :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
+        <div class="flex-shrink-0 px-5 pb-5 mt-auto">
+            <!-- Decorative Separator -->
+            <div class="relative flex items-center justify-center my-3">
+                <div class="w-full h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"></div>
+            </div>
+
+            <div class="space-y-1">
+                <button
+                    type="button"
+                    @click="switchTab('notifications')"
+                    :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md' : 'text-white/85 hover:text-white hover:bg-white/15 font-semibold'"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
                 >
                     <div class="flex items-center gap-3">
                         <i class="ph ph-bell text-lg"></i>
@@ -212,21 +243,21 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <x-sidebar-count-badge :count="$sidebarBadges['notifications'] ?? 0" label="unread notifications" />
-                        <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                        <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                     </div>
-                </a>
+                </button>
 
                 <button 
                     type="button"
                     @click="activeTab = 'settings'"
-                    :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
+                    :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md' : 'text-white/85 hover:text-white hover:bg-white/15 font-semibold'"
+                    class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
                 >
                     <div class="flex items-center gap-3">
                         <i class="ph ph-gear text-lg"></i>
                         <span>System Settings</span>
                     </div>
-                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
                 
                 <!-- Real Logout Form -->
@@ -235,10 +266,14 @@
                 </form>
                 <a href="#" 
                    onclick="event.preventDefault(); document.getElementById('logout-form').requestSubmit();"
-                   class="flex items-center gap-3 px-3 py-2 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200">
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-white/70 hover:text-rose-200 hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 font-semibold text-[13px] transition-all duration-200 cursor-pointer">
                     <i class="ph ph-sign-out text-lg"></i>
                     <span>Logout</span>
                 </a>
+            </div>
+            <div class="flex items-center justify-center gap-2 text-[9px] text-white/40 text-center font-medium mt-4">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400/60"></span>
+                <span>NDMU-RMAS © {{ now()->year }} · v1.0</span>
             </div>
         </div>
     </aside>
@@ -246,35 +281,35 @@
     <!-- Main Content Area -->
     <div class="flex-1 pl-72 flex flex-col min-h-screen">
         <!-- Top Header Navbar -->
-        <header class="h-20 bg-white border-b border-gray-150 px-8 flex items-center justify-between sticky top-0 z-10">
+        <header class="h-20 bg-white/85 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between sticky top-0 z-40 flex-shrink-0 transition-all">
             <!-- Search bar -->
             <div class="relative w-96">
-                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 pointer-events-none">
-                    <i class="ph ph-magnifying-glass text-lg"></i>
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 pointer-events-none">
+                    <i class="ph ph-magnifying-glass text-base"></i>
                 </span>
-                <input 
-                    type="text" 
-                    placeholder="Search research, documents, or tasks..." 
-                    class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300"
+                <input
+                    type="text"
+                    placeholder="Search research, documents, or tasks..."
+                    class="w-full pl-10 pr-14 py-2.5 bg-slate-100/80 border border-slate-200/60 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#0e5c3a] focus:ring-2 focus:ring-[#0e5c3a]/10 transition-all duration-200 shadow-2xs"
                 >
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <kbd class="px-1.5 py-0.5 text-[10px] font-bold text-slate-400 bg-white border border-slate-200 rounded-md shadow-2xs">Ctrl K</kbd>
+                </div>
             </div>
 
             <!-- Profile Info and Notification Icon -->
-            <div class="flex items-center gap-6">
+            <div class="flex items-center gap-4">
                 <x-workspace-switcher current="admin" />
                 <x-notification-dropdown />
 
-                <!-- Divider -->
-                <div class="h-8 w-px bg-gray-200"></div>
-
                 <!-- User profile badge -->
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-[#0e5c3a] text-white flex items-center justify-center font-bold text-lg">
-                        A
+                <div class="flex items-center gap-3 pl-2 border-l border-slate-200">
+                    <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white flex items-center justify-center font-bold text-xs shadow-2xs">
+                        {{ mb_strtoupper(mb_substr($administrator?->name ?? 'A', 0, 1)) }}
                     </div>
                     <div class="flex flex-col leading-none">
-                        <span class="font-bold text-sm text-gray-800">System</span>
-                        <span class="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wider">Management Portal</span>
+                        <span class="font-bold text-xs text-slate-800">{{ $administrator?->name ?? 'Administrator' }}</span>
+                        <span class="text-[9px] font-bold text-slate-400 mt-0.5">Management Portal</span>
                     </div>
                 </div>
             </div>
@@ -283,7 +318,6 @@
         <!-- Dynamic Content Body -->
         <main class="flex-grow px-10 py-8 w-full">
             <x-portal-feature-banner class="mb-8" :sections="[
-                'dashboard' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'System Dashboard', 'description' => 'Monitor platform health, account activity, access control, and research-system operations.', 'icon' => 'ph-squares-four'],
                 'users' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'User Management', 'description' => 'Manage accounts, approve registrations, and assign reusable roles.', 'icon' => 'ph-users-three'],
                 'research' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Research Management', 'description' => 'Oversee research records, assignments, and approval activity.', 'icon' => 'ph-book-open'],
                 'defenses' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Defense Scheduling', 'description' => 'Coordinate defense requests, schedules, rooms, and panels.', 'icon' => 'ph-calendar-check'],
@@ -310,80 +344,204 @@
 
             <!-- TAB 1: ADMIN DASHBOARD VIEW -->
             <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8 animate-fade-in">
-                    <!-- Row of 4 Premium Statistics Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
-                        <!-- Card 1: Total Users -->
-                        <div class="group relative overflow-hidden bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-emerald-400 hover:-translate-y-1 transition-all duration-300">
-                            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-400"></div>
-                            <div class="flex items-center justify-between">
-                                <div class="space-y-1">
-                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Total Accounts</span>
-                                    <span class="text-3xl font-black text-slate-900 tracking-tight font-heading block group-hover:text-[#0e5c3a] transition-colors">{{ $totalUsersCount }}</span>
-                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                                        <i class="ph ph-check-circle"></i>
-                                        <span>System registered</span>
-                                    </span>
-                                </div>
-                                <div class="w-12 h-12 bg-emerald-50 text-[#0e5c3a] border border-emerald-100 group-hover:bg-[#0e5c3a] group-hover:text-white group-hover:rotate-6 rounded-2xl flex items-center justify-center text-2xl shadow-xs transition-all duration-300">
-                                    <i class="ph ph-users font-bold"></i>
-                                </div>
+                <!-- Rich Branded Command Hub & Quick Action Header -->
+                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#0a462c] p-6 md:p-8 text-white shadow-xl shadow-emerald-950/20 border border-emerald-600/30">
+                    <!-- Ambient Glow & Watermark Logo -->
+                    <div class="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-[#eebc3f]/15 blur-3xl"></div>
+                    <div class="pointer-events-none absolute -left-12 -bottom-20 h-48 w-48 rounded-full bg-emerald-400/15 blur-2xl"></div>
+                    <div class="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 opacity-[0.08]">
+                        <img src="{{ asset('images/ndmu_logo.png') }}" alt="" class="h-36 md:h-44 w-auto object-contain">
+                    </div>
+
+                    <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/25 backdrop-blur-md border border-[#eebc3f]/30 text-[#eebc3f] font-black text-[10px] uppercase tracking-[0.16em]">
+                                    <span class="w-2 h-2 rounded-full bg-[#eebc3f] animate-pulse"></span>
+                                    Academic Year {{ now()->year }}-{{ now()->year + 1 }}
+                                </span>
+                                <span class="text-white/40 text-xs">•</span>
+                                <span class="text-emerald-200 text-xs font-semibold tracking-wide">System Administration Portal</span>
                             </div>
+                            <h1 class="text-2xl md:text-3xl font-black font-heading text-white tracking-tight drop-shadow-xs">
+                                Welcome back, {{ auth()->user()->name }}!
+                            </h1>
+                            <p class="text-xs md:text-sm text-emerald-100/85 max-w-2xl leading-relaxed">
+                                System infrastructure management, user account provisioning, role security enforcement, and real-time audit surveillance
+                            </p>
                         </div>
 
-                        <!-- Card 2: Active Research -->
-                        <div class="group relative overflow-hidden bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-blue-400 hover:-translate-y-1 transition-all duration-300">
-                            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
-                            <div class="flex items-center justify-between">
-                                <div class="space-y-1">
-                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Active Research</span>
-                                    <span class="text-3xl font-black text-slate-900 tracking-tight font-heading block group-hover:text-blue-700 transition-colors">{{ $activeResearchCount }}</span>
-                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                                        <i class="ph ph-file-text"></i>
-                                        <span>Ongoing studies</span>
+                        <!-- Quick Action Buttons -->
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <button
+                                type="button"
+                                @click="activeTab = 'users'"
+                                class="px-4.5 py-2.5 bg-gradient-to-r from-[#eebc3f] to-[#f4c542] hover:brightness-105 text-[#073823] text-xs font-black rounded-xl flex items-center gap-2 shadow-md shadow-amber-950/20 transition-all cursor-pointer"
+                            >
+                                <i class="ph ph-users text-base"></i>
+                                <span>User Accounts</span>
+                                @if ($pendingUsersCount > 0)
+                                    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-950 text-[#eebc3f]">
+                                        {{ $pendingUsersCount }}
                                     </span>
-                                </div>
-                                <div class="w-12 h-12 bg-blue-50 text-blue-700 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white group-hover:rotate-6 rounded-2xl flex items-center justify-center text-2xl shadow-xs transition-all duration-300">
-                                    <i class="ph ph-book-open font-bold"></i>
-                                </div>
-                            </div>
-                        </div>
+                                @endif
+                            </button>
 
-                        <!-- Card 3: Completed -->
-                        <div class="group relative overflow-hidden bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-purple-400 hover:-translate-y-1 transition-all duration-300">
-                            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                            <div class="flex items-center justify-between">
-                                <div class="space-y-1">
-                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Completed Research</span>
-                                    <span class="text-3xl font-black text-slate-900 tracking-tight font-heading block group-hover:text-purple-700 transition-colors">{{ $completedResearchCount }}</span>
-                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
-                                        <i class="ph ph-folder-star"></i>
-                                        <span>Institutional repository</span>
-                                    </span>
-                                </div>
-                                <div class="w-12 h-12 bg-purple-50 text-purple-700 border border-purple-100 group-hover:bg-purple-600 group-hover:text-white group-hover:rotate-6 rounded-2xl flex items-center justify-center text-2xl shadow-xs transition-all duration-300">
-                                    <i class="ph ph-trend-up font-bold"></i>
-                                </div>
-                            </div>
-                        </div>
+                            <button
+                                type="button"
+                                @click="activeTab = 'roles'"
+                                class="px-4 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
+                            >
+                                <i class="ph ph-shield-check text-base text-blue-300"></i>
+                                <span>Role Permissions</span>
+                            </button>
 
-                        <!-- Card 4: System Activity -->
-                        <div class="group relative overflow-hidden bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-amber-400 hover:-translate-y-1 transition-all duration-300">
-                            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
+                            <button
+                                type="button"
+                                @click="activeTab = 'audit'"
+                                class="px-4 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
+                            >
+                                <i class="ph ph-list-bullets text-base text-[#eebc3f]"></i>
+                                <span>Audit Trail</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                @click="activeTab = 'settings'"
+                                class="px-4 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
+                            >
+                                <i class="ph ph-gear text-base text-slate-300"></i>
+                                <span>Settings</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modern Vibrant 4-KPI Metric Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <!-- KPI 1: Total Users -->
+                    <div
+                        @click="activeTab = 'users'"
+                        class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
+                    >
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
+                        <div class="absolute -right-3 -bottom-3 text-slate-100/70 group-hover:text-emerald-50 text-7xl font-bold transition-colors pointer-events-none -z-0 select-none">
+                            <i class="ph ph-users"></i>
+                        </div>
+                        <div class="relative z-10">
                             <div class="flex items-center justify-between">
-                                <div class="space-y-1">
-                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Recent Activity</span>
-                                    <span class="text-3xl font-black text-slate-900 tracking-tight font-heading block group-hover:text-amber-700 transition-colors">{{ count($recentActivities) }}</span>
-                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100">
-                                        <i class="ph ph-activity"></i>
-                                        <span>Audit logs recorded</span>
-                                    </span>
-                                </div>
-                                <div class="w-12 h-12 bg-amber-50 text-amber-700 border border-amber-100 group-hover:bg-amber-500 group-hover:text-white group-hover:rotate-6 rounded-2xl flex items-center justify-center text-2xl shadow-xs transition-all duration-300">
-                                    <i class="ph ph-lightning font-bold"></i>
+                                <span class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-[#0e5c3a] text-white shadow-md shadow-emerald-700/20 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 relative">
+                                    <i class="ph ph-users"></i>
+                                    @if ($pendingUsersCount > 0)
+                                        <span class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-500 rounded-full border-2 border-white animate-pulse"></span>
+                                    @endif
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-[#0e5c3a] border border-emerald-100 group-hover:bg-[#0e5c3a] group-hover:text-white transition-all">
+                                    <span>Manage</span>
+                                    <i class="ph ph-arrow-up-right"></i>
+                                </span>
+                            </div>
+                            <div class="mt-5">
+                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Total Accounts</span>
+                                <span class="text-3xl font-black text-slate-900 tracking-tight mt-1 block">{{ $totalUsersCount }}</span>
+                                <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100">
+                                    <span>{{ $pendingUsersCount > 0 ? $pendingUsersCount . ' Pending approval' : 'All accounts verified' }}</span>
+                                    <span class="font-bold text-[#0e5c3a]">Active</span>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- KPI 2: Active Research -->
+                    <div
+                        @click="activeTab = 'academic-years'"
+                        class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
+                    >
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
+                        <div class="absolute -right-3 -bottom-3 text-slate-100/70 group-hover:text-blue-50 text-7xl font-bold transition-colors pointer-events-none -z-0 select-none">
+                            <i class="ph ph-book-open"></i>
+                        </div>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between">
+                                <span class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-700 text-white shadow-md shadow-blue-700/20 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                                    <i class="ph ph-book-open"></i>
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                    <span>Studies</span>
+                                    <i class="ph ph-arrow-up-right"></i>
+                                </span>
+                            </div>
+                            <div class="mt-5">
+                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Active Research</span>
+                                <span class="text-3xl font-black text-slate-900 tracking-tight mt-1 block">{{ $activeResearchCount }}</span>
+                                <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100">
+                                    <span>Ongoing University Studies</span>
+                                    <span class="font-bold text-blue-600">In Progress</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 3: Completed Research -->
+                    <div
+                        @click="activeTab = 'academic-years'"
+                        class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
+                    >
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
+                        <div class="absolute -right-3 -bottom-3 text-slate-100/70 group-hover:text-purple-50 text-7xl font-bold transition-colors pointer-events-none -z-0 select-none">
+                            <i class="ph ph-folder-star"></i>
+                        </div>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between">
+                                <span class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-800 text-white shadow-md shadow-purple-700/20 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                                    <i class="ph ph-folder-star"></i>
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-100 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                                    <span>Repository</span>
+                                    <i class="ph ph-arrow-up-right"></i>
+                                </span>
+                            </div>
+                            <div class="mt-5">
+                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Completed Research</span>
+                                <span class="text-3xl font-black text-slate-900 tracking-tight mt-1 block">{{ $completedResearchCount }}</span>
+                                <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100">
+                                    <span>Institutional Repository</span>
+                                    <span class="font-bold text-purple-600">Archived</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 4: Recent Activity -->
+                    <div
+                        @click="activeTab = 'audit'"
+                        class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
+                    >
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
+                        <div class="absolute -right-3 -bottom-3 text-slate-100/70 group-hover:text-amber-50 text-7xl font-bold transition-colors pointer-events-none -z-0 select-none">
+                            <i class="ph ph-lightning"></i>
+                        </div>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between">
+                                <span class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-600 text-white shadow-md shadow-amber-600/20 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                                    <i class="ph ph-lightning"></i>
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 group-hover:bg-amber-500 group-hover:text-white transition-all">
+                                    <span>Audit</span>
+                                    <i class="ph ph-arrow-up-right"></i>
+                                </span>
+                            </div>
+                            <div class="mt-5">
+                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Recent Activity</span>
+                                <span class="text-3xl font-black text-slate-900 tracking-tight mt-1 block">{{ count($recentActivities) }}</span>
+                                <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100">
+                                    <span>Audit Logs Recorded</span>
+                                    <span class="font-bold text-amber-600">Surveillance</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                     <!-- Lower Section: Recent Activity & User Role Distribution -->
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -649,81 +807,105 @@
 
             <!-- TAB 2: USER MANAGEMENT VIEW -->
             <div x-show="activeTab === 'users'" x-cloak class="space-y-8 animate-fade-in">
-                    <!-- Title Section -->
-                    <div class="flex flex-col gap-1">
-                        <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                            <span>Admin Portal</span>
-                            <span>/</span>
-                            <span class="text-[#0e5c3a]">User Management</span>
+                    <!-- Section Action Header -->
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-2xs relative overflow-hidden">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#073823] to-[#0e5c3a] text-[#eebc3f] flex items-center justify-center text-2xl shadow-xs shrink-0">
+                                <i class="ph ph-users-three"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl sm:text-2xl font-black font-heading text-slate-900 flex items-center gap-2">
+                                    <span>User Accounts & Provisioning</span>
+                                    <span class="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-[10px] font-black uppercase text-[#0e5c3a]">
+                                        {{ $totalUsersCount }} Total
+                                    </span>
+                                </h2>
+                                <p class="text-xs text-slate-500 font-medium mt-0.5">Oversee registered accounts, approve student registrations, edit user details, and provision staff accounts.</p>
+                            </div>
                         </div>
-                        <h1 class="font-heading text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">User Management & Accounts</h1>
-                        <p class="text-xs text-gray-500 max-w-xl">Oversee registered accounts, approve student registrations, edit user details, and provision staff accounts.</p>
+                        <div class="flex items-center gap-3">
+                            <button
+                                type="button"
+                                @click="userManagementTab = 'create-user'"
+                                class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#073823] text-white text-xs font-black rounded-xl flex items-center gap-2 shadow-md transition-all cursor-pointer"
+                            >
+                                <i class="ph ph-user-plus text-base"></i>
+                                <span>Add Staff Account</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Row of 4 statistics cards -->
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
                         <!-- Card 1: Total Users -->
-                        <div class="group bg-white rounded-2xl p-5 shadow-xs hover:shadow-md border border-gray-200/80 hover:border-teal-300 transition-all duration-200 flex items-center justify-between">
+                        <div class="group bg-white rounded-3xl p-6 shadow-2xs hover:shadow-lg border border-slate-200/80 hover:border-emerald-300 transition-all duration-300 relative overflow-hidden flex items-center justify-between">
+                            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-400 opacity-70 group-hover:opacity-100 transition-opacity"></div>
                             <div class="space-y-1">
-                                <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Total Users</span>
-                                <span class="text-3xl font-black text-gray-900 font-heading tracking-tight">{{ $totalUsersCount }}</span>
-                                <span class="text-[10px] font-medium text-teal-600 block">Registered in system</span>
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Total Users</span>
+                                <span class="text-3xl font-black text-slate-900 font-heading tracking-tight">{{ $totalUsersCount }}</span>
+                                <span class="text-[10px] font-bold text-emerald-700 block">Registered in system</span>
                             </div>
-                            <div class="w-12 h-12 bg-teal-50/80 group-hover:bg-teal-100/80 rounded-2xl flex items-center justify-center text-teal-600 text-xl border border-teal-100 transition-colors">
-                                <i class="ph ph-users font-bold"></i>
+                            <div class="w-12 h-12 bg-emerald-50 text-[#0e5c3a] rounded-2xl flex items-center justify-center text-2xl shadow-2xs border border-emerald-100 group-hover:scale-110 transition-transform">
+                                <i class="ph ph-users"></i>
                             </div>
                         </div>
 
                         <!-- Card 2: Pending Approval -->
-                        <div class="group bg-white rounded-2xl p-5 shadow-xs hover:shadow-md border border-gray-200/80 hover:border-amber-300 transition-all duration-200 flex items-center justify-between">
+                        <div class="group bg-white rounded-3xl p-6 shadow-2xs hover:shadow-lg border border-slate-200/80 hover:border-amber-300 transition-all duration-300 relative overflow-hidden flex items-center justify-between">
+                            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-yellow-400 opacity-70 group-hover:opacity-100 transition-opacity"></div>
                             <div class="space-y-1">
-                                <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Pending Approval</span>
-                                <span class="text-3xl font-black text-gray-900 font-heading tracking-tight">{{ $pendingApprovalCount }}</span>
-                                <span class="text-[10px] font-medium text-amber-600 block">Awaiting verification</span>
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Pending Approval</span>
+                                <span class="text-3xl font-black text-slate-900 font-heading tracking-tight">{{ $pendingApprovalCount }}</span>
+                                <span class="text-[10px] font-bold text-amber-600 block">Awaiting verification</span>
                             </div>
-                            <div class="w-12 h-12 bg-amber-50/80 group-hover:bg-amber-100/80 rounded-2xl flex items-center justify-center text-amber-600 text-xl border border-amber-100 transition-colors" :class="{{ $pendingApprovalCount }} > 0 ? 'animate-pulse' : ''">
-                                <i class="ph ph-clock font-bold"></i>
+                            <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-2xl shadow-2xs border border-amber-100 group-hover:scale-110 transition-transform" :class="{{ $pendingApprovalCount }} > 0 ? 'animate-pulse' : ''">
+                                <i class="ph ph-clock"></i>
                             </div>
                         </div>
 
                         <!-- Card 3: Active Accounts -->
-                        <div class="group bg-white rounded-2xl p-5 shadow-xs hover:shadow-md border border-gray-200/80 hover:border-emerald-300 transition-all duration-200 flex items-center justify-between">
+                        <div class="group bg-white rounded-3xl p-6 shadow-2xs hover:shadow-lg border border-slate-200/80 hover:border-emerald-300 transition-all duration-300 relative overflow-hidden flex items-center justify-between">
+                            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#0e5c3a] opacity-70 group-hover:opacity-100 transition-opacity"></div>
                             <div class="space-y-1">
-                                <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Active Accounts</span>
-                                <span class="text-3xl font-black text-gray-900 font-heading tracking-tight">{{ $activeAccountsCount }}</span>
-                                <span class="text-[10px] font-medium text-emerald-600 block">Verified & authorized</span>
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Active Accounts</span>
+                                <span class="text-3xl font-black text-slate-900 font-heading tracking-tight">{{ $activeAccountsCount }}</span>
+                                <span class="text-[10px] font-bold text-[#0e5c3a] block">Verified & authorized</span>
                             </div>
-                            <div class="w-12 h-12 bg-emerald-50/80 group-hover:bg-emerald-100/80 rounded-2xl flex items-center justify-center text-[#0e5c3a] text-xl border border-emerald-100 transition-colors">
-                                <i class="ph ph-check-circle font-bold"></i>
+                            <div class="w-12 h-12 bg-emerald-50 text-[#0e5c3a] rounded-2xl flex items-center justify-center text-2xl shadow-2xs border border-emerald-100 group-hover:scale-110 transition-transform">
+                                <i class="ph ph-check-circle"></i>
                             </div>
                         </div>
 
                         <!-- Card 4: Without Roles -->
-                        <div class="group bg-white rounded-2xl p-5 shadow-xs hover:shadow-md border border-gray-200/80 hover:border-blue-300 transition-all duration-200 flex items-center justify-between">
+                        <div class="group bg-white rounded-3xl p-6 shadow-2xs hover:shadow-lg border border-slate-200/80 hover:border-blue-300 transition-all duration-300 relative overflow-hidden flex items-center justify-between">
+                            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-400 opacity-70 group-hover:opacity-100 transition-opacity"></div>
                             <div class="space-y-1">
-                                <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Without Roles</span>
-                                <span class="text-3xl font-black text-gray-900 font-heading tracking-tight">{{ $withoutRolesCount }}</span>
-                                <span class="text-[10px] font-medium text-blue-600 block">Awaiting access assignment</span>
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Without Roles</span>
+                                <span class="text-3xl font-black text-slate-900 font-heading tracking-tight">{{ $withoutRolesCount }}</span>
+                                <span class="text-[10px] font-bold text-blue-600 block">Awaiting role assignment</span>
                             </div>
-                            <div class="w-12 h-12 bg-blue-50/80 group-hover:bg-blue-100/80 rounded-2xl flex items-center justify-center text-blue-600 text-xl border border-blue-100 transition-colors">
-                                <i class="ph ph-shield-warning font-bold"></i>
+                            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-2xl shadow-2xs border border-blue-100 group-hover:scale-110 transition-transform">
+                                <i class="ph ph-shield-warning"></i>
                             </div>
                         </div>
                     </div>
 
-                        <!-- Inner Navigation Tabs -->
-                        <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
-                            <div class="flex border-b border-gray-200 px-8 pt-6 bg-white gap-6">
+                        <!-- Inner Navigation Tabs Container -->
+                        <div class="bg-white rounded-3xl shadow-2xs border border-slate-200/80 overflow-hidden relative">
+                            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
+                            <div class="flex flex-wrap border-b border-slate-100 px-6 sm:px-8 pt-6 bg-white gap-3 sm:gap-6">
                                 <!-- All Users Tab Button -->
                                 <button 
                                     type="button"
                                     @click="userManagementTab = 'all-users'"
-                                    :class="userManagementTab === 'all-users' ? 'border-[#0e5c3a] text-[#0e5c3a]' : 'border-transparent text-gray-500 hover:text-gray-800'"
-                                    class="pb-4 border-b-2 text-sm font-extrabold flex items-center gap-2 transition-all duration-200 focus:outline-none -mb-px">
-                                    All Users
+                                    :class="userManagementTab === 'all-users' ? 'border-[#0e5c3a] text-[#0e5c3a]' : 'border-transparent text-slate-500 hover:text-slate-900'"
+                                    class="pb-4 border-b-2 text-xs sm:text-sm font-black flex items-center gap-2 transition-all duration-200 focus:outline-none -mb-px cursor-pointer">
+                                    <i class="ph ph-users text-base"></i>
+                                    <span>All Users</span>
                                     <span
-                                        :class="userManagementTab === 'all-users' ? 'bg-[#0e5c3a] text-white' : 'bg-gray-100 text-gray-600'"
-                                        class="px-2.5 py-0.5 rounded-full text-xs font-extrabold transition-all duration-200"
+                                        :class="userManagementTab === 'all-users' ? 'bg-[#0e5c3a] text-white' : 'bg-slate-100 text-slate-600'"
+                                        class="px-2.5 py-0.5 rounded-full text-[10px] font-black transition-all duration-200"
                                     >
                                         {{ $totalUsersCount }}
                                     </span>
@@ -733,12 +915,13 @@
                                 <button 
                                     type="button"
                                     @click="userManagementTab = 'pending-students'"
-                                    :class="userManagementTab === 'pending-students' ? 'border-[#0e5c3a] text-[#0e5c3a]' : 'border-transparent text-gray-500 hover:text-gray-800'"
-                                    class="pb-4 border-b-2 text-sm font-extrabold flex items-center gap-2 transition-all duration-200 focus:outline-none -mb-px">
-                                    Pending Students
+                                    :class="userManagementTab === 'pending-students' ? 'border-[#0e5c3a] text-[#0e5c3a]' : 'border-transparent text-slate-500 hover:text-slate-900'"
+                                    class="pb-4 border-b-2 text-xs sm:text-sm font-black flex items-center gap-2 transition-all duration-200 focus:outline-none -mb-px cursor-pointer">
+                                    <i class="ph ph-clock text-base"></i>
+                                    <span>Pending Students</span>
                                     <span
-                                        :class="userManagementTab === 'pending-students' ? 'bg-[#0e5c3a] text-white' : 'bg-gray-100 text-gray-600'"
-                                        class="px-2.5 py-0.5 rounded-full text-xs font-extrabold transition-all duration-200"
+                                        :class="userManagementTab === 'pending-students' ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-700 border border-amber-200'"
+                                        class="px-2.5 py-0.5 rounded-full text-[10px] font-black transition-all duration-200"
                                     >
                                         {{ $pendingApprovalCount }}
                                     </span>
@@ -748,9 +931,10 @@
                                 <button 
                                     type="button"
                                     @click="userManagementTab = 'create-user'"
-                                    :class="userManagementTab === 'create-user' ? 'border-[#0e5c3a] text-[#0e5c3a]' : 'border-transparent text-gray-500 hover:text-gray-800'"
-                                    class="pb-4 border-b-2 text-sm font-extrabold flex items-center gap-2 transition-all duration-200 focus:outline-none -mb-px">
-                                    <i class="ph ph-user-plus text-base"></i> Create User
+                                    :class="userManagementTab === 'create-user' ? 'border-[#0e5c3a] text-[#0e5c3a]' : 'border-transparent text-slate-500 hover:text-slate-900'"
+                                    class="pb-4 border-b-2 text-xs sm:text-sm font-black flex items-center gap-2 transition-all duration-200 focus:outline-none -mb-px cursor-pointer">
+                                    <i class="ph ph-user-plus text-base"></i>
+                                    <span>Create User</span>
                                 </button>
                             </div>
 
@@ -1551,50 +1735,65 @@
 
             <!-- TAB 4: RESEARCH MANAGEMENT VIEW -->
             <div x-show="activeTab === 'research'" x-cloak class="space-y-8 animate-fade-in">
-                <!-- Title Section -->
-                <div>
-                    <h1 class="text-3xl font-extrabold font-heading text-gray-800 tracking-tight">Research Lifecycle Tracker</h1>
-                    <p class="text-sm text-gray-500 font-light mt-1">Track your research progress through each milestone</p>
+                <!-- Section Action Header -->
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-2xs relative overflow-hidden">
+                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#073823] to-[#0e5c3a] text-[#eebc3f] flex items-center justify-center text-2xl shadow-xs shrink-0">
+                            <i class="ph ph-book-open"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl sm:text-2xl font-black font-heading text-slate-900 flex items-center gap-2">
+                                <span>Research Lifecycle & Milestones</span>
+                                <span class="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-[10px] font-black uppercase text-[#0e5c3a]">
+                                    {{ $researchLifecycle['progress'] }}% Complete
+                                </span>
+                            </h2>
+                            <p class="text-xs text-slate-500 font-medium mt-0.5">Track research progress through all 13 milestone deliverables and panel reviews.</p>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Overall Progress Card -->
-                <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 space-y-6">
-                    <div class="flex items-center justify-between">
+                <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-2xs border border-slate-200/80 space-y-6 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] via-[#eebc3f] to-[#0e5c3a]"></div>
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div class="space-y-1">
-                            <h3 class="text-lg font-bold text-gray-800">Overall Progress</h3>
-                            <p class="text-xs text-gray-400 font-light">{{ $researchLifecycle['title'] ?? 'No research project found' }}</p>
+                            <h3 class="text-lg font-black text-slate-900">Overall Progress</h3>
+                            <p class="text-xs text-slate-500 font-medium">{{ $researchLifecycle['title'] ?? 'Institutional research studies' }}</p>
                         </div>
-                        <div class="text-right">
-                            <span class="text-2xl font-extrabold text-emerald-600 font-heading">{{ $researchLifecycle['progress'] }}%</span>
-                            <span class="text-[10px] text-gray-400 font-bold block uppercase tracking-wider mt-0.5">Complete</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-3xl font-black text-[#0e5c3a] font-heading">{{ $researchLifecycle['progress'] }}%</span>
+                            <span class="text-[10px] text-slate-400 font-black uppercase tracking-wider">Overall</span>
                         </div>
                     </div>
 
                     <!-- Progress Bar -->
-                    <div class="w-full h-4 bg-gray-100 rounded-full overflow-hidden">
-                        <div class="h-full bg-emerald-600 rounded-full" x-init="$el.style.width = @js($researchLifecycle['progress']) + '%'"></div>
+                    <div class="w-full h-4 bg-slate-100 rounded-full overflow-hidden border border-slate-200/60 p-0.5">
+                        <div class="h-full bg-gradient-to-r from-[#073823] to-[#0e5c3a] rounded-full transition-all duration-500" x-init="$el.style.width = @js($researchLifecycle['progress']) + '%'"></div>
                     </div>
 
                     <!-- Counts -->
-                    <div class="grid grid-cols-3 gap-6 text-center pt-2">
-                        <div>
-                            <span class="text-xl font-extrabold text-emerald-600 font-heading block">{{ $researchLifecycle['completed'] }}</span>
-                            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">Completed</span>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                        <div class="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-100 text-center">
+                            <span class="text-2xl font-black text-[#0e5c3a] font-heading block">{{ $researchLifecycle['completed'] }}</span>
+                            <span class="text-[10px] text-emerald-800 font-black uppercase tracking-wider mt-1 block">Completed</span>
                         </div>
-                        <div class="border-l border-r border-gray-150">
-                            <span class="text-xl font-extrabold text-amber-500 font-heading block">{{ $researchLifecycle['in_progress'] }}</span>
-                            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">In Progress</span>
+                        <div class="p-4 rounded-2xl bg-amber-50/70 border border-amber-100 text-center">
+                            <span class="text-2xl font-black text-amber-600 font-heading block">{{ $researchLifecycle['in_progress'] }}</span>
+                            <span class="text-[10px] text-amber-800 font-black uppercase tracking-wider mt-1 block">In Progress</span>
                         </div>
-                        <div>
-                            <span class="text-xl font-extrabold text-gray-400 font-heading block">{{ $researchLifecycle['pending'] }}</span>
-                            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">Pending</span>
+                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-center">
+                            <span class="text-2xl font-black text-slate-500 font-heading block">{{ $researchLifecycle['pending'] }}</span>
+                            <span class="text-[10px] text-slate-500 font-black uppercase tracking-wider mt-1 block">Pending</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Research Milestones Container -->
-                <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 space-y-6">
-                    <h3 class="text-base font-bold text-gray-800">Research Milestones</h3>
+                <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-2xs border border-slate-200/80 space-y-6 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
+                    <h3 class="text-lg font-black text-slate-900">Research Milestones</h3>
 
                     <!-- Timeline Vertical Container -->
                     <div class="relative pl-10 border-l-2 border-gray-150 space-y-8 ml-6 py-2">
@@ -1877,11 +2076,21 @@
 
             <!-- TAB 5: DEFENSE SCHEDULING VIEW -->
             <div x-show="activeTab === 'defenses'" x-cloak class="space-y-8 animate-fade-in">
-                <!-- Title & Top Button Section -->
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 class="text-3xl font-extrabold font-heading text-gray-800 tracking-tight">Defense Scheduling</h1>
-                        <p class="text-sm text-gray-500 font-light mt-1">Manage and schedule research defense presentations</p>
+                <!-- Section Action Header -->
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-2xs relative overflow-hidden">
+                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#073823] to-[#0e5c3a] text-[#eebc3f] flex items-center justify-center text-2xl shadow-xs shrink-0">
+                            <i class="ph ph-calendar-check"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl sm:text-2xl font-black font-heading text-slate-900 flex items-center gap-2">
+                                <span>Defense Scheduling & Management</span>
+                                <span class="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-[10px] font-black uppercase text-[#0e5c3a]" x-text="defensesList.length + ' Scheduled'">
+                                </span>
+                            </h2>
+                            <p class="text-xs text-slate-500 font-medium mt-0.5">Coordinate defense requests, time slots, venues, and assigned faculty evaluation panels.</p>
+                        </div>
                     </div>
                     <button 
                         type="button" 
@@ -1889,70 +2098,80 @@
                             formDefense = { id: null, type: 'Proposal Defense', title: '', student: '', date: '', time: '', duration: '2 hours', venue: '', adviser: '', panelists: [], status: 'Pending', notes: '', generateNotice: true };
                             showScheduleModal = true;
                         "
-                        class="px-6 py-3.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-md shadow-emerald-700/10 hover:shadow-lg transition-all duration-300 font-sans"
+                        class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#073823] text-white text-xs font-black rounded-xl flex items-center gap-2 shadow-md transition-all cursor-pointer"
                     >
-                        <i class="ph ph-plus text-base"></i> Schedule Defense
+                        <i class="ph ph-plus-circle text-base"></i> Schedule Defense
                     </button>
                 </div>
 
                 <!-- Row of 4 statistics cards -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
                     <!-- Card 1: Total Scheduled -->
-                    <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-emerald-500 border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
+                    <div class="group bg-white rounded-3xl p-6 shadow-2xs hover:shadow-lg border border-slate-200/80 hover:border-emerald-300 transition-all duration-300 relative overflow-hidden flex items-center justify-between">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-400 opacity-70 group-hover:opacity-100 transition-opacity"></div>
                         <div class="space-y-1">
-                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Total Scheduled</span>
-                            <span class="text-3xl font-extrabold text-gray-800 font-heading" x-text="defensesList.length">3</span>
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Total Scheduled</span>
+                            <span class="text-3xl font-black text-slate-900 font-heading tracking-tight" x-text="defensesList.length">3</span>
+                            <span class="text-[10px] font-bold text-emerald-700 block">Defense presentations</span>
                         </div>
-                        <div class="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 text-xl">
+                        <div class="w-12 h-12 bg-emerald-50 text-[#0e5c3a] rounded-2xl flex items-center justify-center text-2xl shadow-2xs border border-emerald-100 group-hover:scale-110 transition-transform">
                             <i class="ph ph-calendar"></i>
                         </div>
                     </div>
 
                     <!-- Card 2: This Week -->
-                    <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-blue-500 border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
+                    <div class="group bg-white rounded-3xl p-6 shadow-2xs hover:shadow-lg border border-slate-200/80 hover:border-blue-300 transition-all duration-300 relative overflow-hidden flex items-center justify-between">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-400 opacity-70 group-hover:opacity-100 transition-opacity"></div>
                         <div class="space-y-1">
-                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">This Week</span>
-                            <span class="text-3xl font-extrabold text-gray-800 font-heading" x-text="defensesList.filter(d => d.status === 'Scheduled').length">2</span>
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">This Week</span>
+                            <span class="text-3xl font-black text-slate-900 font-heading tracking-tight" x-text="defensesList.filter(d => d.status === 'Scheduled').length">2</span>
+                            <span class="text-[10px] font-bold text-blue-600 block">Upcoming defenses</span>
                         </div>
-                        <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 text-xl">
+                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-2xl shadow-2xs border border-blue-100 group-hover:scale-110 transition-transform">
                             <i class="ph ph-clock"></i>
                         </div>
                     </div>
 
                     <!-- Card 3: Pending -->
-                    <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-amber-500 border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
+                    <div class="group bg-white rounded-3xl p-6 shadow-2xs hover:shadow-lg border border-slate-200/80 hover:border-amber-300 transition-all duration-300 relative overflow-hidden flex items-center justify-between">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-yellow-400 opacity-70 group-hover:opacity-100 transition-opacity"></div>
                         <div class="space-y-1">
-                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Pending</span>
-                            <span class="text-3xl font-extrabold text-gray-800 font-heading" x-text="defensesList.filter(d => d.status === 'Pending').length">1</span>
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Pending</span>
+                            <span class="text-3xl font-black text-slate-900 font-heading tracking-tight" x-text="defensesList.filter(d => d.status === 'Pending').length">1</span>
+                            <span class="text-[10px] font-bold text-amber-600 block">Awaiting panel confirmation</span>
                         </div>
-                        <div class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 text-xl">
-                            <i class="ph ph-clock"></i>
+                        <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-2xl shadow-2xs border border-amber-100 group-hover:scale-110 transition-transform">
+                            <i class="ph ph-hourglass"></i>
                         </div>
                     </div>
 
                     <!-- Card 4: Completed -->
-                    <div class="bg-white rounded-3xl p-6 shadow-sm border-l-4 border-l-gray-400 border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
+                    <div class="group bg-white rounded-3xl p-6 shadow-2xs hover:shadow-lg border border-slate-200/80 hover:border-slate-300 transition-all duration-300 relative overflow-hidden flex items-center justify-between">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-slate-400 to-slate-500 opacity-70 group-hover:opacity-100 transition-opacity"></div>
                         <div class="space-y-1">
-                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Completed</span>
-                            <span class="text-3xl font-extrabold text-gray-800 font-heading" x-text="defensesList.filter(d => d.status === 'Completed').length">0</span>
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Completed</span>
+                            <span class="text-3xl font-black text-slate-900 font-heading tracking-tight" x-text="defensesList.filter(d => d.status === 'Completed').length">0</span>
+                            <span class="text-[10px] font-bold text-slate-500 block">Evaluated & resolved</span>
                         </div>
-                        <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 text-xl">
-                            <i class="ph ph-calendar"></i>
+                        <div class="w-12 h-12 bg-slate-50 text-slate-500 rounded-2xl flex items-center justify-center text-2xl shadow-2xs border border-slate-200 group-hover:scale-110 transition-transform">
+                            <i class="ph ph-check-circle"></i>
                         </div>
                     </div>
                 </div>
 
                 <!-- Filters panel -->
-                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex flex-wrap items-center gap-4">
-                    <div class="flex items-center gap-2 text-gray-400 mr-2">
-                        <i class="ph ph-funnel text-lg"></i>
+                <div class="bg-white rounded-3xl p-6 shadow-2xs border border-slate-200/80 flex flex-wrap items-center gap-4 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
+                    <div class="flex items-center gap-2 text-slate-400 mr-2">
+                        <i class="ph ph-funnel text-lg text-[#0e5c3a]"></i>
+                        <span class="text-xs font-bold text-slate-700">Filter Defenses:</span>
                     </div>
-                    <select x-model="defenseFilterType" class="px-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300">
+                    <select x-model="defenseFilterType" class="px-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300 cursor-pointer">
                         <option>All Defense Types</option>
                         <option>Proposal Defense</option>
                         <option>Final Defense</option>
                     </select>
-                    <select x-model="defenseFilterStatus" class="px-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300">
+                    <select x-model="defenseFilterStatus" class="px-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300 cursor-pointer">
                         <option>All Status</option>
                         <option>Scheduled</option>
                         <option>Pending</option>
@@ -2288,67 +2507,83 @@
 
             <!-- TAB 8: REPORTS & ANALYTICS VIEW -->
             <div x-show="activeTab === 'reports'" x-cloak class="space-y-8 animate-fade-in">
-                <!-- Header -->
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 class="text-3xl font-extrabold font-heading text-gray-800 tracking-tight">Analytics & Reports</h1>
-                        <p class="text-sm text-gray-500 font-light mt-1">Research statistics and performance metrics</p>
+                <!-- Section Action Header -->
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-2xs relative overflow-hidden">
+                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#073823] to-[#0e5c3a] text-[#eebc3f] flex items-center justify-center text-2xl shadow-xs shrink-0">
+                            <i class="ph ph-chart-bar"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl sm:text-2xl font-black font-heading text-slate-900 flex items-center gap-2">
+                                <span>Institutional Analytics & Reports</span>
+                                <span class="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-[10px] font-black uppercase text-[#0e5c3a]">
+                                    {{ $totalResearchCount }} Studies
+                                </span>
+                            </h2>
+                            <p class="text-xs text-slate-500 font-medium mt-0.5">Review university-wide research throughput, program distribution, and completion rates.</p>
+                        </div>
                     </div>
                     <button 
                         type="button" 
                         @click="alert('Exporting PDF Report')"
-                        class="px-6 py-3.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-md shadow-emerald-700/10 hover:shadow-lg transition-all duration-300 font-sans"
+                        class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#073823] text-white text-xs font-black rounded-xl flex items-center gap-2 shadow-md transition-all cursor-pointer"
                     >
-                        <i class="ph ph-download text-base"></i> Export Report
+                        <i class="ph ph-download-simple text-base"></i>
+                        <span>Export PDF Report</span>
                     </button>
                 </div>
 
                 <!-- Row of 4 statistics cards -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
                     <!-- Total Research -->
-                    <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
+                    <div class="group bg-white rounded-3xl p-6 shadow-2xs hover:shadow-lg border border-slate-200/80 hover:border-emerald-300 transition-all duration-300 relative overflow-hidden flex items-center justify-between">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-400 opacity-70 group-hover:opacity-100 transition-opacity"></div>
                         <div class="space-y-1">
-                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Total Research</span>
-                            <span class="text-2xl font-extrabold text-gray-800 font-heading block">{{ $totalResearchCount }}</span>
-                            <span class="text-[10px] font-bold text-emerald-600 tracking-wide block">Database total</span>
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Total Research</span>
+                            <span class="text-3xl font-black text-slate-900 font-heading tracking-tight">{{ $totalResearchCount }}</span>
+                            <span class="text-[10px] font-bold text-emerald-700 block">Database total</span>
                         </div>
-                        <div class="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 text-xl">
+                        <div class="w-12 h-12 bg-emerald-50 text-[#0e5c3a] rounded-2xl flex items-center justify-center text-2xl shadow-2xs border border-emerald-100 group-hover:scale-110 transition-transform">
                             <i class="ph ph-chart-bar"></i>
                         </div>
                     </div>
 
                     <!-- Completed -->
-                    <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
+                    <div class="group bg-white rounded-3xl p-6 shadow-2xs hover:shadow-lg border border-slate-200/80 hover:border-blue-300 transition-all duration-300 relative overflow-hidden flex items-center justify-between">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-400 opacity-70 group-hover:opacity-100 transition-opacity"></div>
                         <div class="space-y-1">
-                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Completed</span>
-                            <span class="text-2xl font-extrabold text-gray-800 font-heading block">{{ $completedResearchCount }}</span>
-                            <span class="text-[10px] font-bold text-blue-500 tracking-wide block">{{ $researchCompletionRate }}% completion rate</span>
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Completed</span>
+                            <span class="text-3xl font-black text-slate-900 font-heading tracking-tight">{{ $completedResearchCount }}</span>
+                            <span class="text-[10px] font-bold text-blue-600 block">{{ $researchCompletionRate }}% completion</span>
                         </div>
-                        <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 text-xl">
+                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-2xl shadow-2xs border border-blue-100 group-hover:scale-110 transition-transform">
                             <i class="ph ph-trend-up"></i>
                         </div>
                     </div>
 
                     <!-- In Progress -->
-                    <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
+                    <div class="group bg-white rounded-3xl p-6 shadow-2xs hover:shadow-lg border border-slate-200/80 hover:border-amber-300 transition-all duration-300 relative overflow-hidden flex items-center justify-between">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-yellow-400 opacity-70 group-hover:opacity-100 transition-opacity"></div>
                         <div class="space-y-1">
-                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">In Progress</span>
-                            <span class="text-2xl font-extrabold text-gray-800 font-heading block">{{ $activeResearchCount }}</span>
-                            <span class="text-[10px] font-bold text-amber-500 tracking-wide block">{{ $researchInProgressRate }}% ongoing</span>
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">In Progress</span>
+                            <span class="text-3xl font-black text-slate-900 font-heading tracking-tight">{{ $activeResearchCount }}</span>
+                            <span class="text-[10px] font-bold text-amber-600 block">{{ $researchInProgressRate }}% ongoing</span>
                         </div>
-                        <div class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 text-xl">
+                        <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-2xl shadow-2xs border border-amber-100 group-hover:scale-110 transition-transform">
                             <i class="ph ph-chart-pie-slice"></i>
                         </div>
                     </div>
 
                     <!-- Avg Duration -->
-                    <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-all duration-300">
+                    <div class="group bg-white rounded-3xl p-6 shadow-2xs hover:shadow-lg border border-slate-200/80 hover:border-purple-300 transition-all duration-300 relative overflow-hidden flex items-center justify-between">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-violet-400 opacity-70 group-hover:opacity-100 transition-opacity"></div>
                         <div class="space-y-1">
-                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Avg Duration</span>
-                            <span class="text-2xl font-extrabold text-gray-800 font-heading block">{{ $averageResearchMonths ?? '—' }}</span>
-                            <span class="text-[10px] font-bold text-purple-500 tracking-wide block">months</span>
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Avg Duration</span>
+                            <span class="text-3xl font-black text-slate-900 font-heading tracking-tight">{{ $averageResearchMonths ?? '—' }}</span>
+                            <span class="text-[10px] font-bold text-purple-600 block">months to completion</span>
                         </div>
-                        <div class="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 text-xl">
+                        <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center text-2xl shadow-2xs border border-purple-100 group-hover:scale-110 transition-transform">
                             <i class="ph ph-hourglass-high"></i>
                         </div>
                     </div>
@@ -3131,6 +3366,16 @@
                 </div>
             </div>
             @endif
+
+            <!-- TAB: Notifications Center -->
+            <div x-show="activeTab === 'notifications'" x-cloak class="space-y-8 animate-fade-in">
+                <x-notifications.center
+                    :notifications="auth()->user()->notifications()->latest()->paginate(20)"
+                    :unread-count="auth()->user()->unreadNotifications()->count()"
+                    :filter="request()->query('notification_filter', 'all')"
+                    :dashboard-route="route('admin.dashboard')"
+                />
+            </div>
         </main>
     </div>
 </div>

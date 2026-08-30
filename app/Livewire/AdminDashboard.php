@@ -604,6 +604,8 @@ class AdminDashboard extends Component
 
         $data['sidebarBadges'] = [
             'users' => (int) ($data['pendingApprovalCount'] ?? 0),
+            'research' => (int) ($data['activeResearchCount'] ?? 0),
+            'defenses' => (int) ($data['pendingDefenseCount'] ?? 0),
             'notifications' => Schema::hasTable('notifications')
                 ? $data['administrator']->unreadNotifications()->count()
                 : 0,
@@ -725,6 +727,7 @@ class AdminDashboard extends Component
         return [
             'totalUsersCount' => (int) $counts->total_users_count,
             'pendingApprovalCount' => $pendingStudents->count(),
+            'pendingUsersCount' => $pendingStudents->count(),
             'activeAccountsCount' => (int) $counts->active_accounts_count,
             'rejectedCount' => (int) $counts->rejected_count,
             'withoutRolesCount' => User::query()->doesntHave('roles')->count(),

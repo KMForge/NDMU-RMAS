@@ -1,56 +1,68 @@
 <div class="space-y-8 animate-fade-in">
-    <!-- Header Section -->
-    <div class="flex flex-col gap-1">
-        <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
-            <span>Admin Portal</span>
-            <span>/</span>
-            <span class="text-[#0e5c3a]">Security Audit Logs</span>
+    <!-- Section Action Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-2xs relative overflow-hidden">
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#073823] to-[#0e5c3a] text-[#eebc3f] flex items-center justify-center text-2xl shadow-xs shrink-0">
+                <i class="ph ph-shield-check"></i>
+            </div>
+            <div>
+                <h2 class="text-xl sm:text-2xl font-black font-heading text-slate-900 flex items-center gap-2">
+                    <span>System Audit & Security Logs</span>
+                    <span class="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-[10px] font-black uppercase text-[#0e5c3a]">
+                        {{ $auditLogs->total() }} Records
+                    </span>
+                </h2>
+                <p class="text-xs text-slate-500 font-medium mt-0.5">Monitor real-time system events, administrative actions, access changes, and security audit trails.</p>
+            </div>
         </div>
-        <h1 class="font-heading text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">System Audit & Activity Logs</h1>
-        <p class="text-xs text-gray-500 max-w-2xl">Monitor real-time system events, user administrative actions, workspace transitions, and security policy modifications.</p>
     </div>
 
     <!-- Metric Cards Grid -->
     <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
         <!-- Card 1: Events Today -->
-        <div class="group bg-white rounded-2xl p-5 shadow-xs hover:shadow-md border border-gray-200/80 hover:border-emerald-300 transition-all duration-200 flex items-center justify-between">
+        <div class="group bg-white rounded-3xl p-6 shadow-2xs hover:shadow-lg border border-slate-200/80 hover:border-emerald-300 transition-all duration-300 relative overflow-hidden flex items-center justify-between">
+            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-400 opacity-70 group-hover:opacity-100 transition-opacity"></div>
             <div class="space-y-1">
-                <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Events Recorded Today</span>
-                <span class="text-3xl font-black text-gray-900 font-heading tracking-tight block">{{ $auditLogStats['today'] }}</span>
-                <span class="text-[10px] font-medium text-emerald-600 block">System execution log</span>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Events Recorded Today</span>
+                <span class="text-3xl font-black text-slate-900 font-heading tracking-tight block">{{ $auditLogStats['today'] }}</span>
+                <span class="text-[10px] font-bold text-emerald-700 block">System execution log</span>
             </div>
-            <div class="w-12 h-12 bg-emerald-50/80 group-hover:bg-emerald-100/80 rounded-2xl flex items-center justify-center text-[#0e5c3a] text-xl border border-emerald-100 transition-colors">
-                <i class="ph ph-lightning font-bold"></i>
+            <div class="w-12 h-12 bg-emerald-50 text-[#0e5c3a] rounded-2xl flex items-center justify-center text-2xl shadow-2xs border border-emerald-100 group-hover:scale-110 transition-transform">
+                <i class="ph ph-lightning"></i>
             </div>
         </div>
 
         <!-- Card 2: Workspace Switches -->
-        <div class="group bg-white rounded-2xl p-5 shadow-xs hover:shadow-md border border-gray-200/80 hover:border-blue-300 transition-all duration-200 flex items-center justify-between">
+        <div class="group bg-white rounded-3xl p-6 shadow-2xs hover:shadow-lg border border-slate-200/80 hover:border-blue-300 transition-all duration-300 relative overflow-hidden flex items-center justify-between">
+            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-400 opacity-70 group-hover:opacity-100 transition-opacity"></div>
             <div class="space-y-1">
-                <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Workspace Switches</span>
-                <span class="text-3xl font-black text-gray-900 font-heading tracking-tight block">{{ $auditLogStats['workspace_switches'] }}</span>
-                <span class="text-[10px] font-medium text-blue-600 block">Context transitions</span>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Workspace Switches</span>
+                <span class="text-3xl font-black text-slate-900 font-heading tracking-tight block">{{ $auditLogStats['workspace_switches'] }}</span>
+                <span class="text-[10px] font-bold text-blue-600 block">Context transitions</span>
             </div>
-            <div class="w-12 h-12 bg-blue-50/80 group-hover:bg-blue-100/80 rounded-2xl flex items-center justify-center text-blue-600 text-xl border border-blue-100 transition-colors">
-                <i class="ph ph-arrows-left-right font-bold"></i>
+            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-2xl shadow-2xs border border-blue-100 group-hover:scale-110 transition-transform">
+                <i class="ph ph-arrows-left-right"></i>
             </div>
         </div>
 
         <!-- Card 3: Access Changes -->
-        <div class="group bg-white rounded-2xl p-5 shadow-xs hover:shadow-md border border-gray-200/80 hover:border-amber-300 transition-all duration-200 flex items-center justify-between">
+        <div class="group bg-white rounded-3xl p-6 shadow-2xs hover:shadow-lg border border-slate-200/80 hover:border-amber-300 transition-all duration-300 relative overflow-hidden flex items-center justify-between">
+            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-yellow-400 opacity-70 group-hover:opacity-100 transition-opacity"></div>
             <div class="space-y-1">
-                <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Access & Role Changes</span>
-                <span class="text-3xl font-black text-gray-900 font-heading tracking-tight block">{{ $auditLogStats['access_changes'] }}</span>
-                <span class="text-[10px] font-medium text-amber-600 block">Permission modifications</span>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Access & Role Changes</span>
+                <span class="text-3xl font-black text-slate-900 font-heading tracking-tight block">{{ $auditLogStats['access_changes'] }}</span>
+                <span class="text-[10px] font-bold text-amber-600 block">Permission modifications</span>
             </div>
-            <div class="w-12 h-12 bg-amber-50/80 group-hover:bg-amber-100/80 rounded-2xl flex items-center justify-center text-amber-600 text-xl border border-amber-100 transition-colors">
-                <i class="ph ph-shield-checkered font-bold"></i>
+            <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-2xl shadow-2xs border border-amber-100 group-hover:scale-110 transition-transform">
+                <i class="ph ph-shield-checkered"></i>
             </div>
         </div>
     </div>
 
     <!-- Filter Controls Card -->
-    <section class="rounded-2xl border border-gray-200/80 bg-white p-6 shadow-xs space-y-4">
+    <section class="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xs space-y-4 relative overflow-hidden">
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
         <div class="flex items-center justify-between border-b border-gray-100 pb-3">
             <h2 class="text-xs font-extrabold uppercase tracking-wider text-gray-700 flex items-center gap-2">
                 <i class="ph ph-funnel text-base text-[#0e5c3a]"></i>
@@ -144,16 +156,17 @@
     </section>
 
     <!-- Main Audit Log Table Section -->
-    <section class="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-xs">
-        <div class="flex items-center justify-between border-b border-gray-100 px-6 py-5">
+    <section class="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-2xs relative">
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
+        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-5">
             <div>
-                <h2 class="font-bold text-base text-gray-900 flex items-center gap-2">
+                <h2 class="font-black text-base text-slate-900 flex items-center gap-2">
                     <i class="ph ph-list-magnifying-glass text-[#0e5c3a]"></i>
                     <span>Audit Log Records</span>
                 </h2>
-                <p class="mt-0.5 text-xs text-gray-500">Complete immutable record of system operations and administrative changes.</p>
+                <p class="mt-0.5 text-xs text-slate-500 font-medium">Complete immutable record of system operations and administrative changes.</p>
             </div>
-            <span class="rounded-full bg-emerald-50 px-3.5 py-1 text-xs font-extrabold text-[#0e5c3a] border border-emerald-100">
+            <span class="rounded-full bg-emerald-50 px-3.5 py-1 text-xs font-black uppercase text-[#0e5c3a] border border-emerald-200">
                 {{ $auditLogs->total() }} Records
             </span>
         </div>
