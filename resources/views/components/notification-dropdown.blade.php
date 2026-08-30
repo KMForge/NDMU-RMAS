@@ -1,5 +1,5 @@
 <div
-    class="relative"
+    class="relative z-50"
     x-data="{ notificationMenuOpen: false }"
     @click.outside="notificationMenuOpen = false"
     @keydown.escape.window="notificationMenuOpen = false"
@@ -10,11 +10,11 @@
         :aria-expanded="notificationMenuOpen"
         aria-haspopup="menu"
         aria-label="Open notification menu"
-        class="relative flex h-9 w-9 items-center justify-center rounded-full bg-gray-50 text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0e5c3a]/30"
+        class="relative flex h-9 w-9 items-center justify-center rounded-full bg-slate-50 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0e5c3a]/30 cursor-pointer shadow-2xs"
     >
         <i class="ph ph-bell text-lg"></i>
         @if ($unreadCount > 0)
-            <span class="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-[9px] font-black leading-none text-white">
+            <span class="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-rose-500 px-1 text-[9px] font-black leading-none text-white animate-pulse">
                 {{ $unreadCount > 99 ? '99+' : $unreadCount }}
             </span>
         @endif
@@ -25,18 +25,19 @@
         x-cloak
         x-transition.origin.top.right
         role="menu"
-        class="absolute right-0 z-[100] mt-3 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-2xl"
+        class="absolute right-0 z-50 mt-3 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-slate-200/90 bg-white text-left shadow-2xl ring-1 ring-black/5"
     >
-        <header class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+        <div class="h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
+        <header class="flex items-center justify-between border-b border-slate-100 px-5 py-3.5 bg-white">
             <div>
                 <h2 class="text-sm font-black text-slate-900">Notifications</h2>
-                <p class="mt-0.5 text-[10px] text-slate-500">{{ $unreadCount }} unread</p>
+                <p class="mt-0.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">{{ $unreadCount }} unread</p>
             </div>
             @if ($unreadCount > 0)
                 <form method="POST" action="{{ route('notifications.read-all') }}">
                     @csrf
                     @method('PATCH')
-                    <button type="submit" class="text-[10px] font-bold text-emerald-700 hover:text-emerald-900">
+                    <button type="submit" class="text-[10px] font-black uppercase tracking-wider text-[#0e5c3a] hover:text-[#073823] cursor-pointer">
                         Mark all read
                     </button>
                 </form>
@@ -79,7 +80,8 @@
 
         <footer class="border-t border-slate-100 bg-slate-50/70 p-2">
             <a
-                href="{{ route('notifications.index') }}"
+                href="{{ request()->routeIs('*.dashboard') ? url()->current().'?tab=notifications' : route('notifications.index') }}"
+                wire:navigate
                 class="flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-black text-[#0e5c3a] transition-colors hover:bg-emerald-50"
             >
                 View all notifications
