@@ -3,8 +3,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="NDMU Research Management System for submissions, reviews, defenses, revisions, and archiving.">
-    <title>NDMU Research Management System</title>
+    <meta name="description" content="Notre Dame of Marbel University Research Management and Archiving System (NDMU-RMAS). Centralizing university research proposals, reviews, defenses, and institutional archiving.">
+    <title>NDMU-RMAS - Notre Dame of Marbel University Research Management System</title>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -14,260 +15,358 @@
     <style>
         body { font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
-        .hero-pattern {
-            background-color: #003D29;
-            background-image: 
-                radial-gradient(circle at 85% 15%, rgba(229, 183, 46, 0.06) 0%, transparent 45%),
-                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-            background-size: 100% 100%, 36px 36px, 36px 36px;
-        }
-        .site-header { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        .site-header { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .site-header.is-scrolled {
             background-color: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(12px);
-            box-shadow: 0 10px 30px -10px rgba(0, 61, 41, 0.08);
-        }
-        .paper-lines {
-            background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 27px, rgba(0, 61, 41, 0.04) 28px);
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 30px -10px rgba(7, 56, 35, 0.15);
+            border-bottom: 1px solid rgba(7, 56, 35, 0.12);
         }
     </style>
 </head>
-<body class="m-0 overflow-x-hidden bg-[#F7FAF8] text-[#0F291E] antialiased selection:bg-[#E5B72E] selection:text-[#003D29]">
+<body class="m-0 overflow-x-hidden bg-[#073823] text-white antialiased selection:bg-[#eebc3f] selection:text-[#073823]">
 
-<!-- Header -->
-<header data-site-header class="site-header sticky top-0 z-50 border-b border-[#003D29]/10 bg-white/95 backdrop-blur-md">
-    <div class="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        <a href="{{ route('home') }}" class="group flex items-center gap-3 transition-transform duration-200 hover:scale-[1.01]" aria-label="NDMU Research Management home">
-            <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="Notre Dame of Marbel University seal" width="48" height="48" class="h-11 w-11 shrink-0 object-contain sm:h-12 sm:w-12 transition-transform duration-300 group-hover:rotate-3">
-            <span class="border-l-2 border-[#E5B72E] pl-3 leading-tight">
-                <strong class="block text-base font-black tracking-tight text-[#003D29] sm:text-lg">NDMU</strong>
-                <span class="block text-[9px] font-extrabold uppercase tracking-[0.18em] text-[#00633E] sm:text-[10px]">Research Management System</span>
-            </span>
-        </a>
-    </div>
-</header>
-
-<main>
-<!-- Hero Section -->
-<section class="hero-pattern relative overflow-hidden text-white">
-    <!-- Subtle background accent graphics -->
-    <div class="pointer-events-none absolute -right-24 -top-24 h-[420px] w-[420px] rounded-full border-[60px] border-white/5 blur-xl"></div>
-    <div class="pointer-events-none absolute -bottom-32 -left-32 h-[500px] w-[500px] rounded-full border-[70px] border-[#E5B72E]/10 blur-2xl"></div>
-
-    <div class="relative mx-auto grid min-h-[640px] max-w-7xl items-center gap-12 px-6 py-16 lg:grid-cols-12 lg:px-8 lg:py-24">
-        
-        <!-- Left Hero Column -->
-        <div class="relative z-10 lg:col-span-7">
-            <div class="mb-6 inline-flex items-center gap-2.5 rounded-full border border-[#E5B72E]/30 bg-[#002E1F]/90 px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#E5B72E] backdrop-blur-md shadow-inner">
-                <span class="relative flex h-2 w-2">
-                  <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E5B72E] opacity-75"></span>
-                  <span class="relative inline-flex h-2 w-2 rounded-full bg-[#E5B72E]"></span>
-                </span>
-                Internal · NDMU Research Management
+<!-- Global Sticky University Header -->
+<header data-site-header class="site-header sticky top-0 z-50 bg-white border-b border-slate-200/80 transition-all duration-300">
+    <div class="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <!-- University Brand Logo -->
+        <a href="{{ route('home') }}" class="group flex items-center gap-3.5 transition-transform duration-200 hover:scale-[1.01]" aria-label="NDMU Research Management System">
+            <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" width="48" height="48" class="h-11 w-11 sm:h-12 sm:w-12 shrink-0 object-contain transition-transform duration-300 group-hover:scale-105 drop-shadow-xs">
+            <div class="flex flex-col leading-none border-l-2 border-[#eebc3f] pl-3">
+                <div class="flex items-center gap-2">
+                    <span class="font-heading font-black text-lg sm:text-xl text-[#073823] tracking-tight">NDMU</span>
+                    <span class="px-2 py-0.5 rounded-full bg-[#eebc3f]/20 border border-[#eebc3f]/50 text-[#073823] font-black text-[9px] uppercase tracking-wider hidden sm:inline-block">RMAS</span>
+                </div>
+                <span class="text-[9px] sm:text-[10px] font-black text-[#0e5c3a] tracking-[0.22em] uppercase mt-0.5">Research Management</span>
             </div>
+        </a>
 
-            <h1 class="text-4xl font-black leading-[1.08] tracking-tight sm:text-5xl lg:text-[3.6rem]">
-                Manage research from <span class="text-[#E5B72E]">proposal</span> to institutional <span class="text-[#E5B72E]">archiving.</span>
-            </h1>
-
-            <p class="mt-6 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg">
-                NDMU Research Management System centralizes research submissions, reviews, approvals, defenses, revisions, and institutional archiving in one secure platform.
-            </p>
-
-            <div class="mt-9 flex flex-col gap-3.5 sm:flex-row sm:items-center">
+        <!-- Auth Action Buttons -->
+        <div class="flex items-center gap-3">
+            @auth
+                <a
+                    href="{{ route('dashboard') }}"
+                    class="inline-flex items-center gap-2 rounded-2xl bg-[#073823] hover:bg-[#0e5c3a] px-5 py-2.5 text-xs font-black text-white shadow-md shadow-emerald-950/20 transition duration-200 hover:-translate-y-0.5"
+                >
+                    <i class="ph ph-squares-four text-sm text-[#eebc3f]"></i>
+                    <span>Go to Dashboard</span>
+                </a>
+            @else
                 @if(Route::has('login'))
-                    <a href="{{ route('login') }}" class="group inline-flex min-h-[52px] items-center justify-center gap-2.5 rounded-xl bg-[#E5B72E] hover:bg-[#d4a325] px-8 text-sm font-extrabold text-[#002E1F] shadow-lg shadow-[#E5B72E]/20 transition duration-200 hover:shadow-xl hover:-translate-y-0.5">
-                        Log in to Continue 
-                        <i class="ph-bold ph-arrow-right text-base transition-transform duration-200 group-hover:translate-x-1"></i>
+                    <a
+                        href="{{ route('login') }}"
+                        class="px-4 py-2.5 text-xs font-black text-[#073823] hover:text-[#0e5c3a] transition duration-200"
+                    >
+                        Sign In
                     </a>
                 @endif
                 @if(Route::has('register'))
-                    <a href="{{ route('register') }}" class="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-8 text-sm font-bold text-white backdrop-blur-md transition duration-200 hover:border-white/40 hover:bg-white/20 hover:-translate-y-0.5">
-                        Register an Account
+                    <a
+                        href="{{ route('register') }}"
+                        class="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#eebc3f] to-[#f4c542] hover:brightness-105 px-4.5 py-2.5 text-xs font-black text-[#073823] shadow-md shadow-amber-950/15 transition duration-200 hover:-translate-y-0.5"
+                    >
+                        <i class="ph ph-user-plus text-sm"></i>
+                        <span>Register Account</span>
                     </a>
                 @endif
-            </div>
+            @endauth
+        </div>
+    </div>
+</header>
 
-            <!-- Stats strip -->
-            <div class="mt-12 grid grid-cols-3 gap-4 border-t border-white/10 pt-8">
-                <div>
-                    <span class="block text-2xl font-black text-[#E5B72E] sm:text-3xl">25</span>
-                    <span class="mt-0.5 block text-xs font-semibold text-white/75">Official Forms</span>
-                </div>
-                <div>
-                    <span class="block text-2xl font-black text-[#E5B72E] sm:text-3xl">13</span>
-                    <span class="mt-0.5 block text-xs font-semibold text-white/75">Journey Stages</span>
-                </div>
-                <div>
-                    <span class="block text-2xl font-black text-[#E5B72E] sm:text-3xl">100%</span>
-                    <span class="mt-0.5 block text-xs font-semibold text-white/75">Secure Access</span>
-                </div>
-            </div>
+<main class="bg-[#073823]">
+    <!-- HERO SECTION: Full Screen Viewport with Clean Down-Arrow Indicator -->
+    <section class="relative min-h-[calc(100vh-76px)] flex flex-col justify-between bg-[#073823] text-white overflow-hidden">
+        <!-- Subtle Single-Tone Grid Overlay -->
+        <div class="pointer-events-none absolute inset-0 opacity-10">
+            <svg class="h-full w-full" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+                <defs>
+                    <pattern id="hero-grid-clean" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(238,188,63,0.4)" stroke-width="0.8" />
+                        <circle cx="40" cy="40" r="1" fill="rgba(255,255,255,0.7)" />
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#hero-grid-clean)" />
+            </svg>
         </div>
 
-        <!-- Right Preview Card Column -->
-        <div class="relative lg:col-span-5 lg:justify-self-end w-full max-w-[480px]" aria-label="Sample research record under review">
-            <!-- Floating backdrop cards -->
-            <div class="absolute inset-x-5 bottom-0 top-10 rotate-3 rounded-3xl border border-white/15 bg-[#002E1F] shadow-2xl opacity-60"></div>
+        <!-- Main Hero Container Vertically Centered -->
+        <div class="relative z-10 mx-auto my-auto w-full max-w-7xl grid items-center gap-10 px-6 py-8 sm:py-12 lg:grid-cols-12 lg:px-8">
+            
+            <!-- Left Hero Content -->
+            <div class="relative z-10 lg:col-span-7 space-y-6">
+                <!-- Eyebrow Pill -->
+                <div class="inline-flex items-center gap-2.5 rounded-full border border-[#eebc3f]/40 bg-black/25 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#eebc3f] shadow-sm">
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#eebc3f] opacity-75"></span>
+                        <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#eebc3f]"></span>
+                    </span>
+                    <span>NDMU Institutional Research Portal</span>
+                </div>
 
-            <!-- Main paper card -->
-            <article class="paper-lines relative rounded-3xl border border-[#CFE3D8] bg-white p-6 text-[#0F291E] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] sm:p-7">
-                <div class="flex items-center justify-between gap-3 border-b border-[#003D29]/10 pb-4">
+                <!-- Main Hero Headline -->
+                <h1 class="text-4xl font-black leading-[1.12] tracking-tight sm:text-5xl lg:text-[3.5rem] text-white">
+                    Manage research from 
+                    <span class="text-[#eebc3f]">proposal</span> 
+                    to institutional 
+                    <span class="text-[#eebc3f]">archiving.</span>
+                </h1>
+
+                <!-- Supporting Description -->
+                <p class="max-w-xl text-sm sm:text-base leading-relaxed text-emerald-100/90 font-medium">
+                    A university-grade research ecosystem connecting student researchers, faculty advisers, review panelists, facilitators, and academic deans in one seamless platform.
+                </p>
+
+                <!-- Action CTA Buttons -->
+                <div class="flex flex-col gap-3.5 sm:flex-row sm:items-center pt-1">
+                    @auth
+                        <a
+                            href="{{ route('dashboard') }}"
+                            class="group inline-flex min-h-[52px] items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-[#eebc3f] to-[#f4c542] hover:brightness-105 px-8 text-sm font-black text-[#073823] shadow-xl shadow-black/20 transition duration-200 hover:-translate-y-0.5"
+                        >
+                            <span>Open Your Workspace</span>
+                            <i class="ph ph-arrow-right text-base font-bold transition-transform duration-200 group-hover:translate-x-1"></i>
+                        </a>
+                    @else
+                        @if(Route::has('login'))
+                            <a
+                                href="{{ route('login') }}"
+                                class="group inline-flex min-h-[52px] items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-[#eebc3f] to-[#f4c542] hover:brightness-105 px-8 text-sm font-black text-[#073823] shadow-xl shadow-black/20 transition duration-200 hover:-translate-y-0.5"
+                            >
+                                <span>Sign In to Continue</span>
+                                <i class="ph ph-arrow-right text-base font-bold transition-transform duration-200 group-hover:translate-x-1"></i>
+                            </a>
+                        @endif
+                        @if(Route::has('register'))
+                            <a
+                                href="{{ route('register') }}"
+                                class="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 hover:bg-white/20 px-7 text-sm font-bold text-white transition duration-200 hover:-translate-y-0.5"
+                            >
+                                <i class="ph ph-student text-base text-[#eebc3f]"></i>
+                                <span>Register Student Account</span>
+                            </a>
+                        @endif
+                    @endauth
+                </div>
+
+                <!-- 3 Metric Highlights Strip -->
+                <div class="grid grid-cols-3 gap-4 border-t border-white/15 pt-6 max-w-lg">
                     <div>
-                        <p class="text-[10px] font-black uppercase tracking-widest text-[#00633E]">Research Record</p>
-                        <p class="mt-0.5 font-mono text-xs font-bold text-[#003D29] sm:text-sm">RES-2026-00417</p>
+                        <span class="block text-2xl sm:text-3xl font-black text-[#eebc3f]">25</span>
+                        <span class="mt-0.5 block text-[11px] font-bold uppercase tracking-wider text-emerald-100/80">Official Forms</span>
                     </div>
-                    <span class="inline-flex items-center gap-1.5 rounded-full border border-[#00633E]/20 bg-[#EAF5EF] px-3 py-1 text-[10px] font-black tracking-wider text-[#00633E] shadow-sm">
-                        <span class="h-1.5 w-1.5 rounded-full bg-[#00633E]"></span>
-                        UNDER REVIEW
-                    </span>
+                    <div>
+                        <span class="block text-2xl sm:text-3xl font-black text-[#eebc3f]">13</span>
+                        <span class="mt-0.5 block text-[11px] font-bold uppercase tracking-wider text-emerald-100/80">Journey Stages</span>
+                    </div>
+                    <div>
+                        <span class="block text-2xl sm:text-3xl font-black text-[#eebc3f]">100%</span>
+                        <span class="mt-0.5 block text-[11px] font-bold uppercase tracking-wider text-emerald-100/80">Secure Vault</span>
+                    </div>
                 </div>
+            </div>
 
-                <div class="py-5">
-                    <p class="text-[10px] font-bold uppercase tracking-wider text-[#526359]">Research title</p>
-                    <h2 class="mt-1.5 text-lg font-black leading-snug text-[#003D29] sm:text-xl">
-                        Development of a Research Management Information System
-                    </h2>
-                    <div class="mt-5 grid grid-cols-2 gap-4 rounded-xl bg-[#F7FAF8] p-3.5 border border-[#003D29]/10">
+            <!-- Right Interactive Live Record Showcase Card -->
+            <div class="relative lg:col-span-5 lg:justify-self-end w-full max-w-[480px]">
+                <div class="relative rounded-3xl border border-emerald-600/30 bg-white p-6 sm:p-7 text-slate-800 shadow-2xl shadow-black/40 overflow-hidden">
+                    <!-- Card Top Accent Stripe -->
+                    <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#073823] via-[#eebc3f] to-[#073823]"></div>
+
+                    <!-- Header Row -->
+                    <div class="flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                        <div class="flex items-center gap-2.5">
+                            <x-ndmu-n-logo size="sm" :showGlow="false" />
+                            <div>
+                                <p class="text-[9px] font-black uppercase tracking-widest text-[#073823]">Active Manuscript</p>
+                                <p class="font-mono text-xs font-bold text-slate-900">RES-2026-00417</p>
+                            </div>
+                        </div>
+                        <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-black tracking-wider text-[#073823] shadow-2xs">
+                            <span class="h-1.5 w-1.5 rounded-full bg-[#073823] animate-pulse"></span>
+                            UNDER REVIEW
+                        </span>
+                    </div>
+
+                    <!-- Research Title & Details -->
+                    <div class="py-5 space-y-4">
                         <div>
-                            <p class="text-[9px] font-bold uppercase tracking-wider text-[#526359]">Submitted by</p>
-                            <p class="mt-0.5 text-xs font-bold text-[#003D29]">Research Group</p>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Research Topic</span>
+                            <h3 class="mt-1 text-base sm:text-lg font-black leading-snug text-slate-900">
+                                Development of a University Research Management &amp; Archiving Monolith
+                            </h3>
                         </div>
-                        <div>
-                            <p class="text-[9px] font-bold uppercase tracking-wider text-[#526359]">College / Program</p>
-                            <p class="mt-0.5 text-xs font-bold text-[#003D29]">NDMU Academic Unit</p>
+
+                        <div class="grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-3.5 border border-slate-200/80">
+                            <div>
+                                <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Lead Researcher</span>
+                                <p class="mt-0.5 text-xs font-bold text-slate-800">Capstone Group 1</p>
+                            </div>
+                            <div>
+                                <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Department</span>
+                                <p class="mt-0.5 text-xs font-bold text-slate-800">College of Engineering</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live 5-Stage Stepper strictly in Emerald and Gold -->
+                    <div class="border-t border-slate-100 pt-4 space-y-2">
+                        <div class="flex items-center justify-between text-[10px] font-bold text-slate-500 mb-1">
+                            <span>Stage 3 of 5</span>
+                            <span class="text-[#073823] font-black">Proposal Defense Scheduled</span>
+                        </div>
+
+                        <div class="relative flex justify-between items-center before:absolute before:left-[10%] before:right-[10%] before:top-3.5 before:h-1 before:bg-slate-200">
+                            <!-- Stage 1 -->
+                            <div class="relative z-10 flex flex-col items-center">
+                                <span class="w-7 h-7 rounded-full bg-[#073823] text-white flex items-center justify-center text-xs shadow-sm">
+                                    <i class="ph ph-check-bold"></i>
+                                </span>
+                                <span class="text-[8px] font-bold text-slate-600 mt-1">Proposal</span>
+                            </div>
+
+                            <!-- Stage 2 -->
+                            <div class="relative z-10 flex flex-col items-center">
+                                <span class="w-7 h-7 rounded-full bg-[#073823] text-white flex items-center justify-center text-xs shadow-sm">
+                                    <i class="ph ph-check-bold"></i>
+                                </span>
+                                <span class="text-[8px] font-bold text-slate-600 mt-1">Review</span>
+                            </div>
+
+                            <!-- Stage 3: Current -->
+                            <div class="relative z-10 flex flex-col items-center">
+                                <span class="w-7 h-7 rounded-full bg-[#eebc3f] text-[#073823] flex items-center justify-center text-xs ring-4 ring-amber-400/30 shadow-md font-black animate-pulse">
+                                    <i class="ph ph-presentation"></i>
+                                </span>
+                                <span class="text-[8px] font-black text-[#073823] mt-1">Defense</span>
+                            </div>
+
+                            <!-- Stage 4 -->
+                            <div class="relative z-10 flex flex-col items-center">
+                                <span class="w-7 h-7 rounded-full bg-slate-100 border border-slate-300 text-slate-400 flex items-center justify-center text-xs">
+                                    <i class="ph ph-seal-check"></i>
+                                </span>
+                                <span class="text-[8px] font-medium text-slate-400 mt-1">Revision</span>
+                            </div>
+
+                            <!-- Stage 5 -->
+                            <div class="relative z-10 flex flex-col items-center">
+                                <span class="w-7 h-7 rounded-full bg-slate-100 border border-slate-300 text-slate-400 flex items-center justify-center text-xs">
+                                    <i class="ph ph-archive"></i>
+                                </span>
+                                <span class="text-[8px] font-medium text-slate-400 mt-1">Archiving</span>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="border-t border-[#003D29]/10 pt-4">
-                    <div class="relative flex justify-between before:absolute before:left-[8%] before:right-[8%] before:top-3 before:h-0.5 before:bg-[#DDE5E1]">
-                        @foreach([['check','Title Proposal','done'],['user-check','Adviser Review','done'],['presentation-chart','Proposal Defense','current'],['seal-check','Final Defense','next'],['archive','Archiving','next']] as $stage)
-                        <div class="relative z-10 flex flex-col items-center text-center">
-                            <span class="flex h-6 w-6 items-center justify-center rounded-full border text-[11px] transition-transform duration-200 hover:scale-110 {{ $stage[2]==='done'?'border-[#003D29] bg-[#003D29] text-white':($stage[2]==='current'?'border-[#E5B72E] bg-[#E5B72E] text-[#002E1F] ring-4 ring-[#E5B72E]/20 shadow-sm':'border-[#DDE5E1] bg-[#F7FAF8] text-[#68766F]') }}">
-                                <i class="ph-bold ph-{{ $stage[0] }}"></i>
-                            </span>
-                            <span class="mt-1.5 hidden text-[8px] font-bold leading-tight text-[#526359] sm:block">{{ $stage[1] }}</span>
-                        </div>
-                        @endforeach
-                    </div>
+        </div>
+
+        <!-- Scroll Down Point Arrow Indicator -->
+        <div class="relative z-10 w-full pb-6 pt-2 flex flex-col items-center justify-center">
+            <a
+                href="#lifecycle"
+                class="group flex flex-col items-center gap-1.5 text-xs font-bold text-emerald-200/90 hover:text-[#eebc3f] transition-all cursor-pointer select-none"
+                aria-label="Scroll down to explore research workflow"
+            >
+                <span class="text-[10px] font-black uppercase tracking-[0.25em] text-[#eebc3f]/90 group-hover:text-[#eebc3f] transition-colors">Explore Workflow</span>
+                <div class="w-8 h-8 rounded-full border border-[#eebc3f]/40 bg-black/20 group-hover:border-[#eebc3f] group-hover:bg-[#eebc3f]/20 flex items-center justify-center text-sm text-[#eebc3f] transition-all shadow-sm animate-bounce">
+                    <i class="ph ph-caret-down-bold text-base"></i>
                 </div>
-            </article>
+            </a>
         </div>
+    </section>
 
-    </div>
-</section>
-
-<!-- Research Lifecycle Section -->
-<section class="bg-[#002E1F] relative border-t border-white/10 py-20 text-white sm:py-24">
-    <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="max-w-2xl">
-            <p class="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-[#E5B72E]">
-                <i class="ph-bold ph-path text-base" aria-hidden="true"></i>Research lifecycle
-            </p>
-            <h2 class="mt-2 text-3xl font-black tracking-tight text-white sm:text-4xl">
-                How research moves
-            </h2>
-            <p class="mt-2 text-base text-white/80">
-                One organized process from proposal to institutional archiving.
-            </p>
-        </div>
-
-        <div class="relative mt-12 grid gap-6 md:grid-cols-5 md:gap-4">
-            @foreach([
-                ['file-text','Title Proposal','Submit initial research proposal.'],
-                ['user-check','Adviser Review','Review, consultation, and revision.'],
-                ['presentation','Proposal Defense','Defense evaluation and required revisions.'],
-                ['seal-check','Final Defense','Final evaluation and approval.'],
-                ['archive','Archiving','Approved research stored in the institutional repository.']
-            ] as $index=>$step)
-            <article class="group relative flex flex-col items-center rounded-2xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-md transition-all duration-300 hover:-translate-y-1.5 hover:border-[#E5B72E]/40 hover:bg-white/10 hover:shadow-xl">
-                <span class="relative z-10 flex h-12 w-12 items-center justify-center rounded-2xl border border-[#E5B72E]/40 bg-[#003D29] text-sm font-black text-[#E5B72E] shadow-sm">
-                    {{ str_pad($index+1,2,'0',STR_PAD_LEFT) }}
-                </span>
-                <i class="ph-bold ph-{{ $step[0] }} mt-4 text-2xl text-[#E5B72E]"></i>
-                <h3 class="mt-3 text-base font-extrabold text-white">{{ $step[1] }}</h3>
-                <p class="mt-2 text-xs leading-relaxed text-white/75">{{ $step[2] }}</p>
-            </article>
-            @endforeach
-        </div>
-    </div>
-</section>
-
-<!-- Features Grid Section -->
-<section class="relative bg-[#F7FAF8] py-20 text-[#0F291E] sm:py-24">
-    <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="text-center">
-            <p class="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-[#00633E]">
-                <i class="ph-bold ph-folder-open text-base" aria-hidden="true"></i>One secure workspace
-            </p>
-            <h2 class="mt-2 text-3xl font-black tracking-tight text-[#003D29] sm:text-4xl">
-                Everything your research needs
-            </h2>
-            <p class="mx-auto mt-2 max-w-xl text-base text-[#526359]">
-                Documents, approvals, revisions, and progress kept in one place.
-            </p>
-        </div>
-
-        <div class="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            @foreach([
-                ['chart-line-up','Research Progress Tracking','Track the research from initial proposal through final archiving.'],
-                ['file-arrow-up','Document Submission','Securely submit research documents and required revisions.'],
-                ['checks','Reviews & Approvals','Keep adviser, facilitator, coordinator, and panel decisions organized.'],
-                ['books','Research Archive','Maintain approved research records in the institutional repository.']
-            ] as $feature)
-            <article class="group relative flex flex-col justify-between rounded-2xl border border-[#CFE3D8] bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-[#00633E]/40 hover:shadow-xl hover:shadow-[#003D29]/5">
-                <div>
-                    <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF5EF] text-[#00633E] transition-colors duration-300 group-hover:bg-[#003D29] group-hover:text-[#E5B72E]">
-                        <i class="ph-bold ph-{{ $feature[0] }} text-2xl"></i>
-                    </span>
-                    <h3 class="mt-5 text-lg font-black text-[#003D29]">{{ $feature[1] }}</h3>
-                    <p class="mt-2.5 text-xs sm:text-sm leading-relaxed text-[#526359]">{{ $feature[2] }}</p>
+    <!-- RESEARCH LIFECYCLE SECTION: How Research Moves (Visible upon scrolling) -->
+    <section id="lifecycle" class="relative bg-[#073823] border-t border-emerald-700/30 py-20 text-white sm:py-24 overflow-hidden">
+        <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
+            <div class="text-center max-w-2xl mx-auto space-y-2">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/25 border border-[#eebc3f]/40 text-[10px] font-black uppercase tracking-[0.2em] text-[#eebc3f]">
+                    <i class="ph ph-git-fork text-sm"></i>
+                    <span>Systematic Research Workflow</span>
                 </div>
-                <div class="mt-6 flex items-center gap-1.5 text-xs font-bold text-[#00633E] opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                    Learn more <i class="ph-bold ph-caret-right text-xs"></i>
-                </div>
-            </article>
-            @endforeach
-        </div>
+                <h2 class="text-3xl font-black tracking-tight text-white sm:text-4xl">
+                    How Research Moves
+                </h2>
+                <p class="text-sm sm:text-base text-emerald-100/80">
+                    A transparent, five-phase progression ensuring quality, rigor, and institutional archiving.
+                </p>
+            </div>
 
-        <!-- Capability Pills Bar -->
-        <div class="mt-12 flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-[#CFE3D8] bg-white px-6 py-4 text-xs font-bold text-[#003D29] shadow-sm sm:gap-6">
-            @foreach([
-                ['shield-check','Secure Documents'],
-                ['users-three','Role-Based Access'],
-                ['flow-arrow','Review Workflow'],
-                ['clock-counter-clockwise','Revision History'],
-                ['archive','Research Archiving']
-            ] as $capability)
+            <div class="relative mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+                @php
+                    $steps = [
+                        ['icon' => 'ph-file-text', 'title' => 'Title & Proposal', 'desc' => 'Initial topic formulation, group formation, and facilitator screening.'],
+                        ['icon' => 'ph-user-check', 'title' => 'Adviser Review', 'desc' => 'Iterative manuscript consultation, revision tracking, and endorsement.'],
+                        ['icon' => 'ph-presentation', 'title' => 'Proposal Defense', 'desc' => 'Oral defense scheduling, panel deliberation, and rubric evaluation.'],
+                        ['icon' => 'ph-seal-check', 'title' => 'Final Defense', 'desc' => 'Final manuscript evaluation, dean sign-off, and routing slip approval.'],
+                        ['icon' => 'ph-archive', 'title' => 'Institutional Archive', 'desc' => 'Secured private repository storage and university research cataloging.']
+                    ];
+                @endphp
+
+                @foreach($steps as $index => $step)
+                    <article class="group relative flex flex-col items-center rounded-3xl border border-emerald-600/40 bg-white/5 p-6 text-center transition-all duration-300 hover:-translate-y-2 hover:border-[#eebc3f]/60 hover:bg-white/10 shadow-lg shadow-black/10">
+                        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#042416] border border-[#eebc3f]/50 text-sm font-black text-[#eebc3f] shadow-md group-hover:scale-110 transition-transform">
+                            0{{ $index + 1 }}
+                        </span>
+                        <i class="ph {{ $step['icon'] }} mt-4 text-3xl text-[#eebc3f] group-hover:scale-110 transition-transform"></i>
+                        <h3 class="mt-3 text-base font-black text-white">{{ $step['title'] }}</h3>
+                        <p class="mt-2 text-xs leading-relaxed text-emerald-100/75">{{ $step['desc'] }}</p>
+                    </article>
+                @endforeach
+            </div>
+
+            <!-- Capability Feature Badges Strip strictly in Emerald & Gold -->
+            <div id="compliance" class="mt-16 flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-emerald-600/40 bg-black/20 px-6 py-4.5 text-xs font-bold text-emerald-100 shadow-sm sm:gap-8">
                 <span class="inline-flex items-center gap-2">
-                    <i class="ph-bold ph-{{ $capability[0] }} text-base text-[#E5B72E]"></i>
-                    {{ $capability[1] }}
+                    <i class="ph ph-shield-check text-base text-[#eebc3f]"></i>
+                    <span>Encrypted Manuscript Vault</span>
                 </span>
-                @if(!$loop->last)
-                    <span class="hidden h-4 w-px bg-[#CFE3D8] sm:block"></span>
-                @endif
-            @endforeach
+                <span class="hidden h-4 w-px bg-emerald-600/40 sm:block"></span>
+
+                <span class="inline-flex items-center gap-2">
+                    <i class="ph ph-users-three text-base text-[#eebc3f]"></i>
+                    <span>Multi-Role Academic RBAC</span>
+                </span>
+                <span class="hidden h-4 w-px bg-emerald-600/40 sm:block"></span>
+
+                <span class="inline-flex items-center gap-2">
+                    <i class="ph ph-signature text-base text-[#eebc3f]"></i>
+                    <span>Digital E-Signatures</span>
+                </span>
+                <span class="hidden h-4 w-px bg-emerald-600/40 sm:block"></span>
+
+                <span class="inline-flex items-center gap-2">
+                    <i class="ph ph-arrows-counter-clockwise text-base text-[#eebc3f]"></i>
+                    <span>Comprehensive Audit Trail</span>
+                </span>
+            </div>
         </div>
-    </div>
-</section>
+    </section>
 </main>
 
-<!-- Footer -->
-<footer class="border-t border-white/10 bg-[#002318] px-6 py-10 text-center text-white/80">
-    <div class="mx-auto max-w-7xl">
-        <i class="ph-bold ph-buildings text-3xl text-[#E5B72E]" aria-hidden="true"></i>
-        <p class="mt-3 text-base font-black text-white">NDMU Research Management System</p>
-        <p class="mt-1 text-xs text-white/70">Notre Dame of Marbel University</p>
-        <p class="mt-4 text-[10px] font-extrabold uppercase tracking-widest text-[#E5B72E]">University Information System</p>
-        <p class="mt-4 text-xs text-white/60">&copy; 2026 Notre Dame of Marbel University. All rights reserved.</p>
+<!-- Global University Footer -->
+<footer class="border-t border-emerald-700/30 bg-[#073823] px-6 py-12 text-white/80">
+    <div class="mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="flex items-center gap-3.5">
+            <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" class="h-12 w-auto object-contain">
+            <div class="flex flex-col leading-none border-l border-white/20 pl-3">
+                <span class="font-heading font-black text-lg text-white">Notre Dame of Marbel University</span>
+                <span class="text-[10px] font-bold text-[#eebc3f] tracking-wider uppercase mt-0.5">Research Management &amp; Archiving System</span>
+            </div>
+        </div>
+
+        <div class="text-center md:text-right space-y-1 text-xs text-white/70">
+            <p class="font-bold text-white/90">Marist Brothers of the Schools &bull; Academic Excellence</p>
+            <p>&copy; {{ now()->year }} Notre Dame of Marbel University. All rights reserved.</p>
+        </div>
     </div>
 </footer>
 
 <script>
     const siteHeader = document.querySelector('[data-site-header]');
-    const updateHeader = () => siteHeader?.classList.toggle('is-scrolled', window.scrollY > 10);
+    const updateHeader = () => siteHeader?.classList.toggle('is-scrolled', window.scrollY > 15);
     window.addEventListener('scroll', updateHeader, { passive: true });
     updateHeader();
 </script>

@@ -13,5 +13,6 @@
     @yield('content')
     <x-logout-confirmation />
     @livewireScripts
+    @stack('scripts')
 </body>
 </html>
