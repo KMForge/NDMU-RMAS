@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Authentication;
 
+use App\Rules\TurnstileRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -18,7 +19,7 @@ class RegisterStudentRequest extends FormRequest
     {
         $programs = collect(config('academic.programs', []))->pluck('label')->all();
 
-        return [
+        $rules = [
             'student_id' => ['required', 'string', 'max:50', 'regex:/^[A-Za-z0-9-]+$/', 'unique:users,student_id'],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email:rfc', 'max:255', 'ends_with:@ndmu.edu.ph', 'unique:users,email'],
@@ -26,6 +27,12 @@ class RegisterStudentRequest extends FormRequest
             'year_level' => ['required', 'integer', 'between:1,5'],
             'password' => ['required', 'confirmed', Password::min(12)->mixedCase()->letters()->numbers()->symbols()],
         ];
+
+        if (config('services.turnstile.site_key') && ! app()->environment('testing')) {
+            $rules['cf-turnstile-response'] = ['required', new TurnstileRule];
+        }
+
+        return $rules;
     }
 
     protected function prepareForValidation(): void
