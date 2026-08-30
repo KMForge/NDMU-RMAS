@@ -58,11 +58,18 @@ class BookConsultation
         }
 
         $preferredAt = $data['preferred_at'];
-        $minAdvanceMinutes = (int) config('consultations.minimum_advance_minutes', 360);
+        $minAdvanceMinutes = max(0, (int) config('consultations.minimum_advance_minutes', 0));
         $maxAdvanceDays = (int) config('consultations.maximum_advance_days', 90);
+        $earliestBookableAt = $minAdvanceMinutes > 0
+            ? now()->addMinutes($minAdvanceMinutes)
+            : now()->startOfMinute();
 
-        if ($preferredAt->isBefore(now()->addMinutes($minAdvanceMinutes))) {
-            throw new ConsultationException("Consultations must be booked at least {$minAdvanceMinutes} minutes in advance.");
+        if ($preferredAt->isBefore($earliestBookableAt)) {
+            $message = $minAdvanceMinutes > 0
+                ? "Consultations must be booked at least {$minAdvanceMinutes} minutes in advance."
+                : 'Consultations must be booked for the current time or a future date and time.';
+
+            throw new ConsultationException($message);
         }
 
         if ($preferredAt->isAfter(now()->addDays($maxAdvanceDays))) {

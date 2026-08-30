@@ -24,11 +24,11 @@ class GetAdviserConsultationData
     public function for(
         User $adviser,
         string $search = '',
-        string $status = 'pending',
+        string $status = 'all',
     ): array {
         $search = Str::limit(trim($search), 100, '');
         $allowedStatuses = ['pending', 'reschedule_proposed', 'approved', 'rejected', 'cancelled', 'completed', 'all'];
-        $status = in_array($status, $allowedStatuses, true) ? $status : 'pending';
+        $status = in_array($status, $allowedStatuses, true) ? $status : 'all';
 
         $query = ConsultationRequest::query()
             ->with([

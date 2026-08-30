@@ -47,9 +47,17 @@ class ProposeConsultationReschedule
                 }
 
                 $proposedStart = $data['proposed_start_at'];
-                $minAdvanceMinutes = (int) config('consultations.minimum_advance_minutes', 360);
-                if ($proposedStart->isBefore(now()->addMinutes($minAdvanceMinutes))) {
-                    throw new ConsultationException("Proposed schedule must be at least {$minAdvanceMinutes} minutes in advance.");
+                $minAdvanceMinutes = max(0, (int) config('consultations.minimum_advance_minutes', 0));
+                $earliestProposedStart = $minAdvanceMinutes > 0
+                    ? now()->addMinutes($minAdvanceMinutes)
+                    : now()->startOfMinute();
+
+                if ($proposedStart->isBefore($earliestProposedStart)) {
+                    $message = $minAdvanceMinutes > 0
+                        ? "Proposed schedule must be at least {$minAdvanceMinutes} minutes in advance."
+                        : 'Proposed schedule must use the current time or a future date and time.';
+
+                    throw new ConsultationException($message);
                 }
 
                 $durationMinutes = (int) $lockedRequest->duration_minutes;

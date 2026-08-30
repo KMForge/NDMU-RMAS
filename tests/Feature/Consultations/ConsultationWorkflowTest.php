@@ -189,18 +189,35 @@ class ConsultationWorkflowTest extends TestCase
         $response->assertSessionHasErrors('consultation');
     }
 
-    public function test_student_cannot_book_outside_allowed_window(): void
+    public function test_student_can_book_without_advance_notice(): void
     {
-        // Less than 6 hours advance notice
-        $tooSoon = now()->addHours(2);
+        $immediate = now()->addMinute()->startOfMinute();
         $response = $this->actingAs($this->studentRequester)->post(route('student.consultations.store'), [
-            'preferred_at' => $tooSoon->toIso8601String(),
+            'preferred_at' => $immediate->toIso8601String(),
             'consultation_mode' => ConsultationMode::InPerson->value,
             'agenda' => 'Emergency discussion regarding thesis topic.',
         ]);
 
         $response->assertRedirect(route('student.dashboard', ['tab' => 'consultation']));
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('consultation_requests', [
+            'research_class_group_id' => $this->group->id,
+            'requested_by' => $this->studentRequester->id,
+            'status' => ConsultationStatus::Pending->value,
+        ]);
+    }
+
+    public function test_student_cannot_book_a_past_consultation(): void
+    {
+        $response = $this->actingAs($this->studentRequester)->post(route('student.consultations.store'), [
+            'preferred_at' => now()->subMinute()->startOfMinute()->toIso8601String(),
+            'consultation_mode' => ConsultationMode::InPerson->value,
+            'agenda' => 'Discussion regarding thesis topic.',
+        ]);
+
+        $response->assertRedirect(route('student.dashboard', ['tab' => 'consultation']));
         $response->assertSessionHasErrors('consultation');
+        $this->assertDatabaseCount('consultation_requests', 0);
     }
 
     public function test_student_cannot_book_if_unresolved_request_exists(): void

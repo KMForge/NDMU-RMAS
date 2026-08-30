@@ -39,17 +39,17 @@
                 class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-800 focus:border-[#0e5c3a] focus:outline-none"
             >
         </div>
-        <select name="consultation_status" class="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 focus:border-[#0e5c3a] focus:outline-none">
+        <select name="consultation_status" onchange="this.form.submit()" class="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 focus:border-[#0e5c3a] focus:outline-none">
             @foreach ([
+                'all' => 'All Statuses',
                 'pending' => 'Pending',
                 'reschedule_proposed' => 'Reschedule Proposed',
                 'approved' => 'Approved',
                 'completed' => 'Completed',
                 'rejected' => 'Rejected',
                 'cancelled' => 'Cancelled',
-                'all' => 'All Statuses',
             ] as $value => $label)
-                <option value="{{ $value }}" @selected(($consultationStatus ?? 'pending') === $value)>{{ $label }}</option>
+                <option value="{{ $value }}" @selected(($consultationStatus ?? 'all') === $value)>{{ $label }}</option>
             @endforeach
         </select>
         <button type="submit" class="rounded-xl bg-[#0e5c3a] px-6 py-3 text-xs font-bold uppercase tracking-wider text-white shadow-xs hover:bg-[#0a4a2e] transition-colors">
