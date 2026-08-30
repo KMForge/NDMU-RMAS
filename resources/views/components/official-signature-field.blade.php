@@ -36,6 +36,7 @@
             $classAssignments = $officialFormInstance->researchClass?->officialFormActorAssignments
                 ?? $officialFormInstance->group?->researchClass?->officialFormActorAssignments;
             $titlePanelAssignments = $officialFormInstance->titlePresentation?->defense?->activePanelAssignments?->keyBy('panel_position');
+            $institutionalDean = app(\App\Modules\OfficialForms\Services\InstitutionalActorResolver::class)->dean();
 
             $authoritativeName = match ($effectiveActorType) {
                 'research_adviser', 'adviser' => $officialFormInstance->group?->adviser?->name,
@@ -44,6 +45,9 @@
                 'program_coordinator' => $officialFormInstance->actorAssignments->firstWhere('actor_type', 'program_coordinator')?->user?->name
                     ?? $classAssignments?->firstWhere('actor_type', 'program_coordinator')?->user?->name
                     ,
+                'dean', 'college_dean' => $institutionalDean?->name
+                    ?? $officialFormInstance->actorAssignments->firstWhere('actor_type', 'dean')?->user?->name
+                    ?? $classAssignments?->firstWhere('actor_type', 'dean')?->user?->name,
                 'title_panel_chairperson' => $titlePanelAssignments?->get('chairperson')?->user?->name,
                 'title_panel_member_1' => $titlePanelAssignments?->get('member_1')?->user?->name,
                 'title_panel_member_2' => $titlePanelAssignments?->get('member_2')?->user?->name,

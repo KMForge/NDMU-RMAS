@@ -31,7 +31,7 @@ return [
             'label' => 'Student',
             'description' => 'Student researcher access to owned records and enrolled classes.',
             'user_type' => 'student',
-            'permissions' => ['dashboards.student.view', 'research.view-own', 'progress.view-own', 'research.create', 'research.update-own', 'proposal.submit', 'documents.upload', 'documents.download', 'consultations.request', 'classes.join', 'classes.view-enrolled', 'revisions.resolve', 'defenses.view', 'evaluations.view-own', 'forms.res-026.view', 'forms.res-026.fill', 'forms.res-026.submit', 'forms.res-030.view', 'forms.res-030.submit', 'forms.res-031.view', 'forms.res-031.fill', 'forms.res-032.view', 'forms.res-032.fill', 'forms.res-034.view', 'forms.res-039.view', 'forms.res-039.fill', 'forms.res-042.view', 'forms.res-042.submit', 'forms.res-048.view', 'forms.res-048.fill', 'forms.res-049.view', 'forms.res-049.sign'],
+            'permissions' => ['dashboards.student.view', 'research.view-own', 'progress.view-own', 'research.create', 'research.update-own', 'proposal.submit', 'documents.upload', 'documents.download', 'consultations.request', 'classes.join', 'classes.view-enrolled', 'revisions.resolve', 'defenses.view', 'evaluations.view-own', 'forms.res-026.view', 'forms.res-026.fill', 'forms.res-026.submit', 'forms.res-030.view', 'forms.res-030.submit', 'forms.res-031.view', 'forms.res-032.view', 'forms.res-032.fill', 'forms.res-034.view', 'forms.res-039.view', 'forms.res-039.fill', 'forms.res-042.view', 'forms.res-042.submit', 'forms.res-048.view', 'forms.res-048.fill', 'forms.res-049.view', 'forms.res-049.sign'],
         ],
         'research-facilitator' => [
             'label' => 'Research Facilitator',

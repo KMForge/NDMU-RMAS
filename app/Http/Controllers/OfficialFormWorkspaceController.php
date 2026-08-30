@@ -62,6 +62,11 @@ class OfficialFormWorkspaceController extends Controller
                 ->where('status', DocumentStatus::ApprovedForPresentation->value)
                 ->where('is_current', true)
                 ->pluck('research_class_group_id'),
+            'res031UnlockedGroupIds' => OfficialFormInstance::query()
+                ->where('status', 'approved')
+                ->whereHas('definition', fn ($query) => $query->where('code', 'RES-026'))
+                ->whereHas('titlePresentation', fn ($query) => $query->where('status', 'finalized'))
+                ->pluck('research_class_group_id'),
         ]);
     }
 

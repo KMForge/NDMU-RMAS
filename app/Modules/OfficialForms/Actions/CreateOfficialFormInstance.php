@@ -48,6 +48,16 @@ class CreateOfficialFormInstance
         'RES-043B' => [OfficialFormInstance::class],
     ];
 
+    /** @var list<string> */
+    private const FORMS_REQUIRING_SOURCE = [
+        'RES-026',
+        'RES-036',
+        'RES-037',
+        'RES-039',
+        'RES-043A',
+        'RES-043B',
+    ];
+
     public function handle(
         User $initiator,
         string $formCode,
@@ -130,7 +140,7 @@ class CreateOfficialFormInstance
             throw new InvalidArgumentException('Source type and source ID must be provided together.');
         }
 
-        if (array_key_exists($formCodeUpper, self::FORM_ALLOWED_SOURCE_TYPES) && $sourceType === null) {
+        if (in_array($formCodeUpper, self::FORMS_REQUIRING_SOURCE, true) && $sourceType === null) {
             throw new InvalidArgumentException("Form {$formCodeUpper} requires its configured authoritative source.");
         }
 
@@ -148,6 +158,10 @@ class CreateOfficialFormInstance
         // Authoritative Source Enforcements per form
         if (in_array($formCodeUpper, ['RES-043A', 'RES-043B'], true)) {
             $targetActorId = $this->validateValidationRequestSourceAndValidator($groupId, $sourceType, $sourceId, $targetActorId);
+        }
+
+        if ($formCodeUpper === 'RES-031') {
+            $this->validateRes031Prerequisites($group);
         }
 
         if ($formCodeUpper !== 'RES-036' && ! $this->authorization->canInitiate($initiator, $definition, $group, $class)) {
@@ -234,6 +248,24 @@ class CreateOfficialFormInstance
             if ($groupId !== null) {
                 throw new InvalidArgumentException("Class-owned form {$definition->code} must not specify a research_class_group_id.");
             }
+        }
+    }
+
+    private function validateRes031Prerequisites(?ResearchClassGroup $group): void
+    {
+        if ($group === null || ! $group->isActive()) {
+            throw new InvalidArgumentException('RES-031 requires an active research class group.');
+        }
+
+        $hasFinalizedTitleApproval = OfficialFormInstance::query()
+            ->where('research_class_group_id', $group->id)
+            ->where('status', 'approved')
+            ->whereHas('definition', fn ($query) => $query->where('code', 'RES-026'))
+            ->whereHas('titlePresentation', fn ($query) => $query->where('status', 'finalized'))
+            ->exists();
+
+        if (! $hasFinalizedTitleApproval) {
+            throw new InvalidArgumentException('RES-031 becomes available after the Title Presentation is finalized and RES-026 is approved.');
         }
     }
 

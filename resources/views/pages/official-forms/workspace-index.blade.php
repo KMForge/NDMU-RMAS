@@ -91,11 +91,18 @@
                     @php
                         $code = strtolower($definition->code);
                         $hasFormPermission = auth()->user()->can('users.manage') || auth()->user()->getAllPermissions()->contains(fn ($permission) => str_starts_with($permission->name, "forms.{$code}."));
-                        $sourceBound = in_array($definition->code, ['RES-031', 'RES-039', 'RES-043A', 'RES-043B'], true);
+                        if ($definition->code === 'RES-031') {
+                            $hasFormPermission = auth()->user()->can('users.manage')
+                                || (auth()->user()->can('forms.res-031.sign')
+                                    && $contexts['groups']->contains('adviser_id', auth()->id()));
+                        }
+                        $sourceBound = in_array($definition->code, ['RES-039', 'RES-043A', 'RES-043B'], true);
                         $blocked = in_array($definition->code, ['RES-029', 'RES-036', 'RES-037'], true);
                         $res026Locked = $definition->code === 'RES-026'
                             && auth()->user()->user_type->value === 'student'
                             && $contexts['groups']->pluck('id')->intersect($res026UnlockedGroupIds)->isEmpty();
+                        $res031Locked = $definition->code === 'RES-031'
+                            && $contexts['groups']->pluck('id')->intersect($res031UnlockedGroupIds)->isEmpty();
                     @endphp
                     @if ($hasFormPermission)
                         <form method="POST" action="{{ route('official-forms.workspace.store', $definition) }}" class="rounded-2xl border border-gray-200 p-4">
@@ -124,8 +131,9 @@
                                 </select>
                             @endif
                             @if ($res026Locked)<p class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[10px] font-semibold text-amber-800">Your Title Proposal document must first be approved for Title Presentation.</p>@endif
-                            <button type="submit" @disabled($sourceBound || $blocked || $res026Locked) class="mt-3 w-full rounded-xl bg-[#0e5c3a] px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:bg-gray-300">
-                                {{ $res026Locked ? 'Locked' : ($blocked ? 'Blocked pending verification' : ($sourceBound ? 'Open from source record' : 'Create / Open Form')) }}
+                            @if ($res031Locked)<p class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[10px] font-semibold text-amber-800">Available after the Title Presentation is finalized and RES-026 is approved.</p>@endif
+                            <button type="submit" @disabled($sourceBound || $blocked || $res026Locked || $res031Locked) class="mt-3 w-full rounded-xl bg-[#0e5c3a] px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:bg-gray-300">
+                                {{ ($res026Locked || $res031Locked) ? 'Locked' : ($blocked ? 'Blocked pending verification' : ($sourceBound ? 'Open from source record' : 'Create / Open Form')) }}
                             </button>
                         </form>
                     @endif

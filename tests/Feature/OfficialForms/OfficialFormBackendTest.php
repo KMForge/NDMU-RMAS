@@ -4,6 +4,7 @@ namespace Tests\Feature\OfficialForms;
 
 use App\Models\ConsultationRecord;
 use App\Models\ConsultationRequest;
+use App\Models\Defense;
 use App\Models\Document;
 use App\Models\DocumentReview;
 use App\Models\OfficialFormActorAssignment;
@@ -14,6 +15,7 @@ use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupMember;
 use App\Models\RevisionRequest;
+use App\Models\TitlePresentation;
 use App\Models\User;
 use App\Modules\OfficialForms\Actions\ApproveOfficialForm;
 use App\Modules\OfficialForms\Actions\AssignOfficialFormActor;
@@ -74,7 +76,7 @@ class OfficialFormBackendTest extends TestCase
         );
 
         if ($adviser !== null) {
-            $adviser->givePermissionTo('forms.res-033.endorse', 'forms.res-026.view', 'forms.res-040.endorse');
+            $adviser->givePermissionTo('forms.res-031.sign', 'forms.res-033.endorse', 'forms.res-026.view', 'forms.res-040.endorse');
         }
 
         $group = ResearchClassGroup::query()->create([
@@ -125,6 +127,36 @@ class OfficialFormBackendTest extends TestCase
         ]);
 
         return $group;
+    }
+
+    private function finalizeTitleApproval(ResearchClassGroup $group): OfficialFormInstance
+    {
+        $instance = (new CreateOfficialFormInstance)->handle(
+            initiator: $group->leader,
+            formCode: 'RES-026',
+            groupId: $group->id,
+            payload: ['date' => '2026-08-29', 'topics' => ['Title A', 'Title B', 'Title C']],
+        );
+        $instance->update(['status' => 'approved']);
+
+        $defense = Defense::query()->create([
+            'research_class_group_id' => $group->id,
+            'defense_type' => 'title_presentation',
+            'status' => 'completed',
+            'created_by' => $group->created_by,
+        ]);
+
+        TitlePresentation::query()->create([
+            'defense_id' => $defense->id,
+            'official_form_instance_id' => $instance->id,
+            'official_form_version_id' => $instance->current_version_id,
+            'status' => 'finalized',
+            'approved_title_number' => 1,
+            'finalized_at' => now(),
+            'finalized_by' => $group->created_by,
+        ]);
+
+        return $instance->fresh();
     }
 
     public function test_can_create_group_owned_form_instance(): void
@@ -243,7 +275,9 @@ class OfficialFormBackendTest extends TestCase
 
     public function test_res031_consultation_record_source_linkage(): void
     {
-        $group = $this->createGroup();
+        $adviser = User::factory()->create(['user_type' => 'faculty']);
+        $group = $this->createGroup(adviser: $adviser);
+        $this->finalizeTitleApproval($group);
         $request = ConsultationRequest::query()->create([
             'research_class_group_id' => $group->id,
             'requested_by' => $group->leader->id,
@@ -271,7 +305,7 @@ class OfficialFormBackendTest extends TestCase
 
         $action = new CreateOfficialFormInstance;
         $instance = $action->handle(
-            initiator: $group->leader,
+            initiator: $adviser,
             formCode: 'RES-031',
             groupId: $group->id,
             sourceType: ConsultationRecord::class,
@@ -282,6 +316,40 @@ class OfficialFormBackendTest extends TestCase
         $this->assertInstanceOf(OfficialFormInstance::class, $instance);
         $this->assertSame(ConsultationRecord::class, $instance->source_type);
         $this->assertSame($record->id, $instance->source_id);
+    }
+
+    public function test_res031_is_repeatably_available_to_assigned_adviser_after_final_title_approval(): void
+    {
+        $adviser = User::factory()->create(['user_type' => 'faculty']);
+        $group = $this->createGroup(adviser: $adviser);
+
+        try {
+            (new CreateOfficialFormInstance)->handle($adviser, 'RES-031', $group->id);
+            $this->fail('RES-031 must remain locked before final title approval.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('Title Presentation is finalized', $exception->getMessage());
+        }
+
+        $this->finalizeTitleApproval($group);
+
+        $first = (new CreateOfficialFormInstance)->handle($adviser, 'RES-031', $group->id);
+        $second = (new CreateOfficialFormInstance)->handle($adviser, 'RES-031', $group->id);
+
+        $this->assertNotSame($first->id, $second->id);
+        $this->assertNull($first->source_type);
+        $this->assertNull($first->source_id);
+    }
+
+    public function test_student_cannot_initiate_res031_after_final_title_approval(): void
+    {
+        $adviser = User::factory()->create(['user_type' => 'faculty']);
+        $group = $this->createGroup(adviser: $adviser);
+        $this->finalizeTitleApproval($group);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('not authorized to initiate form RES-031');
+
+        (new CreateOfficialFormInstance)->handle($group->leader, 'RES-031', $group->id);
     }
 
     public function test_res039_document_review_source_linkage(): void
@@ -1046,7 +1114,9 @@ class OfficialFormBackendTest extends TestCase
 
     public function test_res031_workspace_and_print_renders_authoritative_consultation_record_data(): void
     {
-        $group = $this->createGroup();
+        $adviser = User::factory()->create(['user_type' => 'faculty']);
+        $group = $this->createGroup(adviser: $adviser);
+        $this->finalizeTitleApproval($group);
         $request = ConsultationRequest::query()->create([
             'research_class_group_id' => $group->id,
             'requested_by' => $group->leader->id,
@@ -1073,7 +1143,7 @@ class OfficialFormBackendTest extends TestCase
         ]);
 
         $instance = (new CreateOfficialFormInstance)->handle(
-            initiator: $group->leader,
+            initiator: $adviser,
             formCode: 'RES-031',
             groupId: $group->id,
             sourceType: ConsultationRecord::class,

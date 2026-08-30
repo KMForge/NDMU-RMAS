@@ -175,7 +175,10 @@ class LockedTitlePresentationWorkflowTest extends TestCase
 
         $this->get(route('facilitator.dashboard', ['tab' => 'screening']))
             ->assertOk()
-            ->assertDontSee('aria-label="1 title proposal awaiting screening"', false);
+            ->assertDontSee('aria-label="1 title proposal awaiting screening"', false)
+            ->assertSee('Screening &amp; Review History', false)
+            ->assertSee($document->original_filename)
+            ->assertSee('Approved For Presentation');
     }
 
     public function test_schedule_then_exact_panel_with_adviser_chair_conflict_and_server_derived_result(): void
@@ -241,9 +244,9 @@ class LockedTitlePresentationWorkflowTest extends TestCase
         $coordinator = $memberTwo;
         $coordinator->givePermissionTo('forms.res-026.approve');
         $dean = $this->eligibleUser(UserType::Faculty, ['dashboards.dean.view']);
+        $dean->assignRole('dean');
         foreach ([
             [$coordinator, 'program_coordinator'],
-            [$dean, 'dean'],
         ] as [$user, $actorType]) {
             ResearchClassActorAssignment::query()->create([
                 'research_class_id' => $this->group->research_class_id,
@@ -303,6 +306,17 @@ class LockedTitlePresentationWorkflowTest extends TestCase
 
         $sign->handle($coordinator, $instance->id, $versionId, 'endorse');
         $this->assertSame('awaiting_dean', $presentation->fresh()->status);
+
+        $deanPendingActions = app(GetPendingAcademicActionsForUser::class)->execute($dean);
+        $this->assertTrue($deanPendingActions->contains(
+            fn (array $action): bool => $action['instance_id'] === $instance->id
+                && $action['action'] === 'approve',
+        ));
+        $this->actingAs($dean)
+            ->get(route('official-forms.workspace.show', $instance))
+            ->assertOk()
+            ->assertSee($dean->name)
+            ->assertSee('Sign &amp; Approve', false);
 
         $sign->handle($dean, $instance->id, $versionId, 'approve');
         $this->assertSame('finalized', $presentation->fresh()->status);

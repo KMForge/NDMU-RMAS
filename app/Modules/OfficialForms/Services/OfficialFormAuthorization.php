@@ -17,6 +17,10 @@ use App\Models\User;
 
 class OfficialFormAuthorization
 {
+    public function __construct(
+        private readonly InstitutionalActorResolver $institutionalActors = new InstitutionalActorResolver,
+    ) {}
+
     /** @var array<string, array<string, list<string>>> */
     public const FORM_ACTION_PERMISSIONS = [
         'res-026' => [
@@ -31,7 +35,7 @@ class OfficialFormAuthorization
         'res-028' => ['fill' => ['forms.res-028.respond'], 'respond' => ['forms.res-028.respond']],
         'res-029' => ['fill' => ['forms.res-029.respond'], 'respond' => ['forms.res-029.respond']],
         'res-030' => ['fill' => ['forms.res-030.submit'], 'note' => ['forms.res-030.approve'], 'approve' => ['forms.res-030.approve']],
-        'res-031' => ['fill' => ['forms.res-031.fill'], 'sign' => ['forms.res-031.fill']],
+        'res-031' => ['fill' => ['forms.res-031.sign'], 'sign' => ['forms.res-031.sign']],
         'res-032' => ['fill' => ['forms.res-032.fill'], 'sign' => ['forms.res-032.fill']],
         'res-033' => ['fill' => ['forms.res-033.endorse'], 'endorse' => ['forms.res-033.endorse'], 'receive' => ['forms.res-033.endorse']],
         'res-034' => ['fill' => ['forms.res-034.fill']],
@@ -66,7 +70,7 @@ class OfficialFormAuthorization
         'res-028' => ['respond' => 'panelist'],
         'res-029' => ['respond' => 'language_editor'],
         'res-030' => ['approve' => 'dean', 'note' => 'program_head'],
-        'res-031' => ['sign' => 'adviser'],
+        'res-031' => ['fill' => 'adviser', 'sign' => 'adviser'],
         'res-032' => ['sign' => 'specialist'],
         'res-033' => ['endorse' => 'adviser', 'receive' => 'program_head'],
         'res-034' => ['fill' => 'panel_chair'],
@@ -407,6 +411,13 @@ class OfficialFormAuthorization
         if ($requiredActorType === 'dean') {
             $class = $instance->researchClass ?? $instance->group?->researchClass;
 
+            if ($this->institutionalActors->hasConfiguredDean()) {
+                return $this->institutionalActors->isDean($user);
+            }
+
+            // Compatibility path for installations that have not assigned the
+            // institutional Dean role yet. Once a Dean role exists, the unique
+            // institutional resolver is authoritative and this fallback closes.
             return $class !== null && $this->hasClassActorAssignment($user, $class, 'dean');
         }
 
@@ -447,6 +458,7 @@ class OfficialFormAuthorization
                 || (int) $group->adviser_id === (int) $user->id
                 || (int) $class?->facilitator_id === (int) $user->id
                 || ($instance->titlePresentation !== null && $instance->titlePresentation->defense->activePanelAssignments()->where('user_id', $user->id)->exists())
+                || $this->institutionalActors->isDean($user)
                 || ($class !== null && ResearchClassActorAssignment::query()->where('research_class_id', $class->id)->where('user_id', $user->id)->where('status', 'active')->exists())
             );
         }
