@@ -305,55 +305,71 @@
     "
 >
     <!-- Left Sidebar: Navigation -->
-    <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5 overflow-y-auto">
+    <aside class="fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-[#09472d] via-[#0e5c3a] to-[#073622] text-white flex flex-col justify-between z-20 border-r border-emerald-800/40 shadow-2xl overflow-y-auto">
         <div class="flex-shrink-0">
-            <!-- Logo -->
-            <div class="flex items-center gap-3 p-6 border-b border-white/10">
-                <div class="p-1 bg-white/10 rounded-xl border border-white/20">
-                    <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto">
+            <!-- Brand Logo Header -->
+            <div class="p-6 pb-4 flex items-center gap-3.5">
+                <div class="p-2 bg-gradient-to-br from-white/15 to-white/5 rounded-2xl border border-white/20 shadow-lg backdrop-blur-md">
+                    <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto drop-shadow-sm">
                 </div>
                 <div class="flex flex-col leading-none">
-                    <span class="font-heading font-extrabold text-xl text-white tracking-tight">NDMU</span>
-                    <span class="text-[9px] font-bold text-[#eebc3f] tracking-wider uppercase mt-1">Research Management</span>
+                    <span class="font-heading font-black text-xl text-white tracking-tight">NDMU</span>
+                    <span class="text-[9px] font-black text-[#eebc3f] tracking-[0.16em] uppercase mt-1">Research Management</span>
                 </div>
             </div>
 
-            <!-- Profile Badge -->
-            <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
-                <div class="w-10 h-10 rounded-full bg-[#eebc3f] text-[#0e5c3a] font-bold flex items-center justify-center text-lg flex-shrink-0">
-                    D
-                </div>
-                <div class="flex flex-col leading-tight overflow-hidden">
-                    <span class="font-semibold text-sm text-white truncate">Dr. Antonio Santos</span>
-                    <span class="text-[10px] text-white/60 font-medium mt-0.5">Panelist</span>
+            <!-- Designer Decorative Underline under Logo -->
+            <div class="px-6 my-2 flex items-center justify-center gap-2">
+                <div class="h-px flex-1 bg-gradient-to-r from-transparent via-[#eebc3f]/60 to-[#eebc3f]"></div>
+                <div class="h-1 w-8 rounded-full bg-gradient-to-r from-[#eebc3f] to-[#ffd76f] shadow-[0_0_8px_rgba(238,188,63,0.7)]"></div>
+                <div class="h-px flex-1 bg-gradient-to-l from-transparent via-[#eebc3f]/60 to-[#eebc3f]"></div>
+            </div>
+
+            <!-- Floating Profile Card -->
+            <div class="px-5 py-3">
+                <div class="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.06] border border-white/10 shadow-inner backdrop-blur-xs hover:bg-white/[0.09] transition-all">
+                    <div class="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-[#eebc3f] to-[#ffd76f] text-[#09472d] font-black flex items-center justify-center text-lg flex-shrink-0 shadow-md">
+                        {{ Illuminate\Support\Str::upper(Illuminate\Support\Str::substr(auth()->user()->name ?? 'Panelist', 0, 1)) }}
+                        <span class="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-[#09472d]"></span>
+                        </span>
+                    </div>
+                    <div class="flex flex-col leading-tight overflow-hidden min-w-0">
+                        <span class="font-bold text-xs text-white truncate">{{ auth()->user()->name ?? 'Dr. Antonio Santos' }}</span>
+                        <span class="text-[10px] text-white/70 font-medium mt-0.5 truncate">Defense Panelist</span>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Navigation Links -->
-        <div class="flex-grow px-6 py-4 space-y-6">
-            <div class="space-y-1.5">
-                <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
+        <div class="flex-grow px-5 py-3 space-y-6">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2 px-3 mb-2.5">
+                    <span class="w-1 h-3 rounded-full bg-[#eebc3f]"></span>
+                    <span class="text-[10px] font-black tracking-[0.18em] text-emerald-300/80 uppercase">Navigation</span>
+                </div>
                 
                 <!-- Dashboard -->
                 <button 
                    type="button" 
                    @click="activeTab = 'dashboard'"
-                   :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-squares-four text-lg"></i>
+                        <i class="ph ph-squares-four text-lg transition-transform group-hover:scale-110"></i>
                         <span>Dashboard</span>
                     </div>
-                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
                 
                 <!-- Pending Form Approvals Queue -->
                 <a
                    href="{{ route('official-forms.workspace.index') }}"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer text-white/90 hover:text-white hover:bg-white/5 font-semibold">
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-check-square-offset text-lg text-amber-300"></i>
+                        <i class="ph ph-check-square-offset text-lg text-amber-300 transition-transform group-hover:scale-110"></i>
                         <span>Pending Form Approvals</span>
                     </div>
                     <div class="flex items-center gap-2">
@@ -365,15 +381,15 @@
                 <button 
                    type="button" 
                    @click="activeTab = 'assigned-papers'"
-                   :class="activeTab === 'assigned-papers' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'assigned-papers' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-file-text text-lg"></i>
+                        <i class="ph ph-file-text text-lg transition-transform group-hover:scale-110"></i>
                         <span>Assigned Research Papers</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <x-sidebar-count-badge :count="$sidebarBadges['assigned-papers'] ?? 0" label="assigned papers requiring attention" />
-                        <span x-show="activeTab === 'assigned-papers'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                        <span x-show="activeTab === 'assigned-papers'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                     </div>
                 </button>
 
@@ -381,15 +397,15 @@
                 <button 
                    type="button" 
                    @click="activeTab = 'proposal-eval'"
-                   :class="activeTab === 'proposal-eval' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'proposal-eval' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-scroll text-lg"></i>
+                        <i class="ph ph-scroll text-lg transition-transform group-hover:scale-110"></i>
                         <span>Proposal Evaluation</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <x-sidebar-count-badge :count="$sidebarBadges['proposal-eval'] ?? 0" label="proposal evaluations requiring attention" />
-                        <span x-show="activeTab === 'proposal-eval'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                        <span x-show="activeTab === 'proposal-eval'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                     </div>
                 </button>
 
@@ -397,15 +413,15 @@
                 <button 
                    type="button" 
                    @click="activeTab = 'final-eval'"
-                   :class="activeTab === 'final-eval' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'final-eval' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-clipboard-text text-lg"></i>
+                        <i class="ph ph-clipboard-text text-lg transition-transform group-hover:scale-110"></i>
                         <span>Final Defense Evaluation</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <x-sidebar-count-badge :count="$sidebarBadges['final-eval'] ?? 0" label="final defense evaluations requiring attention" />
-                        <span x-show="activeTab === 'final-eval'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                        <span x-show="activeTab === 'final-eval'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                     </div>
                 </button>
 
@@ -413,55 +429,58 @@
                 <button 
                    type="button" 
                    @click="activeTab = 'recommendations'"
-                   :class="activeTab === 'recommendations' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'recommendations' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-chat-teardrop text-lg"></i>
+                        <i class="ph ph-chat-teardrop text-lg transition-transform group-hover:scale-110"></i>
                         <span>My Recommendations</span>
                     </div>
-                    <span x-show="activeTab === 'recommendations'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'recommendations'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
 
                 <!-- My Defense Schedule -->
                 <button 
                    type="button" 
                    @click="activeTab = 'schedule'"
-                   :class="activeTab === 'schedule' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'schedule' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-calendar text-lg"></i>
+                        <i class="ph ph-calendar text-lg transition-transform group-hover:scale-110"></i>
                         <span>My Defense Schedule</span>
                     </div>
-                    <span x-show="activeTab === 'schedule'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'schedule'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
 
                 <!-- Research Repository -->
                 <button 
                    type="button" 
                    @click="activeTab = 'repository'"
-                   :class="activeTab === 'repository' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'repository' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-folder text-lg"></i>
+                        <i class="ph ph-folder text-lg transition-transform group-hover:scale-110"></i>
                         <span>Research Repository</span>
                     </div>
-                    <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
             </div>
 
-            <!-- Research Forms Section -->
-            <div class="space-y-1.5 pt-4 border-t border-white/10">
-                <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Research Forms</span>
+            <!-- Official Forms Section -->
+            <div class="space-y-1.5 pt-4">
+                <div class="flex items-center gap-2 px-3 mb-2.5">
+                    <span class="w-1 h-3 rounded-full bg-[#eebc3f]"></span>
+                    <span class="text-[10px] font-black tracking-[0.18em] text-emerald-300/80 uppercase">Official Forms</span>
+                </div>
 
                 <button
                     type="button"
                     @click="formsExpanded = ! formsExpanded; activeTab = 'forms'"
-                    :class="activeTab === 'forms' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                    :class="activeTab === 'forms' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
                     :aria-expanded="formsExpanded"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] transition-all duration-200 text-left cursor-pointer"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13px] transition-all duration-200 text-left cursor-pointer group"
                 >
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-file-pdf text-lg"></i>
+                        <i class="ph ph-file-pdf text-lg transition-transform group-hover:scale-110"></i>
                         <span>Official Forms</span>
                     </div>
                     <i class="ph ph-caret-right text-xs transition-transform duration-200" :class="formsExpanded && 'rotate-90'"></i>
@@ -476,13 +495,15 @@
                             <button
                                 type="button"
                                 @click="activeTab = 'forms'; activeFormPhase = activeFormPhase === '{{ $phase }}' ? null : '{{ $phase }}'"
-                                class="w-full flex items-center justify-between gap-2 py-2 pl-4 pr-3 rounded-xl text-white/55 hover:text-white hover:bg-white/5 transition-colors duration-200 text-[11px] font-semibold text-left"
+                                class="w-full flex items-center justify-between gap-2 py-2 pl-4 pr-3 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-colors duration-200 text-[11px] font-semibold text-left"
                             >
                                 <span class="flex min-w-0 items-start gap-2">
                                     <i class="ph ph-caret-right mt-0.5 shrink-0 text-[10px] transition-transform duration-200" :class="activeFormPhase === '{{ $phase }}' && 'rotate-90'"></i>
                                     <span class="leading-4">{{ $label }}</span>
                                 </span>
-                                <span class="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#eebc3f]/20 px-1.5 text-[9px] font-bold text-[#eebc3f]">{{ $phaseForms->count() }}</span>
+                                <span class="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#eebc3f]/20 px-1.5 text-[9px] font-bold text-[#eebc3f]">
+                                    {{ $phaseForms->count() }}
+                                </span>
                             </button>
 
                             <div x-show="activeFormPhase === '{{ $phase }}'" x-cloak x-transition class="mt-0.5 space-y-0.5 pl-2">
@@ -490,7 +511,7 @@
                                     <button
                                         type="button"
                                         @click="activeTab = 'forms'; activeOfficialForm = '{{ $code }}'"
-                                        :class="activeOfficialForm === '{{ $code }}' ? 'bg-[#eebc3f] text-[#0e5c3a] ring-1 ring-white font-bold' : 'text-white/70 hover:text-white hover:bg-white/5'"
+                                        :class="activeOfficialForm === '{{ $code }}' ? 'bg-[#eebc3f] text-[#09472d] ring-1 ring-white font-bold' : 'text-white/75 hover:text-white hover:bg-white/10'"
                                         class="w-full flex items-start gap-2 rounded-xl px-3 py-2 text-left transition-colors duration-200"
                                     >
                                         <i class="ph ph-file-plus mt-0.5 shrink-0 text-sm"></i>
@@ -508,45 +529,52 @@
         </div>
 
         <!-- Sidebar Footer -->
-        <div class="flex-shrink-0 px-6 pb-6 mt-8">
-            <div class="pt-4 border-t border-white/10 space-y-1">
+        <div class="flex-shrink-0 px-5 pb-5 mt-auto">
+            <!-- Decorative Separator -->
+            <div class="relative flex items-center justify-center my-3">
+                <div class="w-full h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"></div>
+            </div>
+
+            <div class="space-y-1">
                 <!-- Notifications -->
-                <a href="{{ route('notifications.index') }}"
-                   :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
-                   class="flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200">
+                <a href="{{ route('panelist.dashboard', ['tab' => 'notifications']) }}"
+                   wire:navigate
+                   :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md' : 'text-white/85 hover:text-white hover:bg-white/15 font-semibold text-[13px]'"
+                   class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 cursor-pointer">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-bell text-lg"></i>
                         <span>Notifications</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <x-sidebar-count-badge :count="$sidebarBadges['notifications'] ?? 0" label="unread notifications" />
-                        <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                        <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                     </div>
                 </a>
                 
                 <!-- Settings -->
-                <a href="#" 
-                   @click.prevent="activeTab = 'settings'"
-                   :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
-                   class="flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200">
+                <a href="{{ route('panelist.dashboard', ['tab' => 'settings']) }}"
+                   wire:navigate
+                   :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md' : 'text-white/85 hover:text-white hover:bg-white/15 font-semibold text-[13px]'"
+                   class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 cursor-pointer">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-gear text-lg"></i>
                         <span>Settings</span>
                     </div>
-                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </a>
 
                 <!-- Logout -->
                 <form method="POST" action="{{ route('logout') }}" class="block" data-confirm-logout>
                     @csrf
-                    <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200 text-left cursor-pointer">
+                    <button type="submit" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-white/70 hover:text-rose-200 hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 font-semibold text-[13px] transition-all duration-200 text-left cursor-pointer">
                         <i class="ph ph-sign-out text-lg"></i>
                         <span>Logout</span>
                     </button>
                 </form>
             </div>
-            <div class="text-[9px] text-white/30 text-center font-medium mt-6">
-                NDMU © 2026 - v1.0
+            <div class="flex items-center justify-center gap-2 text-[9px] text-white/40 text-center font-medium mt-4">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400/60"></span>
+                <span>NDMU-RMAS © {{ now()->year }} · v1.0</span>
             </div>
         </div>
     </aside>
@@ -554,32 +582,35 @@
     <!-- Right Side: Content Area -->
     <div class="flex-1 flex flex-col min-h-screen pl-72">
         <!-- Top Nav Header -->
-        <header class="h-20 bg-white border-b border-gray-150 px-8 flex items-center justify-between sticky top-0 z-10 flex-shrink-0">
+        <header class="h-20 bg-white/85 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between sticky top-0 z-40 flex-shrink-0 transition-all">
             <!-- Search bar -->
             <div class="relative w-96">
-                <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 pointer-events-none">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 pointer-events-none">
                     <i class="ph ph-magnifying-glass text-base"></i>
                 </span>
                 <input
                     type="text"
                     placeholder="Search research, documents, or tasks..."
-                    class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-100 rounded-full text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-gray-350 transition-all duration-200"
+                    class="w-full pl-10 pr-14 py-2.5 bg-slate-100/80 border border-slate-200/60 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#0e5c3a] focus:ring-2 focus:ring-[#0e5c3a]/10 transition-all duration-200 shadow-2xs"
                 >
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <kbd class="px-1.5 py-0.5 text-[10px] font-bold text-slate-400 bg-white border border-slate-200 rounded-md shadow-2xs">Ctrl K</kbd>
+                </div>
             </div>
 
-            <!-- Right profile area area matching "P / Dr. Evaluation Portal" -->
+            <!-- Right profile area matching "P / Dr. Evaluation Portal" -->
             <div class="flex items-center gap-4">
                 <x-workspace-switcher current="panelist" />
                 <x-notification-dropdown />
                 
                 <!-- Evaluation Portal Profile Badge -->
-                <div class="flex items-center gap-3 pl-2 border-l border-gray-150">
-                    <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-xs">
-                        P
+                <div class="flex items-center gap-3 pl-2 border-l border-slate-200">
+                    <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-xs shadow-2xs">
+                        {{ Illuminate\Support\Str::upper(Illuminate\Support\Str::substr(auth()->user()->name ?? 'P', 0, 1)) }}
                     </div>
                     <div class="flex flex-col leading-none">
-                        <span class="font-bold text-xs text-gray-800">Dr.</span>
-                        <span class="text-[9px] font-bold text-gray-400 mt-0.5">Evaluation Portal</span>
+                        <span class="font-bold text-xs text-slate-800">{{ auth()->user()->name ?? 'Dr. Panelist' }}</span>
+                        <span class="text-[9px] font-bold text-slate-400 mt-0.5">Evaluation Portal</span>
                     </div>
                 </div>
             </div>
@@ -588,183 +619,369 @@
         <!-- Main Body Content -->
         <main class="flex-grow p-8">
             <x-portal-feature-banner class="mb-8" :sections="[
-                'dashboard' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Panelist Dashboard', 'description' => 'Review assigned papers, upcoming defenses, evaluation work, and panel responsibilities.', 'icon' => 'ph-squares-four'],
                 'assigned-papers' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Assigned Papers', 'description' => 'Access the research papers assigned to you for review.', 'icon' => 'ph-files'],
                 'proposal-eval' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Proposal Evaluation', 'description' => 'Evaluate assigned proposal defenses using the approved criteria.', 'icon' => 'ph-clipboard-text'],
                 'final-eval' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Final Evaluation', 'description' => 'Record final-defense scores and evidence-based feedback.', 'icon' => 'ph-medal'],
-                'recommendations' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Recommendations', 'description' => 'Review and manage recommendations issued to research groups.', 'icon' => 'ph-lightbulb'],
+'recommendations' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Recommendations', 'description' => 'Review and manage recommendations issued to research groups.', 'icon' => 'ph-lightbulb'],
                 'schedule' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Defense Schedule', 'description' => 'View your assigned defense dates, venues, and research groups.', 'icon' => 'ph-calendar-check'],
                 'repository' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Research Repository', 'description' => 'Securely access research documents assigned to your panel.', 'icon' => 'ph-folder-open'],
+                'notifications' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Notifications', 'description' => 'Stay updated with defense assignments and panel evaluation notices.', 'icon' => 'ph-bell'],
+                'settings' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Account Settings', 'description' => 'Manage your profile, digital signature, and security preferences.', 'icon' => 'ph-gear'],
             ]" />
             
             <!-- TAB: Dashboard (Active Default) -->
-            <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">
-                <!-- Hero Header Card Section -->
-                <div class="relative overflow-hidden bg-white rounded-2xl p-8 border border-slate-200/60 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                    <!-- Subtle abstract NDMU logo watermark -->
-                    <div class="absolute -right-6 -bottom-6 opacity-[0.04] pointer-events-none">
-                        <img src="{{ asset('images/ndmu_logo.png') }}" alt="" class="w-64 h-auto">
+            <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8 animate-fade-in">
+
+                <!-- Rich Branded Command Hub & Quick Action Header -->
+                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#0a462c] p-6 md:p-8 text-white shadow-xl shadow-emerald-950/20 border border-emerald-600/30">
+                    <!-- Ambient Glow & Watermark Logo -->
+                    <div class="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-[#eebc3f]/15 blur-3xl"></div>
+                    <div class="pointer-events-none absolute -left-12 -bottom-20 h-48 w-48 rounded-full bg-emerald-400/15 blur-2xl"></div>
+                    <div class="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 opacity-[0.08]">
+                        <img src="{{ asset('images/ndmu_logo.png') }}" alt="" class="h-36 md:h-44 w-auto object-contain">
                     </div>
 
-                    <div class="relative z-10 space-y-1">
-                        <div class="flex items-center gap-2 text-xs font-semibold text-slate-400">
-                            <span>{{ now()->timezone(config('ndmu-rmas.timezone'))->format('l, F j, Y') }}</span>
-                            <span>•</span>
-                            <span class="text-[#0e5c3a] font-bold">Research Panelist Portal</span>
+                    <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/25 backdrop-blur-md border border-[#eebc3f]/30 text-[#eebc3f] font-black text-[10px] uppercase tracking-[0.16em]">
+                                    <span class="w-2 h-2 rounded-full bg-[#eebc3f] animate-pulse"></span>
+                                    Academic Year {{ now()->year }}-{{ now()->year + 1 }}
+                                </span>
+                                <span class="text-white/40 text-xs">•</span>
+                                <span class="text-emerald-200 text-xs font-semibold tracking-wide">Research Panelist Portal</span>
+                            </div>
+                            <h1 class="text-2xl md:text-3xl font-black font-heading text-white tracking-tight drop-shadow-xs">
+                                Welcome back, {{ $panelist->name }}!
+                            </h1>
+                            <p class="text-xs md:text-sm text-emerald-100/85 max-w-2xl leading-relaxed">
+                                Review assigned research papers, evaluate defense presentations, and score candidate presentations
+                            </p>
                         </div>
-                        <h1 class="text-2xl md:text-3xl font-extrabold font-heading text-slate-900 tracking-tight">Welcome back, Dr. Antonio Santos</h1>
-                        <p class="text-xs text-slate-500 max-w-xl">Review and evaluate research proposal & final defense presentations • Defense Panelist</p>
+
+                        <!-- Quick Action Buttons -->
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <button
+                                type="button"
+                                @click="activeTab = 'assigned-papers'"
+                                class="px-4.5 py-2.5 bg-gradient-to-r from-[#eebc3f] to-[#f4c542] hover:brightness-105 text-[#073823] text-xs font-black rounded-xl flex items-center gap-2 shadow-md shadow-amber-950/20 transition-all cursor-pointer"
+                            >
+                                <i class="ph ph-files text-base"></i>
+                                <span>Assigned Papers</span>
+                                @php
+                                    $paperBadge = $sidebarBadges['assigned-papers'] ?? 0;
+                                @endphp
+                                @if ($paperBadge > 0)
+                                    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-950 text-[#eebc3f]">
+                                        {{ $paperBadge }}
+                                    </span>
+                                @endif
+                            </button>
+
+                            <button
+                                type="button"
+                                @click="activeTab = 'proposal-eval'"
+                                class="px-4 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
+                            >
+                                <i class="ph ph-scroll text-base text-[#eebc3f]"></i>
+                                <span>Proposal Eval</span>
+                                @php
+                                    $proposalBadge = $sidebarBadges['proposal-eval'] ?? 0;
+                                @endphp
+                                @if ($proposalBadge > 0)
+                                    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-amber-950">
+                                        {{ $proposalBadge }}
+                                    </span>
+                                @endif
+                            </button>
+
+                            <button
+                                type="button"
+                                @click="activeTab = 'final-eval'"
+                                class="px-4 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
+                            >
+                                <i class="ph ph-medal text-base text-purple-300"></i>
+                                <span>Final Eval</span>
+                                @php
+                                    $finalBadge = $sidebarBadges['final-eval'] ?? 0;
+                                @endphp
+                                @if ($finalBadge > 0)
+                                    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-purple-400 text-purple-950">
+                                        {{ $finalBadge }}
+                                    </span>
+                                @endif
+                            </button>
+
+                            <button
+                                type="button"
+                                @click="activeTab = 'schedule'"
+                                class="px-4 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
+                            >
+                                <i class="ph ph-calendar-check text-base text-blue-300"></i>
+                                <span>Defense Schedule</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <x-pending-academic-actions-card :pendingActions="$pendingAcademicActions ?? []" />
 
-                <!-- Stats Cards Row (4 Columns matching layout) -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <!-- Upcoming Defenses -->
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
-                        <div>
-                            <span class="w-11 h-11 rounded-xl bg-emerald-50/80 text-[#0e5c3a] border border-emerald-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
-                                <i class="ph ph-calendar"></i>
-                            </span>
-                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Upcoming Defenses</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">5</span>
+                {{-- === 4 LIVE KPI METRIC CARDS === --}}
+                @php
+                    $upcomingPanelDefenses = collect($assignedDefenses ?? [])->filter(fn($d) => isset($d['starts_at']) && \Illuminate\Support\Carbon::parse($d['starts_at'])->isFuture())->count();
+                    $pendingEvalCount = collect($evaluationRounds ?? [])->filter(fn($r) => in_array($r['status'] ?? null, ['open', 'in_progress']) && data_get($r, 'evaluation.status') !== 'submitted')->count();
+                    $completedEvalCount = collect($evaluationRounds ?? [])->filter(fn($r) => data_get($r, 'evaluation.status') === 'submitted')->count();
+                    $assignedPapersCount = count($assignedPapers ?? []);
+                @endphp
+                <!-- Modern Vibrant 4-KPI Metric Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <!-- KPI 1: Assigned Papers -->
+                    <div
+                        @click="activeTab = 'assigned-papers'"
+                        class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
+                    >
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
+                        <div class="absolute -right-3 -bottom-3 text-slate-100/70 group-hover:text-emerald-50 text-7xl font-bold transition-colors pointer-events-none -z-0 select-none">
+                            <i class="ph ph-files"></i>
                         </div>
-                        <span class="text-emerald-600 text-xl font-bold">
-                            <i class="ph ph-clock"></i>
-                        </span>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between">
+                                <span class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-[#0e5c3a] text-white shadow-md shadow-emerald-700/20 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                                    <i class="ph ph-files"></i>
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-[#0e5c3a] border border-emerald-100 group-hover:bg-[#0e5c3a] group-hover:text-white transition-all">
+                                    <span>Papers</span>
+                                    <i class="ph ph-arrow-up-right"></i>
+                                </span>
+                            </div>
+                            <div class="mt-5">
+                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Assigned Papers</span>
+                                <span class="text-3xl font-black text-slate-900 tracking-tight mt-1 block">{{ $assignedPapersCount }}</span>
+                                <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100">
+                                    <span>Research Manuscripts</span>
+                                    <span class="font-bold text-[#0e5c3a]">Active</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Pending Evaluations -->
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
-                        <div>
-                            <span class="w-11 h-11 rounded-xl bg-blue-50/80 text-blue-700 border border-blue-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
-                                <i class="ph ph-file-text"></i>
-                            </span>
-                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Pending Evaluations</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">3</span>
-                        </div>
-                        <span class="text-blue-500 text-xl font-bold">
+                    <!-- KPI 2: Pending Evaluations -->
+                    <div
+                        @click="activeTab = 'proposal-eval'"
+                        class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
+                    >
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
+                        <div class="absolute -right-3 -bottom-3 text-slate-100/70 group-hover:text-blue-50 text-7xl font-bold transition-colors pointer-events-none -z-0 select-none">
                             <i class="ph ph-clipboard-text"></i>
-                        </span>
-                    </div>
-
-                    <!-- Completed Reviews -->
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
-                        <div>
-                            <span class="w-11 h-11 rounded-xl bg-amber-50/80 text-amber-700 border border-amber-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
-                                <i class="ph ph-star"></i>
-                            </span>
-                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Completed Reviews</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">24</span>
                         </div>
-                        <span class="text-amber-500 text-xl font-bold">
-                            <i class="ph ph-check-circle"></i>
-                        </span>
-                    </div>
-
-                    <!-- Average Score -->
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
-                        <div>
-                            <span class="w-11 h-11 rounded-xl bg-purple-50/80 text-purple-700 border border-purple-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
-                                <i class="ph ph-chart-line-up"></i>
-                            </span>
-                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Average Score</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">87%</span>
-                        </div>
-                        <span class="text-purple-500 text-xl font-bold">
-                            <i class="ph ph-trend-up"></i>
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Scheduled Defense Panels section -->
-                <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-6">
-                    <h3 class="font-heading font-bold text-slate-900 text-sm pb-2 border-b border-slate-100 tracking-tight">Scheduled Defense Panels</h3>
-                    
-                    <div class="space-y-4">
-                        <template x-for="def in defenses" :key="def.id">
-                            <div class="border border-slate-200/60 bg-slate-50/30 rounded-xl p-5 flex items-center justify-between hover:border-emerald-200 hover:bg-slate-50/80 transition-all">
-                                <div>
-                                    <h4 class="font-bold text-slate-900 text-sm" x-text="def.student">Student Name</h4>
-                                    <span class="text-xs text-slate-500 block mt-0.5" x-text="def.type">Defense Type</span>
-                                </div>
-                                <div class="text-right">
-                                    <span class="text-xs text-slate-500 block font-medium" x-text="def.date">Date</span>
-                                    <button @click="selectedDefense = def" class="px-4 py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl mt-2 shadow-xs transition-colors cursor-pointer">
-                                        View Details
-                                    </button>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between">
+                                <span class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-700 text-white shadow-md shadow-blue-700/20 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 relative">
+                                    <i class="ph ph-clipboard-text"></i>
+                                    @if ($pendingEvalCount > 0)
+                                        <span class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-blue-500 rounded-full border-2 border-white animate-pulse"></span>
+                                    @endif
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                    <span>Evaluations</span>
+                                    <i class="ph ph-arrow-up-right"></i>
+                                </span>
+                            </div>
+                            <div class="mt-5">
+                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Pending Evaluations</span>
+                                <span class="text-3xl font-black text-slate-900 tracking-tight mt-1 block">{{ $pendingEvalCount }}</span>
+                                <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100">
+                                    <span>{{ $pendingEvalCount > 0 ? 'Awaiting scoring' : 'All evaluated' }}</span>
+                                    <span class="font-bold {{ $pendingEvalCount > 0 ? 'text-blue-600' : 'text-slate-400' }}">{{ $pendingEvalCount > 0 ? 'Action Needed' : 'Complete' }}</span>
                                 </div>
                             </div>
-                        </template>
+                        </div>
+                    </div>
+
+                    <!-- KPI 3: Completed Reviews -->
+                    <div
+                        class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
+                    >
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
+                        <div class="absolute -right-3 -bottom-3 text-slate-100/70 group-hover:text-amber-50 text-7xl font-bold transition-colors pointer-events-none -z-0 select-none">
+                            <i class="ph ph-star"></i>
+                        </div>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between">
+                                <span class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-600 text-white shadow-md shadow-amber-600/20 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                                    <i class="ph ph-star"></i>
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 group-hover:bg-amber-500 group-hover:text-white transition-all">
+                                    <span>Completed</span>
+                                    <i class="ph ph-check-circle"></i>
+                                </span>
+                            </div>
+                            <div class="mt-5">
+                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Completed Reviews</span>
+                                <span class="text-3xl font-black text-slate-900 tracking-tight mt-1 block">{{ $completedEvalCount }}</span>
+                                <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100">
+                                    <span>Submitted Evaluations</span>
+                                    <span class="font-bold text-amber-600">Archived</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 4: Upcoming Defenses -->
+                    <div
+                        @click="activeTab = 'schedule'"
+                        class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
+                    >
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
+                        <div class="absolute -right-3 -bottom-3 text-slate-100/70 group-hover:text-purple-50 text-7xl font-bold transition-colors pointer-events-none -z-0 select-none">
+                            <i class="ph ph-calendar-check"></i>
+                        </div>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between">
+                                <span class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-800 text-white shadow-md shadow-purple-700/20 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                                    <i class="ph ph-calendar-check"></i>
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-100 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                                    <span>Schedule</span>
+                                    <i class="ph ph-arrow-up-right"></i>
+                                </span>
+                            </div>
+                            <div class="mt-5">
+                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Upcoming Defenses</span>
+                                <span class="text-3xl font-black text-slate-900 tracking-tight mt-1 block">{{ $upcomingPanelDefenses }}</span>
+                                <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100">
+                                    <span>Panel Defenses</span>
+                                    <span class="font-bold text-purple-600">Calendar</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- TAB: Notifications Center -->
-            <div x-show="activeTab === 'notifications'" x-cloak class="space-y-8">
-                <div class="flex flex-col gap-2">
-                    <div class="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                        <span>Dashboard</span>
-                        <span>/</span>
-                        <span class="text-[#0e5c3a]">Notifications Center</span>
-                    </div>
-                    
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h1 class="text-2xl font-bold font-heading text-gray-800">Notifications Center</h1>
-                            <p class="text-xs text-gray-450 mt-1">Showing notifications for: <span class="font-bold text-gray-850">Panelist</span></p>
-                        </div>
-                        
-                        <div class="flex items-center gap-3">
-                            <button @click="notifications.forEach(n => n.unread = false)" class="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl flex items-center gap-2 shadow-sm transition-all duration-200 cursor-pointer">
-                                <span>✓</span>
-                                <span>Mark All Read</span>
+                {{-- === DEFENSE PANELS & ACTION GRID === --}}
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+                    {{-- Left: Scheduled Defense Panels --}}
+                    <div class="xl:col-span-8 bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-1 h-4 rounded-full bg-[#0e5c3a]"></span>
+                                <h2 class="font-bold text-sm text-slate-900">My Defense Schedule</h2>
+                            </div>
+                            <button type="button" @click="activeTab = 'schedule'"
+                                class="text-xs text-[#0e5c3a] font-bold hover:underline flex items-center gap-1">
+                                Full Schedule <i class="ph ph-arrow-right"></i>
                             </button>
-                            <button class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-[#0e5c3a]/15 transition-all duration-200">
-                                <i class="ph ph-bell text-base font-bold"></i>
-                                <span x-text="`${notifications.filter(n => n.unread).length} Unread`">2 Unread</span>
-                            </button>
+                        </div>
+                        <div class="divide-y divide-slate-50">
+                            <template x-if="defenses.length === 0">
+                                <div class="px-6 py-10 text-center">
+                                    <i class="ph ph-calendar text-3xl text-slate-300"></i>
+                                    <p class="text-sm font-semibold text-slate-500 mt-3">No Defense Schedules Assigned</p>
+                                    <p class="text-xs text-slate-400 mt-1">When you are assigned as a panel member, defenses will appear here.</p>
+                                </div>
+                            </template>
+                            <template x-for="def in defenses.slice(0, 5)" :key="def.id">
+                                <div class="px-6 py-4" :class="def.leftBorder">
+                                    <div class="flex items-start justify-between gap-4">
+                                        <div class="min-w-0 space-y-1">
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <h4 class="font-bold text-sm text-slate-900 truncate" x-text="def.student"></h4>
+                                                <span :class="def.statusClass" x-text="def.status"></span>
+                                            </div>
+                                            <p class="text-xs text-slate-500 truncate" x-text="def.title"></p>
+                                            <div class="flex items-center gap-3 text-[10px] text-slate-400 font-semibold">
+                                                <span class="flex items-center gap-1"><i class="ph ph-tag text-xs"></i><span x-text="def.type"></span></span>
+                                                <span class="flex items-center gap-1"><i class="ph ph-calendar-blank text-xs"></i><span x-text="def.date + ' ' + def.time"></span></span>
+                                                <span class="flex items-center gap-1"><i class="ph ph-map-pin text-xs"></i><span x-text="def.venue"></span></span>
+                                            </div>
+                                        </div>
+                                        <button @click="selectedDefense = def"
+                                            class="shrink-0 px-3 py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-[10px] font-bold rounded-xl shadow-xs transition cursor-pointer">
+                                            View
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    {{-- Right: Action Queue --}}
+                    <div class="xl:col-span-4 space-y-5">
+                        {{-- Evaluations Needing Attention --}}
+                        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                            <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <i class="ph ph-warning-circle text-blue-500 text-base"></i>
+                                    <h3 class="font-bold text-xs text-slate-900">Evaluation Queue</h3>
+                                </div>
+                            </div>
+                            <div class="divide-y divide-slate-50">
+                                @if($pendingEvalCount === 0)
+                                    <div class="px-5 py-7 text-center">
+                                        <i class="ph ph-check-circle text-2xl text-emerald-400"></i>
+                                        <p class="text-xs font-semibold text-slate-500 mt-2">All Evaluations Submitted!</p>
+                                    </div>
+                                @else
+                                    @php($proposalPending = $sidebarBadges['proposal-eval'] ?? 0)
+                                    @php($finalPending = $sidebarBadges['final-eval'] ?? 0)
+                                    @if($proposalPending > 0)
+                                        <div class="px-5 py-3.5 flex items-center justify-between gap-3 hover:bg-blue-50/30 transition">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center text-sm shrink-0"><i class="ph ph-scroll"></i></div>
+                                                <div>
+                                                    <p class="text-xs font-bold text-slate-800">Proposal Evaluations</p>
+                                                    <p class="text-[10px] text-slate-500">{{ $proposalPending }} pending</p>
+                                                </div>
+                                            </div>
+                                            <button type="button" @click="activeTab = 'proposal-eval'" class="shrink-0 px-2.5 py-1.5 rounded-lg bg-blue-500 text-white text-[10px] font-bold hover:bg-blue-600 cursor-pointer">Evaluate</button>
+                                        </div>
+                                    @endif
+                                    @if($finalPending > 0)
+                                        <div class="px-5 py-3.5 flex items-center justify-between gap-3 hover:bg-purple-50/30 transition">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-8 h-8 rounded-xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center text-sm shrink-0"><i class="ph ph-medal"></i></div>
+                                                <div>
+                                                    <p class="text-xs font-bold text-slate-800">Final Defense Evaluations</p>
+                                                    <p class="text-[10px] text-slate-500">{{ $finalPending }} pending</p>
+                                                </div>
+                                            </div>
+                                            <button type="button" @click="activeTab = 'final-eval'" class="shrink-0 px-2.5 py-1.5 rounded-lg bg-purple-500 text-white text-[10px] font-bold hover:bg-purple-600 cursor-pointer">Evaluate</button>
+                                        </div>
+                                    @endif
+                                @endif
+                            </div>
+                        </div>
+
+                        {{-- Assigned Papers Quick View --}}
+                        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                            <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <i class="ph ph-files text-emerald-500 text-base"></i>
+                                    <h3 class="font-bold text-xs text-slate-900">Research Papers</h3>
+                                </div>
+                                <button type="button" @click="activeTab = 'assigned-papers'" class="text-[10px] font-bold text-[#0e5c3a] hover:underline cursor-pointer">See all</button>
+                            </div>
+                            <div class="divide-y divide-slate-50">
+                                @forelse(collect($assignedPapers ?? [])->take(3) as $paper)
+                                    <div class="px-5 py-3.5 space-y-0.5">
+                                        <p class="text-xs font-bold text-slate-800 truncate">{{ $paper['title'] ?? 'Research Paper' }}</p>
+                                        <p class="text-[10px] text-slate-500">{{ $paper['group_name'] ?? ($paper['author'] ?? 'Group') }}</p>
+                                        <span class="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full
+                                            @if(in_array($paper['status'] ?? '', ['For Review', 'Under Review'])) bg-blue-50 text-blue-700 border border-blue-100
+                                            @elseif(($paper['status'] ?? '') === 'Reviewed') bg-emerald-50 text-emerald-700 border border-emerald-100
+                                            @else bg-slate-100 text-slate-600 @endif">
+                                            {{ $paper['status'] ?? 'Assigned' }}
+                                        </span>
+                                    </div>
+                                @empty
+                                    <div class="px-5 py-7 text-center">
+                                        <p class="text-xs text-slate-400">No papers assigned yet.</p>
+                                    </div>
+                                @endforelse
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Notifications List -->
-                <div class="space-y-4">
-                    <template x-for="item in notifications" :key="item.id">
-                        <div 
-                            class="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6 flex items-start gap-4 hover:border-gray-200 transition-all duration-200 relative group"
-                            :class="item.unread ? 'border-l-4 border-l-[#0e5c3a]' : ''"
-                        >
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0" :class="item.iconBg">
-                                <i :class="item.icon"></i>
-                            </div>
-
-                            <div class="flex-1 space-y-3">
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <h4 class="font-bold text-gray-800 text-sm" x-text="item.title">Notification Title</h4>
-                                    <template x-if="item.isNew">
-                                        <span class="px-2 py-0.5 rounded bg-emerald-700 text-white text-[9px] font-bold">New</span>
-                                    </template>
-                                    <span class="px-2 py-0.5 rounded text-[9px] font-semibold" :class="item.badgeClass" x-text="item.badge">Category</span>
-                                </div>
-                                
-                                <p class="text-xs text-gray-550 leading-relaxed" x-text="item.description">
-                                    Notification description body copy.
-                                </p>
-                                
-                                <div class="flex items-center gap-1.5 text-[10px] text-gray-400 font-semibold">
-                                    <i class="ph ph-clock"></i>
-                                    <span x-text="item.time">1 hour ago</span>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-            </div>
-
-            <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
-                @include('partials.settings')
             </div>
 
             <!-- TAB: Assigned Research Papers -->
@@ -1850,6 +2067,20 @@
                 </button>
             </div>
             
+            <!-- TAB: Notifications Center -->
+            <div x-show="activeTab === 'notifications'" x-cloak class="space-y-8 animate-fade-in">
+                <x-notifications.center
+                    :notifications="$userNotifications ?? collect()"
+                    :unread-count="$userUnreadCount ?? 0"
+                    :filter="$notificationFilter ?? 'all'"
+                    :dashboard-route="route('panelist.dashboard')"
+                />
+            </div>
+
+            <!-- TAB: Settings -->
+            <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
+                @include('partials.settings')
+            </div>
         </main>
     </div>
 

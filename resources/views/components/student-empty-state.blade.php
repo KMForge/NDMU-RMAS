@@ -1,6 +1,9 @@
 @props(['message'])
 
-<div class="bg-white rounded-3xl p-10 shadow-sm border border-gray-100 text-center">
-    <i class="ph ph-database text-3xl text-gray-300"></i>
-    <p class="text-sm text-gray-500 mt-3">{{ $message }}</p>
+<div class="rounded-3xl border-2 border-dashed border-slate-200/90 bg-white p-12 text-center space-y-3">
+    <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-[#0e5c3a] flex items-center justify-center text-3xl mx-auto shadow-2xs">
+        <i class="ph ph-folder-dashed"></i>
+    </div>
+    <p class="text-sm font-bold text-slate-700 max-w-md mx-auto">{{ $message }}</p>
 </div>
+

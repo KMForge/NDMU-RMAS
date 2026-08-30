@@ -310,62 +310,78 @@
     })"
 >
     <!-- Left Sidebar: Navigation -->
-    <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5 overflow-y-auto">
+    <aside class="fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-[#09472d] via-[#0e5c3a] to-[#073622] text-white flex flex-col justify-between z-20 border-r border-emerald-800/40 shadow-2xl overflow-y-auto">
         <div class="flex-shrink-0">
-            <!-- Logo -->
-            <div class="flex items-center gap-3 p-6 border-b border-white/10">
-                <div class="p-1 bg-white/10 rounded-xl border border-white/20">
-                    <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto">
+            <!-- Brand Logo Header -->
+            <div class="p-6 pb-4 flex items-center gap-3.5">
+                <div class="p-2 bg-gradient-to-br from-white/15 to-white/5 rounded-2xl border border-white/20 shadow-lg backdrop-blur-md">
+                    <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto drop-shadow-sm">
                 </div>
                 <div class="flex flex-col leading-none">
-                    <span class="font-heading font-extrabold text-xl text-white tracking-tight">NDMU</span>
-                    <span class="text-[9px] font-bold text-[#eebc3f] tracking-wider uppercase mt-1">Research Management</span>
+                    <span class="font-heading font-black text-xl text-white tracking-tight">NDMU</span>
+                    <span class="text-[9px] font-black text-[#eebc3f] tracking-[0.16em] uppercase mt-1">Research Management</span>
                 </div>
             </div>
 
-            <!-- Profile Badge -->
-            <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
-                <div class="w-10 h-10 rounded-full bg-[#eebc3f] text-[#0e5c3a] font-bold flex items-center justify-center text-lg flex-shrink-0">
-                    D
-                </div>
-                <div class="flex flex-col leading-tight overflow-hidden">
-                    <span class="font-semibold text-sm text-white truncate">Dr. Lourdes Castillo</span>
-                    <span class="text-[10px] text-white/60 font-medium mt-0.5">College Dean</span>
+            <!-- Designer Decorative Underline under Logo -->
+            <div class="px-6 my-2 flex items-center justify-center gap-2">
+                <div class="h-px flex-1 bg-gradient-to-r from-transparent via-[#eebc3f]/60 to-[#eebc3f]"></div>
+                <div class="h-1 w-8 rounded-full bg-gradient-to-r from-[#eebc3f] to-[#ffd76f] shadow-[0_0_8px_rgba(238,188,63,0.7)]"></div>
+                <div class="h-px flex-1 bg-gradient-to-l from-transparent via-[#eebc3f]/60 to-[#eebc3f]"></div>
+            </div>
+
+            <!-- Floating Profile Card -->
+            <div class="px-5 py-3">
+                <div class="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.06] border border-white/10 shadow-inner backdrop-blur-xs hover:bg-white/[0.09] transition-all">
+                    <div class="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-[#eebc3f] to-[#ffd76f] text-[#09472d] font-black flex items-center justify-center text-lg flex-shrink-0 shadow-md">
+                        D
+                        <span class="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-[#09472d]"></span>
+                        </span>
+                    </div>
+                    <div class="flex flex-col leading-tight overflow-hidden min-w-0">
+                        <span class="font-bold text-xs text-white truncate">{{ auth()->user()->name ?? 'Dr. Lourdes Castillo' }}</span>
+                        <span class="text-[10px] text-white/70 font-medium mt-0.5 truncate">College Dean</span>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Navigation Links -->
-        <div class="flex-grow px-6 py-4 space-y-6">
-            <div class="space-y-1.5">
-                <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
+        <div class="flex-grow px-5 py-3 space-y-6">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2 px-3 mb-2.5">
+                    <span class="w-1 h-3 rounded-full bg-[#eebc3f]"></span>
+                    <span class="text-[10px] font-black tracking-[0.18em] text-emerald-300/80 uppercase">Navigation</span>
+                </div>
                 
                 <!-- Dashboard -->
                 <button 
                    type="button" 
                    @click="activeTab = 'dashboard'"
-                   :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-squares-four text-lg"></i>
+                        <i class="ph ph-squares-four text-lg transition-transform group-hover:scale-110"></i>
                         <span>Dashboard</span>
                     </div>
-                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
                 
                 <!-- Pending Approvals -->
                 <button 
                    type="button" 
                    @click="activeTab = 'pending'"
-                   :class="activeTab === 'pending' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'pending' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-clipboard text-lg"></i>
+                        <i class="ph ph-clipboard text-lg transition-transform group-hover:scale-110"></i>
                         <span>Pending Approvals</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <x-sidebar-count-badge :count="$sidebarBadges['pending'] ?? 0" label="approvals requiring attention" />
-                        <span x-show="activeTab === 'pending'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                        <span x-show="activeTab === 'pending'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                     </div>
                 </button>
 
@@ -373,47 +389,47 @@
                 <button 
                    type="button" 
                    @click="activeTab = 'manuscript'"
-                   :class="activeTab === 'manuscript' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'manuscript' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-certificate text-lg"></i>
+                        <i class="ph ph-certificate text-lg transition-transform group-hover:scale-110"></i>
                         <span>Manuscript Approvals</span>
                     </div>
-                    <span x-show="activeTab === 'manuscript'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'manuscript'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
 
                 <!-- Faculty Appointments -->
                 <button 
                    type="button" 
                    @click="activeTab = 'appointments'"
-                   :class="activeTab === 'appointments' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'appointments' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-users text-lg"></i>
+                        <i class="ph ph-users text-lg transition-transform group-hover:scale-110"></i>
                         <span>Faculty Appointments</span>
                     </div>
-                    <span x-show="activeTab === 'appointments'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'appointments'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
 
                 <!-- Defense Schedules -->
                 <button 
                    type="button" 
                    @click="activeTab = 'schedule'"
-                   :class="activeTab === 'schedule' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'schedule' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-calendar text-lg"></i>
+                        <i class="ph ph-calendar text-lg transition-transform group-hover:scale-110"></i>
                         <span>Defense Schedules</span>
                     </div>
-                    <span x-show="activeTab === 'schedule'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'schedule'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
 
                 <!-- Research Reports -->
                 @can('reports.view')
                 <a href="{{ route('dean.reports.index') }}"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left text-white/90 hover:text-white hover:bg-white/5 font-semibold">
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-file-text text-lg"></i>
+                        <i class="ph ph-file-text text-lg transition-transform group-hover:scale-110"></i>
                         <span>Research Reports</span>
                     </div>
                 </a>
@@ -423,26 +439,29 @@
                 <button 
                    type="button" 
                    @click="activeTab = 'repository'"
-                   :class="activeTab === 'repository' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                   :class="activeTab === 'repository' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-folder text-lg"></i>
+                        <i class="ph ph-folder text-lg transition-transform group-hover:scale-110"></i>
                         <span>Research Repository</span>
                     </div>
-                    <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
             </div>
 
             <!-- Research Forms Section -->
-            <div class="space-y-1.5 pt-4 border-t border-white/10">
-                <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Research Forms</span>
+            <div class="space-y-1.5 pt-4">
+                <div class="flex items-center gap-2 px-3 mb-2.5">
+                    <span class="w-1 h-3 rounded-full bg-[#eebc3f]"></span>
+                    <span class="text-[10px] font-black tracking-[0.18em] text-emerald-300/80 uppercase">Official Forms</span>
+                </div>
                 
                 <a 
                     href="{{ route('official-forms.workspace.index') }}"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200 text-left cursor-pointer"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold text-[13px] transition-all duration-200 text-left cursor-pointer group"
                 >
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-file-pdf text-lg"></i>
+                        <i class="ph ph-file-pdf text-lg transition-transform group-hover:scale-110"></i>
                         <span>Official Forms Workspace</span>
                     </div>
                     <div class="flex items-center gap-2">
@@ -454,45 +473,52 @@
         </div>
 
         <!-- Sidebar Footer -->
-        <div class="flex-shrink-0 px-6 pb-6 mt-8">
-            <div class="pt-4 border-t border-white/10 space-y-1">
+        <div class="flex-shrink-0 px-5 pb-5 mt-auto">
+            <!-- Decorative Separator -->
+            <div class="relative flex items-center justify-center my-3">
+                <div class="w-full h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"></div>
+            </div>
+
+            <div class="space-y-1">
                 <!-- Notifications -->
-                <a href="{{ route('notifications.index') }}"
-                   :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
-                   class="flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200">
+                <a href="{{ route('dean.dashboard', ['tab' => 'notifications']) }}"
+                   wire:navigate
+                   :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md' : 'text-white/85 hover:text-white hover:bg-white/15 font-semibold text-[13px]'"
+                   class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 cursor-pointer">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-bell text-lg"></i>
                         <span>Notifications</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <x-sidebar-count-badge :count="$sidebarBadges['notifications'] ?? 0" label="unread notifications" />
-                        <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                        <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                     </div>
                 </a>
                 
                 <!-- Settings -->
                 <a href="#" 
                    @click.prevent="activeTab = 'settings'"
-                   :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
-                   class="flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200">
+                   :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md' : 'text-white/85 hover:text-white hover:bg-white/15 font-semibold text-[13px]'"
+                   class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-gear text-lg"></i>
                         <span>Settings</span>
                     </div>
-                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </a>
 
                 <!-- Logout -->
                 <form method="POST" action="{{ route('logout') }}" class="block" data-confirm-logout>
                     @csrf
-                    <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200 text-left cursor-pointer">
+                    <button type="submit" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-white/70 hover:text-rose-200 hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 font-semibold text-[13px] transition-all duration-200 text-left cursor-pointer">
                         <i class="ph ph-sign-out text-lg"></i>
                         <span>Logout</span>
                     </button>
                 </form>
             </div>
-            <div class="text-[9px] text-white/30 text-center font-medium mt-6">
-                NDMU © 2026 - v1.0
+            <div class="flex items-center justify-center gap-2 text-[9px] text-white/40 text-center font-medium mt-4">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400/60"></span>
+                <span>NDMU-RMAS © {{ now()->year }} · v1.0</span>
             </div>
         </div>
     </aside>
@@ -500,17 +526,20 @@
     <!-- Right Side: Content Area -->
     <div class="flex-1 flex flex-col min-h-screen pl-72">
         <!-- Top Nav Header -->
-        <header class="h-20 bg-white border-b border-gray-150 px-8 flex items-center justify-between sticky top-0 z-10 flex-shrink-0">
+        <header class="h-20 bg-white/85 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between sticky top-0 z-40 flex-shrink-0 transition-all">
             <!-- Search bar -->
             <div class="relative w-96">
-                <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 pointer-events-none">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 pointer-events-none">
                     <i class="ph ph-magnifying-glass text-base"></i>
                 </span>
                 <input
                     type="text"
                     placeholder="Search research, documents, or tasks..."
-                    class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-100 rounded-full text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-gray-350 transition-all duration-200"
+                    class="w-full pl-10 pr-14 py-2.5 bg-slate-100/80 border border-slate-200/60 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#0e5c3a] focus:ring-2 focus:ring-[#0e5c3a]/10 transition-all duration-200 shadow-2xs"
                 >
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <kbd class="px-1.5 py-0.5 text-[10px] font-bold text-slate-400 bg-white border border-slate-200 rounded-md shadow-2xs">Ctrl K</kbd>
+                </div>
             </div>
 
             <!-- Right profile area matching "D / Dr. Dean's Portal" -->
@@ -519,13 +548,13 @@
                 <x-notification-dropdown />
                 
                 <!-- Dean's Portal Profile Badge -->
-                <div class="flex items-center gap-3 pl-2 border-l border-gray-150">
-                    <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-xs">
+                <div class="flex items-center gap-3 pl-2 border-l border-slate-200">
+                    <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-xs shadow-2xs">
                         D
                     </div>
                     <div class="flex flex-col leading-none">
-                        <span class="font-bold text-xs text-gray-800">Dr.</span>
-                        <span class="text-[9px] font-bold text-gray-400 mt-0.5">Dean's Portal</span>
+                        <span class="font-bold text-xs text-slate-800">{{ auth()->user()->name ?? 'Dr. Dean' }}</span>
+                        <span class="text-[9px] font-bold text-slate-400 mt-0.5">Dean's Portal</span>
                     </div>
                 </div>
             </div>
@@ -534,7 +563,6 @@
         <!-- Main Body Content -->
         <main class="flex-grow p-8 space-y-8">
             <x-portal-feature-banner :sections="[
-                'dashboard' => ['eyebrow' => 'College Dean Portal', 'title' => 'Dean Dashboard', 'description' => 'Oversee college-level approvals, research compliance, defense activity, and CEAC research reporting.', 'icon' => 'ph-squares-four'],
                 'pending' => ['eyebrow' => 'College Dean Portal', 'title' => 'Pending Approvals', 'description' => 'Review research matters that require college-level approval.', 'icon' => 'ph-hourglass-medium'],
                 'manuscript' => ['eyebrow' => 'College Dean Portal', 'title' => 'Manuscript Review', 'description' => 'Review authorized manuscripts and associated recommendations.', 'icon' => 'ph-file-search'],
                 'schedule' => ['eyebrow' => 'College Dean Portal', 'title' => 'Defense Schedule', 'description' => 'View and oversee scheduled research defenses.', 'icon' => 'ph-calendar-check'],
@@ -544,285 +572,330 @@
             ]" />
             
             <!-- TAB: Dashboard (Active Default) -->
-            <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">
-                <!-- Hero Header Card Section -->
-                <div class="relative overflow-hidden bg-white rounded-2xl p-8 border border-slate-200/60 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                    <!-- Subtle abstract NDMU logo watermark -->
-                    <div class="absolute -right-6 -bottom-6 opacity-[0.04] pointer-events-none">
-                        <img src="{{ asset('images/ndmu_logo.png') }}" alt="" class="w-64 h-auto">
+            <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8 animate-fade-in">
+
+                <!-- Rich Branded Command Hub & Quick Action Header -->
+                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#0a462c] p-6 md:p-8 text-white shadow-xl shadow-emerald-950/20 border border-emerald-600/30">
+                    <!-- Ambient Glow & Watermark Logo -->
+                    <div class="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-[#eebc3f]/15 blur-3xl"></div>
+                    <div class="pointer-events-none absolute -left-12 -bottom-20 h-48 w-48 rounded-full bg-emerald-400/15 blur-2xl"></div>
+                    <div class="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 opacity-[0.08]">
+                        <img src="{{ asset('images/ndmu_logo.png') }}" alt="" class="h-36 md:h-44 w-auto object-contain">
                     </div>
 
-                    <div class="relative z-10 space-y-1">
-                        <div class="flex items-center gap-2 text-xs font-semibold text-slate-400">
-                            <span>{{ now()->timezone(config('ndmu-rmas.timezone'))->format('l, F j, Y') }}</span>
-                            <span>•</span>
-                            <span class="text-[#0e5c3a] font-bold">Office of the College Dean</span>
+                    <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/25 backdrop-blur-md border border-[#eebc3f]/30 text-[#eebc3f] font-black text-[10px] uppercase tracking-[0.16em]">
+                                    <span class="w-2 h-2 rounded-full bg-[#eebc3f] animate-pulse"></span>
+                                    Academic Year {{ now()->year }}-{{ now()->year + 1 }}
+                                </span>
+                                <span class="text-white/40 text-xs">•</span>
+                                <span class="text-emerald-200 text-xs font-semibold tracking-wide">Office of the College Dean</span>
+                            </div>
+                            <h1 class="text-2xl md:text-3xl font-black font-heading text-white tracking-tight drop-shadow-xs">
+                                Welcome back, {{ $dean->name }}!
+                            </h1>
+                            <p class="text-xs md:text-sm text-emerald-100/85 max-w-2xl leading-relaxed">
+                                Final academic oversight, research ethics compliance, manuscript review, and college-level approvals
+                            </p>
                         </div>
-                        <h1 class="text-2xl md:text-3xl font-extrabold font-heading text-slate-900 tracking-tight">Welcome back, Dr. Lourdes Castillo</h1>
-                        <p class="text-xs text-slate-500 max-w-xl">Final academic oversight and research approval authority • College Dean</p>
-                    </div>
 
-                    <div class="relative z-10 flex items-center gap-3">
-                        <button @click="activeTab = 'pending'" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200/80 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-2 border border-slate-200/60 transition-all cursor-pointer">
-                            <i class="ph ph-clock text-amber-600 text-base"></i>
-                            <span>Pending Requests</span>
-                        </button>
-                        <button @click="activeTab = 'reports'" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer">
-                            <i class="ph ph-chart-line-up text-base"></i>
-                            <span>College Reports</span>
-                        </button>
+                        <!-- Quick Action Buttons -->
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <button
+                                type="button"
+                                @click="activeTab = 'pending'"
+                                class="px-4.5 py-2.5 bg-gradient-to-r from-[#eebc3f] to-[#f4c542] hover:brightness-105 text-[#073823] text-xs font-black rounded-xl flex items-center gap-2 shadow-md shadow-amber-950/20 transition-all cursor-pointer"
+                            >
+                                <i class="ph ph-hourglass-medium text-base"></i>
+                                <span>Pending Approvals</span>
+                                @php
+                                    $pendingForms = $pendingFormInstances->count();
+                                @endphp
+                                @if ($pendingForms > 0)
+                                    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-950 text-[#eebc3f]">
+                                        {{ $pendingForms }}
+                                    </span>
+                                @endif
+                            </button>
+
+                            <button
+                                type="button"
+                                @click="activeTab = 'manuscript'"
+                                class="px-4 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
+                            >
+                                <i class="ph ph-file-search text-base text-blue-300"></i>
+                                <span>Manuscript Review</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                @click="activeTab = 'schedule'"
+                                class="px-4 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
+                            >
+                                <i class="ph ph-calendar-check text-base text-purple-300"></i>
+                                <span>Defense Schedule</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                @click="activeTab = 'reports'"
+                                class="px-4 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
+                            >
+                                <i class="ph ph-chart-line-up text-base text-emerald-300"></i>
+                                <span>College Reports</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <x-pending-academic-actions-card :pendingActions="$pendingAcademicActions ?? []" />
 
-                <!-- Stats Cards Row (4 Columns matching layout widgets) -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <!-- Active Research Projects -->
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
-                        <div>
-                            <span class="w-11 h-11 rounded-xl bg-emerald-50/80 text-[#0e5c3a] border border-emerald-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
-                                <i class="ph ph-scroll"></i>
-                            </span>
-                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Active Research Projects</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">145</span>
+                {{-- === 4 KPI METRIC CARDS === --}}
+                @php
+                    $pendingApprovalCount = $pendingFormInstances->count();
+                @endphp
+                <!-- Modern Vibrant 4-KPI Metric Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <!-- KPI 1: Pending Approvals -->
+                    <div
+                        @click="activeTab = 'pending'"
+                        class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
+                    >
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
+                        <div class="absolute -right-3 -bottom-3 text-slate-100/70 group-hover:text-amber-50 text-7xl font-bold transition-colors pointer-events-none -z-0 select-none">
+                            <i class="ph ph-hourglass-medium"></i>
                         </div>
-                        <span class="text-emerald-600 text-xl font-bold">
-                            <i class="ph ph-trend-up"></i>
-                        </span>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between">
+                                <span class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-600 text-white shadow-md shadow-amber-600/20 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 relative">
+                                    <i class="ph ph-hourglass-medium"></i>
+                                    @if ($pendingApprovalCount > 0)
+                                        <span class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>
+                                    @endif
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 group-hover:bg-amber-500 group-hover:text-white transition-all">
+                                    <span>Sign-off</span>
+                                    <i class="ph ph-arrow-up-right"></i>
+                                </span>
+                            </div>
+                            <div class="mt-5">
+                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Pending Approvals</span>
+                                <span class="text-3xl font-black text-slate-900 tracking-tight mt-1 block">{{ $pendingApprovalCount }}</span>
+                                <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100">
+                                    <span>{{ $pendingApprovalCount > 0 ? 'Requires dean sign-off' : 'All approved' }}</span>
+                                    <span class="font-bold {{ $pendingApprovalCount > 0 ? 'text-amber-600' : 'text-slate-400' }}">{{ $pendingApprovalCount > 0 ? 'Action Needed' : 'Complete' }}</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Pending Approvals -->
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
-                        <div>
-                            <span class="w-11 h-11 rounded-xl bg-amber-50/80 text-amber-700 border border-amber-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
-                                <i class="ph ph-clock"></i>
-                            </span>
-                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Pending Approvals</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">28</span>
+                    <!-- KPI 2: Active Research Projects -->
+                    <div
+                        class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
+                    >
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
+                        <div class="absolute -right-3 -bottom-3 text-slate-100/70 group-hover:text-emerald-50 text-7xl font-bold transition-colors pointer-events-none -z-0 select-none">
+                            <i class="ph ph-scroll"></i>
                         </div>
-                        <span class="text-amber-500 text-xl font-bold">
-                            <i class="ph ph-warning-circle"></i>
-                        </span>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between">
+                                <span class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-[#0e5c3a] text-white shadow-md shadow-emerald-700/20 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                                    <i class="ph ph-scroll"></i>
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-[#0e5c3a] border border-emerald-100 group-hover:bg-[#0e5c3a] group-hover:text-white transition-all">
+                                    <span>Research</span>
+                                    <i class="ph ph-arrow-up-right"></i>
+                                </span>
+                            </div>
+                            <div class="mt-5">
+                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Active Research</span>
+                                <span class="text-3xl font-black text-slate-900 tracking-tight mt-1 block">—</span>
+                                <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100">
+                                    <span>Ongoing College Studies</span>
+                                    <span class="font-bold text-[#0e5c3a]">Active</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Appointed Advisers -->
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
-                        <div>
-                            <span class="w-11 h-11 rounded-xl bg-blue-50/80 text-blue-700 border border-blue-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
-                                <i class="ph ph-shield"></i>
-                            </span>
-                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Appointed Advisers</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">45</span>
+                    <!-- KPI 3: Faculty Appointments -->
+                    <div
+                        @click="activeTab = 'appointments'"
+                        class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
+                    >
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
+                        <div class="absolute -right-3 -bottom-3 text-slate-100/70 group-hover:text-blue-50 text-7xl font-bold transition-colors pointer-events-none -z-0 select-none">
+                            <i class="ph ph-user-focus"></i>
                         </div>
-                        <span class="text-blue-500 text-xl font-bold">
-                            <i class="ph ph-user-check"></i>
-                        </span>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between">
+                                <span class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-700 text-white shadow-md shadow-blue-700/20 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                                    <i class="ph ph-user-focus"></i>
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                    <span>Faculty</span>
+                                    <i class="ph ph-arrow-up-right"></i>
+                                </span>
+                            </div>
+                            <div class="mt-5">
+                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Appointments</span>
+                                <span class="text-3xl font-black text-slate-900 tracking-tight mt-1 block">{{ $appointmentsCount ?? '—' }}</span>
+                                <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100">
+                                    <span>Advisers &amp; Panelists</span>
+                                    <span class="font-bold text-blue-600">CEAC</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Approved Manuscripts -->
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
-                        <div>
-                            <span class="w-11 h-11 rounded-xl bg-purple-50/80 text-purple-700 border border-purple-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
-                                <i class="ph ph-book-open"></i>
-                            </span>
-                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Approved Manuscripts</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">52</span>
+                    <!-- KPI 4: Approved Manuscripts -->
+                    <div
+                        @click="activeTab = 'manuscript'"
+                        class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
+                    >
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
+                        <div class="absolute -right-3 -bottom-3 text-slate-100/70 group-hover:text-purple-50 text-7xl font-bold transition-colors pointer-events-none -z-0 select-none">
+                            <i class="ph ph-book-open"></i>
                         </div>
-                        <span class="text-purple-500 text-xl font-bold">
-                            <i class="ph ph-certificate"></i>
-                        </span>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between">
+                                <span class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-800 text-white shadow-md shadow-purple-700/20 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                                    <i class="ph ph-book-open"></i>
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-100 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                                    <span>Manuscripts</span>
+                                    <i class="ph ph-arrow-up-right"></i>
+                                </span>
+                            </div>
+                            <div class="mt-5">
+                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Manuscripts</span>
+                                <span class="text-3xl font-black text-slate-900 tracking-tight mt-1 block">—</span>
+                                <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100">
+                                    <span>Approved by College</span>
+                                    <span class="font-bold text-purple-600">Archived</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Split Row: Requests vs Manuscript Approvals -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Left: Pending Research Requests -->
-                    <div class="bg-white rounded-2xl shadow-xs hover:shadow-md transition-all duration-200 border border-slate-200/60 overflow-hidden flex flex-col justify-between">
-                        <!-- Dark Green Header -->
-                        <div class="bg-[#0e5c3a] text-white p-5 flex items-center justify-between">
-                            <h3 class="font-heading font-bold text-sm flex items-center gap-2 tracking-tight">
-                                <i class="ph ph-file-text text-[#eebc3f] text-lg"></i>
-                                <span>Pending Research Requests</span>
-                            </h3>
-                            <i class="ph ph-dots-three-vertical text-white/60"></i>
-                        </div>
+                {{-- === MAIN WORKSPACE GRID === --}}
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
 
-                        <!-- Requests List -->
-                        <div class="p-6 space-y-4 flex-grow">
-                            <template x-for="req in requests" :key="req.id">
-                                <div class="border border-slate-200/60 rounded-xl p-4 flex items-center justify-between hover:border-emerald-200 hover:bg-slate-50/50 transition-all">
-                                    <div class="space-y-1">
-                                        <h4 class="font-bold text-slate-900 text-xs" x-text="req.title">Project Title</h4>
-                                        <span class="text-[10px] text-slate-500 block">Student: <span class="font-bold text-slate-700" x-text="req.student">Student Name</span></span>
-                                        <span class="text-[9px] text-slate-400 font-medium block" x-text="req.time">2 hours ago</span>
-                                    </div>
-                                    <span class="bg-amber-50 text-amber-700 border border-amber-200/60 px-2.5 py-0.5 rounded-full text-[10px] font-bold" x-text="req.status">Awaiting Approval</span>
+                    {{-- Left Col: Action Panels --}}
+                    <div class="xl:col-span-8 space-y-5">
+                        {{-- Pending Research Requests --}}
+                        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                            <div class="px-6 py-4 bg-[#0e5c3a] flex items-center justify-between">
+                                <div class="flex items-center gap-2 text-white">
+                                    <i class="ph ph-file-text text-[#eebc3f] text-lg"></i>
+                                    <h2 class="font-bold text-sm tracking-tight">Pending Research Requests</h2>
                                 </div>
-                            </template>
-                        </div>
-
-                        <!-- Footer View All link -->
-                        <button @click="activeTab = 'pending'" class="w-full text-center py-3.5 bg-slate-50/80 border-t border-slate-100 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer">
-                            View All Requests →
-                        </button>
-                    </div>
-
-                    <!-- Right: Final Manuscript Approvals -->
-                    <div class="bg-white rounded-2xl shadow-xs hover:shadow-md transition-all duration-200 border border-slate-200/60 overflow-hidden flex flex-col justify-between">
-                        <!-- Yellow/Gold Header -->
-                        <div class="bg-[#0e5c3a] text-white p-5 flex items-center justify-between">
-                            <h3 class="font-heading font-bold text-sm flex items-center gap-2 tracking-tight">
-                                <i class="ph ph-certificate text-[#eebc3f] text-lg"></i>
-                                <span>Final Manuscript Approvals</span>
-                            </h3>
-                            <i class="ph ph-dots-three-vertical text-white/60"></i>
-                        </div>
-
-                        <!-- Manuscripts List -->
-                        <div class="p-6 space-y-4 flex-grow">
-                            <template x-for="ms in manuscripts" :key="ms.id">
-                                <div class="border border-slate-200/60 rounded-xl p-4 flex items-center justify-between hover:border-emerald-200 hover:bg-slate-50/50 transition-all">
-                                    <div class="space-y-1">
-                                        <h4 class="font-bold text-slate-900 text-xs" x-text="ms.title">Manuscript Title</h4>
-                                        <span class="text-[10px] text-slate-500 block">Student: <span class="font-bold text-slate-700" x-text="ms.student">Student Name</span></span>
-                                        <span class="text-[9px] text-slate-400 font-medium block" x-text="ms.phase">Quality Review</span>
+                                <button type="button" @click="activeTab = 'pending'" class="text-xs text-white/80 hover:text-white font-bold cursor-pointer">View All →</button>
+                            </div>
+                            <div class="divide-y divide-slate-50">
+                                <template x-for="req in requests" :key="req.id">
+                                    <div class="px-6 py-4 flex items-center justify-between hover:bg-amber-50/20 transition">
+                                        <div class="space-y-0.5">
+                                            <h4 class="font-bold text-slate-900 text-xs" x-text="req.title"></h4>
+                                            <span class="text-[10px] text-slate-500">Student: <span class="font-bold text-slate-700" x-text="req.student"></span></span>
+                                            <span class="text-[9px] text-slate-400 block" x-text="req.time"></span>
+                                        </div>
+                                        <span class="bg-amber-50 text-amber-700 border border-amber-200/60 px-2.5 py-0.5 rounded-full text-[10px] font-bold" x-text="req.status"></span>
                                     </div>
-                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold" :class="ms.ratingClass" x-text="ms.rating">Excellent</span>
-                                </div>
-                            </template>
-                        </div>
-
-                        <!-- Footer View All link -->
-                        <button @click="activeTab = 'manuscript'" class="w-full text-center py-3.5 bg-slate-50/80 border-t border-slate-100 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer">
-                            View All Manuscripts →
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Recent Appointments Section -->
-                <div class="bg-white rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden">
-                    <div class="bg-[#0e5c3a] text-white p-5 flex items-center justify-between">
-                        <h3 class="font-heading font-bold text-sm flex items-center gap-2 tracking-tight">
-                            <i class="ph ph-users-three text-[#eebc3f] text-lg"></i>
-                            <span>Recent Appointments</span>
-                        </h3>
-                        <button @click="activeTab = 'appointments'" class="text-xs text-white/90 hover:text-white font-bold cursor-pointer">Manage Appointments</button>
-                    </div>
-
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-xs border-collapse">
-                            <thead class="bg-gradient-to-r from-[#0e5c3a] to-[#0a4a2e] text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
-                                <tr>
-                                    <th class="px-6 py-4">Name</th>
-                                    <th class="px-6 py-4">Role</th>
-                                    <th class="px-6 py-4">Department</th>
-                                    <th class="px-6 py-4">Date</th>
-                                    <th class="px-6 py-4">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 text-slate-700">
-                                <template x-for="app in appointments" :key="app.name">
-                                    <tr class="hover:bg-slate-50/50 transition-colors">
-                                        <td class="px-6 py-4 font-bold text-slate-900" x-text="app.name">Faculty Name</td>
-                                        <td class="px-6 py-4 font-semibold text-slate-500" x-text="app.role">Role</td>
-                                        <td class="px-6 py-4 text-slate-600" x-text="app.dept">Department</td>
-                                        <td class="px-6 py-4 text-slate-400 font-medium" x-text="app.date">Date</td>
-                                        <td class="px-6 py-4">
-                                            <span class="bg-emerald-50 text-emerald-700 border border-emerald-200/60 px-2.5 py-0.5 rounded-full text-[10px] font-bold" x-text="app.status">Active</span>
-                                        </td>
-                                    </tr>
                                 </template>
-                            </tbody>
-                        </table>
+                            </div>
+                        </div>
+
+                        {{-- Final Manuscript Approvals --}}
+                        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                            <div class="px-6 py-4 bg-[#0e5c3a] flex items-center justify-between">
+                                <div class="flex items-center gap-2 text-white">
+                                    <i class="ph ph-certificate text-[#eebc3f] text-lg"></i>
+                                    <h2 class="font-bold text-sm tracking-tight">Final Manuscript Approvals</h2>
+                                </div>
+                                <button type="button" @click="activeTab = 'manuscript'" class="text-xs text-white/80 hover:text-white font-bold cursor-pointer">View All →</button>
+                            </div>
+                            <div class="divide-y divide-slate-50">
+                                <template x-for="ms in manuscripts" :key="ms.id">
+                                    <div class="px-6 py-4 flex items-center justify-between hover:bg-purple-50/20 transition">
+                                        <div class="space-y-0.5">
+                                            <h4 class="font-bold text-slate-900 text-xs" x-text="ms.title"></h4>
+                                            <span class="text-[10px] text-slate-500">Student: <span class="font-bold text-slate-700" x-text="ms.student"></span></span>
+                                            <span class="text-[9px] text-slate-400 block" x-text="ms.phase"></span>
+                                        </div>
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold" :class="ms.ratingClass" x-text="ms.rating"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Bottom quick navigation row (3 Columns) -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- Defense Schedule -->
-                    <button @click="activeTab = 'schedule'" class="bg-white hover:bg-slate-50/80 text-center rounded-2xl p-6 flex flex-col items-center justify-center space-y-2 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
-                        <i class="ph ph-calendar text-3xl text-[#0e5c3a]"></i>
-                        <span class="font-heading font-bold text-sm text-slate-900 block tracking-tight">Defense Schedule</span>
-                        <span class="text-xs text-slate-500">View upcoming defense schedules</span>
-                    </button>
+                    {{-- Right Col: Quick Navigation --}}
+                    <div class="xl:col-span-4 space-y-4">
+                        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                            <div class="px-5 py-3.5 border-b border-slate-100">
+                                <h3 class="font-bold text-xs text-slate-900 flex items-center gap-2">
+                                    <i class="ph ph-squares-four text-[#0e5c3a]"></i>
+                                    Quick Navigation
+                                </h3>
+                            </div>
+                            <div class="p-4 grid grid-cols-2 gap-3">
+                                @php
+                                    $quickLinks = [
+                                        ['tab' => 'schedule', 'icon' => 'ph-calendar-check', 'label' => 'Defense Schedule', 'color' => 'text-purple-600 bg-purple-50 border-purple-100 hover:bg-purple-100'],
+                                        ['tab' => 'reports', 'icon' => 'ph-chart-line-up', 'label' => 'College Reports', 'color' => 'text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100'],
+                                        ['tab' => 'appointments', 'icon' => 'ph-user-focus', 'label' => 'Appointments', 'color' => 'text-teal-600 bg-teal-50 border-teal-100 hover:bg-teal-100'],
+                                        ['tab' => 'repository', 'icon' => 'ph-folder-open', 'label' => 'Repository', 'color' => 'text-emerald-700 bg-emerald-50 border-emerald-100 hover:bg-emerald-100'],
+                                    ];
+                                @endphp
+                                @foreach($quickLinks as $link)
+                                    <button type="button" @click="activeTab = '{{ $link['tab'] }}'"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border text-center transition cursor-pointer {{ $link['color'] }}">
+                                        <i class="ph {{ $link['icon'] }} text-2xl"></i>
+                                        <span class="text-[10px] font-bold leading-tight">{{ $link['label'] }}</span>
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
 
-                    <!-- Research Reports -->
-                    <button @click="activeTab = 'reports'" class="bg-white hover:bg-slate-50/80 text-center rounded-2xl p-6 flex flex-col items-center justify-center space-y-2 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
-                        <i class="ph ph-chart-line-up text-3xl text-[#0e5c3a]"></i>
-                        <span class="font-heading font-bold text-sm text-slate-900 block tracking-tight">Research Reports</span>
-                        <span class="text-xs text-slate-500">Generate college reports</span>
-                    </button>
-
-                    <!-- Research Repository -->
-                    <button @click="activeTab = 'repository'" class="bg-white hover:bg-slate-50/80 text-center rounded-2xl p-6 flex flex-col items-center justify-center space-y-2 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
-                        <i class="ph ph-book-open text-3xl text-[#0e5c3a]"></i>
-                        <span class="font-heading font-bold text-sm text-slate-900 block tracking-tight">Research Repository</span>
-                        <span class="text-xs text-slate-500">Browse approved research</span>
-                    </button>
+                        {{-- Recent Appointments Summary --}}
+                        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                            <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <i class="ph ph-users-three text-blue-500 text-base"></i>
+                                    <h3 class="font-bold text-xs text-slate-900">Recent Appointments</h3>
+                                </div>
+                                <button type="button" @click="activeTab = 'appointments'" class="text-[10px] font-bold text-[#0e5c3a] hover:underline cursor-pointer">Manage</button>
+                            </div>
+                            <div class="divide-y divide-slate-50">
+                                <template x-for="app in appointments" :key="app.name">
+                                    <div class="px-5 py-3 flex items-center justify-between gap-2">
+                                        <div class="min-w-0">
+                                            <p class="text-xs font-bold text-slate-900 truncate" x-text="app.name"></p>
+                                            <p class="text-[10px] text-slate-500" x-text="app.role + ' · ' + app.dept"></p>
+                                        </div>
+                                        <span class="shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100" x-text="app.status"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
+
+
             <!-- TAB: Notifications Center -->
-            <div x-show="activeTab === 'notifications'" x-cloak class="space-y-8">
-                <div class="flex flex-col gap-2">
-                    <div class="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                        <span>Dashboard</span>
-                        <span>/</span>
-                        <span class="text-[#0e5c3a]">Notifications Center</span>
-                    </div>
-                    
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h1 class="text-2xl font-bold font-heading text-gray-800">Notifications Center</h1>
-                            <p class="text-xs text-gray-455 mt-1">Showing notifications for: <span class="font-bold text-gray-850">College Dean</span></p>
-                        </div>
-                        
-                        <div class="flex items-center gap-3">
-                            <button @click="notifications.forEach(n => n.unread = false)" class="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl flex items-center gap-2 shadow-sm transition-all duration-200 cursor-pointer">
-                                <span>✓</span>
-                                <span>Mark All Read</span>
-                            </button>
-                            <button class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-[#0e5c3a]/15 transition-all duration-200">
-                                <i class="ph ph-bell text-base font-bold"></i>
-                                <span x-text="`${notifications.filter(n => n.unread).length} Unread`">1 Unread</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Notifications List -->
-                <div class="space-y-4">
-                    <template x-for="item in notifications" :key="item.id">
-                        <div 
-                            class="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6 flex items-start gap-4 hover:border-gray-200 transition-all duration-200 relative group"
-                            :class="item.unread ? 'border-l-4 border-l-[#0e5c3a]' : ''"
-                        >
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0" :class="item.iconBg">
-                                <i :class="item.icon"></i>
-                            </div>
-
-                            <div class="flex-1 space-y-3">
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <h4 class="font-bold text-gray-800 text-sm" x-text="item.title">Notification Title</h4>
-                                    <template x-if="item.isNew">
-                                        <span class="px-2 py-0.5 rounded bg-emerald-700 text-white text-[9px] font-bold">New</span>
-                                    </template>
-                                    <span class="px-2 py-0.5 rounded text-[9px] font-semibold" :class="item.badgeClass" x-text="item.badge">Category</span>
-                                </div>
-                                
-                                <p class="text-xs text-gray-550 leading-relaxed" x-text="item.description">
-                                    Notification description body copy.
-                                </p>
-                                
-                                <div class="flex items-center gap-1.5 text-[10px] text-gray-400 font-semibold">
-                                    <i class="ph ph-clock"></i>
-                                    <span x-text="item.time">1 hour ago</span>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
-                </div>
+            <div x-show="activeTab === 'notifications'" x-cloak class="space-y-8 animate-fade-in">
+                <x-notifications.center
+                    :notifications="$userNotifications ?? collect()"
+                    :unread-count="$userUnreadCount ?? 0"
+                    :filter="$notificationFilter ?? 'all'"
+                    :dashboard-route="route('dean.dashboard')"
+                />
             </div>
 
             <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">

@@ -1,23 +1,24 @@
 @props(['title', 'status' => null, 'date' => null, 'description' => null])
 
-<article class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm transition-all duration-200 hover:shadow-md">
-    <div class="flex items-start justify-between gap-4">
+<article class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-2xs transition-all duration-200 hover:shadow-md hover:border-slate-300 relative overflow-hidden group">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="min-w-0 space-y-1">
-            <h2 class="font-bold text-base text-gray-900 leading-snug">{{ $title }}</h2>
+            <h2 class="font-black text-base text-slate-900 leading-snug">{{ $title }}</h2>
             @if ($date)
-                <p class="text-xs font-medium text-gray-500 flex items-center gap-1.5">
-                    <i class="ph ph-calendar-blank text-gray-400 text-sm"></i>
+                <p class="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+                    <i class="ph ph-calendar-blank text-slate-400 text-sm"></i>
                     <span>{{ \Illuminate\Support\Carbon::parse($date)->format('M j, Y g:i A') }}</span>
                 </p>
             @endif
         </div>
         @if ($status)
-            <span class="shrink-0 px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-800 text-xs font-bold uppercase tracking-wider border border-gray-200/80">
+            <span class="shrink-0 px-3.5 py-1.5 rounded-full bg-emerald-50 text-[#0e5c3a] text-[10px] font-black uppercase tracking-wider border border-emerald-200 shadow-2xs">
                 {{ \Illuminate\Support\Str::headline($status) }}
             </span>
         @endif
     </div>
     @if ($description)
-        <p class="text-sm text-gray-700 leading-relaxed mt-4 pt-3 border-t border-gray-100 font-normal">{{ $description }}</p>
+        <p class="text-xs text-slate-600 leading-relaxed mt-4 pt-3.5 border-t border-slate-100 font-medium">{{ $description }}</p>
     @endif
 </article>
+

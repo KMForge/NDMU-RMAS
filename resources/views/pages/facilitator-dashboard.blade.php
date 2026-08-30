@@ -90,6 +90,7 @@
     notificationsFilter: 'all',
     showApprovalModal: false,
     selectedApproval: null,
+    copiedCode: null,
     
     // Facilitator static details
     approvals: [
@@ -363,83 +364,6 @@
         this.userManagementSubTab = 'all';
     },
 
-    selectedProposalId: 1,
-    showProposalDetailModal: false,
-    proposalList: [
-        { 
-            id: 1, 
-            proposal_id: 'PROP-2026-001', 
-            title: 'Machine Learning Applications in Agricultural Pest Detection', 
-            submitted: 'March 5, 2026', 
-            status: 'Approved', 
-            reviewer: 'Dr. Maria Santos', 
-            approval_date: 'March 10, 2026',
-            department: 'College of Information Technology',
-            abstract: 'This research proposes an AI-based system that utilizes deep learning methods, specifically convolutional neural networks (CNNs), to identify and classify crop pests in local agricultural sectors. By detecting pests at an early stage, farmers can perform targeted interventions, reducing chemical pesticide use.',
-            objectives: '1. To design and implement a mobile crop scanner using lightweight neural networks.\n2. To classify the top 5 agricultural pests found in South Cotabato crops.\n3. To offer pest density maps and action recommendations.'
-        },
-        { 
-            id: 2, 
-            proposal_id: 'PROP-2026-002', 
-            title: 'IoT-Based Smart Classroom Management', 
-            submitted: 'May 12, 2026', 
-            status: 'Pending', 
-            reviewer: 'Pending Assignment', 
-            approval_date: 'N/A',
-            department: 'College of Engineering',
-            abstract: 'This project focuses on the automation of academic spaces utilizing smart sensors. By tracking temperature, humidity, lighting, and occupancy, the classroom management system dynamically adjusts climate controls and scheduling, minimizing energy consumption and maximizing student comfort.',
-            objectives: '1. To design real-time occupancy trackers.\n2. To interface HVAC controls with custom scheduling microcontrollers.\n3. To reduce electrical energy consumption by 20% in testing halls.'
-        },
-        { 
-            id: 3, 
-            proposal_id: 'PROP-2026-003', 
-            title: 'Community Health Information System', 
-            submitted: 'May 15, 2026', 
-            status: 'Revisions', 
-            reviewer: 'Dr. Michael Tan', 
-            approval_date: 'N/A',
-            department: 'College of Information Technology',
-            abstract: 'A decentralized information portal built for rural health centers. The system secures patient records offline and synchronizes securely with central municipal databases whenever connectivity becomes available, improving resource allocation during epidemics.',
-            objectives: '1. To construct an offline-first storage engine.\n2. To ensure strict role-based access controls for health data privacy.\n3. To deliver dashboard tools for local health facilitators.'
-        }
-    ],
-
-    get activeProposal() {
-        return this.proposalList.find(p => p.id === this.selectedProposalId) || this.proposalList[0];
-    },
-    get approvedProposalsCount() {
-        return this.proposalList.filter(p => p.status === 'Approved').length;
-    },
-    get pendingProposalsCount() {
-        return this.proposalList.filter(p => p.status === 'Pending').length;
-    },
-    get revisionsProposalsCount() {
-        return this.proposalList.filter(p => p.status === 'Revisions').length;
-    },
-    get totalProposalsCount() {
-        return this.proposalList.length;
-    },
-
-    approveProposal(id) {
-        let prop = this.proposalList.find(p => p.id === id);
-        if (prop) {
-            prop.status = 'Approved';
-            prop.reviewer = 'Dr. Rosario Dela Paz';
-            prop.approval_date = new Date().toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'});
-            alert(`Proposal approved successfully: ${prop.title}`);
-        }
-    },
-
-    requestRevisionsProposal(id) {
-        let prop = this.proposalList.find(p => p.id === id);
-        if (prop) {
-            prop.status = 'Revisions';
-            prop.reviewer = 'Dr. Rosario Dela Paz';
-            prop.approval_date = 'N/A';
-            alert(`Requested revisions for proposal: ${prop.title}`);
-        }
-    },
-
     defenseTypeFilter: 'All',
     defenseStatusFilter: 'All',
     showVenueManager: @js(($defenseRooms ?? collect())->isEmpty() || $errors->has('code') || $errors->has('name') || $errors->has('location_notes')),
@@ -703,55 +627,71 @@
     "
 >
     <!-- Left Sidebar: Navigation -->
-    <aside class="fixed inset-y-0 left-0 w-72 bg-[#0e5c3a] text-white flex flex-col justify-between z-20 border-r border-white/5 overflow-y-auto">
+    <aside class="fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-[#09472d] via-[#0e5c3a] to-[#073622] text-white flex flex-col justify-between z-20 border-r border-emerald-800/40 shadow-2xl overflow-y-auto">
         <div class="flex-shrink-0">
-            <!-- Logo -->
-            <div class="flex items-center gap-3 p-6 border-b border-white/10">
-                <div class="p-1 bg-white/10 rounded-xl border border-white/20">
-                    <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto">
+            <!-- Brand Logo Header -->
+            <div class="p-6 pb-4 flex items-center gap-3.5">
+                <div class="p-2 bg-gradient-to-br from-white/15 to-white/5 rounded-2xl border border-white/20 shadow-lg backdrop-blur-md">
+                    <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto drop-shadow-sm">
                 </div>
                 <div class="flex flex-col leading-none">
-                    <span class="font-heading font-extrabold text-xl text-white tracking-tight">NDMU</span>
-                    <span class="text-[9px] font-bold text-[#eebc3f] tracking-wider uppercase mt-1">Research Management</span>
+                    <span class="font-heading font-black text-xl text-white tracking-tight">NDMU</span>
+                    <span class="text-[9px] font-black text-[#eebc3f] tracking-[0.16em] uppercase mt-1">Research Management</span>
                 </div>
             </div>
 
-            <!-- Profile Badge -->
-            <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
-                <div class="w-10 h-10 rounded-full bg-[#eebc3f] text-[#0e5c3a] font-bold flex items-center justify-center text-lg flex-shrink-0">
-                    <i class="ph ph-user"></i>
-                </div>
-                <div class="flex flex-col leading-tight overflow-hidden">
-                    <span class="font-semibold text-sm text-white truncate">{{ auth()->user()->name ?? 'Facilitator' }}</span>
-                    <span class="text-[10px] text-white/60 font-medium mt-0.5">Research Facilitator</span>
+            <!-- Designer Decorative Underline under Logo -->
+            <div class="px-6 my-2 flex items-center justify-center gap-2">
+                <div class="h-px flex-1 bg-gradient-to-r from-transparent via-[#eebc3f]/60 to-[#eebc3f]"></div>
+                <div class="h-1 w-8 rounded-full bg-gradient-to-r from-[#eebc3f] to-[#ffd76f] shadow-[0_0_8px_rgba(238,188,63,0.7)]"></div>
+                <div class="h-px flex-1 bg-gradient-to-l from-transparent via-[#eebc3f]/60 to-[#eebc3f]"></div>
+            </div>
+
+            <!-- Floating Profile Card -->
+            <div class="px-5 py-3">
+                <div class="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.06] border border-white/10 shadow-inner backdrop-blur-xs hover:bg-white/[0.09] transition-all">
+                    <div class="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-[#eebc3f] to-[#ffd76f] text-[#09472d] font-black flex items-center justify-center text-lg flex-shrink-0 shadow-md">
+                        <i class="ph ph-user"></i>
+                        <span class="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-[#09472d]"></span>
+                        </span>
+                    </div>
+                    <div class="flex flex-col leading-tight overflow-hidden min-w-0">
+                        <span class="font-bold text-xs text-white truncate">{{ auth()->user()->name ?? 'Facilitator' }}</span>
+                        <span class="text-[10px] text-white/70 font-medium mt-0.5 truncate">Research Facilitator</span>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Navigation Links -->
-        <div class="flex-grow px-6 py-4 space-y-6">
-            <div class="space-y-1.5">
-                <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Navigation</span>
+        <div class="flex-grow px-5 py-3 space-y-6">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2 px-3 mb-2.5">
+                    <span class="w-1 h-3 rounded-full bg-[#eebc3f]"></span>
+                    <span class="text-[10px] font-black tracking-[0.18em] text-emerald-300/80 uppercase">Navigation</span>
+                </div>
                 
                 <!-- Dashboard -->
                 <button 
-                   type="button" 
-                   @click="activeTab = 'dashboard'"
-                   :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                    type="button" 
+                    @click="activeTab = 'dashboard'"
+                    :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-squares-four text-lg"></i>
+                        <i class="ph ph-squares-four text-lg transition-transform group-hover:scale-110"></i>
                         <span>Dashboard</span>
                     </div>
-                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
 
                 <!-- Pending Form Approvals Queue -->
                 <a
                    href="{{ route('official-forms.workspace.index') }}"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer text-white/90 hover:text-white hover:bg-white/5 font-semibold">
+                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-check-square-offset text-lg text-amber-300"></i>
+                        <i class="ph ph-check-square-offset text-lg text-amber-300 transition-transform group-hover:scale-110"></i>
                         <span>Pending Form Approvals</span>
                     </div>
                     <div class="flex items-center gap-2">
@@ -760,132 +700,138 @@
                 </a>
 
                 <!-- Capstone Classes -->
-                <button
-                   type="button"
-                   @click="activeTab = 'classes'"
-                   :class="activeTab === 'classes' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                <button 
+                    type="button" 
+                    @click="activeTab = 'classes'"
+                    :class="activeTab === 'classes' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-chalkboard-teacher text-lg"></i>
+                        <i class="ph ph-chalkboard-teacher text-lg transition-transform group-hover:scale-110"></i>
                         <span>Capstone Classes</span>
                     </div>
-                    <span x-show="activeTab === 'classes'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['classes'] ?? 0" label="active classes" />
+                        <span x-show="activeTab === 'classes'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
+                    </div>
                 </button>
 
-                <!-- Class Join Requests -->
-                <button
-                   type="button"
-                   @click="activeTab = 'join-requests'"
-                   :class="activeTab === 'join-requests' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                <!-- Join Requests -->
+                <button 
+                    type="button" 
+                    @click="activeTab = 'join-requests'"
+                    :class="activeTab === 'join-requests' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-user-plus text-lg"></i>
+                        <i class="ph ph-user-plus text-lg transition-transform group-hover:scale-110"></i>
                         <span>Join Requests</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <x-sidebar-count-badge :count="$sidebarBadges['join-requests'] ?? 0" label="pending class join requests" />
-                        <span x-show="activeTab === 'join-requests'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                        <x-sidebar-count-badge :count="$sidebarBadges['join_requests'] ?? 0" label="pending join requests" />
+                        <span x-show="activeTab === 'join-requests'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                     </div>
                 </button>
-                
+
                 <!-- Research Monitoring -->
-                <a
-                   href="{{ route('facilitator.dashboard', ['tab' => 'monitoring']) }}"
-                   :class="activeTab === 'monitoring' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                <button 
+                    type="button" 
+                    @click="activeTab = 'monitoring'"
+                    :class="activeTab === 'monitoring' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-chart-line-up text-lg"></i>
+                        <i class="ph ph-chart-line-up text-lg transition-transform group-hover:scale-110"></i>
                         <span>Research Monitoring</span>
                     </div>
-                    <span x-show="activeTab === 'monitoring'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
-                </a>
-
+                    <span x-show="activeTab === 'monitoring'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
+                </button>
 
                 <!-- Research Screening -->
                 <button 
-                   type="button" 
-                   @click="activeTab = 'screening'"
-                   :class="activeTab === 'screening' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                    type="button" 
+                    @click="activeTab = 'screening'"
+                    :class="activeTab === 'screening' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-file-search text-lg"></i>
+                        <i class="ph ph-file-search text-lg transition-transform group-hover:scale-110"></i>
                         <span>Research Screening</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <x-sidebar-count-badge
-                            :count="$sidebarBadges['screening'] ?? 0"
-                            :label="$defenseSchedulingReadyCount > 0
-                                ? Str::plural('document', $sidebarBadges['screening'] ?? 0).' awaiting facilitator action'
-                                : Str::plural('title proposal', $sidebarBadges['screening'] ?? 0).' awaiting screening'"
-                        />
-                        <span x-show="activeTab === 'screening'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                        <x-sidebar-count-badge :count="$sidebarBadges['screening'] ?? 0" label="title proposal awaiting screening" />
+                        <span x-show="activeTab === 'screening'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                     </div>
                 </button>
 
                 <!-- Defense Management -->
                 <button 
-                   type="button" 
-                   @click="activeTab = 'defenses'"
-                   :class="activeTab === 'defenses' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                    type="button" 
+                    @click="activeTab = 'defenses'"
+                    :class="activeTab === 'defenses' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-calendar text-lg"></i>
+                        <i class="ph ph-calendar text-lg transition-transform group-hover:scale-110"></i>
                         <span>Defense Management</span>
                     </div>
-                    <span x-show="activeTab === 'defenses'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <div class="flex items-center gap-2">
+                        <x-sidebar-count-badge :count="$sidebarBadges['defenses'] ?? 0" label="upcoming defenses" />
+                        <span x-show="activeTab === 'defenses'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
+                    </div>
                 </button>
 
                 <!-- Research Statistics -->
-                @can('reports.view')
-                <a href="{{ route('facilitator.reports.index') }}"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left text-white/90 hover:text-white hover:bg-white/5 font-semibold">
+                <button 
+                    type="button" 
+                    @click="activeTab = 'statistics'"
+                    :class="activeTab === 'statistics' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-chart-bar text-lg"></i>
+                        <i class="ph ph-chart-bar text-lg transition-transform group-hover:scale-110"></i>
                         <span>Research Statistics</span>
                     </div>
-                </a>
-                @endcan
+                    <span x-show="activeTab === 'statistics'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
+                </button>
 
                 <!-- Research Reports -->
                 <button 
-                   type="button" 
-                   @click="activeTab = 'reports'"
-                   :class="activeTab === 'reports' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                    type="button" 
+                    @click="activeTab = 'reports'"
+                    :class="activeTab === 'reports' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-file-text text-lg"></i>
+                        <i class="ph ph-file-text text-lg transition-transform group-hover:scale-110"></i>
                         <span>Research Reports</span>
                     </div>
-                    <span x-show="activeTab === 'reports'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'reports'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
 
                 <!-- Research Repository -->
                 <button 
-                   type="button" 
-                   @click="activeTab = 'repository'"
-                   :class="activeTab === 'repository' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
-                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer">
+                    type="button" 
+                    @click="activeTab = 'repository'"
+                    :class="activeTab === 'repository' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-folder text-lg"></i>
+                        <i class="ph ph-folder-open text-lg transition-transform group-hover:scale-110"></i>
                         <span>Research Repository</span>
                     </div>
-                    <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                    <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
             </div>
 
-            <!-- Research Forms Section -->
-            <div class="space-y-1.5 pt-4 border-t border-white/10">
-                <span class="text-[10px] font-bold tracking-wider text-[#a5c1a0] uppercase px-3 block mb-2">Research Forms</span>
+            <!-- Official Forms Section -->
+            <div class="space-y-1.5 pt-4">
+                <div class="flex items-center gap-2 px-3 mb-2.5">
+                    <span class="w-1 h-3 rounded-full bg-[#eebc3f]"></span>
+                    <span class="text-[10px] font-black tracking-[0.18em] text-emerald-300/80 uppercase">Research Forms</span>
+                </div>
 
                 <button
                     type="button"
                     @click="formsExpanded = ! formsExpanded; activeTab = 'forms'"
-                    :class="activeTab === 'forms' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold'"
+                    :class="activeTab === 'forms' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
                     :aria-expanded="formsExpanded"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] transition-all duration-200 text-left cursor-pointer"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13px] transition-all duration-200 text-left cursor-pointer group"
                 >
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-file-pdf text-lg"></i>
+                        <i class="ph ph-file-pdf text-lg transition-transform group-hover:scale-110"></i>
                         <span>Official Forms</span>
                     </div>
                     <i class="ph ph-caret-right text-xs transition-transform duration-200" :class="formsExpanded && 'rotate-90'"></i>
@@ -897,13 +843,13 @@
                             $phaseForms = $officialFormsByPhase->get($phase, collect());
                         @endphp
                         <div>
-                            <button type="button" @click="activeTab = 'forms'; activeFormPhase = activeFormPhase === '{{ $phase }}' ? null : '{{ $phase }}'" class="w-full flex items-center justify-between gap-2 py-2 pl-4 pr-3 rounded-xl text-white/55 hover:text-white hover:bg-white/5 transition-colors duration-200 text-[11px] font-semibold text-left">
+                            <button type="button" @click="activeTab = 'forms'; activeFormPhase = activeFormPhase === '{{ $phase }}' ? null : '{{ $phase }}'" class="w-full flex items-center justify-between gap-2 py-2 pl-4 pr-3 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-colors duration-200 text-[11px] font-semibold text-left">
                                 <span class="flex min-w-0 items-start gap-2"><i class="ph ph-caret-right mt-0.5 shrink-0 text-[10px] transition-transform duration-200" :class="activeFormPhase === '{{ $phase }}' && 'rotate-90'"></i><span class="leading-4">{{ $label }}</span></span>
                                 <span class="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#eebc3f]/20 px-1.5 text-[9px] font-bold text-[#eebc3f]">{{ $phaseForms->count() }}</span>
                             </button>
                             <div x-show="activeFormPhase === '{{ $phase }}'" x-cloak x-transition class="mt-0.5 space-y-0.5 pl-2">
                                 @foreach ($phaseForms as $code => $form)
-                                    <button type="button" @click="activeTab = 'forms'; activeOfficialForm = '{{ $code }}'" :class="activeOfficialForm === '{{ $code }}' ? 'bg-[#eebc3f] text-[#0e5c3a] ring-1 ring-white font-bold' : 'text-white/70 hover:text-white hover:bg-white/5'" class="w-full flex items-start gap-2 rounded-xl px-3 py-2 text-left transition-colors duration-200">
+                                    <button type="button" @click="activeTab = 'forms'; activeOfficialForm = '{{ $code }}'" :class="activeOfficialForm === '{{ $code }}' ? 'bg-[#eebc3f] text-[#09472d] ring-1 ring-white font-bold' : 'text-white/75 hover:text-white hover:bg-white/10'" class="w-full flex items-start gap-2 rounded-xl px-3 py-2 text-left transition-colors duration-200">
                                         <i class="ph ph-file-plus mt-0.5 shrink-0 text-sm"></i>
                                         <span class="min-w-0"><span class="block text-[10px] font-bold">{{ $code }}</span><span class="block text-[10px] leading-3.5">{{ $form['title'] }}</span></span>
                                     </button>
@@ -916,45 +862,53 @@
         </div>
 
         <!-- Sidebar Footer -->
-        <div class="flex-shrink-0 px-6 pb-6 mt-8">
-            <div class="pt-4 border-t border-white/10 space-y-1">
+        <div class="flex-shrink-0 px-5 pb-5 mt-auto">
+            <!-- Decorative Separator -->
+            <div class="relative flex items-center justify-center my-3">
+                <div class="w-full h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"></div>
+            </div>
+
+            <div class="space-y-1">
                 <!-- Notifications -->
-                <a href="{{ route('notifications.index') }}"
-                   :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
-                   class="flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200">
+                <a
+                    href="{{ route('facilitator.dashboard', ['tab' => 'notifications']) }}"
+                    wire:navigate
+                    :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md' : 'text-white/85 hover:text-white hover:bg-white/15 font-semibold'"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
+                >
                     <div class="flex items-center gap-3">
                         <i class="ph ph-bell text-lg"></i>
                         <span>Notifications</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <x-sidebar-count-badge :count="$sidebarBadges['notifications'] ?? 0" label="unread notifications" />
-                        <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                        <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                     </div>
                 </a>
                 
                 <!-- Settings -->
-                <a href="#" 
-                   @click.prevent="activeTab = 'settings'"
-                   :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#0e5c3a] font-bold text-[13px] shadow-sm' : 'text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px]'"
-                   class="flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200">
-                    <div class="flex items-center gap-3">
-                        <i class="ph ph-gear text-lg"></i>
-                        <span>Settings</span>
-                    </div>
-                    <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                <a
+                    href="{{ route('facilitator.dashboard', ['tab' => 'settings']) }}"
+                    wire:navigate
+                    :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md' : 'text-white/85 hover:text-white hover:bg-white/15 font-semibold'"
+                    class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
+                >
+                    <i class="ph ph-gear text-lg"></i>
+                    <span>Settings</span>
                 </a>
 
                 <!-- Logout -->
-                <form method="POST" action="{{ route('logout') }}" class="block" data-confirm-logout>
+                <form method="POST" action="{{ route('logout') }}" data-confirm-logout>
                     @csrf
-                    <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/90 hover:text-white hover:bg-white/5 font-semibold text-[13px] transition-all duration-200 text-left cursor-pointer">
+                    <button type="submit" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-white/70 hover:text-rose-200 hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 font-semibold text-[13px] transition-all duration-200 text-left cursor-pointer">
                         <i class="ph ph-sign-out text-lg"></i>
                         <span>Logout</span>
                     </button>
                 </form>
             </div>
-            <div class="text-[9px] text-white/30 text-center font-medium mt-6">
-                NDMU © 2026 - v1.0
+            <div class="flex items-center justify-center gap-2 text-[9px] text-white/40 text-center font-medium mt-4">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400/60"></span>
+                <span>NDMU-RMAS © {{ now()->year }} · v1.0</span>
             </div>
         </div>
     </aside>
@@ -962,17 +916,20 @@
     <!-- Right Side: Content Area -->
     <div class="flex-1 flex flex-col min-h-screen pl-72">
         <!-- Top Nav Header -->
-        <header class="h-20 bg-white border-b border-gray-150 px-8 flex items-center justify-between sticky top-0 z-10 flex-shrink-0">
+        <header class="h-20 bg-white/85 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between sticky top-0 z-40 flex-shrink-0 transition-all">
             <!-- Search bar -->
             <div class="relative w-96">
-                <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 pointer-events-none">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 pointer-events-none">
                     <i class="ph ph-magnifying-glass text-base"></i>
                 </span>
                 <input
                     type="text"
                     placeholder="Search research, documents, or tasks..."
-                    class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-100 rounded-full text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-gray-350 transition-all duration-200"
+                    class="w-full pl-10 pr-14 py-2.5 bg-slate-100/80 border border-slate-200/60 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#0e5c3a] focus:ring-2 focus:ring-[#0e5c3a]/10 transition-all duration-200 shadow-2xs"
                 >
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <kbd class="px-1.5 py-0.5 text-[10px] font-bold text-slate-400 bg-white border border-slate-200 rounded-md shadow-2xs">Ctrl K</kbd>
+                </div>
             </div>
 
             <!-- Right profile area matching "F / Dr. Facilitator Portal" -->
@@ -981,13 +938,13 @@
                 <x-notification-dropdown />
                 
                 <!-- Facilitator Portal Profile Badge -->
-                <div class="flex items-center gap-3 pl-2 border-l border-gray-150">
-                    <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-xs">
+                <div class="flex items-center gap-3 pl-2 border-l border-slate-200">
+                    <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-xs shadow-2xs">
                         <i class="ph ph-user"></i>
                     </div>
                     <div class="flex flex-col leading-none">
-                        <span class="font-bold text-xs text-gray-800">{{ auth()->user()->name ?? 'Facilitator' }}</span>
-                        <span class="text-[9px] font-bold text-gray-400 mt-0.5">Facilitator Portal</span>
+                        <span class="font-bold text-xs text-slate-800">{{ auth()->user()->name ?? 'Facilitator' }}</span>
+                        <span class="text-[9px] font-bold text-slate-400 mt-0.5">Facilitator Portal</span>
                     </div>
                 </div>
             </div>
@@ -996,7 +953,6 @@
         <!-- Main Body Content -->
         <main class="flex-grow p-8 space-y-8">
             <x-portal-feature-banner class="mb-8" :sections="[
-                'dashboard' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Facilitator Dashboard', 'description' => 'Oversee Capstone classes, join requests, research groups, adviser assignments, and research operations.', 'icon' => 'ph-squares-four'],
                 'classes' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Capstone Classes', 'description' => 'Create and manage research classes, student rosters, and research groups.', 'icon' => 'ph-chalkboard-teacher'],
                 'join-requests' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Class Join Requests', 'description' => 'Review and approve or reject student class enrollment requests.', 'icon' => 'ph-user-plus'],
                 'monitoring' => ['eyebrow' => 'Research Facilitator Portal', 'title' => 'Research Monitoring', 'description' => 'Track milestone progress and progress status across research groups.', 'icon' => 'ph-chart-line-up'],
@@ -1017,402 +973,589 @@
             <div x-show="activeTab === 'join-requests'" x-cloak>
                 @include('pages.facilitator.join-requests')
             </div>
-            
+
             <!-- TAB: Dashboard (Active Default) -->
-            <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8">
-                <!-- Hero Header Card Section -->
-                <div class="relative overflow-hidden bg-white rounded-2xl p-8 border border-slate-200/60 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                    <!-- Subtle abstract NDMU logo watermark -->
-                    <div class="absolute -right-6 -bottom-6 opacity-[0.04] pointer-events-none">
-                        <img src="{{ asset('images/ndmu_logo.png') }}" alt="" class="w-64 h-auto">
+            <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Rich Branded Command Hub & Quick Action Header -->
+                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#0a462c] p-6 md:p-8 text-white shadow-xl shadow-emerald-950/20 border border-emerald-600/30">
+                    <!-- Ambient Glow & Watermark Logo -->
+                    <div class="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-[#eebc3f]/15 blur-3xl"></div>
+                    <div class="pointer-events-none absolute -left-12 -bottom-20 h-48 w-48 rounded-full bg-emerald-400/15 blur-2xl"></div>
+                    <div class="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 opacity-[0.08]">
+                        <img src="{{ asset('images/ndmu_logo.png') }}" alt="" class="h-36 md:h-44 w-auto object-contain">
                     </div>
 
-                    <div class="relative z-10 space-y-1">
-                        <div class="flex items-center gap-2 text-xs font-semibold text-slate-400">
-                            <span>{{ now()->timezone(config('ndmu-rmas.timezone'))->format('l, F j, Y') }}</span>
-                            <span>•</span>
-                            <span class="text-[#0e5c3a] font-bold">Research Facilitator Portal</span>
-                        </div>
-                        <h1 class="text-2xl md:text-3xl font-extrabold font-heading text-slate-900 tracking-tight">Welcome back, {{ auth()->user()->name }}</h1>
-                        <p class="text-xs text-slate-500 max-w-xl">Department Research Oversight & Monitoring • {{ auth()->user()->department ?? 'College of Information Technology' }}</p>
-                    </div>
-
-                    <div class="relative z-10 flex items-center gap-3">
-                        <a href="#pending-approvals" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200/80 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-2 border border-slate-200/60 transition-all cursor-pointer">
-                            <i class="ph ph-warning-circle text-amber-600 text-base"></i>
-                            <span>Pending Approvals</span>
-                        </a>
-                        <button @click="alert('Generating Research Q2 report summary PDF...')" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer">
-                            <i class="ph ph-chart-line-up text-base"></i>
-                            <span>Generate Report</span>
-                        </button>
-                    </div>
-                </div>
-
-                <x-pending-academic-actions-card :pendingActions="$pendingAcademicActions ?? []" />
-
-                <!-- Stats Cards Row (4 Columns matching widgets) -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <!-- Active Research -->
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
-                        <div>
-                            <span class="w-11 h-11 rounded-xl bg-emerald-50/80 text-[#0e5c3a] border border-emerald-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
-                                <i class="ph ph-book-open"></i>
-                            </span>
-                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Active Research</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">0</span>
-                            <span class="text-[10px] text-emerald-600 font-medium mt-1 block">&nbsp;</span>
-                        </div>
-                        <span class="text-emerald-600 text-xl font-bold">
-                            <i class="ph ph-trend-up"></i>
-                        </span>
-                    </div>
-
-                    <!-- Pending Approvals -->
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
-                        <div>
-                            <span class="w-11 h-11 rounded-xl bg-amber-50/80 text-amber-700 border border-amber-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
-                                <i class="ph ph-clipboard-text"></i>
-                            </span>
-                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Pending Approvals</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">0</span>
-                            <span class="text-[10px] text-amber-600 font-medium mt-1 block">&nbsp;</span>
-                        </div>
-                        <span class="text-amber-500 text-xl font-bold">
-                            <i class="ph ph-warning-circle"></i>
-                        </span>
-                    </div>
-
-                    <!-- Upcoming Defenses -->
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
-                        <div>
-                            <span class="w-11 h-11 rounded-xl bg-blue-50/80 text-blue-700 border border-blue-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
-                                <i class="ph ph-calendar"></i>
-                            </span>
-                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Upcoming Defenses</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">0</span>
-                            <span class="text-[10px] text-blue-600 font-medium mt-1 block">&nbsp;</span>
-                        </div>
-                        <span class="text-blue-500 text-xl font-bold">
-                            <i class="ph ph-clock"></i>
-                        </span>
-                    </div>
-
-                    <!-- Completed (2026) -->
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
-                        <div>
-                            <span class="w-11 h-11 rounded-xl bg-purple-50/80 text-purple-700 border border-purple-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
-                                <i class="ph ph-certificate"></i>
-                            </span>
-                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Completed</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block">0</span>
-                            <span class="text-[10px] text-purple-600 font-medium mt-1 block">&nbsp;</span>
-                        </div>
-                        <span class="text-purple-500 text-xl font-bold">
-                            <i class="ph ph-trend-up"></i>
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Graphs & Adviser Workloads Split Row -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Performance Trends Graph Mockup -->
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-6 lg:col-span-2">
-                        <div class="flex justify-between items-center pb-2 border-b border-slate-100">
-                            <div>
-                                <h3 class="font-heading font-bold text-slate-900 text-sm tracking-tight">Research Performance Trends</h3>
-                                <p class="text-xs text-slate-500 mt-0.5">Monthly completion and submission rates</p>
+                    <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/25 backdrop-blur-md border border-[#eebc3f]/30 text-[#eebc3f] font-black text-[10px] uppercase tracking-[0.16em]">
+                                    <span class="w-2 h-2 rounded-full bg-[#eebc3f] animate-pulse"></span>
+                                    Academic Year {{ now()->year }}-{{ now()->year + 1 }}
+                                </span>
+                                <span class="text-white/40 text-xs">•</span>
+                                <span class="text-emerald-200 text-xs font-semibold tracking-wide">{{ auth()->user()->department ?? 'Academic Research' }}</span>
                             </div>
-                            <select class="bg-slate-50 border border-slate-200 text-slate-700 text-xs px-3 py-1.5 rounded-xl outline-none font-medium">
-                                <option>Last 6 Months</option>
-                                <option>This Year</option>
-                            </select>
+                            <h1 class="text-2xl md:text-3xl font-black font-heading text-white tracking-tight drop-shadow-xs">
+                                Welcome back, {{ auth()->user()->name }}!
+                            </h1>
+                            <p class="text-xs md:text-sm text-emerald-100/85 max-w-2xl leading-relaxed">
+                                Department Research Facilitation &amp; Academic Program Operations
+                            </p>
                         </div>
 
-                        <!-- Pure CSS/SVG line graph representation -->
-                        <div class="relative h-48 w-full flex items-end justify-between pt-4 px-2 border-b border-l border-slate-200">
-                            <!-- SVG lines visual overlay representation -->
-                            <svg class="absolute inset-0 w-full h-full p-2" viewBox="0 0 400 120" preserveAspectRatio="none">
-                                <!-- Completed Line (Green) -->
-                                <path d="M 0 90 Q 80 50 160 70 T 320 20 T 400 10" fill="none" stroke="#0e5c3a" stroke-width="2.5" />
-                                <!-- In Progress Line (Blue) -->
-                                <path d="M 0 100 Q 80 80 160 50 T 320 60 T 400 40" fill="none" stroke="#3b82f6" stroke-width="2" />
-                                <!-- Delayed Line (Yellow) -->
-                                <path d="M 0 110 Q 80 105 160 100 T 320 85 T 400 90" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,3" />
-                            </svg>
-                            
-                            <!-- Columns to structure grid baseline references -->
-                            <span class="text-[9px] text-slate-400 font-bold relative z-10 bg-white px-1">Jan</span>
-                            <span class="text-[9px] text-slate-500 font-bold relative z-10 bg-slate-100 border border-slate-200 rounded px-1.5">Feb</span>
-                            <span class="text-[9px] text-slate-400 font-bold relative z-10 bg-white px-1">Mar</span>
-                            <span class="text-[9px] text-slate-400 font-bold relative z-10 bg-white px-1">Apr</span>
-                            <span class="text-[9px] text-slate-400 font-bold relative z-10 bg-white px-1">May</span>
-                            <span class="text-[9px] text-slate-400 font-bold relative z-10 bg-white px-1">Jun</span>
-                        </div>
+                        <!-- Quick Action Buttons -->
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <button
+                                type="button"
+                                @click="activeTab = 'classes'; queuePersistTab('classes')"
+                                class="px-4.5 py-2.5 bg-gradient-to-r from-[#eebc3f] to-[#f4c542] hover:brightness-105 text-[#073823] text-xs font-black rounded-xl flex items-center gap-2 shadow-md shadow-amber-950/20 transition-all cursor-pointer"
+                            >
+                                <i class="ph ph-plus-circle text-base"></i>
+                                <span>Manage Classes</span>
+                            </button>
 
-                        <!-- Graph Legend -->
-                        <div class="flex items-center gap-6 text-xs font-medium text-slate-600 justify-center">
-                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#0e5c3a] block"></span> Completed</span>
-                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 block"></span> In Progress</span>
-                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 block"></span> Delayed</span>
-                        </div>
-                    </div>
+                            <button
+                                type="button"
+                                @click="activeTab = 'screening'; queuePersistTab('screening')"
+                                class="px-4 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
+                            >
+                                <i class="ph ph-file-search text-base text-[#eebc3f]"></i>
+                                <span>Screening Queue</span>
+                                @if ($pendingTitleProposalScreeningCount + $defenseSchedulingReadyCount > 0)
+                                    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-amber-950">
+                                        {{ $pendingTitleProposalScreeningCount + $defenseSchedulingReadyCount }}
+                                    </span>
+                                @endif
+                            </button>
 
-                    <!-- Adviser Workload -->
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-5">
-                        <h3 class="font-heading font-bold text-slate-900 text-sm flex items-center gap-2 pb-2 border-b border-slate-100 tracking-tight">
-                            <i class="ph ph-users text-[#0e5c3a] text-lg"></i>
-                            <span>Adviser Workload</span>
-                        </h3>
+                            <button
+                                type="button"
+                                @click="activeTab = 'join-requests'; queuePersistTab('join-requests')"
+                                class="px-4 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
+                            >
+                                <i class="ph ph-user-plus text-base text-blue-300"></i>
+                                <span>Join Requests</span>
+                                @if ((int)($classRequestStats['pending'] ?? 0) > 0)
+                                    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-blue-400 text-blue-950">
+                                        {{ (int)($classRequestStats['pending'] ?? 0) }}
+                                    </span>
+                                @endif
+                            </button>
 
-                        <div class="space-y-4">
-                            <template x-for="adv in advisers" :key="adv.name">
-                                <div class="space-y-1">
-                                    <div class="flex justify-between items-center text-xs">
-                                        <span class="font-semibold text-slate-700" x-text="adv.name">Adviser Name</span>
-                                        <span class="font-bold text-slate-900" x-text="`${adv.load}/${adv.max}`">8/10</span>
-                                    </div>
-                                    <div class="h-2 bg-slate-100 rounded-full w-full overflow-hidden">
-                                        <div class="h-full rounded-full transition-all duration-300" :class="adv.color" :style="`width: ${(adv.load/adv.max)*100}%`"></div>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-
-                        <button @click="activeTab = 'advisers'" class="w-full text-center py-2.5 text-[#0e5c3a] font-bold text-xs hover:underline mt-2 cursor-pointer">
-                            View All Advisers →
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Section: Pending Approvals & Endorsements (Screenshot 2) -->
-                <div id="pending-approvals" class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-6">
-                    <div class="flex justify-between items-center pb-2 border-b border-gray-50">
-                        <div>
-                            <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2">
-                                <i class="ph ph-warning-circle text-amber-500"></i>
-                                <span>Pending Approvals & Endorsements</span>
-                            </h3>
-                            <p class="text-[10px] text-gray-400 mt-0.5">Items requiring Faculty Head approval</p>
-                        </div>
-                        <div class="flex gap-2">
-                            <button @click="alert('Filtering approvals...')" class="px-3 py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-[11px] font-bold rounded-xl cursor-pointer">Filter</button>
-                            <button @click="alert('Approved all pending submissions'); approvals.forEach(a => a.status = 'Approved')" class="px-3 py-1.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-[11px] font-bold rounded-xl cursor-pointer">Approve All</button>
-                        </div>
-                    </div>
-
-                    <div class="space-y-4">
-                        <template x-for="app in approvals" :key="app.id">
-                            <div x-show="app.status === 'Pending'" class="border border-gray-150 rounded-2xl p-5 flex items-center justify-between hover:border-emerald-100 hover:bg-emerald-50/5 transition-all">
-                                <div class="space-y-2">
-                                    <div class="flex items-center gap-2.5">
-                                        <span class="px-2 py-0.5 rounded text-[9px] font-bold tracking-wide uppercase" :class="app.typeClass" x-text="app.type">Proposal</span>
-                                        <span class="text-[10px] text-gray-400 font-semibold" x-text="app.date">May 20, 2026</span>
-                                    </div>
-                                    <h4 class="font-bold text-gray-850 text-sm" x-text="app.title">Project Title</h4>
-                                    <span class="text-xs text-gray-450 block">Student: <span class="font-bold text-gray-700" x-text="app.student">Maria Santos</span> • Adviser: <span class="font-semibold text-gray-650" x-text="app.adviser">Dr. Roberto Garcia</span></span>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <button @click="alert(`Approved: ${app.title}`); app.status = 'Approved'" class="px-4 py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer">
-                                        <i class="ph ph-check"></i> Approve
-                                    </button>
-                                    <button @click="selectedApproval = app" class="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer">
-                                        <i class="ph ph-eye"></i> Review
-                                    </button>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-
-                <!-- Section: Research Monitoring Board (Kanban - Screenshot 3) -->
-                <div class="bg-white rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-6">
-                    <div class="flex flex-wrap justify-between items-center pb-2 border-b border-gray-50 gap-4">
-                        <div>
-                            <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2">
-                                <i class="ph ph-chart-line-up text-emerald-600 text-lg"></i>
-                                <span>Research Monitoring Board</span>
-                            </h3>
-                            <p class="text-[10px] text-gray-400 mt-0.5">Live workflow tracking across all stages</p>
-                        </div>
-                        <div class="relative w-72">
-                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 pointer-events-none">
-                                <i class="ph ph-magnifying-glass text-sm"></i>
-                            </span>
-                            <input type="text" placeholder="Search research..." class="w-full pl-9 pr-8 py-1.5 bg-gray-50 border border-gray-150 rounded-full text-xs text-gray-800 placeholder-gray-400 outline-none">
-                            <button class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer">
-                                <i class="ph ph-sliders"></i>
+                            <button
+                                type="button"
+                                @click="activeTab = 'defenses'; queuePersistTab('defenses')"
+                                class="px-4 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
+                            >
+                                <i class="ph ph-calendar text-base text-purple-300"></i>
+                                <span>Defenses</span>
                             </button>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Horizontally scrollable Kanban area -->
-                    <div class="overflow-x-auto pb-4 flex gap-6">
-                        <template x-for="col in kanban" :key="col.stage">
-                            <div class="flex-shrink-0 w-72 bg-gray-50/50 border border-gray-100/80 rounded-2xl p-4 space-y-4">
-                                <!-- Stage Header -->
-                                <div class="flex items-center justify-between pb-2 border-b border-gray-100">
-                                    <span class="text-xs font-bold text-gray-700" x-text="col.stage">Title Presentation</span>
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold" :class="col.color" x-text="col.count">0</span>
-                                </div>
+                <!-- Academic Pending Actions Widget -->
+                <x-pending-academic-actions-card :pendingActions="$pendingAcademicActions ?? []" />
 
-                                <!-- Stage Cards -->
-                                <div class="space-y-3">
-                                    <template x-if="col.items.length === 0">
-                                        <div class="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center text-xs text-gray-450">
-                                            No research in this stage
-                                        </div>
-                                    </template>
-                                    <template x-for="item in col.items" :key="item.code">
-                                        <div class="bg-white border border-gray-100 rounded-xl p-4 shadow-xs space-y-3 hover:shadow-sm transition-shadow">
-                                            <div class="flex justify-between items-center">
-                                                <span class="text-[9px] font-extrabold text-emerald-800" x-text="item.code">RES-2026-005</span>
-                                                <i class="ph ph-dots-three-vertical text-gray-400"></i>
-                                            </div>
-                                            <h5 class="font-bold text-gray-800 text-xs line-clamp-2" x-text="item.title">Research Title</h5>
-                                            
-                                            <!-- Meta info links -->
-                                            <div class="space-y-1.5 text-[10px] text-gray-400 font-semibold">
-                                                <div class="flex items-center gap-1.5">
-                                                    <i class="ph ph-user"></i>
-                                                    <span class="truncate text-gray-600" x-text="item.students">Students</span>
-                                                </div>
-                                                <div class="flex items-center gap-1.5">
-                                                    <i class="ph ph-users"></i>
-                                                    <span class="truncate text-gray-600" x-text="item.adviser">Adviser</span>
-                                                </div>
-                                                <div class="flex items-center gap-1.5">
-                                                    <i class="ph ph-calendar"></i>
-                                                    <span x-text="item.date">Date</span>
-                                                </div>
-                                            </div>
-
-                                            <div class="space-y-1 pt-1 border-t border-gray-50">
-                                                <div class="flex justify-between items-center text-[9px] font-bold">
-                                                    <span class="text-gray-400">Progress</span>
-                                                    <span class="text-emerald-700" x-text="`${item.progress}%`">30%</span>
-                                                </div>
-                                                <div class="h-1 bg-gray-100 rounded-full w-full overflow-hidden">
-                                                    <div class="h-full rounded-full" :class="item.progressColor" :style="`width: ${item.progress}%`"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </template>
+                <!-- Modern Vibrant 4-KPI Metric Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <!-- KPI 1: Active Capstone Classes -->
+                    <div
+                        @click="activeTab = 'classes'; queuePersistTab('classes')"
+                        class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
+                    >
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
+                        <div class="absolute -right-3 -bottom-3 text-slate-100/70 group-hover:text-emerald-50 text-7xl font-bold transition-colors pointer-events-none -z-0 select-none">
+                            <i class="ph ph-chalkboard-teacher"></i>
+                        </div>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between">
+                                <span class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-[#0e5c3a] text-white shadow-md shadow-emerald-700/20 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                                    <i class="ph ph-chalkboard-teacher"></i>
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-[#0e5c3a] border border-emerald-100 group-hover:bg-[#0e5c3a] group-hover:text-white transition-all">
+                                    <span>Classes</span>
+                                    <i class="ph ph-arrow-up-right"></i>
+                                </span>
+                            </div>
+                            <div class="mt-5">
+                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Capstone Classes</span>
+                                <span class="text-3xl font-black text-slate-900 tracking-tight mt-1 block">{{ $classes->count() }}</span>
+                                <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100">
+                                    <span>{{ $classes->sum('active_students_count') }} Students Enrolled</span>
+                                    <span class="font-bold text-[#0e5c3a]">Active</span>
                                 </div>
                             </div>
-                        </template>
+                        </div>
+                    </div>
+
+                    <!-- KPI 2: Active Research Groups -->
+                    <div
+                        @click="activeTab = 'monitoring'; queuePersistTab('monitoring')"
+                        class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
+                    >
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
+                        <div class="absolute -right-3 -bottom-3 text-slate-100/70 group-hover:text-blue-50 text-7xl font-bold transition-colors pointer-events-none -z-0 select-none">
+                            <i class="ph ph-users-three"></i>
+                        </div>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between">
+                                <span class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-700 text-white shadow-md shadow-blue-700/20 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                                    <i class="ph ph-users-three"></i>
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                    <span>Cohorts</span>
+                                    <i class="ph ph-arrow-up-right"></i>
+                                </span>
+                            </div>
+                            <div class="mt-5">
+                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Research Groups</span>
+                                <span class="text-3xl font-black text-slate-900 tracking-tight mt-1 block">{{ $classes->sum('active_groups_count') }}</span>
+                                <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100">
+                                    <span>Across {{ $classes->count() }} class section{{ $classes->count() === 1 ? '' : 's' }}</span>
+                                    <span class="font-bold text-blue-600">In Progress</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 3: Action & Screening Queue -->
+                    <div
+                        @click="activeTab = 'screening'; queuePersistTab('screening')"
+                        class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
+                    >
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
+                        <div class="absolute -right-3 -bottom-3 text-slate-100/70 group-hover:text-amber-50 text-7xl font-bold transition-colors pointer-events-none -z-0 select-none">
+                            <i class="ph ph-clipboard-text"></i>
+                        </div>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between">
+                                <span class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-600 text-white shadow-md shadow-amber-600/20 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 relative">
+                                    <i class="ph ph-clipboard-text"></i>
+                                    @if ((int)($classRequestStats['pending'] ?? 0) + $pendingTitleProposalScreeningCount + $defenseSchedulingReadyCount > 0)
+                                        <span class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>
+                                    @endif
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 group-hover:bg-amber-500 group-hover:text-white transition-all">
+                                    <span>Review</span>
+                                    <i class="ph ph-arrow-up-right"></i>
+                                </span>
+                            </div>
+                            <div class="mt-5">
+                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Pending Queue</span>
+                                <span class="text-3xl font-black text-slate-900 tracking-tight mt-1 block">
+                                    {{ (int)($classRequestStats['pending'] ?? 0) + $pendingTitleProposalScreeningCount + $defenseSchedulingReadyCount }}
+                                </span>
+                                <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100">
+                                    <span>{{ (int)($classRequestStats['pending'] ?? 0) }} Join Req · {{ $pendingTitleProposalScreeningCount + $defenseSchedulingReadyCount }} Docs</span>
+                                    <span class="font-bold text-amber-600">Action Needed</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 4: Defense Presentations -->
+                    <div
+                        @click="activeTab = 'defenses'; queuePersistTab('defenses')"
+                        class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
+                    >
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
+                        <div class="absolute -right-3 -bottom-3 text-slate-100/70 group-hover:text-purple-50 text-7xl font-bold transition-colors pointer-events-none -z-0 select-none">
+                            <i class="ph ph-calendar-check"></i>
+                        </div>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between">
+                                <span class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-800 text-white shadow-md shadow-purple-700/20 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                                    <i class="ph ph-calendar-check"></i>
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-100 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                                    <span>Schedule</span>
+                                    <i class="ph ph-arrow-up-right"></i>
+                                </span>
+                            </div>
+                            <div class="mt-5">
+                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Defense Schedules</span>
+                                <span class="text-3xl font-black text-slate-900 tracking-tight mt-1 block">{{ count($defenses) }}</span>
+                                <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100">
+                                    <span>{{ collect($defenses)->where('defense_status', 'scheduled')->count() }} Scheduled</span>
+                                    <span class="font-bold text-purple-600">Calendar</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Lower Split row: Category vs Defenses -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Research by Category -->
-                    <div class="bg-white rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-5 lg:col-span-2">
-                        <h3 class="font-bold text-gray-800 text-sm pb-2 border-b border-gray-50">Research by Category</h3>
-                        
-                        <div class="space-y-4">
-                            <template x-for="cat in categories" :key="cat.name">
-                                <div class="space-y-1">
-                                    <div class="flex justify-between items-center text-xs font-semibold text-gray-700">
-                                        <span x-text="cat.name">Category</span>
-                                        <span class="font-bold text-gray-850" x-text="`${cat.count} projects`">12 projects</span>
+                <!-- Main Two-Column Interactive Command Center (Grid 12: 8 cols left, 4 cols right) -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <!-- Left Main Column (8 cols) -->
+                    <div class="lg:col-span-8 space-y-8">
+                        <!-- Active Capstone Classes Workspace Hub -->
+                        <div class="bg-white rounded-2xl p-6 md:p-7 border border-slate-200/60 shadow-xs space-y-6">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-3">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full bg-[#0e5c3a]"></span>
+                                        <h3 class="font-heading font-black text-slate-900 text-base tracking-tight">
+                                            My Capstone Classes
+                                        </h3>
                                     </div>
-                                    <div class="h-2 bg-gray-100 rounded-full w-full overflow-hidden">
-                                        <div class="h-full rounded-full transition-all duration-300" :class="cat.color" :style="`width: ${cat.percent}%`"></div>
+                                    <p class="text-xs text-slate-500 mt-0.5">Active research classes under your direct academic facilitation</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    @click="activeTab = 'classes'; queuePersistTab('classes')"
+                                    class="text-xs font-bold text-[#0e5c3a] hover:text-[#09472d] flex items-center gap-1 cursor-pointer transition-colors"
+                                >
+                                    <span>View All Classes</span>
+                                    <i class="ph ph-caret-right text-sm"></i>
+                                </button>
+                            </div>
+
+                            <!-- Classes Grid -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                @forelse ($classes as $researchClass)
+                                    <div class="rounded-2xl border border-slate-200/80 bg-slate-50/50 hover:bg-white hover:border-[#0e5c3a]/40 p-5 shadow-2xs hover:shadow-md transition-all space-y-4">
+                                        <!-- Header row -->
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div class="min-w-0 flex-1">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider {{ $researchClass->is_active ? 'bg-emerald-50 text-[#0e5c3a] border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200' }}">
+                                                        {{ $researchClass->is_active ? 'Active' : 'Closed' }}
+                                                    </span>
+                                                </div>
+                                                <h4 class="font-bold text-slate-900 text-sm mt-1.5 truncate">{{ $researchClass->name }}</h4>
+                                                @if ($researchClass->description)
+                                                    <p class="text-[11px] text-slate-500 mt-0.5 line-clamp-1">{{ $researchClass->description }}</p>
+                                                @endif
+                                            </div>
+
+                                            <!-- Join Code 1-Click Copy Pill -->
+                                            <button
+                                                type="button"
+                                                @click="navigator.clipboard.writeText('{{ $researchClass->revealJoinCode() }}'); copiedCode = {{ $researchClass->id }}; setTimeout(() => copiedCode = null, 2000)"
+                                                class="shrink-0 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100/80 border border-amber-200/80 text-amber-800 text-[11px] font-black tracking-wider flex items-center gap-1.5 cursor-pointer transition-all shadow-2xs"
+                                                title="Click to copy join code"
+                                            >
+                                                <i class="ph" :class="copiedCode === {{ $researchClass->id }} ? 'ph-check-bold text-emerald-600' : 'ph-copy'"></i>
+                                                <span x-text="copiedCode === {{ $researchClass->id }} ? 'COPIED!' : '{{ $researchClass->revealJoinCode() }}'"></span>
+                                            </button>
+                                        </div>
+
+                                        <!-- Enrollment Capacity Bar -->
+                                        <div class="space-y-1.5 pt-1">
+                                            <div class="flex items-center justify-between text-[11px] font-bold text-slate-600">
+                                                <span>Student Enrollment</span>
+                                                <span>{{ $researchClass->active_students_count }} / {{ $researchClass->max_students }}</span>
+                                            </div>
+                                            <div class="h-2 bg-slate-200/70 rounded-full w-full overflow-hidden">
+                                                <div
+                                                    class="h-full rounded-full bg-gradient-to-r from-[#0e5c3a] to-emerald-400 transition-all duration-500"
+                                                    style="width: {{ min(100, $researchClass->max_students > 0 ? ($researchClass->active_students_count / $researchClass->max_students) * 100 : 0) }}%"
+                                                ></div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Footer / Action Link -->
+                                        <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                                            <div class="flex items-center gap-1.5 text-slate-600 font-semibold text-[11px]">
+                                                <i class="ph ph-users text-[#0e5c3a]"></i>
+                                                <span>{{ $researchClass->active_groups_count }} Research Groups</span>
+                                            </div>
+
+                                            <a
+                                                href="{{ route('facilitator.classes.show', $researchClass) }}"
+                                                class="px-3 py-1.5 bg-white hover:bg-[#0e5c3a] text-[#0e5c3a] hover:text-white border border-[#0e5c3a]/30 font-bold text-[11px] rounded-xl shadow-2xs transition-all flex items-center gap-1"
+                                            >
+                                                <span>Open Workspace</span>
+                                                <i class="ph ph-caret-right"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="col-span-full rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-10 text-center space-y-3">
+                                        <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-[#0e5c3a] border border-emerald-100 flex items-center justify-center text-3xl mx-auto shadow-2xs">
+                                            <i class="ph ph-chalkboard-teacher"></i>
+                                        </div>
+                                        <div class="space-y-1">
+                                            <h4 class="font-bold text-slate-800 text-sm">No Capstone Classes Yet</h4>
+                                            <p class="text-xs text-slate-500 max-w-sm mx-auto">Create your first capstone research class to generate join codes and manage student cohorts.</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            @click="activeTab = 'classes'; queuePersistTab('classes')"
+                                            class="px-4 py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer inline-flex items-center gap-2"
+                                        >
+                                            <i class="ph ph-plus-circle"></i>
+                                            <span>Create First Class</span>
+                                        </button>
+                                    </div>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        <!-- Research Lifecycle Pipeline Flow -->
+                        <div class="bg-white rounded-2xl p-6 md:p-7 border border-slate-200/60 shadow-xs space-y-6">
+                            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full bg-indigo-600"></span>
+                                        <h3 class="font-heading font-black text-slate-900 text-base tracking-tight">
+                                            Research Lifecycle Progression
+                                        </h3>
+                                    </div>
+                                    <p class="text-xs text-slate-500 mt-0.5">Overall milestone throughput across all managed research cohorts</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    @click="activeTab = 'monitoring'; queuePersistTab('monitoring')"
+                                    class="text-xs font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1 cursor-pointer transition-colors"
+                                >
+                                    <span>Full Monitoring Board</span>
+                                    <i class="ph ph-caret-right text-sm"></i>
+                                </button>
+                            </div>
+
+                            <!-- 4-Stage Horizontal Pipeline -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <!-- Stage 1: Proposal Screening -->
+                                <div class="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/70 space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center text-base font-bold shadow-2xs">
+                                            1
+                                        </span>
+                                        <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Phase I</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-xs font-bold text-slate-800 block">Title &amp; Proposal</span>
+                                        <span class="text-lg font-black text-amber-700 mt-1 block">
+                                            {{ $pendingTitleProposalScreeningCount }} In Screening
+                                        </span>
+                                    </div>
+                                    <div class="h-1.5 bg-amber-200/60 rounded-full overflow-hidden">
+                                        <div class="h-full bg-amber-500 rounded-full" style="width: {{ $pendingTitleProposalScreeningCount > 0 ? '60%' : '10%' }}"></div>
                                     </div>
                                 </div>
-                            </template>
+
+                                <!-- Stage 2: Manuscript & Advising -->
+                                <div class="p-4 rounded-2xl bg-blue-50/60 border border-blue-200/70 space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="w-8 h-8 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center text-base font-bold shadow-2xs">
+                                            2
+                                        </span>
+                                        <span class="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Phase II</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-xs font-bold text-slate-800 block">Review &amp; Advising</span>
+                                        <span class="text-lg font-black text-blue-700 mt-1 block">
+                                            {{ $classes->sum('active_groups_count') }} Groups Active
+                                        </span>
+                                    </div>
+                                    <div class="h-1.5 bg-blue-200/60 rounded-full overflow-hidden">
+                                        <div class="h-full bg-blue-500 rounded-full" style="width: 75%"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Stage 3: Defense & Scoring -->
+                                <div class="p-4 rounded-2xl bg-purple-50/60 border border-purple-200/70 space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="w-8 h-8 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center text-base font-bold shadow-2xs">
+                                            3
+                                        </span>
+                                        <span class="text-[10px] font-bold text-purple-700 uppercase tracking-wider">Phase III</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-xs font-bold text-slate-800 block">Defense &amp; Evaluation</span>
+                                        <span class="text-lg font-black text-purple-700 mt-1 block">
+                                            {{ count($defenses) }} Defenses
+                                        </span>
+                                    </div>
+                                    <div class="h-1.5 bg-purple-200/60 rounded-full overflow-hidden">
+                                        <div class="h-full bg-purple-500 rounded-full" style="width: 50%"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Stage 4: Approval & Archiving -->
+                                <div class="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/70 space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="w-8 h-8 rounded-xl bg-emerald-100 text-[#0e5c3a] flex items-center justify-center text-base font-bold shadow-2xs">
+                                            4
+                                        </span>
+                                        <span class="text-[10px] font-bold text-[#0e5c3a] uppercase tracking-wider">Phase IV</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-xs font-bold text-slate-800 block">Final Archiving</span>
+                                        <span class="text-lg font-black text-[#0e5c3a] mt-1 block">
+                                            {{ collect($defenses)->where('defense_status', 'completed')->count() }} Completed
+                                        </span>
+                                    </div>
+                                    <div class="h-1.5 bg-emerald-200/60 rounded-full overflow-hidden">
+                                        <div class="h-full bg-[#0e5c3a] rounded-full" style="width: 80%"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Upcoming Defenses list -->
-                    <div class="bg-white rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-4">
-                        <div class="flex justify-between items-center pb-2 border-b border-gray-50">
-                            <h3 class="font-bold text-gray-800 text-sm">Upcoming Defenses</h3>
-                            <button @click="activeTab = 'defenses'" class="text-[#0e5c3a] font-bold text-xs hover:underline cursor-pointer">View All →</button>
+                    <!-- Right Sidebar Column (4 cols) -->
+                    <div class="lg:col-span-4 space-y-8">
+                        <!-- Urgent Review & Action Feed -->
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs space-y-5">
+                            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                                <div class="flex items-center gap-2">
+                                    <i class="ph ph-bell-ringing text-amber-500 text-lg"></i>
+                                    <h3 class="font-heading font-black text-slate-900 text-sm tracking-tight">Review &amp; Action Feed</h3>
+                                </div>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">Live</span>
+                            </div>
+
+                            <div class="space-y-3">
+                                <!-- Join Requests item preview -->
+                                @if ((int)($classRequestStats['pending'] ?? 0) > 0)
+                                    <div
+                                        @click="activeTab = 'join-requests'; queuePersistTab('join-requests')"
+                                        class="p-3.5 rounded-xl bg-blue-50/60 border border-blue-200/80 hover:bg-blue-100/60 transition-all cursor-pointer flex items-center justify-between"
+                                    >
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <span class="w-9 h-9 rounded-xl bg-blue-500 text-white flex items-center justify-center text-base shrink-0 shadow-2xs">
+                                                <i class="ph ph-user-plus"></i>
+                                            </span>
+                                            <div class="min-w-0">
+                                                <span class="font-bold text-slate-900 text-xs block truncate">Student Join Requests</span>
+                                                <span class="text-[11px] text-blue-700 font-semibold">{{ (int)$classRequestStats['pending'] }} request{{ (int)$classRequestStats['pending'] === 1 ? '' : 's' }} awaiting approval</span>
+                                            </div>
+                                        </div>
+                                        <i class="ph ph-caret-right text-blue-500 text-base"></i>
+                                    </div>
+                                @endif
+
+                                <!-- Screening documents queue preview -->
+                                @if ($pendingTitleProposalScreeningCount > 0)
+                                    <div
+                                        @click="activeTab = 'screening'; queuePersistTab('screening')"
+                                        class="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200/80 hover:bg-amber-100/60 transition-all cursor-pointer flex items-center justify-between"
+                                    >
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <span class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center text-base shrink-0 shadow-2xs">
+                                                <i class="ph ph-file-search"></i>
+                                            </span>
+                                            <div class="min-w-0">
+                                                <span class="font-bold text-slate-900 text-xs block truncate">Title Proposals</span>
+                                                <span class="text-[11px] text-amber-700 font-semibold">{{ $pendingTitleProposalScreeningCount }} proposal{{ $pendingTitleProposalScreeningCount === 1 ? '' : 's' }} to screen</span>
+                                            </div>
+                                        </div>
+                                        <i class="ph ph-caret-right text-amber-500 text-base"></i>
+                                    </div>
+                                @endif
+
+                                <!-- Defense documents ready for scheduling -->
+                                @if ($defenseSchedulingReadyCount > 0)
+                                    <div
+                                        @click="activeTab = 'screening'; queuePersistTab('screening')"
+                                        class="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200/80 hover:bg-emerald-100/60 transition-all cursor-pointer flex items-center justify-between"
+                                    >
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <span class="w-9 h-9 rounded-xl bg-[#0e5c3a] text-white flex items-center justify-center text-base shrink-0 shadow-2xs">
+                                                <i class="ph ph-calendar-plus"></i>
+                                            </span>
+                                            <div class="min-w-0">
+                                                <span class="font-bold text-slate-900 text-xs block truncate">Ready for Defense Scheduling</span>
+                                                <span class="text-[11px] text-emerald-700 font-semibold">{{ $defenseSchedulingReadyCount }} group{{ $defenseSchedulingReadyCount === 1 ? '' : 's' }} endorsed</span>
+                                            </div>
+                                        </div>
+                                        <i class="ph ph-caret-right text-emerald-600 text-base"></i>
+                                    </div>
+                                @endif
+
+                                <!-- All Caught Up State -->
+                                @if ((int)($classRequestStats['pending'] ?? 0) === 0 && $pendingTitleProposalScreeningCount === 0 && $defenseSchedulingReadyCount === 0)
+                                    <div class="p-6 text-center rounded-xl bg-slate-50 border border-slate-100 space-y-2">
+                                        <i class="ph ph-check-circle text-3xl text-emerald-600"></i>
+                                        <p class="text-xs font-bold text-slate-800">All Caught Up!</p>
+                                        <p class="text-[11px] text-slate-500">No pending student join requests or documents awaiting screening.</p>
+                                    </div>
+                                @endif
+                            </div>
                         </div>
 
-                        <div class="space-y-4">
-                            <template x-for="def in defenses" :key="def.title">
-                                <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors">
-                                    <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm flex-shrink-0">
-                                        <i class="ph ph-calendar"></i>
-                                    </div>
-                                    <div class="min-w-0 flex-1">
-                                        <span class="font-bold text-gray-800 text-xs block truncate" x-text="def.title">Project Title</span>
-                                        <span class="text-[10px] text-gray-400 block mt-0.5 truncate" x-text="`Student: ${def.student}`">Student Name</span>
-                                        <div class="flex items-center gap-2 mt-1.5 flex-wrap">
-                                            <span class="px-2 py-0.5 bg-blue-50 text-blue-700 text-[9px] rounded font-bold" x-text="def.type">Final Defense</span>
-                                            <span class="text-[9px] text-gray-450 font-semibold" x-text="def.date">Date info</span>
+                        <!-- Upcoming Defenses Radar -->
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs space-y-5">
+                            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                                <div class="flex items-center gap-2">
+                                    <i class="ph ph-calendar text-[#0e5c3a] text-lg"></i>
+                                    <h3 class="font-heading font-black text-slate-900 text-sm tracking-tight">Upcoming Defenses</h3>
+                                </div>
+                                <button
+                                    type="button"
+                                    @click="activeTab = 'defenses'; queuePersistTab('defenses')"
+                                    class="text-xs font-bold text-[#0e5c3a] hover:underline cursor-pointer"
+                                >
+                                    Calendar →
+                                </button>
+                            </div>
+
+                            <div class="space-y-3">
+                                @forelse (collect($defenses)->take(3) as $def)
+                                    <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 space-y-2">
+                                        <div class="flex items-center justify-between">
+                                            <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider {{ str_contains(strtolower($def['defense_type_label'] ?? ''), 'final') ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-emerald-50 text-[#0e5c3a] border border-emerald-200' }}">
+                                                {{ $def['defense_type_label'] ?? 'Defense' }}
+                                            </span>
+                                            <span class="text-[11px] font-bold text-slate-500">{{ $def['formatted_date'] ?? 'TBA' }}</span>
+                                        </div>
+                                        <h5 class="font-bold text-slate-900 text-xs line-clamp-1">{{ $def['research_title'] ?? ($def['group_name'] ?? 'Research Presentation') }}</h5>
+                                        <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                                            <span class="truncate">{{ $def['group_name'] ?? 'Advisee Group' }}</span>
+                                            <span class="font-bold text-slate-700 shrink-0">{{ $def['room_name'] ?? ($def['room_code'] ?? 'Room TBA') }}</span>
                                         </div>
                                     </div>
+                                @empty
+                                    <div class="p-6 text-center rounded-xl bg-slate-50 border border-slate-100 space-y-2">
+                                        <i class="ph ph-calendar-blank text-3xl text-slate-300"></i>
+                                        <p class="text-xs font-bold text-slate-700">No Defenses Scheduled</p>
+                                        <p class="text-[11px] text-slate-500">Upcoming defense sessions will appear here once scheduled.</p>
+                                    </div>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        <!-- Faculty Advisers Pool Summary -->
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs space-y-5">
+                            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                                <div class="flex items-center gap-2">
+                                    <i class="ph ph-users text-[#0e5c3a] text-lg"></i>
+                                    <h3 class="font-heading font-black text-slate-900 text-sm tracking-tight">Faculty Adviser Pool</h3>
                                 </div>
-                            </template>
+                                <span class="text-[11px] font-bold text-slate-500">{{ count($classAdviserOptions ?? []) }} Active</span>
+                            </div>
+
+                            <div class="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+                                @forelse (collect($classAdviserOptions ?? [])->take(5) as $adv)
+                                    <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+                                        <div class="flex items-center gap-2.5 min-w-0">
+                                            <div class="w-7 h-7 rounded-lg bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-[10px] shrink-0">
+                                                {{ Illuminate\Support\Str::upper(Illuminate\Support\Str::substr($adv->name, 0, 1)) }}
+                                            </div>
+                                            <span class="font-bold text-slate-800 truncate">{{ $adv->name }}</span>
+                                        </div>
+                                        <span class="text-[10px] text-slate-400 font-semibold shrink-0">{{ $adv->department ?? 'Faculty' }}</span>
+                                    </div>
+                                @empty
+                                    <p class="text-xs text-slate-400 text-center py-4">No active advisers found in faculty pool.</p>
+                                @endforelse
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- TAB: Notifications Center -->
-            <div x-show="activeTab === 'notifications'" x-cloak class="space-y-8">
-                <div class="flex flex-col gap-2">
-                    <div class="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                        <span>Dashboard</span>
-                        <span>/</span>
-                        <span class="text-[#0e5c3a]">Notifications Center</span>
-                    </div>
-                    
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h1 class="text-2xl font-bold font-heading text-gray-800">Notifications Center</h1>
-                            <p class="text-xs text-gray-450 mt-1">Showing notifications for: <span class="font-bold text-gray-850">Research Facilitator</span></p>
-                        </div>
-                        
-                        <div class="flex items-center gap-3">
-                            <button @click="notifications.forEach(n => n.unread = false)" class="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl flex items-center gap-2 shadow-sm transition-all duration-200 cursor-pointer">
-                                <span>✓</span>
-                                <span>Mark All Read</span>
-                            </button>
-                            <button class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-[#0e5c3a]/15 transition-all duration-200">
-                                <i class="ph ph-bell text-base font-bold"></i>
-                                <span x-text="`${notifications.filter(n => n.unread).length} Unread`">1 Unread</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Notifications List -->
-                <div class="space-y-4">
-                    <template x-for="item in notifications" :key="item.id">
-                        <div 
-                            class="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6 flex items-start gap-4 hover:border-gray-200 transition-all duration-200 relative group"
-                            :class="item.unread ? 'border-l-4 border-l-[#0e5c3a]' : ''"
-                        >
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0" :class="item.iconBg">
-                                <i :class="item.icon"></i>
-                            </div>
-
-                            <div class="flex-1 space-y-3">
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <h4 class="font-bold text-gray-800 text-sm" x-text="item.title">Notification Title</h4>
-                                    <template x-if="item.isNew">
-                                        <span class="px-2 py-0.5 rounded bg-emerald-700 text-white text-[9px] font-bold">New</span>
-                                    </template>
-                                    <span class="px-2 py-0.5 rounded text-[9px] font-semibold" :class="item.badgeClass" x-text="item.badge">Category</span>
-                                </div>
-                                
-                                <p class="text-xs text-gray-550 leading-relaxed" x-text="item.description">
-                                    Notification description body copy.
-                                </p>
-                                
-                                <div class="flex items-center gap-1.5 text-[10px] text-gray-400 font-semibold">
-                                    <i class="ph ph-clock"></i>
-                                    <span x-text="item.time">1 hour ago</span>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
-                </div>
+            <div x-show="activeTab === 'notifications'" x-cloak class="space-y-8 animate-fade-in">
+                <x-notifications.center
+                    :notifications="$userNotifications ?? collect()"
+                    :unread-count="$userUnreadCount ?? 0"
+                    :filter="$notificationFilter ?? 'all'"
+                    :dashboard-route="route('facilitator.dashboard')"
+                />
             </div>
 
             <!-- TAB: Research Monitoring -->
@@ -1422,6 +1565,8 @@
                         :groups="$progressGroups"
                         :search="$progressSearch"
                         :group-status="$progressGroupStatus"
+                        :group-id="$progressGroupId ?? null"
+                        :all-filter-groups="$allFilterGroups ?? null"
                     />
                 @else
                     <div class="rounded-3xl border border-gray-100 bg-white p-12 text-center text-gray-500">
@@ -1604,245 +1749,309 @@
 
                 @endif
                 @endif
-            </div>
-            <!-- TAB: Research Screening (Proposal Management) -->
+              <!-- TAB: Research Screening (Proposal Management) -->
             <div x-show="activeTab === 'screening'" x-cloak class="space-y-8 animate-fade-in">
                 <!-- Breadcrumbs & Header -->
-                <div class="flex flex-col gap-2">
-                    <div class="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                        <span>Dashboard</span>
-                        <span>/</span>
-                        <span class="text-[#0e5c3a]">Research Screening</span>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">
+                            <span>Facilitator Portal</span>
+                            <span>/</span>
+                            <span class="text-[#0e5c3a]">Research Screening</span>
+                        </div>
+                        <h1 class="text-2xl sm:text-3xl font-black font-heading text-slate-900 tracking-tight">
+                            Research Proposal Screening
+                        </h1>
+                        <p class="mt-1 text-xs text-slate-500 font-medium">
+                            Screen incoming Title Proposals and review adviser-approved defense manuscripts.
+                        </p>
                     </div>
                     
-                    <div class="flex justify-between items-center flex-wrap gap-4">
-                        <div>
-                            <h1 class="text-2xl font-bold font-heading text-gray-800">Proposal Management</h1>
-                            <p class="text-xs text-gray-455 mt-1">Manage research proposals and approvals</p>
-                        </div>
-                        
-                        <!-- Proposal Selection Dropdown -->
-                        <div class="flex items-center gap-3">
-                            <label for="proposal-select" class="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Proposal:</label>
-                            <select 
-                                id="proposal-select"
-                                x-model.number="selectedProposalId" 
-                                class="bg-white border border-gray-250 text-gray-700 text-xs px-3.5 py-2 rounded-xl outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all cursor-pointer"
-                            >
-                                <template x-for="p in proposalList" :key="p.id">
-                                    <option :value="p.id" x-text="`[${p.proposal_id}] ${p.title}`"></option>
-                                </template>
-                            </select>
-                        </div>
-                    </div>
+                    <button
+                        type="button"
+                        @click="activeTab = 'repository'; queuePersistTab('repository')"
+                        class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 px-4.5 py-2.5 text-xs font-bold text-[#0e5c3a] shadow-2xs hover:shadow-xs transition-all cursor-pointer shrink-0"
+                    >
+                        <i class="ph ph-folder-open text-base text-[#eebc3f]"></i>
+                        <span>Open Research Repository</span>
+                    </button>
                 </div>
 
-                <section class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                <!-- Title Proposals Awaiting Screening Section -->
+                <section class="rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-7 shadow-sm space-y-5 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-400 via-orange-500 to-[#0e5c3a]"></div>
+                    
                     <div class="flex items-center justify-between gap-3">
-                        <div><h2 class="font-bold text-gray-850">Title Proposals Awaiting Screening</h2><p class="mt-1 text-xs text-gray-455">Approval here only unlocks RES-026; it does not finalize the research title.</p></div>
-                        <span class="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-700">{{ $pendingTitleProposalScreeningCount }}</span>
+                        <div class="flex items-center gap-3">
+                            <span class="w-10 h-10 rounded-2xl bg-amber-50 text-amber-800 flex items-center justify-center text-xl font-bold shadow-2xs">
+                                <i class="ph ph-file-search"></i>
+                            </span>
+                            <div>
+                                <h2 class="text-base sm:text-lg font-black font-heading text-slate-900">Title Proposals Awaiting Screening</h2>
+                                <p class="text-xs text-slate-500 font-medium">Approval here validates the document for Title Presentation (RES-026).</p>
+                            </div>
+                        </div>
+                        <span class="rounded-full px-3 py-1 text-xs font-black {{ $pendingTitleProposalScreeningCount > 0 ? 'bg-amber-100 text-amber-900 border border-amber-200 animate-pulse' : 'bg-slate-100 text-slate-500 border border-slate-200' }}">
+                            {{ $pendingTitleProposalScreeningCount }} {{ Str::plural('Queue', $pendingTitleProposalScreeningCount) }}
+                        </span>
                     </div>
-                    <div class="mt-4 space-y-3">
+
+                    <div class="space-y-4">
                         @forelse ($titleProposalScreeningQueue ?? [] as $titleDocument)
-                            <article class="rounded-xl border border-gray-150 p-4">
-                                <div class="flex flex-wrap items-start justify-between gap-3">
-                                    <div><p class="text-sm font-bold text-gray-850">{{ $titleDocument->researchClassGroup?->name }}</p><p class="mt-1 text-xs text-gray-500">{{ $titleDocument->original_filename }} · Version {{ $titleDocument->version_number }} · {{ $titleDocument->user?->name }}</p></div>
-                                    <div class="flex gap-2"><a href="{{ route('documents.view', $titleDocument) }}" target="_blank" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold">View</a><a href="{{ route('documents.download', $titleDocument) }}" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold">Download</a></div>
+                            <article class="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5 sm:p-6 space-y-4 transition-all hover:bg-slate-50">
+                                <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                                    <div class="space-y-1.5">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <span class="px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-800 font-mono text-[10px] font-black uppercase tracking-wider border border-amber-200">
+                                                Version {{ $titleDocument->version_number }}
+                                            </span>
+                                            <span class="text-xs font-bold text-[#0e5c3a]">
+                                                {{ $titleDocument->researchClassGroup?->name ?? 'Unassigned Group' }}
+                                            </span>
+                                        </div>
+                                        <h3 class="text-sm sm:text-base font-black text-slate-900 leading-snug">
+                                            {{ $titleDocument->original_filename }}
+                                        </h3>
+                                        <p class="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+                                            <i class="ph ph-user"></i>
+                                            <span>Submitted by <strong>{{ $titleDocument->user?->name ?? 'Student' }}</strong> · {{ $titleDocument->submitted_at?->diffForHumans() ?? 'Recently' }}</span>
+                                        </p>
+                                    </div>
+
+                                    <div class="flex items-center gap-2 shrink-0">
+                                        <a
+                                            href="{{ route('documents.view', $titleDocument) }}"
+                                            target="_blank"
+                                            rel="noopener"
+                                            class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition-colors"
+                                        >
+                                            <i class="ph ph-eye text-sm text-[#0e5c3a]"></i>
+                                            <span>View</span>
+                                        </a>
+                                        <a
+                                            href="{{ route('documents.download', $titleDocument) }}"
+                                            class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition-colors"
+                                        >
+                                            <i class="ph ph-download-simple text-sm text-blue-600"></i>
+                                            <span>Download</span>
+                                        </a>
+                                    </div>
                                 </div>
-                                <form method="POST" action="{{ route('facilitator.title-proposals.screen', $titleDocument) }}" class="mt-3 grid gap-2 md:grid-cols-[1fr_auto_auto]">
+
+                                <form method="POST" action="{{ route('facilitator.title-proposals.screen', $titleDocument) }}" class="pt-3 border-t border-slate-200/60 grid gap-3 md:grid-cols-[1fr_auto_auto] items-start">
                                     @csrf
-                                    <textarea name="remarks" maxlength="2000" placeholder="Required revision remarks when returning the proposal" class="min-h-16 rounded-xl border border-gray-200 px-3 py-2 text-xs"></textarea>
-                                    <button name="decision" value="revision_required" class="rounded-xl border border-red-200 px-4 py-2 text-xs font-bold text-red-700">Require Revision</button>
-                                    <button name="decision" value="approved_for_presentation" class="rounded-xl bg-[#0e5c3a] px-4 py-2 text-xs font-bold text-white">Approve for Title Presentation</button>
+                                    <textarea
+                                        name="remarks"
+                                        maxlength="2000"
+                                        placeholder="Enter revision notes or screening endorsement comments..."
+                                        class="w-full min-h-12 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-900 placeholder-slate-400 focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 focus:outline-none transition-all"
+                                    ></textarea>
+                                    <button
+                                        type="submit"
+                                        name="decision"
+                                        value="revision_required"
+                                        class="rounded-xl border border-rose-200 bg-rose-50/80 hover:bg-rose-100 px-4 py-2.5 text-xs font-bold text-rose-700 transition-colors cursor-pointer"
+                                    >
+                                        Require Revision
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        name="decision"
+                                        value="approved_for_presentation"
+                                        class="rounded-xl bg-gradient-to-r from-[#073823] to-[#0e5c3a] hover:brightness-110 px-5 py-2.5 text-xs font-black text-white shadow-md shadow-emerald-950/20 transition-all cursor-pointer"
+                                    >
+                                        Approve for Title Presentation
+                                    </button>
                                 </form>
                             </article>
                         @empty
-                            <p class="py-6 text-center text-xs text-gray-400">No Title Proposal document is awaiting your screening.</p>
+                            <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 py-10 text-center space-y-2">
+                                <i class="ph ph-check-circle text-3xl text-slate-300"></i>
+                                <p class="text-xs font-bold text-slate-700">Screening Queue Clear</p>
+                                <p class="text-[11px] text-slate-400">No Title Proposal documents are currently awaiting your screening.</p>
+                            </div>
                         @endforelse
                     </div>
                 </section>
 
-                <section class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                <!-- Adviser-Approved Documents Ready for Scheduling -->
+                <section class="rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-7 shadow-sm space-y-5 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-[#0e5c3a]"></div>
+
                     <div class="flex items-center justify-between gap-3">
-                        <div>
-                            <h2 class="font-bold text-gray-850">Adviser-Approved Documents Ready for Scheduling</h2>
-                            <p class="mt-1 text-xs text-gray-455">These current defense-stage documents passed adviser review and now require facilitator scheduling.</p>
+                        <div class="flex items-center gap-3">
+                            <span class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center text-xl font-bold shadow-2xs">
+                                <i class="ph ph-calendar-check"></i>
+                            </span>
+                            <div>
+                                <h2 class="text-base sm:text-lg font-black font-heading text-slate-900">Adviser-Approved Documents Ready for Defense</h2>
+                                <p class="text-xs text-slate-500 font-medium">Passed faculty adviser review and awaiting defense date and panel scheduling.</p>
+                            </div>
                         </div>
-                        <span class="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-700">{{ $defenseSchedulingReadyCount }}</span>
+                        <span class="rounded-full px-3 py-1 text-xs font-black {{ $defenseSchedulingReadyCount > 0 ? 'bg-blue-100 text-blue-900 border border-blue-200 animate-pulse' : 'bg-slate-100 text-slate-500 border border-slate-200' }}">
+                            {{ $defenseSchedulingReadyCount }} Ready
+                        </span>
                     </div>
-                    <div class="mt-4 space-y-3">
+
+                    <div class="space-y-4">
                         @forelse ($adviserApprovedDefenseDocuments ?? [] as $approvedDocument)
-                            <article class="rounded-xl border border-gray-150 p-4">
-                                <div class="flex flex-wrap items-start justify-between gap-3">
-                                    <div>
+                            <article class="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5 sm:p-6 space-y-3 transition-all hover:bg-slate-50">
+                                <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                                    <div class="space-y-1.5">
                                         <div class="flex flex-wrap items-center gap-2">
-                                            <p class="text-sm font-bold text-gray-850">{{ $approvedDocument->researchClassGroup?->name }}</p>
-                                            <span class="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-black uppercase text-emerald-700">Adviser approved</span>
-                                            <span class="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-black text-blue-700">{{ $approvedDocument->stageLabel() }}</span>
+                                            <span class="text-xs font-black text-slate-900">{{ $approvedDocument->researchClassGroup?->name }}</span>
+                                            <span class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[9px] font-black uppercase text-[#0e5c3a] border border-emerald-200">Adviser Endorsed</span>
+                                            <span class="rounded-full bg-blue-50 px-2.5 py-0.5 text-[9px] font-black uppercase text-blue-700 border border-blue-200">{{ $approvedDocument->stageLabel() }}</span>
                                         </div>
-                                        <p class="mt-1 text-xs text-gray-500">
-                                            {{ $approvedDocument->original_filename }} · Version {{ $approvedDocument->version_number }}
-                                            · Adviser: {{ $approvedDocument->researchClassGroup?->adviser?->name ?? 'Not assigned' }}
+                                        <h3 class="text-sm sm:text-base font-bold text-slate-800">
+                                            {{ $approvedDocument->original_filename }}
+                                        </h3>
+                                        <p class="text-xs text-slate-500 font-medium">
+                                            Version {{ $approvedDocument->version_number }} · Adviser: <strong class="text-slate-700">{{ $approvedDocument->researchClassGroup?->adviser?->name ?? 'Not assigned' }}</strong>
                                         </p>
                                     </div>
-                                    <div class="flex flex-wrap gap-2">
-                                        <a href="{{ route('documents.view', $approvedDocument) }}" target="_blank" rel="noopener" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold">View</a>
-                                        <a href="{{ route('documents.download', $approvedDocument) }}" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold">Download</a>
-                                        <button type="button" @click="activeTab = 'defenses'; queuePersistTab('defenses'); $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))" class="rounded-lg bg-[#0e5c3a] px-3 py-2 text-xs font-bold text-white">
+                                    <div class="flex flex-wrap items-center gap-2 shrink-0">
+                                        <a href="{{ route('documents.view', $approvedDocument) }}" target="_blank" rel="noopener" class="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs">View</a>
+                                        <a href="{{ route('documents.download', $approvedDocument) }}" class="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs">Download</a>
+                                        <button type="button" @click="activeTab = 'defenses'; queuePersistTab('defenses'); $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))" class="rounded-xl bg-gradient-to-r from-[#073823] to-[#0e5c3a] hover:brightness-110 px-4 py-2 text-xs font-black text-white shadow-md shadow-emerald-950/20 cursor-pointer">
                                             Schedule Defense
                                         </button>
                                     </div>
                                 </div>
                             </article>
                         @empty
-                            <p class="py-6 text-center text-xs text-gray-400">No adviser-approved defense document is waiting for scheduling.</p>
+                            <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 py-8 text-center text-xs text-slate-400">
+                                No adviser-approved defense document is waiting for scheduling.
+                            </div>
                         @endforelse
                     </div>
                 </section>
 
-                <!-- Stats Widgets Cards Row (4 Columns matching screenshots) -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <!-- Approved -->
-                    <div class="bg-white rounded-2xl p-5 border border-emerald-100/50 shadow-sm flex items-center justify-between animate-fade-in">
+                <!-- 4 KPI Metrics Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                    <div class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Approved</span>
-                            <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="approvedProposalsCount">1</span>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Approved</span>
+                            <span class="text-2xl sm:text-3xl font-black font-heading text-slate-900 mt-1 block leading-none">{{ $facilitatorScreeningStats['approved'] ?? 0 }}</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl flex-shrink-0">
+                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-[#0e5c3a] flex items-center justify-center text-2xl flex-shrink-0">
                             <i class="ph ph-check-circle"></i>
                         </span>
                     </div>
 
-                    <!-- Pending -->
-                    <div class="bg-white rounded-2xl p-5 border border-amber-100/50 shadow-sm flex items-center justify-between animate-fade-in">
+                    <div class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Pending</span>
-                            <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="pendingProposalsCount">0</span>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Pending</span>
+                            <span class="text-2xl sm:text-3xl font-black font-heading text-slate-900 mt-1 block leading-none">{{ $facilitatorScreeningStats['pending'] ?? 0 }}</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl flex-shrink-0" :class="pendingProposalsCount > 0 ? 'animate-pulse' : ''">
+                        <span class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center text-2xl flex-shrink-0 {{ ($facilitatorScreeningStats['pending'] ?? 0) > 0 ? 'animate-pulse' : '' }}">
                             <i class="ph ph-clock"></i>
                         </span>
                     </div>
 
-                    <!-- Revisions -->
-                    <div class="bg-white rounded-2xl p-5 border border-red-100/50 shadow-sm flex items-center justify-between animate-fade-in">
+                    <div class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Revisions</span>
-                            <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="revisionsProposalsCount">0</span>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Revisions</span>
+                            <span class="text-2xl sm:text-3xl font-black font-heading text-slate-900 mt-1 block leading-none">{{ $facilitatorScreeningStats['revisions'] ?? 0 }}</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center text-2xl flex-shrink-0">
+                        <span class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-700 flex items-center justify-center text-2xl flex-shrink-0">
                             <i class="ph ph-x-circle"></i>
                         </span>
                     </div>
 
-                    <!-- Total Proposals -->
-                    <div class="bg-white rounded-2xl p-5 border border-blue-100/50 shadow-sm flex items-center justify-between animate-fade-in">
+                    <div class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Total Proposals</span>
-                            <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="totalProposalsCount">1</span>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Screened</span>
+                            <span class="text-2xl sm:text-3xl font-black font-heading text-slate-900 mt-1 block leading-none">{{ $facilitatorScreeningStats['total'] ?? 0 }}</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl flex-shrink-0">
+                        <span class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center text-2xl flex-shrink-0">
                             <i class="ph ph-file-text"></i>
                         </span>
                     </div>
                 </div>
 
-                <!-- Research Proposal Container Card -->
-                <div class="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl shadow-slate-200/30 p-6 md:p-8 space-y-6">
-                    <h3 class="font-bold text-gray-850 text-base">Research Proposal</h3>
-                    
-                    <!-- Proposal Display Card -->
-                    <div class="border border-gray-150 rounded-2xl p-6 md:p-8 space-y-6 transition-all duration-300 animate-fade-in"
-                         :class="{
-                             'bg-[#f2fcf7]/30 border-emerald-100': activeProposal.status === 'Approved',
-                             'bg-[#fffbf0]/40 border-amber-100 ring-4 ring-amber-500/5': activeProposal.status === 'Pending',
-                             'bg-red-50/5 border-red-100': activeProposal.status === 'Revisions'
-                         }"
-                    >
-                        <div class="flex justify-between items-start gap-4 flex-wrap">
-                            <div class="space-y-2">
-                                <h2 class="text-lg md:text-xl font-bold text-gray-800 leading-snug" x-text="activeProposal.title">Machine Learning Applications in Agricultural Pest Detection</h2>
-                                <div class="flex flex-wrap items-center gap-4 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                                    <span>Proposal ID: <span class="text-gray-650" x-text="activeProposal.proposal_id">PROP-2026-001</span></span>
-                                    <span class="hidden md:inline">•</span>
-                                    <span>Submitted: <span class="text-gray-650" x-text="activeProposal.submitted">March 5, 2026</span></span>
+                <!-- Screening and Review History -->
+                <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 sm:p-8 space-y-6">
+                    <div class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
+                        <div>
+                            <h3 class="font-black font-heading text-slate-900 text-base sm:text-lg">Screening &amp; Review History</h3>
+                            <p class="mt-0.5 text-xs text-slate-500 font-medium">Decided submissions are preserved below. Superseded versions remain available in the repository.</p>
+                        </div>
+                        <button type="button" @click="activeTab = 'repository'; queuePersistTab('repository')" class="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-[#0e5c3a] shadow-2xs">View Complete Repository</button>
+                    </div>
+
+                    <div class="space-y-4">
+                        @forelse ($facilitatorScreeningHistory ?? [] as $historyDocument)
+                            @php
+                                $historyReview = $historyDocument->reviews->first();
+                                $historyStatus = $historyDocument->status?->value ?? 'unknown';
+                                $historyStatusClass = match ($historyStatus) {
+                                    'approved_for_presentation', 'accepted' => 'bg-emerald-50 text-[#0e5c3a] border-emerald-200',
+                                    'revision_requested' => 'bg-amber-50 text-amber-800 border-amber-200',
+                                    'rejected' => 'bg-rose-50 text-rose-700 border-rose-200',
+                                    default => 'bg-blue-50 text-blue-700 border-blue-200',
+                                };
+                            @endphp
+                            <div class="border border-slate-200/80 rounded-2xl p-5 sm:p-6 space-y-4 bg-slate-50/40 hover:bg-slate-50 transition-colors">
+                                <div class="flex justify-between items-start gap-4 flex-wrap">
+                                    <div class="space-y-1">
+                                        <h2 class="text-base sm:text-lg font-black text-slate-900 leading-snug">{{ $historyDocument->original_filename }}</h2>
+                                        <div class="flex flex-wrap items-center gap-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                            <span>ID: <code class="text-slate-700 font-mono">DOC-{{ str_pad((string) $historyDocument->id, 6, '0', STR_PAD_LEFT) }}</code></span>
+                                            <span>•</span>
+                                            <span>{{ $historyDocument->researchClassGroup?->name ?? 'Unassigned group' }} · {{ $historyDocument->stageLabel() }} · Version {{ $historyDocument->version_number }}</span>
+                                            <span>•</span>
+                                            <span>Submitted: <strong class="text-slate-600">{{ $historyDocument->submitted_at?->format('M j, Y') ?? 'N/A' }}</strong></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase border {{ $historyStatusClass }}">{{ str($historyStatus)->headline() }}</span>
+                                        @unless ($historyDocument->is_current)
+                                            <span class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-black uppercase text-slate-500">Superseded</span>
+                                        @endunless
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs pt-3 border-t border-slate-200/60">
+                                    <div>
+                                        <span class="text-slate-400 font-extrabold uppercase tracking-wider block text-[9px]">Decision by</span>
+                                        <span class="text-slate-900 font-bold block mt-0.5">{{ $historyReview?->reviewer?->name ?? 'Awaiting facilitator decision' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 font-extrabold uppercase tracking-wider block text-[9px]">Decision Date</span>
+                                        <span class="text-slate-900 font-bold block mt-0.5">{{ $historyReview?->reviewed_at?->format('M j, Y g:i A') ?? 'Pending' }}</span>
+                                    </div>
+                                </div>
+
+                                @if ($historyStatus === 'revision_requested')
+                                    <div class="pt-3 border-t border-rose-100 flex items-center gap-2">
+                                        <span class="text-xs font-bold text-rose-700">
+                                            ⚠ This proposal is currently in revision. Awaiting student resubmission.
+                                        </span>
+                                    </div>
+                                @endif
+
+                                <div class="pt-3 border-t border-slate-200/60 flex gap-3 flex-wrap">
+                                    <a
+                                        href="{{ route('documents.view', $historyDocument) }}"
+                                        target="_blank"
+                                        rel="noopener"
+                                        class="px-4 py-2 bg-[#0e5c3a] hover:bg-[#073823] text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+                                    >
+                                        View Document
+                                    </a>
+                                    <a
+                                        href="{{ route('documents.download', $historyDocument) }}"
+                                        class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl shadow-2xs transition-all"
+                                    >
+                                        Download
+                                    </a>
                                 </div>
                             </div>
-
-                            <!-- Status Badge -->
-                            <span class="px-4 py-1.5 rounded-xl text-[10px] font-extrabold tracking-wide uppercase border shadow-2xs transition-all duration-300"
-                                  :class="{
-                                      'bg-emerald-600 border-emerald-700 text-white': activeProposal.status === 'Approved',
-                                      'bg-amber-500 border-amber-600 text-white': activeProposal.status === 'Pending',
-                                      'bg-red-650 border-red-750 text-white': activeProposal.status === 'Revisions'
-                                  }"
-                                  x-text="activeProposal.status"
-                            >
-                                Approved
-                            </span>
-                        </div>
-
-                        <hr class="border-gray-100/80">
-
-                        <!-- Details Grid -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
-                            <div>
-                                <span class="text-gray-400 font-extrabold uppercase tracking-wider block text-[9px]">Reviewed by</span>
-                                <span class="text-gray-800 font-bold block mt-1.5" x-text="activeProposal.reviewer">Dr. Maria Santos</span>
-                            </div>
-                            <div>
-                                <span class="text-gray-400 font-extrabold uppercase tracking-wider block text-[9px]">Approval Date</span>
-                                <span class="text-gray-800 font-bold block mt-1.5" x-text="activeProposal.approval_date">March 10, 2026</span>
-                            </div>
-                        </div>
-
-                        <!-- Pending Actions Bar -->
-                        <template x-if="activeProposal.status === 'Pending'">
-                            <div class="mt-6 pt-6 border-t border-amber-100/50 flex flex-wrap gap-3 items-center">
-                                <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider mr-2 block">Action Required:</span>
-                                <button 
-                                    type="button" 
-                                    @click="approveProposal(activeProposal.id)"
-                                    class="px-4 py-2.5 bg-emerald-650 hover:bg-emerald-755 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-650/10 cursor-pointer transition-colors"
-                                >
-                                    Approve Proposal
-                                </button>
-                                <button 
-                                    type="button" 
-                                    @click="requestRevisionsProposal(activeProposal.id)"
-                                    class="px-4 py-2.5 bg-white border border-gray-250 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl cursor-pointer transition-colors"
-                                >
-                                    Request Revisions
-                                </button>
-                            </div>
-                        </template>
-
-                        <!-- Revisions Notice -->
-                        <template x-if="activeProposal.status === 'Revisions'">
-                            <div class="mt-6 pt-6 border-t border-red-100/50 flex items-center gap-2">
-                                <span class="text-[10px] font-bold text-red-700 block">
-                                    ⚠ This proposal is currently in revision. Awaiting student resubmission.
-                                </span>
-                            </div>
-                        </template>
-
-                        <!-- Bottom Card Buttons -->
-                        <div class="pt-6 border-t border-gray-100/80 flex gap-4 flex-wrap">
-                            <button 
-                                type="button"
-                                @click="showProposalDetailModal = true"
-                                class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md shadow-[#0e5c3a]/10 hover:shadow-lg cursor-pointer transition-all duration-200"
-                            >
-                                View Proposal
-                            </button>
-                            <button 
-                                type="button"
-                                @click="alert(`Downloading PDF for proposal ID: ${activeProposal.proposal_id}...`)"
-                                class="px-5 py-3 bg-white border border-gray-250 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl shadow-2xs hover:shadow-xs cursor-pointer transition-all duration-200"
-                            >
-                                Download PDF
-                            </button>
-                        </div>
+                        @empty
+                            <p class="rounded-2xl border border-dashed border-slate-200 py-10 text-center text-xs text-slate-400">No submitted document has entered facilitator screening history yet.</p>
+                        @endforelse
                     </div>
                 </div>
             </div>
@@ -1850,172 +2059,171 @@
             <!-- TAB: Defense Management (Defense Scheduling) -->
             <div x-show="activeTab === 'defenses'" x-cloak class="space-y-8 animate-fade-in">
                 <!-- Breadcrumbs & Header -->
-                <div class="flex flex-col gap-2">
-                    <div class="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                        <span>Dashboard</span>
-                        <span>/</span>
-                        <span class="text-[#0e5c3a]">Defense Scheduling</span>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">
+                            <span>Facilitator Portal</span>
+                            <span>/</span>
+                            <span class="text-[#0e5c3a]">Defense Management</span>
+                        </div>
+                        <h1 class="text-2xl sm:text-3xl font-black font-heading text-slate-900 tracking-tight">
+                            Defense Scheduling &amp; Panels
+                        </h1>
+                        <p class="mt-1 text-xs text-slate-500 font-medium">
+                            Manage presentation rooms, assign panel evaluators, and schedule research defense sessions.
+                        </p>
                     </div>
                     
-                    <div class="flex justify-between items-center flex-wrap gap-4">
-                        <div>
-                            <h1 class="text-2xl font-bold font-heading text-gray-800">Defense Scheduling</h1>
-                            <p class="text-xs text-gray-455 mt-1">Manage and schedule research defense presentations</p>
-                        </div>
-                        
-                        <div class="flex flex-wrap items-center gap-2">
-                            <button
-                                type="button"
-                                @click="showVenueManager = !showVenueManager"
-                                class="flex items-center gap-2 rounded-xl border border-[#0e5c3a]/20 bg-white px-5 py-3 text-xs font-bold text-[#0e5c3a] shadow-sm transition-colors hover:bg-emerald-50"
-                            >
-                                <i class="ph ph-buildings text-base"></i>
-                                <span>Manage Venues</span>
-                            </button>
-                            <button
-                                type="button"
-                                @click="openScheduleModal()"
-                                @disabled(($defenseRooms ?? collect())->isEmpty())
-                                class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] disabled:cursor-not-allowed disabled:bg-gray-300 text-white text-xs font-bold rounded-xl shadow-md shadow-[#0e5c3a]/10 hover:shadow-lg flex items-center gap-2 cursor-pointer transition-all duration-200"
-                                title="{{ ($defenseRooms ?? collect())->isEmpty() ? 'Create an active venue before scheduling a defense.' : 'Schedule a defense' }}"
-                            >
-                                <i class="ph ph-plus text-base font-bold"></i>
-                                <span>Schedule Defense</span>
-                            </button>
-                        </div>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <button
+                            type="button"
+                            @click="showVenueManager = !showVenueManager"
+                            class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4.5 py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
+                        >
+                            <i class="ph ph-buildings text-base text-[#0e5c3a]"></i>
+                            <span>Manage Venues</span>
+                        </button>
+                        <button
+                            type="button"
+                            @click="openScheduleModal()"
+                            @disabled(($defenseRooms ?? collect())->isEmpty())
+                            class="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#073823] to-[#0e5c3a] hover:brightness-110 disabled:cursor-not-allowed disabled:bg-slate-300 text-white px-5 py-2.5 text-xs font-black shadow-md shadow-emerald-950/20 transition-all cursor-pointer"
+                            title="{{ ($defenseRooms ?? collect())->isEmpty() ? 'Create an active venue before scheduling a defense.' : 'Schedule a defense' }}"
+                        >
+                            <i class="ph ph-plus-circle text-base text-[#eebc3f]"></i>
+                            <span>Schedule Defense</span>
+                        </button>
                     </div>
                 </div>
 
-                <section x-show="showVenueManager" x-transition class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+                <!-- Venue Manager Section -->
+                <section x-show="showVenueManager" x-transition class="rounded-3xl border border-emerald-200/80 bg-white p-6 sm:p-7 shadow-sm space-y-5 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#073823] via-[#eebc3f] to-[#0e5c3a]"></div>
+
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                            <h2 class="text-base font-bold text-gray-850">Defense Venue Catalog</h2>
-                            <p class="mt-1 text-xs text-gray-500">Create and maintain the rooms available for defense scheduling.</p>
+                            <h2 class="text-base sm:text-lg font-black font-heading text-slate-900">Defense Venue Catalog</h2>
+                            <p class="mt-0.5 text-xs text-slate-500 font-medium">Create and maintain active presentation rooms available for defense bookings.</p>
                         </div>
-                        <span class="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-bold text-emerald-700">
-                            {{ ($defenseRooms ?? collect())->count() }} active {{ Str::plural('venue', ($defenseRooms ?? collect())->count()) }}
+                        <span class="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-[10px] font-black uppercase text-[#0e5c3a]">
+                            {{ ($defenseRooms ?? collect())->count() }} Active {{ Str::plural('Venue', ($defenseRooms ?? collect())->count()) }}
                         </span>
                     </div>
 
                     @if ($errors->has('code') || $errors->has('name') || $errors->has('location_notes'))
-                        <div class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">
+                        <div class="rounded-2xl border border-rose-200 bg-rose-50/90 px-4 py-3 text-xs font-semibold text-rose-700">
                             {{ $errors->first('code') ?: ($errors->first('name') ?: $errors->first('location_notes')) }}
                         </div>
                     @endif
 
-                    <form method="POST" action="{{ route('facilitator.defense-rooms.store') }}" class="mt-5 grid gap-3 lg:grid-cols-[0.7fr_1.2fr_1.6fr_auto]">
+                    <form method="POST" action="{{ route('facilitator.defense-rooms.store') }}" class="grid gap-3.5 lg:grid-cols-[0.8fr_1.2fr_1.5fr_auto] items-end bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
                         @csrf
-                        <div>
-                            <label for="venue-code" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-gray-500">Room Code</label>
-                            <input id="venue-code" name="code" value="{{ old('code') }}" maxlength="50" required placeholder="CEAC-301" class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-xs outline-none focus:border-[#0e5c3a]">
+                        <div class="space-y-1">
+                            <label for="venue-code" class="block text-[10px] font-bold uppercase tracking-wider text-slate-600">Room Code</label>
+                            <input id="venue-code" name="code" value="{{ old('code') }}" maxlength="50" required placeholder="e.g. CEAC-301" class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium focus:border-[#0e5c3a] focus:outline-none">
                         </div>
-                        <div>
-                            <label for="venue-name" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-gray-500">Venue Name</label>
-                            <input id="venue-name" name="name" value="{{ old('name') }}" maxlength="255" required placeholder="CEAC Conference Room" class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-xs outline-none focus:border-[#0e5c3a]">
+                        <div class="space-y-1">
+                            <label for="venue-name" class="block text-[10px] font-bold uppercase tracking-wider text-slate-600">Venue Name</label>
+                            <input id="venue-name" name="name" value="{{ old('name') }}" maxlength="255" required placeholder="e.g. Conference Room" class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium focus:border-[#0e5c3a] focus:outline-none">
                         </div>
-                        <div>
-                            <label for="venue-location" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-gray-500">Location Notes</label>
-                            <input id="venue-location" name="location_notes" value="{{ old('location_notes') }}" maxlength="1000" placeholder="Third floor, CEAC Building" class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-xs outline-none focus:border-[#0e5c3a]">
+                        <div class="space-y-1">
+                            <label for="venue-location" class="block text-[10px] font-bold uppercase tracking-wider text-slate-600">Location Notes</label>
+                            <input id="venue-location" name="location_notes" value="{{ old('location_notes') }}" maxlength="1000" placeholder="e.g. 3rd Floor, CEAC Building" class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium focus:border-[#0e5c3a] focus:outline-none">
                         </div>
-                        <button type="submit" class="self-end rounded-xl bg-[#0e5c3a] px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-[#0a4a2e]">
+                        <button type="submit" class="rounded-xl bg-[#0e5c3a] hover:bg-[#073823] px-5 py-2 text-xs font-bold text-white shadow-sm transition-colors cursor-pointer">
                             Add Venue
                         </button>
                     </form>
 
-                    <div class="mt-5 space-y-3">
+                    <div class="space-y-3">
                         @forelse ($allDefenseRooms ?? [] as $venue)
-                            <article class="flex flex-col gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3 xl:flex-row xl:items-end">
-                                <form method="POST" action="{{ route('facilitator.defense-rooms.update', $venue) }}" class="grid flex-1 gap-3 md:grid-cols-[0.7fr_1.2fr_1.6fr_auto]">
+                            <article class="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/50 p-4 xl:flex-row xl:items-end">
+                                <form method="POST" action="{{ route('facilitator.defense-rooms.update', $venue) }}" class="grid flex-1 gap-3 md:grid-cols-[0.8fr_1.2fr_1.5fr_auto]">
                                     @csrf
                                     @method('PATCH')
                                     <div>
-                                        <label for="venue-code-{{ $venue->id }}" class="mb-1 block text-[9px] font-bold uppercase text-gray-400">Code</label>
-                                        <input id="venue-code-{{ $venue->id }}" name="code" value="{{ $venue->code }}" maxlength="50" required class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0e5c3a]">
+                                        <label for="venue-code-{{ $venue->id }}" class="mb-1 block text-[9px] font-bold uppercase text-slate-400">Code</label>
+                                        <input id="venue-code-{{ $venue->id }}" name="code" value="{{ $venue->code }}" maxlength="50" required class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium focus:border-[#0e5c3a] focus:outline-none">
                                     </div>
                                     <div>
-                                        <label for="venue-name-{{ $venue->id }}" class="mb-1 block text-[9px] font-bold uppercase text-gray-400">Name</label>
-                                        <input id="venue-name-{{ $venue->id }}" name="name" value="{{ $venue->name }}" maxlength="255" required class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0e5c3a]">
+                                        <label for="venue-name-{{ $venue->id }}" class="mb-1 block text-[9px] font-bold uppercase text-slate-400">Name</label>
+                                        <input id="venue-name-{{ $venue->id }}" name="name" value="{{ $venue->name }}" maxlength="255" required class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium focus:border-[#0e5c3a] focus:outline-none">
                                     </div>
                                     <div>
-                                        <label for="venue-location-{{ $venue->id }}" class="mb-1 block text-[9px] font-bold uppercase text-gray-400">Location</label>
-                                        <input id="venue-location-{{ $venue->id }}" name="location_notes" value="{{ $venue->location_notes }}" maxlength="1000" class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0e5c3a]">
+                                        <label for="venue-location-{{ $venue->id }}" class="mb-1 block text-[9px] font-bold uppercase text-slate-400">Location</label>
+                                        <input id="venue-location-{{ $venue->id }}" name="location_notes" value="{{ $venue->location_notes }}" maxlength="1000" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium focus:border-[#0e5c3a] focus:outline-none">
                                     </div>
-                                    <button type="submit" class="self-end rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100">Save</button>
+                                    <button type="submit" class="self-end rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer">Save</button>
                                 </form>
 
                                 <form method="POST" action="{{ $venue->is_active ? route('facilitator.defense-rooms.deactivate', $venue) : route('facilitator.defense-rooms.activate', $venue) }}">
                                     @csrf
                                     @method('PATCH')
-                                    <button type="submit" class="w-full rounded-lg px-4 py-2 text-xs font-bold xl:w-auto {{ $venue->is_active ? 'border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' }}">
+                                    <button type="submit" class="w-full rounded-xl px-4 py-2 text-xs font-bold xl:w-auto transition-colors cursor-pointer {{ $venue->is_active ? 'border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100' : 'border border-emerald-200 bg-emerald-50 text-[#0e5c3a] hover:bg-emerald-100' }}">
                                         {{ $venue->is_active ? 'Deactivate' : 'Activate' }}
                                     </button>
                                 </form>
                             </article>
                         @empty
-                            <div class="rounded-xl border border-dashed border-gray-200 py-6 text-center text-xs text-gray-400">
-                                No defense venues exist yet. Add the first venue above to enable defense scheduling.
+                            <div class="rounded-2xl border border-dashed border-slate-200 py-8 text-center text-xs text-slate-400">
+                                No defense venues exist yet. Add your first room above to enable defense bookings.
                             </div>
                         @endforelse
                     </div>
-
-                    <p class="mt-4 text-[10px] text-gray-400">Deactivated venues remain in historical schedules but are removed from new schedule selections.</p>
                 </section>
 
-                <!-- Stats Widgets Cards Row (4 Columns matching screenshots) -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <!-- Total Scheduled -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                <!-- 4 KPI Cards Row -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                    <div class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Total Scheduled</span>
-                            <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="totalScheduledCount">3</span>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Scheduled</span>
+                            <span class="text-2xl sm:text-3xl font-black font-heading text-slate-900 mt-1 block leading-none" x-text="totalScheduledCount">3</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl flex-shrink-0">
+                        <span class="w-12 h-12 rounded-2xl bg-emerald-50 text-[#0e5c3a] flex items-center justify-center text-2xl flex-shrink-0">
                             <i class="ph ph-calendar"></i>
                         </span>
                     </div>
 
-                    <!-- This Week -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">This Week</span>
-                            <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="thisWeekCount">2</span>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">This Week</span>
+                            <span class="text-2xl sm:text-3xl font-black font-heading text-slate-900 mt-1 block leading-none" x-text="thisWeekCount">2</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl flex-shrink-0">
+                        <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center text-2xl flex-shrink-0">
                             <i class="ph ph-clock"></i>
                         </span>
                     </div>
 
-                    <!-- Pending -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Pending</span>
-                            <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="pendingDefenseCount">1</span>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Pending Defense</span>
+                            <span class="text-2xl sm:text-3xl font-black font-heading text-slate-900 mt-1 block leading-none" x-text="pendingDefenseCount">1</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl flex-shrink-0" :class="pendingDefenseCount > 0 ? 'animate-pulse' : ''">
+                        <span class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center text-2xl flex-shrink-0" :class="pendingDefenseCount > 0 ? 'animate-pulse' : ''">
                             <i class="ph ph-calendar-plus"></i>
                         </span>
                     </div>
 
-                    <!-- Completed -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm flex items-center justify-between">
                         <div>
-                            <span class="text-xs text-gray-455 font-bold uppercase tracking-wider block">Completed</span>
-                            <span class="text-2xl font-bold text-gray-850 mt-2 block leading-none" x-text="completedDefenseCount">0</span>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Completed</span>
+                            <span class="text-2xl sm:text-3xl font-black font-heading text-slate-900 mt-1 block leading-none" x-text="completedDefenseCount">0</span>
                         </div>
-                        <span class="w-12 h-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center text-2xl flex-shrink-0">
+                        <span class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center text-2xl flex-shrink-0">
                             <i class="ph ph-calendar-check"></i>
                         </span>
                     </div>
                 </div>
 
                 <!-- Filters Bar -->
-                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex gap-4 items-center">
-                    <span class="text-gray-400 pl-2">
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 flex flex-wrap gap-3 items-center">
+                    <span class="text-slate-400 pl-1 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
                         <i class="ph ph-funnel text-base"></i>
+                        <span>Filter:</span>
                     </span>
                     <select 
                         x-model="defenseTypeFilter"
-                        class="bg-gray-50 border border-gray-150 text-gray-700 text-xs px-3.5 py-2 rounded-xl outline-none focus:border-[#0e5c3a] cursor-pointer"
+                        class="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold px-3.5 py-2 rounded-xl outline-none focus:border-[#0e5c3a] cursor-pointer"
                     >
                         <option value="All">All Defense Types</option>
                         <option value="Title Proposal">Title Proposal</option>
@@ -2026,9 +2234,9 @@
 
                     <select 
                         x-model="defenseStatusFilter"
-                        class="bg-gray-50 border border-gray-150 text-gray-700 text-xs px-3.5 py-2 rounded-xl outline-none focus:border-[#0e5c3a] cursor-pointer"
+                        class="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold px-3.5 py-2 rounded-xl outline-none focus:border-[#0e5c3a] cursor-pointer"
                     >
-                        <option value="All">All Status</option>
+                        <option value="All">All Statuses</option>
                         <option value="Scheduled">Scheduled</option>
                         <option value="Pending">Pending</option>
                         <option value="Completed">Completed</option>
@@ -2038,82 +2246,82 @@
                 <!-- Defenses List -->
                 <div class="space-y-6">
                     <template x-for="def in filteredDefenseList" :key="def.id">
-                        <div class="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-slate-200/20 p-6 md:p-8 space-y-6 transition-all duration-300 hover:shadow-2xl hover:shadow-slate-200/40 border-l-4 animate-fade-in"
+                        <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 sm:p-7 space-y-5 transition-all duration-300 hover:shadow-xl border-l-4 animate-fade-in relative overflow-hidden"
                              :class="{
                                  'border-l-emerald-600': def.status === 'Scheduled',
                                  'border-l-amber-500': def.status === 'Pending',
-                                 'border-l-gray-400': def.status === 'Completed'
+                                 'border-l-slate-400': def.status === 'Completed'
                              }"
                         >
                             <!-- Top Card Header -->
                             <div class="flex justify-between items-start gap-4">
-                                <div class="space-y-2">
+                                <div class="space-y-1.5">
                                     <div class="flex items-center gap-3">
-                                        <h3 class="text-sm font-bold text-gray-800" x-text="def.type">Proposal Defense</h3>
-                                        <span class="px-2.5 py-0.5 rounded-lg text-[9px] font-bold tracking-wide uppercase"
+                                        <span class="text-xs font-black text-[#0e5c3a]" x-text="def.type">Proposal Defense</span>
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase border"
                                               :class="{
-                                                  'bg-emerald-50 text-emerald-700': def.status === 'Scheduled',
-                                                  'bg-amber-50 text-amber-700': def.status === 'Pending',
-                                                  'bg-gray-50 text-gray-500': def.status === 'Completed'
+                                                  'bg-emerald-50 text-[#0e5c3a] border-emerald-200': def.status === 'Scheduled',
+                                                  'bg-amber-50 text-amber-800 border-amber-200': def.status === 'Pending',
+                                                  'bg-slate-100 text-slate-600 border-slate-200': def.status === 'Completed'
                                               }"
                                               x-text="def.status"
                                         >
                                             Scheduled
                                         </span>
                                     </div>
-                                    <h2 class="text-base font-bold text-gray-700" x-text="def.title">AI-Powered Traffic Management System</h2>
-                                    <p class="text-xs text-gray-450 font-bold">Student: <span class="text-gray-700 font-extrabold" x-text="def.student">Juan Dela Cruz</span></p>
+                                    <h2 class="text-base sm:text-lg font-black font-heading text-slate-900" x-text="def.title">AI-Powered Traffic Management System</h2>
+                                    <p class="text-xs text-slate-500 font-medium">Research Cohort: <strong class="text-slate-800" x-text="def.student">Group Name</strong></p>
                                 </div>
 
-                                <span class="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-[10px] font-bold text-gray-500">
-                                    Group-specific schedule
+                                <span class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] font-bold text-slate-500 shrink-0">
+                                    Group Schedule
                                 </span>
                             </div>
 
-                            <hr class="border-gray-50/80">
+                            <hr class="border-slate-100">
 
                             <!-- Date/Time/Venue Info -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
-                                <div class="flex items-center gap-3.5">
-                                    <span class="w-9 h-9 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center text-lg flex-shrink-0">
-                                        <i class="ph ph-calendar-blank"></i>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                                <div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50/70 border border-slate-100">
+                                    <span class="w-9 h-9 rounded-xl bg-emerald-50 text-[#0e5c3a] flex items-center justify-center text-lg flex-shrink-0">
+                                        <i class="ph ph-calendar"></i>
                                     </span>
                                     <div>
-                                        <span class="text-gray-405 font-bold uppercase tracking-wider block text-[8px]">Date</span>
-                                        <span class="text-gray-800 font-extrabold block mt-0.5" x-text="def.date">May 25, 2026</span>
+                                        <span class="text-slate-400 font-bold uppercase tracking-wider block text-[9px]">Date</span>
+                                        <span class="text-slate-900 font-black block mt-0.5" x-text="def.date">May 25, 2026</span>
                                     </div>
                                 </div>
 
-                                <div class="flex items-center gap-3.5">
-                                    <span class="w-9 h-9 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center text-lg flex-shrink-0">
+                                <div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50/70 border border-slate-100">
+                                    <span class="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center text-lg flex-shrink-0">
                                         <i class="ph ph-clock"></i>
                                     </span>
                                     <div>
-                                        <span class="text-gray-405 font-bold uppercase tracking-wider block text-[8px]">Time</span>
-                                        <span class="text-gray-800 font-extrabold block mt-0.5" x-text="def.time">9:00 AM - 11:00 AM</span>
+                                        <span class="text-slate-400 font-bold uppercase tracking-wider block text-[9px]">Time</span>
+                                        <span class="text-slate-900 font-black block mt-0.5" x-text="def.time">9:00 AM - 11:00 AM</span>
                                     </div>
                                 </div>
 
-                                <div class="flex items-center gap-3.5">
-                                    <span class="w-9 h-9 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center text-lg flex-shrink-0">
+                                <div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50/70 border border-slate-100">
+                                    <span class="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center text-lg flex-shrink-0">
                                         <i class="ph ph-map-pin"></i>
                                     </span>
                                     <div>
-                                        <span class="text-gray-405 font-bold uppercase tracking-wider block text-[8px]">Venue</span>
-                                        <span class="text-gray-800 font-extrabold block mt-0.5" x-text="def.venue">Room 405, Research Building</span>
+                                        <span class="text-slate-400 font-bold uppercase tracking-wider block text-[9px]">Venue</span>
+                                        <span class="text-slate-900 font-black block mt-0.5" x-text="def.venue">Room 405</span>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Panel Members tags -->
                             <div class="space-y-2 pt-2">
-                                <span class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider block">Panel Members</span>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Panel Members</span>
                                 <div class="flex flex-wrap gap-2">
                                     <template x-for="p in def.panel" :key="`${p.position}-${p.name}`">
-                                        <span class="px-3 py-1.5 bg-gray-50 border border-gray-150 text-gray-600 rounded-full text-[10px] font-bold" x-text="`${p.position_label}: ${p.name}`">Panelist Name</span>
+                                        <span class="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-800 rounded-xl text-xs font-semibold" x-text="`${p.position_label}: ${p.name}`">Panelist Name</span>
                                     </template>
                                     <template x-if="def.panel.length === 0">
-                                        <span class="text-gray-400 text-[10px] font-bold italic">No panel members assigned yet.</span>
+                                        <span class="text-slate-400 text-xs italic">No panel members assigned yet.</span>
                                     </template>
                                 </div>
                             </div>
@@ -2122,11 +2330,13 @@
 
                     <!-- No scheduled defenses -->
                     <template x-if="filteredDefenseList.length === 0">
-                        <div class="bg-white rounded-[2rem] p-12 text-center text-gray-400 font-bold text-xs border border-gray-100 shadow-sm w-full">
-                            No defense schedules found matching your filters.
+                        <div class="bg-white rounded-3xl p-12 text-center text-slate-400 font-bold text-xs border border-dashed border-slate-200 w-full space-y-2">
+                            <i class="ph ph-calendar-x text-3xl text-slate-300"></i>
+                            <p>No defense schedules found matching your current filters.</p>
                         </div>
                     </template>
                 </div>
+            </div>  </div>
             </div>
 
             <!-- TAB: Research Statistics (Analytics & Reports) -->
@@ -2859,6 +3069,8 @@
         </div>
     </div>
 
+    {{-- Legacy proposal mockup retained only as reference; authoritative document history is rendered in the screening tab. --}}
+    @if (false)
     <!-- Proposal Details Modal Mockup -->
     <div x-show="showProposalDetailModal" x-transition x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
         <div @click.away="showProposalDetailModal = false" class="bg-white rounded-2xl w-full max-w-2xl p-6 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto">
@@ -2912,28 +3124,34 @@
         </div>
     </div>
 
+    @endif
+
     <!-- Authoritative Defense Scheduler -->
-    <div x-show="showScheduleModal" x-transition x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-        <div @click.away="showScheduleModal = false" class="bg-white rounded-2xl w-full max-w-3xl p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto animate-scale-up">
+    <div x-show="showScheduleModal" x-transition x-cloak class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div @click.away="showScheduleModal = false" class="bg-white rounded-3xl w-full max-w-3xl p-6 sm:p-8 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto animate-scale-up border border-slate-200 relative overflow-hidden">
+            <!-- Top Accent Stripe -->
+            <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#073823] via-[#eebc3f] to-[#0e5c3a]"></div>
+
             <div class="flex justify-between items-start">
                 <div>
-                    <h3 class="font-bold text-gray-800 text-base">Schedule Group Defense</h3>
-                    <p class="text-[11px] text-gray-500 mt-1">Choose an existing group. Its research title, students, and adviser are fetched automatically.</p>
+                    <h3 class="font-black font-heading text-slate-900 text-lg sm:text-xl tracking-tight">Schedule Group Defense</h3>
+                    <p class="text-xs text-slate-500 font-medium mt-0.5">Select a research group to automatically populate research title, leader, and faculty adviser.</p>
                 </div>
-                <button type="button" @click="showScheduleModal = false" class="text-gray-400 hover:text-gray-600 text-lg cursor-pointer">
-                    <i class="ph ph-x"></i>
+                <button type="button" @click="showScheduleModal = false" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors flex items-center justify-center text-base cursor-pointer">
+                    <i class="ph ph-x font-bold"></i>
                 </button>
             </div>
-            <hr class="border-gray-100">
+            <hr class="border-slate-100">
 
             @if ($errors->has('defense_schedule') || $errors->has('research_class_group_id') || $errors->has('defense_type') || $errors->has('room_id') || $errors->has('starts_at') || $errors->has('ends_at') || $errors->has('chairperson_user_id') || $errors->has('panel_user_ids'))
-                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">
+                <div class="rounded-2xl border border-rose-200 bg-rose-50/90 px-4 py-3 text-xs font-semibold text-rose-700">
                     {{ $errors->first('defense_schedule') ?: $errors->first() }}
                 </div>
             @endif
 
-            <div class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-[11px] leading-5 text-blue-800">
-                <strong>Defense-day setup:</strong> all groups may defend on the same date, but each group receives its own time slot, room, Chairperson, and panel roster. The server blocks overlapping groups, rooms, and Faculty schedules.
+            <div class="rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-xs font-medium text-emerald-900 flex items-center gap-2.5">
+                <i class="ph ph-info text-base text-[#0e5c3a] shrink-0"></i>
+                <span><strong>Defense Session Booking:</strong> Groups are allocated specific time slots, venue rooms, Chairperson, and panel members. Overlaps are prevented automatically.</span>
             </div>
 
             <form method="POST" action="{{ route('facilitator.defenses.store') }}" class="space-y-5 text-xs">
@@ -2941,18 +3159,18 @@
 
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div class="space-y-1.5">
-                        <label for="def-group" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Research Group</label>
-                        <select id="def-group" name="research_class_group_id" x-model="scheduleForm.groupId" @change="if (String(scheduleForm.chairpersonId) === String(selectedDefenseGroup?.adviser_id || '')) scheduleForm.chairpersonId = ''" required class="w-full px-4 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none cursor-pointer">
-                            <option value="">Select one of your groups</option>
+                        <label for="def-group" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Research Group</label>
+                        <select id="def-group" name="research_class_group_id" x-model="scheduleForm.groupId" @change="if (String(scheduleForm.chairpersonId) === String(selectedDefenseGroup?.adviser_id || '')) scheduleForm.chairpersonId = ''" required class="w-full px-4 py-2.5 bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 outline-none cursor-pointer transition-all">
+                            <option value="">Select one of your research groups...</option>
                             @foreach ($defenseSchedulingGroups ?? [] as $groupOption)
-                                <option value="{{ $groupOption['id'] }}">{{ $groupOption['name'] }} - {{ $groupOption['class_name'] }}{{ $groupOption['adviser_name'] ? ' - Adviser: '.$groupOption['adviser_name'] : ' - No adviser assigned' }}</option>
+                                <option value="{{ $groupOption['id'] }}">{{ $groupOption['name'] }} — {{ $groupOption['class_name'] }}{{ $groupOption['adviser_name'] ? ' (Adviser: '.$groupOption['adviser_name'].')' : ' (No adviser)' }}</option>
                             @endforeach
                         </select>
                     </div>
 
                     <div class="space-y-1.5">
-                        <label for="def-type" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Defense Type</label>
-                        <select id="def-type" name="defense_type" x-model="scheduleForm.type" required class="w-full px-4 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none cursor-pointer">
+                        <label for="def-type" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Defense Type</label>
+                        <select id="def-type" name="defense_type" x-model="scheduleForm.type" required class="w-full px-4 py-2.5 bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 outline-none cursor-pointer transition-all">
                             <option value="title_presentation">Title Proposal / Title Presentation</option>
                             <option value="proposal_defense">Proposal Defense</option>
                             <option value="pre_final_defense">Pre-Final Defense</option>
@@ -2961,26 +3179,26 @@
                     </div>
                 </div>
 
-                <div x-show="selectedDefenseGroup" class="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-[11px] text-emerald-900">
-                    <p><strong>Research:</strong> <span x-text="selectedDefenseGroup?.research_title || 'No canonical research title yet'"></span></p>
-                    <p class="mt-1"><strong>Group Leader:</strong> <span x-text="selectedDefenseGroup?.leader_name || 'Not assigned'"></span> - <strong>Adviser:</strong> <span x-text="selectedDefenseGroup?.adviser_name || 'Not assigned'"></span></p>
+                <div x-show="selectedDefenseGroup" class="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 text-xs text-amber-950 space-y-1">
+                    <p><strong>Research Title:</strong> <span x-text="selectedDefenseGroup?.research_title || 'No canonical research title registered yet'"></span></p>
+                    <p><strong>Cohort Leader:</strong> <span x-text="selectedDefenseGroup?.leader_name || 'Not assigned'"></span> · <strong>Adviser:</strong> <span x-text="selectedDefenseGroup?.adviser_name || 'Not assigned'"></span></p>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="space-y-1.5">
-                        <label for="def-start" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Starts At</label>
-                        <input id="def-start" type="datetime-local" name="starts_at" value="{{ old('starts_at') }}" required class="w-full px-3 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none">
+                        <label for="def-start" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Starts At</label>
+                        <input id="def-start" type="datetime-local" name="starts_at" value="{{ old('starts_at') }}" required class="w-full px-3.5 py-2.5 bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 outline-none transition-all">
                     </div>
                     <div class="space-y-1.5">
-                        <label for="def-end" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Ends At</label>
-                        <input id="def-end" type="datetime-local" name="ends_at" value="{{ old('ends_at') }}" required class="w-full px-3 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none">
+                        <label for="def-end" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Ends At</label>
+                        <input id="def-end" type="datetime-local" name="ends_at" value="{{ old('ends_at') }}" required class="w-full px-3.5 py-2.5 bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 outline-none transition-all">
                     </div>
                     <div class="space-y-1.5">
-                        <label for="def-venue" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Venue</label>
-                        <select id="def-venue" name="room_id" required class="w-full px-3 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none cursor-pointer">
-                            <option value="">Select active room</option>
+                        <label for="def-venue" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Presentation Room</label>
+                        <select id="def-venue" name="room_id" required class="w-full px-3.5 py-2.5 bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 outline-none cursor-pointer transition-all">
+                            <option value="">Select active room...</option>
                             @foreach ($defenseRooms as $room)
-                                <option value="{{ $room->id }}" @selected((string) old('room_id') === (string) $room->id)>{{ $room->code }} - {{ $room->name }}</option>
+                                <option value="{{ $room->id }}" @selected((string) old('room_id') === (string) $room->id)>{{ $room->code }} — {{ $room->name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -2988,49 +3206,49 @@
 
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div class="space-y-1.5">
-                        <label for="def-chair" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Chairperson</label>
-                        <select id="def-chair" name="chairperson_user_id" x-model="scheduleForm.chairpersonId" required class="w-full px-3 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none cursor-pointer">
-                            <option value="">Select Chairperson</option>
+                        <label for="def-chair" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Chairperson</label>
+                        <select id="def-chair" name="chairperson_user_id" x-model="scheduleForm.chairpersonId" required class="w-full px-3.5 py-2.5 bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 outline-none cursor-pointer transition-all">
+                            <option value="">Select Chairperson...</option>
                             <template x-for="candidate in eligibleChairpersons" :key="candidate.id">
                                 <option :value="candidate.id" x-text="candidate.name"></option>
                             </template>
                         </select>
-                        <p class="text-[9px] leading-4 text-amber-700">The selected group's adviser is excluded from Chairperson choices.</p>
+                        <p class="text-[10px] text-amber-700 font-medium">Group adviser is excluded from Chairperson position.</p>
                     </div>
                     <div class="space-y-1.5">
-                        <label for="def-member-one" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Panel Member 1</label>
-                        <select id="def-member-one" name="panel_user_ids[]" x-model="scheduleForm.memberOneId" required class="w-full px-3 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none cursor-pointer">
-                            <option value="">Select Panel Member</option>
+                        <label for="def-member-one" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Panel Member 1</label>
+                        <select id="def-member-one" name="panel_user_ids[]" x-model="scheduleForm.memberOneId" required class="w-full px-3.5 py-2.5 bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 outline-none cursor-pointer transition-all">
+                            <option value="">Select Panel Member...</option>
                             <template x-for="candidate in defensePanelCandidates" :key="candidate.id">
-                                <option :value="candidate.id" :disabled="String(candidate.id) === String(scheduleForm.chairpersonId) || String(candidate.id) === String(scheduleForm.memberTwoId)" x-text="candidate.name + (String(candidate.id) === String(selectedDefenseGroup?.adviser_id || '') ? ' (Group Adviser - panel only)' : '')"></option>
+                                <option :value="candidate.id" :disabled="String(candidate.id) === String(scheduleForm.chairpersonId) || String(candidate.id) === String(scheduleForm.memberTwoId)" x-text="candidate.name + (String(candidate.id) === String(selectedDefenseGroup?.adviser_id || '') ? ' (Group Adviser)' : '')"></option>
                             </template>
                         </select>
                     </div>
                     <div class="space-y-1.5">
-                        <label for="def-member-two" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Panel Member 2</label>
-                        <select id="def-member-two" name="panel_user_ids[]" x-model="scheduleForm.memberTwoId" required class="w-full px-3 py-2.5 bg-white border border-gray-250 rounded-xl text-xs text-gray-800 focus:border-[#0e5c3a] outline-none cursor-pointer">
-                            <option value="">Select Panel Member</option>
+                        <label for="def-member-two" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Panel Member 2</label>
+                        <select id="def-member-two" name="panel_user_ids[]" x-model="scheduleForm.memberTwoId" required class="w-full px-3.5 py-2.5 bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 outline-none cursor-pointer transition-all">
+                            <option value="">Select Panel Member...</option>
                             <template x-for="candidate in defensePanelCandidates" :key="candidate.id">
-                                <option :value="candidate.id" :disabled="String(candidate.id) === String(scheduleForm.chairpersonId) || String(candidate.id) === String(scheduleForm.memberOneId)" x-text="candidate.name + (String(candidate.id) === String(selectedDefenseGroup?.adviser_id || '') ? ' (Group Adviser - panel only)' : '')"></option>
+                                <option :value="candidate.id" :disabled="String(candidate.id) === String(scheduleForm.chairpersonId) || String(candidate.id) === String(scheduleForm.memberOneId)" x-text="candidate.name + (String(candidate.id) === String(selectedDefenseGroup?.adviser_id || '') ? ' (Group Adviser)' : '')"></option>
                             </template>
                         </select>
                     </div>
                 </div>
 
-                <hr class="border-gray-100 mt-6">
-                <div class="flex justify-end gap-3 pt-2">
+                <hr class="border-slate-100 mt-6">
+                <div class="flex justify-end gap-2.5 pt-2">
                     <button 
                         type="button" 
                         @click="showScheduleModal = false" 
-                        class="px-5 py-2.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl cursor-pointer"
+                        class="px-4.5 py-2.5 border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
                     >
                         Cancel
                     </button>
                     <button 
                         type="submit" 
-                        class="px-6 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md cursor-pointer transition-colors"
+                        class="px-6 py-2.5 bg-gradient-to-r from-[#073823] to-[#0e5c3a] hover:brightness-110 text-white text-xs font-black rounded-xl shadow-md shadow-emerald-950/20 cursor-pointer transition-all"
                     >
-                        Schedule Defense
+                        Confirm &amp; Schedule Defense
                     </button>
                 </div>
             </form>

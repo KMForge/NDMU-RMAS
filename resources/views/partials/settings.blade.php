@@ -16,7 +16,7 @@
 @endphp
 
 <!-- NDMU Research Management Account Settings Partial -->
-<div x-data="{
+<div class="space-y-8" x-data="{
     emailNotifications: true,
     smsNotifications: false,
     defenseReminders: true,
@@ -34,234 +34,190 @@
     homeAddress: 'Koronadal City, South Cotabato',
     username: '{{ strtolower(str_replace(' ', '.', $userName)) }}'
 }">
-    <!-- Breadcrumbs -->
-    <div class="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">
-        <span>Dashboard</span>
-        <span>/</span>
-        <span class="text-[#0e5c3a]">Settings</span>
-    </div>
-
-    <!-- Header Actions Row -->
-    <div class="flex justify-between items-start mb-6">
-        <div>
-            <h1 class="text-2xl font-bold font-heading text-gray-800">Account Settings</h1>
-            <p class="text-xs text-gray-450 mt-1">Manage your profile, security, and preferences.</p>
-        </div>
-        
-        <div class="flex items-center gap-3">
-            <button @click="alert('Resetting settings changes...')" class="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl flex items-center gap-2 shadow-sm transition-all duration-200 cursor-pointer">
-                <i class="ph ph-arrows-counter-clockwise text-base"></i>
-                <span>Reset</span>
-            </button>
-            <button @click="alert('Changes saved successfully!')" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-[#0e5c3a]/15 transition-all duration-200 cursor-pointer">
-                <i class="ph ph-floppy-disk text-base"></i>
-                <span>Save Changes</span>
-            </button>
-        </div>
-    </div>
-
     <!-- Profile Banner Summary -->
-    <div class="bg-[#0e5c3a] text-white rounded-2xl p-6 flex items-center gap-6 relative overflow-hidden shadow-xs">
-        <div class="w-24 h-24 rounded-2xl bg-[#eebc3f] text-[#0e5c3a] font-extrabold flex items-center justify-center text-4xl relative flex-shrink-0">
-            <span>{{ $avatarInitials }}</span>
-            <button @click="alert('Upload new profile picture mockup')" class="absolute -bottom-1 -right-1 w-7 h-7 bg-white text-gray-700 border border-gray-150 rounded-xl flex items-center justify-center shadow-sm hover:bg-gray-50 cursor-pointer">
-                <i class="ph ph-camera text-sm"></i>
-            </button>
-        </div>
-        <div>
-            <span class="text-[10px] text-white/80 font-bold uppercase tracking-wider block">{{ $userRoleBadge }}</span>
-            <h2 class="text-2xl font-bold font-heading text-white mt-1">{{ $userName }}</h2>
-            <span class="text-xs text-white/60 font-semibold block mt-0.5">{{ $department }}</span>
-            
-            <div class="flex flex-wrap items-center gap-2 mt-3">
-                <span class="bg-black/20 border border-white/10 text-[#eebc3f] px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-                    {{ $userId }}
-                </span>
-                <span class="bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-                    Active Account
-                </span>
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#042416] p-7 sm:p-8 text-white shadow-xl border border-emerald-800/40">
+        <div class="absolute -right-12 -top-12 h-64 w-64 rounded-full bg-[#eebc3f]/10 blur-2xl pointer-events-none"></div>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
+            <div class="flex items-center gap-5">
+                <div class="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#eebc3f] to-[#ffd76f] text-2xl font-black text-[#073823] shadow-lg border-2 border-white/20">
+                    <span>{{ $avatarInitials }}</span>
+                    <span class="absolute -bottom-1 -right-1 flex h-4 w-4">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-4 w-4 bg-emerald-400 border-2 border-[#073823]"></span>
+                    </span>
+                </div>
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-black/25 backdrop-blur-md border border-[#eebc3f]/30 text-[#eebc3f] font-black text-[9px] uppercase tracking-[0.16em]">
+                            {{ $userRoleBadge }}
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Active
+                        </span>
+                    </div>
+                    <h2 class="text-xl sm:text-2xl font-black font-heading text-white tracking-tight">{{ $userName }}</h2>
+                    <p class="text-xs text-emerald-100/80 font-medium">{{ $department }}</p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 shrink-0">
+                <div class="rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md px-4 py-2 text-xs font-bold text-white shadow-inner">
+                    <span class="text-[9px] uppercase tracking-wider text-[#eebc3f] block font-black">Account ID</span>
+                    <span class="font-mono font-bold">{{ $userId }}</span>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Details Split Columns Layout -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-        
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <!-- Left Column: Info Cards -->
-        <div class="space-y-6">
+        <div class="space-y-8">
             <!-- Profile Information -->
-            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-4">
-                <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
-                    <i class="ph ph-user text-emerald-600 text-lg"></i>
-                    <span>Profile Information</span>
-                </h3>
+            <div class="rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-7 shadow-sm space-y-5 relative overflow-hidden">
+                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#0e5c3a]"></div>
+                <div class="flex items-center gap-2.5 pb-2 border-b border-slate-100">
+                    <span class="w-2.5 h-6 rounded-full bg-[#0e5c3a]"></span>
+                    <h3 class="font-black text-slate-900 text-sm font-heading flex items-center gap-2">
+                        <span>Profile Information</span>
+                    </h3>
+                </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">First Name</label>
-                        <input type="text" x-model="firstName" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">First Name</label>
+                        <input type="text" x-model="firstName" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:bg-white focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 transition-all">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Last Name</label>
-                        <input type="text" x-model="lastName" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">Last Name</label>
+                        <input type="text" x-model="lastName" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:bg-white focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 transition-all">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Email Address</label>
-                    <input type="email" x-model="emailAddress" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-450 focus:outline-none" disabled>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">Email Address</label>
+                    <input type="email" x-model="emailAddress" class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-500 cursor-not-allowed" disabled>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Phone Number</label>
-                        <input type="text" x-model="phoneNumber" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">Phone Number</label>
+                        <input type="text" x-model="phoneNumber" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:bg-white focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 transition-all">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Department / College</label>
-                        <input type="text" value="{{ $department }}" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-400 focus:outline-none" disabled>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Home Address</label>
-                    <input type="text" x-model="homeAddress" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
-                </div>
-            </div>
-
-            <!-- Account Details -->
-            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-4">
-                <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
-                    <i class="ph ph-hash text-emerald-600 text-lg"></i>
-                    <span>Account Details</span>
-                </h3>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Username</label>
-                        <input type="text" x-model="username" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Employee / Student ID</label>
-                        <input type="text" value="{{ $userId }}" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-400 focus:outline-none" disabled>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Date of Birth</label>
-                        <input type="text" value="15/06/2003" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Date Registered</label>
-                        <input type="text" value="July 1, 2015" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-400 focus:outline-none" disabled>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">Department / College</label>
+                        <input type="text" value="{{ $department }}" class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-500 cursor-not-allowed" disabled>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Bio / About</label>
-                    <textarea rows="3" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">Undergraduate researcher specializing in machine learning and educational technology.</textarea>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">Institutional Address</label>
+                    <input type="text" x-model="homeAddress" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:bg-white focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 transition-all">
                 </div>
             </div>
 
             <!-- Role & Portal Access -->
-            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-4">
-                <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
-                    <i class="ph ph-shield text-emerald-600 text-lg"></i>
-                    <span>Role & Portal Access</span>
-                </h3>
+            <div class="rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-7 shadow-sm space-y-4 relative overflow-hidden">
+                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#0e5c3a] to-[#eebc3f]"></div>
+                <div class="flex items-center gap-2.5 pb-2 border-b border-slate-100">
+                    <span class="w-2.5 h-6 rounded-full bg-[#0e5c3a]"></span>
+                    <h3 class="font-black text-slate-900 text-sm font-heading">Role & Portal Access</h3>
+                </div>
 
-                <div class="divide-y divide-gray-50 text-xs">
+                <div class="divide-y divide-slate-100 text-xs">
                     <div class="flex justify-between py-3">
-                        <span class="font-semibold text-gray-500">Current Role</span>
-                        <span class="font-bold text-gray-800">{{ $userRole }}</span>
+                        <span class="font-bold text-slate-500">Current Role</span>
+                        <span class="font-black text-slate-900">{{ $userRole }}</span>
                     </div>
                     <div class="flex justify-between py-3">
-                        <span class="font-semibold text-gray-500">Portal Type</span>
-                        <span class="font-bold text-gray-800">{{ $portalType }}</span>
+                        <span class="font-bold text-slate-500">Portal Type</span>
+                        <span class="font-black text-slate-900">{{ $portalType }}</span>
                     </div>
                     <div class="flex justify-between py-3">
-                        <span class="font-semibold text-gray-500">Access Level</span>
-                        <span class="font-bold text-gray-800">{{ $accessLevel }}</span>
+                        <span class="font-bold text-slate-500">Access Level</span>
+                        <span class="font-black text-[#0e5c3a]">{{ $accessLevel }}</span>
                     </div>
                     <div class="flex justify-between py-3">
-                        <span class="font-semibold text-gray-500">Account Status</span>
-                        <span class="font-bold text-emerald-600 flex items-center gap-1.5">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 block animate-pulse"></span> Active
+                        <span class="font-bold text-slate-500">Account Status</span>
+                        <span class="font-black text-emerald-700 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 block animate-pulse"></span> Active & Verified
                         </span>
                     </div>
-                </div>
-                <div class="text-[10px] text-gray-400 font-medium pt-2 text-center">
-                    To request a role change, contact the System Administrator.
                 </div>
             </div>
         </div>
 
-        <!-- Right Column: Settings & Preferences -->
-        <div class="space-y-6">
+        <!-- Right Column: Settings & Digital Signature -->
+        <div class="space-y-8">
             <!-- Digital Signature Enrollment -->
-            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-5">
-                <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
-                    <i class="ph ph-signature text-emerald-600 text-lg"></i>
-                    <span>Digital Signature</span>
-                </h3>
+            <div class="rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-7 shadow-sm space-y-5 relative overflow-hidden">
+                <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#073823] via-[#eebc3f] to-[#0e5c3a]"></div>
+                <div class="flex items-center gap-2.5 pb-2 border-b border-slate-100">
+                    <span class="w-2.5 h-6 rounded-full bg-[#0e5c3a]"></span>
+                    <div>
+                        <h3 class="font-black text-slate-900 text-sm font-heading">Digital Signature Specimen</h3>
+                        <p class="text-[11px] text-slate-500 font-medium">Used for authoritative form approvals and endorsements.</p>
+                    </div>
+                </div>
 
                 @if (session('signature_success'))
-                    <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-800" role="status">
+                    <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-800" role="status">
                         {{ session('signature_success') }}
                     </div>
                 @endif
 
                 @error('signature')
-                    <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-800" role="alert">
+                    <div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-bold text-rose-800" role="alert">
                         {{ $message }}
                     </div>
                 @enderror
 
                 @if (! $canManageDigitalSignature)
-                    <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-xs leading-relaxed text-slate-600">
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs leading-relaxed text-slate-600 font-medium">
                         System administrators cannot register or apply academic digital signatures.
                     </div>
                 @else
-                    <p class="text-xs leading-relaxed text-slate-500">
-                        Register a clear PNG or JPEG image of your signature. It remains private and will only be applied after you explicitly approve a form.
+                    <p class="text-xs leading-relaxed text-slate-600 font-medium">
+                        Register a clear PNG or JPEG specimen of your signature. It is securely encrypted and only applied after your explicit authorization.
                     </p>
 
                     @if ($registeredSignature)
-                        <div class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+                        <div class="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4">
                             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                <div class="rounded-lg border border-white bg-white p-3">
+                                <div class="rounded-xl border border-white bg-white p-3 shadow-xs">
                                     <img
                                         src="{{ route('signature.show') }}"
                                         alt="Your registered digital signature"
-                                        class="h-20 w-56 object-contain"
+                                        class="h-16 w-52 object-contain"
                                     >
                                 </div>
                                 <div class="text-xs text-slate-600 sm:text-right">
-                                    <p class="font-bold text-emerald-800">Signature registered</p>
-                                    <p class="mt-1">{{ $registeredSignature->registered_at?->timezone(config('ndmu-rmas.timezone'))->format('M j, Y g:i A') }}</p>
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black text-[10px] uppercase">
+                                        <i class="ph ph-seal-check"></i> Enrolled
+                                    </span>
+                                    <p class="mt-1 font-medium text-slate-500 text-[11px]">{{ $registeredSignature->registered_at?->timezone(config('ndmu-rmas.timezone'))->format('M j, Y g:i A') }}</p>
                                 </div>
                             </div>
                         </div>
                     @endif
 
-                    <form method="POST" action="{{ route('signature.store') }}" enctype="multipart/form-data" class="space-y-3">
+                    <form method="POST" action="{{ route('signature.store') }}" enctype="multipart/form-data" class="space-y-4">
                         @csrf
                         @method('PUT')
-                        <label class="block">
-                            <span class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                {{ $registeredSignature ? 'Replace signature image' : 'Signature image' }}
-                            </span>
+                        <div>
+                            <label class="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-slate-500">
+                                {{ $registeredSignature ? 'Replace signature specimen' : 'Signature specimen image' }}
+                            </label>
                             <input
                                 type="file"
                                 name="signature"
                                 accept="image/png,image/jpeg,.png,.jpg,.jpeg"
                                 required
-                                class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#0e5c3a] file:px-3 file:py-2 file:text-xs file:font-bold file:text-white"
+                                class="block w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-600 file:mr-3 file:rounded-xl file:border-0 file:bg-[#0e5c3a] file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white hover:file:bg-[#073823] cursor-pointer"
                             >
-                        </label>
-                        <p class="text-[10px] text-slate-400">PNG or JPEG only, maximum 2 MB. Recommended: transparent PNG with a clean white or transparent background.</p>
-                        <button type="submit" class="w-full rounded-xl bg-[#0e5c3a] px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-[#0a4a2e]">
+                        </div>
+                        <p class="text-[10px] text-slate-400 font-medium">PNG or JPEG only, max 2 MB. Transparent background recommended.</p>
+                        <button type="submit" class="w-full rounded-xl bg-[#0e5c3a] hover:bg-[#073823] px-4 py-2.5 text-xs font-black text-white transition-colors shadow-md cursor-pointer">
                             {{ $registeredSignature ? 'Replace Digital Signature' : 'Register Digital Signature' }}
                         </button>
                     </form>
@@ -270,7 +226,7 @@
                         <form method="POST" action="{{ route('signature.destroy') }}" onsubmit="return confirm('Remove your registered digital signature?');">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="w-full rounded-xl border border-red-200 bg-white px-4 py-2.5 text-xs font-bold text-red-600 transition-colors hover:bg-red-50">
+                            <button type="submit" class="w-full rounded-xl border border-rose-200 bg-white hover:bg-rose-50 px-4 py-2.5 text-xs font-bold text-rose-600 transition-colors cursor-pointer">
                                 Remove Digital Signature
                             </button>
                         </form>
@@ -279,252 +235,46 @@
             </div>
 
             <!-- Notification Preferences -->
-            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-5">
-                <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
-                    <i class="ph ph-bell text-emerald-600 text-lg"></i>
-                    <span>Notification Preferences</span>
-                </h3>
+            <div class="rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-7 shadow-sm space-y-5 relative overflow-hidden">
+                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
+                <div class="flex items-center gap-2.5 pb-2 border-b border-slate-100">
+                    <span class="w-2.5 h-6 rounded-full bg-[#0e5c3a]"></span>
+                    <h3 class="font-black text-slate-900 text-sm font-heading">Notification Preferences</h3>
+                </div>
 
                 <div class="space-y-4">
-                    <!-- Email Toggles -->
                     <div class="flex items-center justify-between py-1.5">
                         <div>
-                            <span class="font-bold text-gray-800 text-xs block">Email Notifications</span>
-                            <span class="text-[10px] text-gray-400 mt-0.5 block font-medium">Receive updates via NDMU email</span>
+                            <span class="font-bold text-slate-900 text-xs block">Email Notifications</span>
+                            <span class="text-[10px] text-slate-400 mt-0.5 block font-medium">Receive updates via university email</span>
                         </div>
-                        <button type="button" @click="emailNotifications = !emailNotifications" :class="emailNotifications ? 'bg-emerald-600' : 'bg-gray-200'" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
+                        <button type="button" @click="emailNotifications = !emailNotifications" :class="emailNotifications ? 'bg-[#0e5c3a]' : 'bg-slate-200'" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out">
                             <span :class="emailNotifications ? 'translate-x-5' : 'translate-x-0'" class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out"></span>
                         </button>
                     </div>
 
-                    <!-- SMS Toggles -->
                     <div class="flex items-center justify-between py-1.5">
                         <div>
-                            <span class="font-bold text-gray-800 text-xs block">SMS Notifications</span>
-                            <span class="text-[10px] text-gray-400 mt-0.5 block font-medium">Get text alerts on your phone</span>
+                            <span class="font-bold text-slate-900 text-xs block">Defense Schedule Reminders</span>
+                            <span class="text-[10px] text-slate-400 mt-0.5 block font-medium">48 hours prior to defense events</span>
                         </div>
-                        <button type="button" @click="smsNotifications = !smsNotifications" :class="smsNotifications ? 'bg-emerald-600' : 'bg-gray-200'" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
-                            <span :class="smsNotifications ? 'translate-x-5' : 'translate-x-0'" class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out"></span>
-                        </button>
-                    </div>
-
-                    <!-- Defense Schedule Reminders -->
-                    <div class="flex items-center justify-between py-1.5">
-                        <div>
-                            <span class="font-bold text-gray-800 text-xs block">Defense Schedule Reminders</span>
-                            <span class="text-[10px] text-gray-400 mt-0.5 block font-medium">48 hours before defense events</span>
-                        </div>
-                        <button type="button" @click="defenseReminders = !defenseReminders" :class="defenseReminders ? 'bg-emerald-600' : 'bg-gray-200'" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
+                        <button type="button" @click="defenseReminders = !defenseReminders" :class="defenseReminders ? 'bg-[#0e5c3a]' : 'bg-slate-200'" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out">
                             <span :class="defenseReminders ? 'translate-x-5' : 'translate-x-0'" class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out"></span>
                         </button>
                     </div>
 
-                    <!-- Chapter Review Updates -->
                     <div class="flex items-center justify-between py-1.5">
                         <div>
-                            <span class="font-bold text-gray-800 text-xs block">Chapter Review Updates</span>
-                            <span class="text-[10px] text-gray-400 mt-0.5 block font-medium">When adviser approves or requests revision</span>
+                            <span class="font-bold text-slate-900 text-xs block">Manuscript Review Updates</span>
+                            <span class="text-[10px] text-slate-400 mt-0.5 block font-medium">When adviser or panel issues revision findings</span>
                         </div>
-                        <button type="button" @click="chapterUpdates = !chapterUpdates" :class="chapterUpdates ? 'bg-emerald-600' : 'bg-gray-200'" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
+                        <button type="button" @click="chapterUpdates = !chapterUpdates" :class="chapterUpdates ? 'bg-[#0e5c3a]' : 'bg-slate-200'" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out">
                             <span :class="chapterUpdates ? 'translate-x-5' : 'translate-x-0'" class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out"></span>
-                        </button>
-                    </div>
-
-                    <!-- Consultation Reminders -->
-                    <div class="flex items-center justify-between py-1.5">
-                        <div>
-                            <span class="font-bold text-gray-800 text-xs block">Consultation Reminders</span>
-                            <span class="text-[10px] text-gray-400 mt-0.5 block font-medium">Upcoming consultation appointments</span>
-                        </div>
-                        <button type="button" @click="consultationReminders = !consultationReminders" :class="consultationReminders ? 'bg-emerald-600' : 'bg-gray-200'" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
-                            <span :class="consultationReminders ? 'translate-x-5' : 'translate-x-0'" class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out"></span>
-                        </button>
-                    </div>
-
-                    <!-- System Announcements -->
-                    <div class="flex items-center justify-between py-1.5">
-                        <div>
-                            <span class="font-bold text-gray-800 text-xs block">System Announcements</span>
-                            <span class="text-[10px] text-gray-400 mt-0.5 block font-medium">University-wide research notices</span>
-                        </div>
-                        <button type="button" @click="systemAnnouncements = !systemAnnouncements" :class="systemAnnouncements ? 'bg-emerald-600' : 'bg-gray-200'" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
-                            <span :class="systemAnnouncements ? 'translate-x-5' : 'translate-x-0'" class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out"></span>
-                        </button>
-                    </div>
-
-                    <!-- Security Alerts -->
-                    <div class="flex items-center justify-between py-1.5">
-                        <div>
-                            <span class="font-bold text-gray-800 text-xs block">Security Alerts</span>
-                            <span class="text-[10px] text-gray-400 mt-0.5 block font-medium">Login attempts and account changes</span>
-                        </div>
-                        <button type="button" @click="securityAlerts = !securityAlerts" :class="securityAlerts ? 'bg-emerald-600' : 'bg-gray-200'" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
-                            <span :class="securityAlerts ? 'translate-x-5' : 'translate-x-0'" class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out"></span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Security Settings & Device Activities -->
-            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-6">
-                <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
-                    <i class="ph ph-lock text-emerald-600 text-lg"></i>
-                    <span>Security Settings</span>
-                </h3>
-
-                <div class="space-y-4">
-                    <span class="font-bold text-gray-700 text-xs block">Change Password</span>
-                    
-                    <div>
-                        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Current Password</label>
-                        <input :type="showPasswords ? 'text' : 'password'" placeholder="Enter current password" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
-                    </div>
-
-                    <div>
-                        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">New Password</label>
-                        <input :type="showPasswords ? 'text' : 'password'" placeholder="Minimum 8 characters" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
-                    </div>
-
-                    <div>
-                        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Confirm New Password</label>
-                        <input :type="showPasswords ? 'text' : 'password'" placeholder="Repeat new password" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
-                    </div>
-
-                    <button type="button" @click="showPasswords = !showPasswords" class="text-[10px] text-gray-450 hover:text-gray-600 font-bold flex items-center gap-1.5 cursor-pointer">
-                        <i :class="showPasswords ? 'ph ph-eye-slash' : 'ph ph-eye'" class="text-sm"></i>
-                        <span x-text="showPasswords ? 'Hide passwords' : 'Show passwords'">Show passwords</span>
-                    </button>
-
-                    <button @click="alert('Password updated successfully!')" class="w-full py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white font-bold text-xs rounded-xl shadow-md transition-colors cursor-pointer text-center">
-                        Update Password
-                    </button>
-                </div>
-
-                <hr class="border-gray-50">
-
-                <!-- Two-Factor Auth -->
-                <div class="flex items-center justify-between py-1">
-                    <div>
-                        <span class="font-bold text-gray-800 text-xs block">Two-Factor Authentication</span>
-                        <span class="text-[10px] text-gray-400 mt-0.5 block font-medium">Add an extra layer of security</span>
-                    </div>
-                    <button type="button" @click="twoFactor = !twoFactor" :class="twoFactor ? 'bg-emerald-600' : 'bg-gray-200'" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
-                        <span :class="twoFactor ? 'translate-x-5' : 'translate-x-0'" class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out"></span>
-                    </button>
-                </div>
-
-                <hr class="border-gray-50">
-
-                <!-- Recent Login Activity -->
-                <div class="space-y-4">
-                    <span class="font-bold text-gray-700 text-xs block">Recent Login Activity</span>
-                    
-                    <div class="space-y-3">
-                        <div class="flex items-start justify-between">
-                            <div class="flex items-start gap-3">
-                                <span class="w-8 h-8 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-lg flex-shrink-0">
-                                    <i class="ph ph-monitor"></i>
-                                </span>
-                                <div>
-                                    <span class="font-bold text-gray-800 text-xs block">Chrome · Windows 11</span>
-                                    <span class="text-[10px] text-gray-400 block mt-0.5 font-medium">Koronadal City · Today, 8:34 AM</span>
-                                </div>
-                            </div>
-                            <span class="bg-emerald-50 border border-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[9px] font-bold">Current</span>
-                        </div>
-
-                        <div class="flex items-start justify-between">
-                            <div class="flex items-start gap-3">
-                                <span class="w-8 h-8 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-lg flex-shrink-0">
-                                    <i class="ph ph-device-mobile"></i>
-                                </span>
-                                <div>
-                                    <span class="font-bold text-gray-800 text-xs block">Safari · iPhone 14</span>
-                                    <span class="text-[10px] text-gray-400 block mt-0.5 font-medium">Koronadal City · Yesterday, 6:12 PM</span>
-                                </div>
-                            </div>
-                            <button @click="alert('Session revoked.')" class="text-red-500 hover:text-red-700 text-[10px] font-bold cursor-pointer font-semibold">Revoke</button>
-                        </div>
-
-                        <div class="flex items-start justify-between">
-                            <div class="flex items-start gap-3">
-                                <span class="w-8 h-8 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-lg flex-shrink-0">
-                                    <i class="ph ph-monitor"></i>
-                                </span>
-                                <div>
-                                    <span class="font-bold text-gray-800 text-xs block">Chrome · Windows 11</span>
-                                    <span class="text-[10px] text-gray-400 block mt-0.5 font-medium">Koronadal City · May 28, 2026, 9:01 AM</span>
-                                </div>
-                            </div>
-                            <button @click="alert('Session revoked.')" class="text-red-500 hover:text-red-700 text-[10px] font-bold cursor-pointer font-semibold">Revoke</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Appearance & System -->
-            <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-5">
-                <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-50">
-                    <i class="ph ph-palette text-emerald-600 text-lg"></i>
-                    <span>Appearance & System</span>
-                </h3>
-
-                <div class="space-y-4">
-                    <!-- Theme Selector -->
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">Color Theme</label>
-                        <div class="grid grid-cols-3 gap-3">
-                            <button @click="theme = 'light'" :class="theme === 'light' ? 'border-[#0e5c3a] bg-emerald-50/5 text-[#0e5c3a]' : 'border-gray-150 text-gray-500 hover:bg-gray-50'" class="border py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer">
-                                <i class="ph ph-sun"></i> Light
-                            </button>
-                            <button @click="theme = 'dark'" :class="theme === 'dark' ? 'border-[#0e5c3a] bg-emerald-50/5 text-[#0e5c3a]' : 'border-gray-150 text-gray-500 hover:bg-gray-50'" class="border py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer">
-                                <i class="ph ph-moon"></i> Dark
-                            </button>
-                            <button @click="theme = 'system'" :class="theme === 'system' ? 'border-[#0e5c3a] bg-emerald-50/5 text-[#0e5c3a]' : 'border-gray-150 text-gray-500 hover:bg-gray-50'" class="border py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer">
-                                <i class="ph ph-desktop"></i> System
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Language Dropdown -->
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1.5">Language</label>
-                        <select class="w-full bg-gray-50 border border-gray-150 rounded-xl text-xs text-gray-700 px-3 py-2.5 outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
-                            <option>English (US)</option>
-                            <option>Filipino (Philippines)</option>
-                        </select>
-                    </div>
-
-                    <!-- Timezone Dropdown -->
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1.5">Timezone</label>
-                        <select class="w-full bg-gray-50 border border-gray-150 rounded-xl text-xs text-gray-700 px-3 py-2.5 outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
-                            <option>Asia/Manila (UTC+8)</option>
-                            <option>America/New_York (UTC-5)</option>
-                        </select>
-                    </div>
-
-                    <!-- Date Format Dropdown -->
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1.5">Date Format</label>
-                        <select class="w-full bg-gray-50 border border-gray-150 rounded-xl text-xs text-gray-700 px-3 py-2.5 outline-none focus:bg-white focus:border-[#0e5c3a] transition-all">
-                            <option>MM/DD/YYYY</option>
-                            <option>DD/MM/YYYY</option>
-                            <option>YYYY-MM-DD</option>
-                        </select>
-                    </div>
-
-                    <!-- Danger Zone -->
-                    <div class="pt-4 border-t border-gray-50">
-                        <span class="block text-[10px] font-bold text-red-500 uppercase mb-2">Danger Zone</span>
-                        <button @click="alert('Deactivate account request sent to Admin.')" class="w-full py-2.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer">
-                            <i class="ph ph-warning-octagon text-base"></i>
-                            <span>Deactivate Account</span>
                         </button>
                     </div>
                 </div>
             </div>
         </div>
-
     </div>
 </div>
+
