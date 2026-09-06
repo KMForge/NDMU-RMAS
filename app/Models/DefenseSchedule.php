@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'defense_id',
+    'defense_session_id',
+    'presentation_order',
     'room_id',
     'starts_at',
     'ends_at',
@@ -19,6 +21,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 ])]
 class DefenseSchedule extends Model
 {
+    public function session(): BelongsTo
+    {
+        return $this->belongsTo(DefenseSession::class, 'defense_session_id');
+    }
+
     public function defense(): BelongsTo
     {
         return $this->belongsTo(Defense::class, 'defense_id');

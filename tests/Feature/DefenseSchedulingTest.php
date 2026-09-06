@@ -151,26 +151,29 @@ class DefenseSchedulingTest extends TestCase
         ]);
     }
 
-    public function test_group_adviser_cannot_be_the_chairperson(): void
+    public function test_group_adviser_can_be_the_chairperson(): void
     {
         $adviser = $this->eligiblePanelCandidate();
         $secondPanelist = $this->eligiblePanelCandidate();
         $this->group->update(['adviser_id' => $adviser->id]);
         $startsAt = Carbon::now()->addDays(2)->setHour(9)->setMinute(0)->setSecond(0);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('cannot serve as Chairperson');
-
-        app(ScheduleDefense::class)->handle(
-            $this->facilitator,
-            $this->group->fresh('researchClass'),
-            'proposal_defense',
-            $this->room->id,
-            $startsAt,
-            (clone $startsAt)->addHours(2),
-            [$this->panelist->id, $secondPanelist->id],
-            $adviser->id,
+        $defense = app(ScheduleDefense::class)->handle(
+            actor: $this->facilitator,
+            group: $this->group->fresh('researchClass'),
+            defenseType: 'proposal_defense',
+            roomId: $this->room->id,
+            startsAt: $startsAt,
+            endsAt: $startsAt->copy()->addMinutes(60),
+            chairpersonUserId: $adviser->id,
+            panelUserIds: [$this->panelist->id, $secondPanelist->id],
         );
+
+        $this->assertDatabaseHas('defense_panel_assignments', [
+            'defense_id' => $defense->id,
+            'user_id' => $adviser->id,
+            'panel_position' => 'chairperson',
+        ]);
     }
 
     public function test_group_adviser_may_serve_as_a_panel_member(): void

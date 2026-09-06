@@ -1,4 +1,4 @@
-<section class="space-y-8" x-data="{ showCreateClassModal: @js($errors->hasAny(['class', 'creation_token', 'name', 'description', 'max_students'])), copiedJoinCode: null }">
+<section class="space-y-8" x-data="{ showCreateClassModal: @js(isset($errors) && $errors->hasAny(['class', 'creation_token', 'name', 'description', 'max_students'])), copiedJoinCode: null }">
     <!-- Header Row -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -32,7 +32,7 @@
         </div>
     @endif
 
-    @if ($errors->has('class'))
+    @if (isset($errors) && $errors->has('class'))
         <div class="rounded-2xl border border-rose-200 bg-rose-50/90 p-4 text-xs sm:text-sm font-semibold text-rose-700 flex items-center gap-2.5 animate-fade-in" role="alert">
             <i class="ph ph-warning-circle text-base text-rose-600 shrink-0"></i>
             <span>{{ $errors->first('class') }}</span>

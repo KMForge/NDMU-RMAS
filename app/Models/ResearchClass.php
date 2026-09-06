@@ -40,6 +40,16 @@ class ResearchClass extends Model
         return $this->hasMany(ResearchClassActorAssignment::class);
     }
 
+    public function panelCommittees(): HasMany
+    {
+        return $this->hasMany(ResearchClassPanelCommittee::class);
+    }
+
+    public function defenseSessions(): HasMany
+    {
+        return $this->hasMany(DefenseSession::class);
+    }
+
     public function setJoinCode(string $joinCode): void
     {
         $normalized = self::normalizeJoinCode($joinCode);

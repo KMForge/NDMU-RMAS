@@ -40,9 +40,6 @@ class AssignTitlePresentationPanel
             if ($locked->defense->current_schedule_id === null || ! in_array($locked->status, ['scheduled', 'panel_assigned'], true)) {
                 throw new InvalidArgumentException('A current Title Presentation schedule is required before panel assignment.');
             }
-            if ((int) $group->adviser_id === (int) $assignments['chairperson']) {
-                throw new InvalidArgumentException("The assigned Thesis Adviser of this research group cannot serve as the Chairperson for the same group's Title Presentation.");
-            }
 
             $userIds = array_values($assignments);
             sort($userIds);

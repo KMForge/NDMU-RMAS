@@ -110,7 +110,8 @@ class RescheduleDefense
             // 4. Overlap Checks excluding current schedule ID
             // Group conflict
             $groupConflict = DefenseSchedule::whereHas('defense', function ($q) use ($lockedGroup) {
-                $q->where('research_class_group_id', $lockedGroup->id);
+                $q->where('research_class_group_id', $lockedGroup->id)
+                    ->whereIn('status', ['scheduled', 'in_progress', 'rescheduled']);
             })
                 ->where('id', '!=', $oldSchedule->id)
                 ->where('status', 'current')
@@ -119,11 +120,14 @@ class RescheduleDefense
                 ->exists();
 
             if ($groupConflict) {
-                throw new InvalidArgumentException('Group already has another defense schedule during the requested time interval.');
+                throw new InvalidArgumentException('Group already has another active defense schedule during the requested time interval.');
             }
 
             // Room conflict
             $roomConflict = DefenseSchedule::where('room_id', $newRoomId)
+                ->whereHas('defense', function ($q) {
+                    $q->whereIn('status', ['scheduled', 'in_progress', 'rescheduled']);
+                })
                 ->where('id', '!=', $oldSchedule->id)
                 ->where('status', 'current')
                 ->where('starts_at', '<', $newEndsAt)
@@ -131,7 +135,7 @@ class RescheduleDefense
                 ->exists();
 
             if ($roomConflict) {
-                throw new InvalidArgumentException('Room already has a defense schedule during the requested time interval.');
+                throw new InvalidArgumentException('Room already has an active defense schedule during the requested time interval.');
             }
 
             // Panelist conflict
@@ -139,6 +143,9 @@ class RescheduleDefense
                 $panelConflict = DefensePanelAssignment::whereIn('user_id', $panelUserIds)
                     ->whereNull('ended_at')
                     ->where('defense_id', '!=', $lockedDefense->id)
+                    ->whereHas('defense', function ($q) {
+                        $q->whereIn('status', ['scheduled', 'in_progress', 'rescheduled']);
+                    })
                     ->whereHas('defense.currentSchedule', function ($q) use ($oldSchedule, $newStartsAt, $newEndsAt) {
                         $q->where('id', '!=', $oldSchedule->id)
                             ->where('status', 'current')
@@ -148,7 +155,7 @@ class RescheduleDefense
                     ->exists();
 
                 if ($panelConflict) {
-                    throw new InvalidArgumentException('One or more assigned panel members have a schedule conflict during the requested time interval.');
+                    throw new InvalidArgumentException('One or more assigned panel members have an active schedule conflict during the requested time interval.');
                 }
             }
 

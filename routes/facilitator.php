@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\DefenseRoomController;
+use App\Http\Controllers\Facilitator\BulkDefenseController;
+use App\Http\Controllers\Facilitator\ClassDefenseCommitteeController;
 use App\Http\Controllers\Facilitator\ClassJoinRequestController;
 use App\Http\Controllers\Facilitator\DashboardController;
 use App\Http\Controllers\Facilitator\DefenseController;
@@ -36,6 +38,7 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
         Route::put('/{presentation}/panel', [TitlePresentationController::class, 'assignPanel'])->whereNumber('presentation')->name('title-presentations.panel');
         Route::patch('/{presentation}/complete', [TitlePresentationController::class, 'complete'])->whereNumber('presentation')->name('title-presentations.complete');
         Route::patch('/{presentation}/result', [TitlePresentationController::class, 'recordResult'])->whereNumber('presentation')->name('title-presentations.result');
+        Route::patch('/{presentation}/disapprove', [TitlePresentationController::class, 'disapprove'])->whereNumber('presentation')->name('title-presentations.disapprove');
     });
 
     Route::prefix('/defense-rooms')
@@ -51,6 +54,8 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
         ->middleware(['permission:defenses.manage', 'throttle:defense-actions'])
         ->group(function (): void {
             Route::post('/', [DefenseController::class, 'store'])->name('defenses.store');
+            Route::post('/bulk', [BulkDefenseController::class, 'store'])->name('defenses.bulk.store');
+            Route::post('/bulk/check-conflicts', [BulkDefenseController::class, 'checkConflicts'])->name('defenses.bulk.conflicts');
             Route::patch('/{defense}/reschedule', [DefenseController::class, 'reschedule'])->whereNumber('defense')->name('defenses.reschedule');
             Route::patch('/{defense}/cancel', [DefenseController::class, 'cancel'])->whereNumber('defense')->name('defenses.cancel');
             Route::post('/{defense}/panel', [DefenseController::class, 'assignPanel'])->whereNumber('defense')->name('defenses.panel');
@@ -93,6 +98,21 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
     Route::prefix('/classes/{researchClass}')
         ->whereNumber('researchClass')
         ->group(function (): void {
+            Route::get('/defense-committees', [ClassDefenseCommitteeController::class, 'show'])
+                ->middleware('permission:defenses.manage')
+                ->name('classes.defense-committees.show');
+            Route::post('/defense-committees', [ClassDefenseCommitteeController::class, 'assignClass'])
+                ->middleware('permission:defenses.manage')
+                ->name('classes.defense-committees.store');
+            Route::put('/groups/{group}/defense-committee', [ClassDefenseCommitteeController::class, 'assignGroup'])
+                ->middleware('permission:defenses.manage')
+                ->whereNumber('group')
+                ->name('classes.groups.defense-committee.assign');
+            Route::delete('/groups/{group}/defense-committee', [ClassDefenseCommitteeController::class, 'resetGroup'])
+                ->middleware('permission:defenses.manage')
+                ->whereNumber('group')
+                ->name('classes.groups.defense-committee.reset');
+
             Route::post('/official-form-actors', [ResearchClassFormActorController::class, 'store'])
                 ->middleware(['permission:classes.view-own', 'throttle:class-creation'])
                 ->name('classes.form-actors.store');

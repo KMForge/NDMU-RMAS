@@ -32,6 +32,8 @@
         'date' => $d['formatted_date'] ?? 'TBA',
         'time' => $d['formatted_time'] ?? 'TBA',
         'starts_at' => $d['starts_at'] ?? null,
+        'presentation_order' => $d['presentation_order'] ?? null,
+        'presentation_order_label' => $d['presentation_order_label'] ?? null,
         'venue' => $d['room_name'] ?? ($d['room_code'] ?? 'TBA'),
         'panel' => array_map(fn($p) => [
             'name' => $p['name'],
@@ -40,6 +42,7 @@
         ], $d['panelists'] ?? []),
         'expected_current_schedule_id' => $d['id'] ?? null,
         'can_manage' => $d['can_manage'] ?? false,
+        'evaluation_round' => $d['evaluation_round'] ?? null,
     ])->values()->all();
 @endphp
 
@@ -62,14 +65,32 @@
     }
 </style>
 
-<div class="min-h-screen flex font-sans bg-[#f4f7f6]" x-data="{ 
-    activeTab: @js($initialTab),
-    activeFormPhase: @js($initialFormPhase),
-    activeOfficialForm: @js($initialOfficialForm),
-    officialForms: @js($officialForms),
-    formsExpanded: @js($initialTab === 'forms'),
-    dashboardUrl: @js(route('facilitator.dashboard')),
-    persistTabTimer: null,
+<script>
+(() => {
+    const registerFacilitatorDashboard = () => {
+        if (!window.Alpine) return;
+        window.Alpine.data('facilitatorDashboard', (config) => ({
+            activeTab: config.initialTab,
+            activeFormPhase: config.initialFormPhase,
+            activeOfficialForm: config.initialOfficialForm,
+            officialForms: config.officialForms,
+            formsExpanded: config.initialTab === 'forms',
+            dashboardUrl: config.dashboardUrl,
+            showVenueManager: config.showVenueManager,
+            showScheduleModal: config.showScheduleModal,
+            defenseSchedulingGroups: config.defenseSchedulingGroups || [],
+            defensePanelCandidates: config.defensePanelCandidates || [],
+            defenseRooms: config.defenseRooms || [],
+            facilitatorClasses: config.facilitatorClasses || [],
+            scheduleForm: config.initialScheduleForm || {
+                groupId: '',
+                type: 'title_presentation',
+                chairpersonId: '',
+                memberOneId: '',
+                memberTwoId: '',
+            },
+            defenseList: config.defenseList || [],
+            persistTabTimer: null,
     queuePersistTab(tab) {
         window.clearTimeout(this.persistTabTimer);
         this.persistTabTimer = window.setTimeout(() => this.persistTab(tab), 0);
@@ -366,26 +387,621 @@
 
     defenseTypeFilter: 'All',
     defenseStatusFilter: 'All',
-    showVenueManager: @js(($defenseRooms ?? collect())->isEmpty() || $errors->has('code') || $errors->has('name') || $errors->has('location_notes')),
-    showScheduleModal: @js($errors->has('defense_schedule') || $errors->has('research_class_group_id') || $errors->has('defense_type') || $errors->has('room_id') || $errors->has('starts_at') || $errors->has('ends_at') || $errors->has('chairperson_user_id') || $errors->has('panel_user_ids')),
-    defenseSchedulingGroups: @js($defenseSchedulingGroups ?? []),
-    defensePanelCandidates: @js($defensePanelCandidates ?? []),
-    scheduleForm: {
-        groupId: @js((string) old('research_class_group_id', '')),
-        type: @js(old('defense_type', 'title_presentation')),
-        chairpersonId: @js((string) old('chairperson_user_id', '')),
-        memberOneId: @js((string) old('panel_user_ids.0', '')),
-        memberTwoId: @js((string) old('panel_user_ids.1', '')),
+
+    // --- Redesigned Committee Assignment State ---
+    showClassCommitteeModal: false,
+    showCustomGroupModal: false,
+    classCommitteeForm: {
+        classId: '',
+        defenseType: 'proposal_defense',
+        type: 'proposal_defense',
+        chairpersonId: '',
+        memberOneId: '',
+        panelMember1Id: '',
+        memberTwoId: '',
+        panelMember2Id: '',
+        applyScope: 'all',
+        selectedGroupIds: [],
+        overrideCustom: false,
+        overwriteCustom: false,
+        searchQuery: '',
+        loading: false,
+        errorMessage: '',
+        successMessage: '',
+        groupsData: [],
+        classDefault: null,
     },
-    defenseList: @js($defenseListData),
+    customGroupForm: {
+        group: null,
+        defenseType: 'proposal_defense',
+        chairpersonId: '',
+        memberOneId: '',
+        panelMember1Id: '',
+        memberTwoId: '',
+        panelMember2Id: '',
+        loading: false,
+        errorMessage: '',
+    },
+
+    get candidateFacultyList() {
+        return this.defensePanelCandidates || [];
+    },
+
+    get classCommitteeGroups() {
+        return this.classCommitteeForm.groupsData || [];
+    },
+
+    get customGroupData() {
+        return this.customGroupForm.group;
+    },
+
+    get isSubmittingClassCommittee() {
+        return this.classCommitteeForm.loading;
+    },
+
+    openClassCommitteeModal(classId = null, defenseType = 'proposal_defense') {
+        if (!classId && this.facilitatorClasses.length > 0) {
+            classId = this.facilitatorClasses[0].id;
+        }
+        this.classCommitteeForm.classId = classId ? String(classId) : '';
+        this.classCommitteeForm.defenseType = defenseType;
+        this.classCommitteeForm.type = defenseType;
+        this.classCommitteeForm.errorMessage = '';
+        this.classCommitteeForm.successMessage = '';
+        this.showClassCommitteeModal = true;
+        this.fetchClassCommitteeData();
+    },
+
+    onClassCommitteeClassChange() {
+        this.fetchClassCommitteeData();
+    },
+
+    loadClassCommittees() {
+        if (this.classCommitteeForm.type) {
+            this.classCommitteeForm.defenseType = this.classCommitteeForm.type;
+        }
+        this.fetchClassCommitteeData();
+    },
+
+    async fetchClassCommitteeData() {
+        if (!this.classCommitteeForm.classId) return;
+        this.classCommitteeForm.loading = true;
+        this.classCommitteeForm.errorMessage = '';
+        const currentType = this.classCommitteeForm.type || this.classCommitteeForm.defenseType || 'proposal_defense';
+        try {
+            const resp = await fetch(`/facilitator/classes/${this.classCommitteeForm.classId}/defense-committees?defense_type=${currentType}`, {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!resp.ok) throw new Error('Failed to fetch class committee data.');
+            const data = await resp.json();
+            this.classCommitteeForm.groupsData = data.groups || [];
+            this.classCommitteeForm.classDefault = data.class_committee || null;
+            if (data.class_committee) {
+                const chairId = String(data.class_committee.chairperson?.id || '');
+                const m1 = data.class_committee.members?.find(m => m.position === 'member_1') || data.class_committee.members?.[0];
+                const m2 = data.class_committee.members?.find(m => m.position === 'member_2') || data.class_committee.members?.[1];
+                const m1Id = String(m1?.id || '');
+                const m2Id = String(m2?.id || '');
+                this.classCommitteeForm.chairpersonId = chairId;
+                this.classCommitteeForm.memberOneId = m1Id;
+                this.classCommitteeForm.panelMember1Id = m1Id;
+                this.classCommitteeForm.memberTwoId = m2Id;
+                this.classCommitteeForm.panelMember2Id = m2Id;
+            } else {
+                this.classCommitteeForm.chairpersonId = '';
+                this.classCommitteeForm.memberOneId = '';
+                this.classCommitteeForm.panelMember1Id = '';
+                this.classCommitteeForm.memberTwoId = '';
+                this.classCommitteeForm.panelMember2Id = '';
+            }
+            this.classCommitteeForm.selectedGroupIds = this.classCommitteeForm.groupsData.map(g => g.id);
+        } catch (e) {
+            this.classCommitteeForm.errorMessage = e.message || 'Error loading committee data.';
+        } finally {
+            this.classCommitteeForm.loading = false;
+        }
+    },
+
+    selectAllCommitteeGroups() {
+        this.classCommitteeForm.selectedGroupIds = (this.classCommitteeForm.groupsData || []).map(g => g.id);
+    },
+
+    deselectAllCommitteeGroups() {
+        this.classCommitteeForm.selectedGroupIds = [];
+    },
+
+    get filteredClassCommitteeGroups() {
+        const q = (this.classCommitteeForm.searchQuery || '').trim().toLowerCase();
+        if (!q) return this.classCommitteeForm.groupsData || [];
+        return (this.classCommitteeForm.groupsData || []).filter(g => 
+            (g.name && g.name.toLowerCase().includes(q)) || 
+            (g.title && g.title.toLowerCase().includes(q)) || 
+            (g.adviser_name && g.adviser_name.toLowerCase().includes(q))
+        );
+    },
+
+    toggleSelectAllGroups() {
+        const filtered = this.filteredClassCommitteeGroups.map(g => g.id);
+        const allSelected = filtered.length > 0 && filtered.every(id => this.classCommitteeForm.selectedGroupIds.includes(id));
+        if (allSelected) {
+            this.classCommitteeForm.selectedGroupIds = this.classCommitteeForm.selectedGroupIds.filter(id => !filtered.includes(id));
+        } else {
+            const set = new Set([...this.classCommitteeForm.selectedGroupIds, ...filtered]);
+            this.classCommitteeForm.selectedGroupIds = Array.from(set);
+        }
+    },
+
+    async submitClassCommittee() {
+        const chair = this.classCommitteeForm.chairpersonId;
+        const p1 = this.classCommitteeForm.panelMember1Id || this.classCommitteeForm.memberOneId;
+        const p2 = this.classCommitteeForm.panelMember2Id || this.classCommitteeForm.memberTwoId;
+        if (!chair || !p1 || !p2) {
+            this.classCommitteeForm.errorMessage = 'Please select a Chairperson and two distinct Panel Members.';
+            return;
+        }
+        if (new Set([chair, p1, p2]).size !== 3) {
+            this.classCommitteeForm.errorMessage = 'The Chairperson and two Panel Members must be three different faculty members.';
+            return;
+        }
+        this.classCommitteeForm.loading = true;
+        this.classCommitteeForm.errorMessage = '';
+        this.classCommitteeForm.successMessage = '';
+        try {
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const targetGroupIds = this.classCommitteeForm.applyScope === 'all'
+                ? []
+                : this.classCommitteeForm.selectedGroupIds;
+            const resp = await fetch(`/facilitator/classes/${this.classCommitteeForm.classId}/defense-committees`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    defense_type: this.classCommitteeForm.type || this.classCommitteeForm.defenseType,
+                    chairperson_user_id: chair,
+                    panel_user_ids: [p1, p2],
+                    group_ids: targetGroupIds,
+                    override_custom: this.classCommitteeForm.overwriteCustom || this.classCommitteeForm.overrideCustom,
+                })
+            });
+            const data = await resp.json();
+            if (!resp.ok) {
+                throw new Error(data.message || 'Failed to assign committee.');
+            }
+            this.classCommitteeForm.successMessage = data.message || 'Committee assigned successfully.';
+            await this.fetchClassCommitteeData();
+        } catch (e) {
+            this.classCommitteeForm.errorMessage = e.message;
+        } finally {
+            this.classCommitteeForm.loading = false;
+        }
+    },
+
+    submitClassCommittees() {
+        return this.submitClassCommittee();
+    },
+
+    openSingleGroupCustomize(group) {
+        this.openCustomGroupModal(group);
+    },
+
+    openCustomGroupModal(group) {
+        this.customGroupForm.group = group;
+        this.customGroupForm.defenseType = this.classCommitteeForm.type || this.classCommitteeForm.defenseType;
+        const chair = group.chairperson_id || group.committee?.chairperson_id || '';
+        const m1 = group.member_1_id || group.committee?.panel_member_1_id || '';
+        const m2 = group.member_2_id || group.committee?.panel_member_2_id || '';
+        this.customGroupForm.chairpersonId = chair ? String(chair) : '';
+        this.customGroupForm.memberOneId = m1 ? String(m1) : '';
+        this.customGroupForm.panelMember1Id = m1 ? String(m1) : '';
+        this.customGroupForm.memberTwoId = m2 ? String(m2) : '';
+        this.customGroupForm.panelMember2Id = m2 ? String(m2) : '';
+        this.customGroupForm.errorMessage = '';
+        this.showCustomGroupModal = true;
+    },
+
+    async submitCustomGroupCommittee() {
+        const chair = this.customGroupForm.chairpersonId;
+        const p1 = this.customGroupForm.panelMember1Id || this.customGroupForm.memberOneId;
+        const p2 = this.customGroupForm.panelMember2Id || this.customGroupForm.memberTwoId;
+        if (!chair || !p1 || !p2) {
+            this.customGroupForm.errorMessage = 'Please select a Chairperson and two distinct Panel Members.';
+            return;
+        }
+        if (new Set([chair, p1, p2]).size !== 3) {
+            this.customGroupForm.errorMessage = 'The Chairperson and two Panel Members must be three different faculty members.';
+            return;
+        }
+        this.customGroupForm.loading = true;
+        this.customGroupForm.errorMessage = '';
+        try {
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const resp = await fetch(`/facilitator/classes/${this.classCommitteeForm.classId}/groups/${this.customGroupForm.group.id}/defense-committee`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    defense_type: this.customGroupForm.defenseType,
+                    chairperson_user_id: chair,
+                    panel_user_ids: [p1, p2],
+                    is_custom: true,
+                })
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.message || 'Failed to update custom committee.');
+            this.showCustomGroupModal = false;
+            await this.fetchClassCommitteeData();
+        } catch (e) {
+            this.customGroupForm.errorMessage = e.message;
+        } finally {
+            this.customGroupForm.loading = false;
+        }
+    },
+
+    saveCustomGroupCommittee() {
+        return this.submitCustomGroupCommittee();
+    },
+
+    async revertCustomGroupCommittee(group) {
+        if (!confirm(`Revert ${(group.group_name || group.name)}'s committee back to the class default?`)) return;
+        try {
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const resp = await fetch(`/facilitator/classes/${this.classCommitteeForm.classId}/groups/${group.id}/defense-committee`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    defense_type: this.classCommitteeForm.type || this.classCommitteeForm.defenseType,
+                })
+            });
+            if (!resp.ok) {
+                const data = await resp.json();
+                throw new Error(data.message || 'Failed to revert committee.');
+            }
+            this.showCustomGroupModal = false;
+            await this.fetchClassCommitteeData();
+        } catch (e) {
+            alert(e.message);
+        }
+    },
+
+    resetGroupToClassCommittee() {
+        return this.revertCustomGroupCommittee(this.customGroupForm.group);
+    },
+
+    // --- Redesigned Bulk Scheduling State ---
+    showBulkScheduleModal: false,
+    bulkClassGroups: [],
+    bulkScheduleForm: {
+        classId: '',
+        defenseType: 'proposal_defense',
+        type: 'proposal_defense',
+        date: '',
+        sessionDate: '',
+        roomId: '',
+        startsAtTime: '07:00',
+        sessionStartTime: '07:00',
+        endsAtTime: '18:00',
+        sessionEndTime: '18:00',
+        notes: '',
+        selectedGroupIds: [],
+        orderedGroups: [],
+        loading: false,
+        checkingConflicts: false,
+        conflicts: [],
+        errorMessage: '',
+        searchQuery: '',
+        classGroupsData: [],
+    },
+
+    get bulkConflictErrors() {
+        return this.bulkScheduleForm.conflicts || [];
+    },
+
+    get bulkSelectedCount() {
+        return (this.bulkClassGroups || []).filter(g => g.selected).length;
+    },
+
+    get groupsWithMissingCommittees() {
+        return (this.bulkClassGroups || []).filter(g => g.selected && (!g.is_complete || !g.chairperson_id || !g.member_1_id || !g.member_2_id));
+    },
+
+    get isSubmittingBulkSchedule() {
+        return this.bulkScheduleForm.loading;
+    },
+
+    openBulkScheduleModal() {
+        if (!this.bulkScheduleForm.classId && this.facilitatorClasses.length > 0) {
+            this.bulkScheduleForm.classId = String(this.facilitatorClasses[0].id);
+        }
+        if (!this.bulkScheduleForm.roomId && this.defenseRooms.length > 0) {
+            this.bulkScheduleForm.roomId = String(this.defenseRooms[0].id);
+        }
+        if (!this.bulkScheduleForm.date) {
+            const tmrw = new Date();
+            tmrw.setDate(tmrw.getDate() + 1);
+            const dateStr = tmrw.toISOString().split('T')[0];
+            this.bulkScheduleForm.date = dateStr;
+            this.bulkScheduleForm.sessionDate = dateStr;
+        }
+        this.bulkScheduleForm.sessionStartTime = this.bulkScheduleForm.startsAtTime || '07:00';
+        this.bulkScheduleForm.sessionEndTime = this.bulkScheduleForm.endsAtTime || '18:00';
+        this.bulkScheduleForm.type = this.bulkScheduleForm.defenseType || 'proposal_defense';
+        this.bulkScheduleForm.conflicts = [];
+        this.bulkScheduleForm.errorMessage = '';
+        this.showBulkScheduleModal = true;
+        this.fetchBulkClassGroups();
+    },
+
+    onBulkClassChange() {
+        this.fetchBulkClassGroups();
+    },
+
+    loadBulkGroups() {
+        if (this.bulkScheduleForm.type) {
+            this.bulkScheduleForm.defenseType = this.bulkScheduleForm.type;
+        }
+        this.fetchBulkClassGroups();
+    },
+
+    async fetchBulkClassGroups() {
+        if (!this.bulkScheduleForm.classId) return;
+        this.bulkScheduleForm.loading = true;
+        const currentType = this.bulkScheduleForm.type || this.bulkScheduleForm.defenseType || 'proposal_defense';
+        try {
+            const resp = await fetch(`/facilitator/classes/${this.bulkScheduleForm.classId}/defense-committees?defense_type=${currentType}`, {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!resp.ok) throw new Error('Failed to fetch class groups for scheduling.');
+            const data = await resp.json();
+            this.bulkScheduleForm.classGroupsData = data.groups || [];
+            this.bulkClassGroups = (data.groups || []).map(g => ({
+                ...g,
+                selected: Boolean(g.is_complete),
+            }));
+            this.bulkScheduleForm.orderedGroups = this.bulkClassGroups.filter(g => g.selected);
+            this.triggerConflictCheck();
+        } catch (e) {
+            this.bulkScheduleForm.errorMessage = e.message;
+        } finally {
+            this.bulkScheduleForm.loading = false;
+        }
+    },
+
+    selectedOrderNumber(grp) {
+        const selected = (this.bulkClassGroups || []).filter(g => g.selected);
+        const idx = selected.findIndex(g => g.id === grp.id);
+        return idx >= 0 ? idx + 1 : '—';
+    },
+
+    selectAllBulkGroups() {
+        (this.bulkClassGroups || []).forEach(g => g.selected = true);
+        this.triggerConflictCheck();
+    },
+
+    deselectAllBulkGroups() {
+        (this.bulkClassGroups || []).forEach(g => g.selected = false);
+        this.triggerConflictCheck();
+    },
+
+    resetBulkOrder() {
+        this.fetchBulkClassGroups();
+    },
+
+    moveBulkGroupUp(index) {
+        if (index <= 0) return;
+        const temp = this.bulkClassGroups[index - 1];
+        this.bulkClassGroups[index - 1] = this.bulkClassGroups[index];
+        this.bulkClassGroups[index] = temp;
+        this.bulkClassGroups = [...this.bulkClassGroups];
+        this.triggerConflictCheck();
+    },
+
+    moveBulkGroupDown(index) {
+        if (index >= this.bulkClassGroups.length - 1) return;
+        const temp = this.bulkClassGroups[index + 1];
+        this.bulkClassGroups[index + 1] = this.bulkClassGroups[index];
+        this.bulkClassGroups[index] = temp;
+        this.bulkClassGroups = [...this.bulkClassGroups];
+        this.triggerConflictCheck();
+    },
+
+    moveGroupUp(index) {
+        this.moveBulkGroupUp(index);
+    },
+
+    moveGroupDown(index) {
+        this.moveBulkGroupDown(index);
+    },
+
+    checkBulkConflicts() {
+        this.triggerConflictCheck();
+    },
+
+    conflictCheckTimer: null,
+    triggerConflictCheck() {
+        clearTimeout(this.conflictCheckTimer);
+        this.conflictCheckTimer = setTimeout(() => this.runConflictCheck(), 350);
+    },
+
+    async runConflictCheck() {
+        const classId = this.bulkScheduleForm.classId;
+        const date = this.bulkScheduleForm.sessionDate || this.bulkScheduleForm.date;
+        const roomId = this.bulkScheduleForm.roomId;
+        const startTime = this.bulkScheduleForm.sessionStartTime || this.bulkScheduleForm.startsAtTime || '07:00';
+        const endTime = this.bulkScheduleForm.sessionEndTime || this.bulkScheduleForm.endsAtTime || '18:00';
+        const selected = (this.bulkClassGroups || []).filter(g => g.selected);
+
+        if (!classId || !date || !roomId || selected.length === 0) {
+            this.bulkScheduleForm.conflicts = [];
+            return;
+        }
+        this.bulkScheduleForm.checkingConflicts = true;
+        try {
+            const startsAt = `${date} ${startTime}:00`;
+            const endsAt = `${date} ${endTime}:00`;
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const resp = await fetch(`/facilitator/defenses/bulk/check-conflicts`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    research_class_id: classId,
+                    defense_type: this.bulkScheduleForm.type || this.bulkScheduleForm.defenseType,
+                    room_id: roomId,
+                    starts_at: startsAt,
+                    ends_at: endsAt,
+                    ordered_group_ids: selected.map(g => g.id),
+                })
+            });
+            const res = await resp.json();
+            this.bulkScheduleForm.conflicts = res.conflicts || [];
+        } catch (e) {
+            console.error(e);
+        } finally {
+            this.bulkScheduleForm.checkingConflicts = false;
+        }
+    },
+
+    async submitBulkSchedule() {
+        const selected = (this.bulkClassGroups || []).filter(g => g.selected);
+        if (selected.length === 0) {
+            alert('Please select at least one research group to schedule.');
+            return;
+        }
+        const incomplete = selected.filter(g => !g.is_complete || !g.chairperson_id || !g.member_1_id || !g.member_2_id);
+        if (incomplete.length > 0) {
+            alert(`Cannot schedule: ${incomplete.length} selected group(s) do not have complete committee assignments.`);
+            return;
+        }
+        const date = this.bulkScheduleForm.sessionDate || this.bulkScheduleForm.date;
+        const startTime = this.bulkScheduleForm.sessionStartTime || this.bulkScheduleForm.startsAtTime || '07:00';
+        const endTime = this.bulkScheduleForm.sessionEndTime || this.bulkScheduleForm.endsAtTime || '18:00';
+        if (!date || !this.bulkScheduleForm.roomId) {
+            alert('Please select a date and presentation room.');
+            return;
+        }
+        this.bulkScheduleForm.loading = true;
+        this.bulkScheduleForm.errorMessage = '';
+        try {
+            const startsAt = `${date} ${startTime}:00`;
+            const endsAt = `${date} ${endTime}:00`;
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const resp = await fetch(`/facilitator/defenses/bulk`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    research_class_id: this.bulkScheduleForm.classId,
+                    defense_type: this.bulkScheduleForm.type || this.bulkScheduleForm.defenseType,
+                    room_id: this.bulkScheduleForm.roomId,
+                    starts_at: startsAt,
+                    ends_at: endsAt,
+                    ordered_group_ids: selected.map(g => g.id),
+                    notes: this.bulkScheduleForm.notes,
+                })
+            });
+            const data = await resp.json();
+            if (!resp.ok) {
+                throw new Error(data.message || 'Failed to create bulk defense schedule.');
+            }
+            window.location.assign('/facilitator/dashboard?tab=defenses');
+        } catch (e) {
+            alert(e.message);
+        } finally {
+            this.bulkScheduleForm.loading = false;
+        }
+    },
 
     get selectedDefenseGroup() {
         return this.defenseSchedulingGroups.find(group => String(group.id) === String(this.scheduleForm.groupId)) || null;
     },
 
+    get departmentFilteredPanelCandidates() {
+        const group = this.selectedDefenseGroup;
+        if (!group || !group.department) {
+            return this.defensePanelCandidates;
+        }
+        const groupDept = group.department.toLowerCase();
+
+        // Specific department normalization
+        const isCsd = groupDept.includes('computer studies') || groupDept === 'csd';
+        const isEece = groupDept.includes('electrical') || groupDept.includes('electronics') || groupDept === 'eece';
+        const isCed = groupDept.includes('civil') || groupDept === 'ced';
+        const isAd = groupDept.includes('architect') || groupDept === 'ad';
+
+        const matched = this.defensePanelCandidates.filter(candidate => {
+            if (!candidate.department) return false;
+            const candDept = candidate.department.toLowerCase();
+
+            if (isCsd) {
+                return candDept.includes('computer studies') || candDept === 'csd';
+            }
+            if (isEece) {
+                return candDept.includes('electrical') || candDept.includes('electronics') || candDept === 'eece';
+            }
+            if (isCed) {
+                return candDept.includes('civil') || candDept === 'ced';
+            }
+            if (isAd) {
+                return candDept.includes('architect') || candDept === 'ad';
+            }
+
+            return candDept === groupDept || candDept.includes(groupDept) || groupDept.includes(candDept);
+        });
+
+        return matched.length > 0 ? matched : this.defensePanelCandidates;
+    },
+
     get eligibleChairpersons() {
-        const adviserId = this.selectedDefenseGroup?.adviser_id;
-        return this.defensePanelCandidates.filter(candidate => String(candidate.id) !== String(adviserId || ''));
+        // Advisers are fully eligible to be selected as Chairperson
+        return this.departmentFilteredPanelCandidates;
+    },
+
+    onDefenseGroupChange() {
+        const group = this.selectedDefenseGroup;
+        if (!group) return;
+
+        // Automatically populate Chairperson from Title Proposal / Presentation panel if within department
+        const validChairIds = this.eligibleChairpersons.map(c => String(c.id));
+        if (group.chairperson_id && validChairIds.includes(String(group.chairperson_id))) {
+            this.scheduleForm.chairpersonId = String(group.chairperson_id);
+        } else if (!validChairIds.includes(String(this.scheduleForm.chairpersonId))) {
+            this.scheduleForm.chairpersonId = '';
+        }
+
+        // Pre-populate panel members if available and valid in department
+        const validPanelIds = this.departmentFilteredPanelCandidates.map(c => String(c.id));
+        if (group.member_1_id && validPanelIds.includes(String(group.member_1_id))) {
+            this.scheduleForm.memberOneId = String(group.member_1_id);
+        } else if (!validPanelIds.includes(String(this.scheduleForm.memberOneId))) {
+            this.scheduleForm.memberOneId = '';
+        }
+
+        if (group.member_2_id && validPanelIds.includes(String(group.member_2_id))) {
+            this.scheduleForm.memberTwoId = String(group.member_2_id);
+        } else if (!validPanelIds.includes(String(this.scheduleForm.memberTwoId))) {
+            this.scheduleForm.memberTwoId = '';
+        }
     },
 
     get totalScheduledCount() {
@@ -615,16 +1231,50 @@
         }
 
         return list;
+    },
+
+    init() {
+        this.$watch('activeTab', (tab, previousTab) => {
+            if (tab !== previousTab) this.queuePersistTab(tab);
+        });
+        this.$watch('activeOfficialForm', (form, previousForm) => {
+            if (this.activeTab === 'forms' && form !== previousForm) this.queuePersistTab('forms');
+        });
     }
-}"
-    x-init="
-        $watch('activeTab', (tab, previousTab) => {
-            if (tab !== previousTab) queuePersistTab(tab);
-        });
-        $watch('activeOfficialForm', (form, previousForm) => {
-            if (activeTab === 'forms' && form !== previousForm) queuePersistTab('forms');
-        });
-    "
+}));
+    };
+
+    if (window.Alpine) {
+        registerFacilitatorDashboard();
+    } else {
+        document.addEventListener('alpine:init', registerFacilitatorDashboard);
+    }
+})();
+</script>
+
+<div
+    class="min-h-screen flex font-sans bg-[#f4f7f6]"
+    x-data="facilitatorDashboard({
+        initialTab: @js($initialTab),
+        initialFormPhase: @js($initialFormPhase),
+        initialOfficialForm: @js($initialOfficialForm),
+        officialForms: @js($officialForms),
+        dashboardUrl: @js(route('facilitator.dashboard')),
+        showVenueManager: @js(($defenseRooms ?? collect())->isEmpty() || (isset($errors) && ($errors->has('code') || $errors->has('name') || $errors->has('location_notes')))),
+        showScheduleModal: @js(isset($errors) && ($errors->has('defense_schedule') || $errors->has('research_class_group_id') || $errors->has('defense_type') || $errors->has('room_id') || $errors->has('starts_at') || $errors->has('ends_at') || $errors->has('chairperson_user_id') || $errors->has('panel_user_ids'))),
+        defenseSchedulingGroups: @js($defenseSchedulingGroups ?? []),
+        defensePanelCandidates: @js($defensePanelCandidates ?? []),
+        defenseRooms: @js($defenseRooms ?? []),
+        facilitatorClasses: @js($facilitatorClasses ?? []),
+        initialScheduleForm: {
+            groupId: @js((string) old('research_class_group_id', '')),
+            type: @js(old('defense_type', 'title_presentation')),
+            chairpersonId: @js((string) old('chairperson_user_id', '')),
+            memberOneId: @js((string) old('panel_user_ids.0', '')),
+            memberTwoId: @js((string) old('panel_user_ids.1', '')),
+        },
+        defenseList: @js($defenseListData),
+    })"
 >
     <!-- Left Sidebar: Navigation -->
     <aside class="fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-[#09472d] via-[#0e5c3a] to-[#073622] text-white flex flex-col justify-between z-20 border-r border-emerald-800/40 shadow-2xl overflow-y-auto">
@@ -1749,7 +2399,9 @@
 
                 @endif
                 @endif
-              <!-- TAB: Research Screening (Proposal Management) -->
+            </div>
+
+            <!-- TAB: Research Screening (Proposal Management) -->
             <div x-show="activeTab === 'screening'" x-cloak class="space-y-8 animate-fade-in">
                 <!-- Breadcrumbs & Header -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2078,20 +2730,38 @@
                         <button
                             type="button"
                             @click="showVenueManager = !showVenueManager"
-                            class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4.5 py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
+                            class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
                         >
                             <i class="ph ph-buildings text-base text-[#0e5c3a]"></i>
                             <span>Manage Venues</span>
                         </button>
                         <button
                             type="button"
-                            @click="openScheduleModal()"
+                            @click="openClassCommitteeModal()"
+                            class="inline-flex items-center gap-2 rounded-2xl border border-emerald-300 bg-emerald-50/80 hover:bg-emerald-100/80 px-4 py-2.5 text-xs font-bold text-[#0e5c3a] shadow-2xs transition-colors cursor-pointer"
+                        >
+                            <i class="ph ph-users-three text-base text-[#0e5c3a]"></i>
+                            <span>Assign Class Panels</span>
+                        </button>
+                        <button
+                            type="button"
+                            @click="openBulkScheduleModal()"
                             @disabled(($defenseRooms ?? collect())->isEmpty())
                             class="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#073823] to-[#0e5c3a] hover:brightness-110 disabled:cursor-not-allowed disabled:bg-slate-300 text-white px-5 py-2.5 text-xs font-black shadow-md shadow-emerald-950/20 transition-all cursor-pointer"
-                            title="{{ ($defenseRooms ?? collect())->isEmpty() ? 'Create an active venue before scheduling a defense.' : 'Schedule a defense' }}"
+                            title="{{ ($defenseRooms ?? collect())->isEmpty() ? 'Create an active venue before scheduling a defense.' : 'Schedule multiple research groups in a session window' }}"
                         >
-                            <i class="ph ph-plus-circle text-base text-[#eebc3f]"></i>
-                            <span>Schedule Defense</span>
+                            <i class="ph ph-calendar-plus text-base text-[#eebc3f]"></i>
+                            <span>Bulk Schedule Defenses</span>
+                        </button>
+                        <button
+                            type="button"
+                            @click="openScheduleModal()"
+                            @disabled(($defenseRooms ?? collect())->isEmpty())
+                            class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-600 shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
+                            title="Schedule an individual group defense"
+                        >
+                            <i class="ph ph-user text-base text-slate-500"></i>
+                            <span>Individual</span>
                         </button>
                     </div>
                 </div>
@@ -2273,9 +2943,15 @@
                                     <p class="text-xs text-slate-500 font-medium">Research Cohort: <strong class="text-slate-800" x-text="def.student">Group Name</strong></p>
                                 </div>
 
-                                <span class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] font-bold text-slate-500 shrink-0">
-                                    Group Schedule
-                                </span>
+                                <div class="flex items-center gap-2">
+                                    <span x-show="def.presentation_order_label" class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-[10px] font-black text-amber-900 shrink-0 flex items-center gap-1.5 shadow-2xs">
+                                        <i class="ph ph-list-numbers text-xs text-amber-600"></i>
+                                        <span x-text="def.presentation_order_label"></span>
+                                    </span>
+                                    <span class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] font-bold text-slate-500 shrink-0">
+                                        Group Schedule
+                                    </span>
+                                </div>
                             </div>
 
                             <hr class="border-slate-100">
@@ -2297,7 +2973,7 @@
                                         <i class="ph ph-clock"></i>
                                     </span>
                                     <div>
-                                        <span class="text-slate-400 font-bold uppercase tracking-wider block text-[9px]">Time</span>
+                                        <span class="text-slate-400 font-bold uppercase tracking-wider block text-[9px]" x-text="def.presentation_order ? 'Session Window' : 'Time'">Time</span>
                                         <span class="text-slate-900 font-black block mt-0.5" x-text="def.time">9:00 AM - 11:00 AM</span>
                                     </div>
                                 </div>
@@ -2325,6 +3001,99 @@
                                     </template>
                                 </div>
                             </div>
+
+                            <!-- Action Bar & Evaluation Lifecycle Strip -->
+                            <div class="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                                <!-- Left: Lifecycle Status / Summary Signer Notice -->
+                                <div class="flex items-center gap-2">
+                                    <template x-if="!def.evaluation_round && def.status === 'Scheduled'">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold shadow-2xs">
+                                            <i class="ph ph-hourglass text-sm text-amber-600"></i>
+                                            <span>Ready for Evaluation Round</span>
+                                        </span>
+                                    </template>
+                                    <template x-if="def.evaluation_round?.status === 'open' || def.evaluation_round?.status === 'in_progress'">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold shadow-2xs animate-pulse">
+                                            <i class="ph ph-spinner text-sm text-blue-600 animate-spin"></i>
+                                            <span>Evaluation In Progress (<strong x-text="def.evaluation_round.submitted_count"></strong>/3 Submitted)</span>
+                                        </span>
+                                    </template>
+                                    <template x-if="def.evaluation_round?.status === 'complete'">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-50 border border-purple-200 text-purple-800 text-xs font-bold shadow-2xs">
+                                            <i class="ph ph-signature text-sm text-purple-600"></i>
+                                            <span>All 3 Submitted — Awaiting RES-037 Signature (<span x-text="def.evaluation_round.summary_signer_name || 'Signer'"></span>)</span>
+                                        </span>
+                                    </template>
+                                    <template x-if="def.evaluation_round?.status === 'finalized'">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 border border-emerald-200 text-[#0e5c3a] text-xs font-bold shadow-2xs">
+                                            <i class="ph ph-check-circle text-sm text-emerald-600"></i>
+                                            <span>RES-037 Signed &amp; Finalized</span>
+                                        </span>
+                                    </template>
+                                    <template x-if="def.evaluation_round?.status === 'released'">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 border border-emerald-200 text-[#0e5c3a] text-xs font-bold shadow-2xs">
+                                            <i class="ph ph-broadcast text-sm text-emerald-600"></i>
+                                            <span>Results Released to Cohort</span>
+                                        </span>
+                                    </template>
+                                </div>
+
+                                <!-- Right: Facilitator Action Buttons -->
+                                <div class="flex items-center gap-2">
+                                    <!-- 1. Open Evaluation Round Button -->
+                                    <template x-if="def.can_manage && !def.evaluation_round && def.status === 'Scheduled'">
+                                        <form method="POST" :action="`/facilitator/defenses/${def.defense_id}/evaluation-round`" onsubmit="return confirm('Open defense evaluation round? This will freeze the 3 assigned panel members and enable panelist scoring in their workspace.')">
+                                            @csrf
+                                            <button
+                                                type="submit"
+                                                class="px-4 py-2.5 bg-gradient-to-r from-[#073823] to-[#0e5c3a] hover:brightness-110 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-950/20 transition-all flex items-center gap-2 cursor-pointer"
+                                            >
+                                                <i class="ph ph-play-circle text-base text-[#eebc3f]"></i>
+                                                <span>Open Evaluation Round</span>
+                                            </button>
+                                        </form>
+                                    </template>
+
+                                    <!-- View RES-037 Summary Sheet -->
+                                    <template x-if="def.res037_url || def.evaluation_round?.res037_url">
+                                        <a
+                                            :href="def.res037_url || def.evaluation_round?.res037_url"
+                                            class="px-4 py-2.5 bg-gradient-to-r from-purple-700 to-indigo-800 hover:brightness-110 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2"
+                                        >
+                                            <i class="ph ph-file-text text-base text-purple-200"></i>
+                                            <span>View RES-037 Summary</span>
+                                        </a>
+                                    </template>
+
+                                    <!-- 2. Release Results Button -->
+                                    <template x-if="def.can_manage && def.evaluation_round?.status === 'finalized'">
+                                        <form method="POST" :action="`/facilitator/evaluation-rounds/${def.evaluation_round.id}/release`" onsubmit="return confirm('Release defense evaluation results to the student researchers and adviser?')">
+                                            @csrf
+                                            <button
+                                                type="submit"
+                                                class="px-4 py-2.5 bg-gradient-to-r from-blue-700 to-indigo-800 hover:brightness-110 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                                            >
+                                                <i class="ph ph-share-network text-base text-blue-200"></i>
+                                                <span>Release Evaluation Results</span>
+                                            </button>
+                                        </form>
+                                    </template>
+
+                                    <!-- 3. Mark Defense Complete Button -->
+                                    <template x-if="def.can_manage && def.evaluation_round?.status === 'released' && def.status !== 'Completed'">
+                                        <form method="POST" :action="`/facilitator/defenses/${def.defense_id}/complete`" onsubmit="return confirm('Mark this defense as completed?')">
+                                            @csrf
+                                            <button
+                                                type="submit"
+                                                class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#073823] text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                                            >
+                                                <i class="ph ph-check text-base text-[#eebc3f]"></i>
+                                                <span>Complete Defense</span>
+                                            </button>
+                                        </form>
+                                    </template>
+                                </div>
+                            </div>
                         </div>
                     </template>
 
@@ -2336,7 +3105,6 @@
                         </div>
                     </template>
                 </div>
-            </div>  </div>
             </div>
 
             <!-- TAB: Research Statistics (Analytics & Reports) -->
@@ -3160,7 +3928,7 @@
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div class="space-y-1.5">
                         <label for="def-group" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Research Group</label>
-                        <select id="def-group" name="research_class_group_id" x-model="scheduleForm.groupId" @change="if (String(scheduleForm.chairpersonId) === String(selectedDefenseGroup?.adviser_id || '')) scheduleForm.chairpersonId = ''" required class="w-full px-4 py-2.5 bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 outline-none cursor-pointer transition-all">
+                        <select id="def-group" name="research_class_group_id" x-model="scheduleForm.groupId" @change="onDefenseGroupChange()" required class="w-full px-4 py-2.5 bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 outline-none cursor-pointer transition-all">
                             <option value="">Select one of your research groups...</option>
                             @foreach ($defenseSchedulingGroups ?? [] as $groupOption)
                                 <option value="{{ $groupOption['id'] }}">{{ $groupOption['name'] }} — {{ $groupOption['class_name'] }}{{ $groupOption['adviser_name'] ? ' (Adviser: '.$groupOption['adviser_name'].')' : ' (No adviser)' }}</option>
@@ -3179,9 +3947,16 @@
                     </div>
                 </div>
 
-                <div x-show="selectedDefenseGroup" class="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 text-xs text-amber-950 space-y-1">
-                    <p><strong>Research Title:</strong> <span x-text="selectedDefenseGroup?.research_title || 'No canonical research title registered yet'"></span></p>
+                <div x-show="selectedDefenseGroup" class="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 text-xs text-amber-950 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <p class="font-bold text-amber-900"><strong>Research Title:</strong> <span x-text="selectedDefenseGroup?.research_title || 'No canonical research title registered yet'"></span></p>
+                        <span class="inline-flex items-center gap-1 rounded-lg bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-[#0e5c3a] border border-emerald-300/60" x-text="selectedDefenseGroup?.department || 'Department Scoped'"></span>
+                    </div>
                     <p><strong>Cohort Leader:</strong> <span x-text="selectedDefenseGroup?.leader_name || 'Not assigned'"></span> · <strong>Adviser:</strong> <span x-text="selectedDefenseGroup?.adviser_name || 'Not assigned'"></span></p>
+                    <p class="text-[10px] text-emerald-800 font-semibold flex items-center gap-1">
+                        <i class="ph ph-buildings"></i>
+                        <span>Displaying faculty panelists affiliated with: <strong x-text="selectedDefenseGroup?.department || 'Research Department'"></strong></span>
+                    </p>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -3206,30 +3981,65 @@
 
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div class="space-y-1.5">
-                        <label for="def-chair" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Chairperson</label>
+                        <div class="flex items-center justify-between">
+                            <label for="def-chair" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Chairperson</label>
+                            <template x-if="selectedDefenseGroup?.chairperson_id && String(scheduleForm.chairpersonId) === String(selectedDefenseGroup?.chairperson_id)">
+                                <span class="text-[10px] font-black uppercase text-[#0e5c3a] bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    <i class="ph ph-link-simple text-xs"></i>
+                                    <span>Auto-Linked</span>
+                                </span>
+                            </template>
+                        </div>
                         <select id="def-chair" name="chairperson_user_id" x-model="scheduleForm.chairpersonId" required class="w-full px-3.5 py-2.5 bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 outline-none cursor-pointer transition-all">
                             <option value="">Select Chairperson...</option>
                             <template x-for="candidate in eligibleChairpersons" :key="candidate.id">
-                                <option :value="candidate.id" x-text="candidate.name"></option>
+                                <option :value="candidate.id" x-text="candidate.name + (candidate.department ? ' (' + candidate.department + ')' : '')"></option>
                             </template>
                         </select>
-                        <p class="text-[10px] text-amber-700 font-medium">Group adviser is excluded from Chairperson position.</p>
+                        <div x-show="selectedDefenseGroup?.chairperson_id && String(scheduleForm.chairpersonId) === String(selectedDefenseGroup?.chairperson_id)" x-cloak class="p-2 rounded-xl bg-emerald-50 border border-emerald-200/80 text-[10px] text-[#0e5c3a] font-bold flex items-center gap-1.5">
+                            <i class="ph ph-check-circle text-xs text-[#0e5c3a]"></i>
+                            <span>
+                                <template x-if="selectedDefenseGroup?.has_title_chairperson">
+                                    <span>Linked from <strong>Title Proposal Chairperson</strong>: <span x-text="selectedDefenseGroup?.chairperson_name"></span></span>
+                                </template>
+                                <template x-if="!selectedDefenseGroup?.has_title_chairperson">
+                                    <span>Linked from <strong>Previous Defense Chairperson</strong>: <span x-text="selectedDefenseGroup?.chairperson_name"></span></span>
+                                </template>
+                            </span>
+                        </div>
+                        <p x-show="!selectedDefenseGroup?.chairperson_id || String(scheduleForm.chairpersonId) !== String(selectedDefenseGroup?.chairperson_id)" class="text-[10px] text-emerald-700 font-medium">Faculty advisers are eligible to serve as Chairperson.</p>
                     </div>
                     <div class="space-y-1.5">
-                        <label for="def-member-one" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Panel Member 1</label>
+                        <div class="flex items-center justify-between">
+                            <label for="def-member-one" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Panel Member 1</label>
+                            <template x-if="selectedDefenseGroup?.member_1_id && String(scheduleForm.memberOneId) === String(selectedDefenseGroup?.member_1_id)">
+                                <span class="text-[10px] font-black uppercase text-[#0e5c3a] bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    <i class="ph ph-link-simple text-xs"></i>
+                                    <span>Auto-Linked</span>
+                                </span>
+                            </template>
+                        </div>
                         <select id="def-member-one" name="panel_user_ids[]" x-model="scheduleForm.memberOneId" required class="w-full px-3.5 py-2.5 bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 outline-none cursor-pointer transition-all">
                             <option value="">Select Panel Member...</option>
-                            <template x-for="candidate in defensePanelCandidates" :key="candidate.id">
-                                <option :value="candidate.id" :disabled="String(candidate.id) === String(scheduleForm.chairpersonId) || String(candidate.id) === String(scheduleForm.memberTwoId)" x-text="candidate.name + (String(candidate.id) === String(selectedDefenseGroup?.adviser_id || '') ? ' (Group Adviser)' : '')"></option>
+                            <template x-for="candidate in departmentFilteredPanelCandidates" :key="candidate.id">
+                                <option :value="candidate.id" :disabled="String(candidate.id) === String(scheduleForm.chairpersonId) || String(candidate.id) === String(scheduleForm.memberTwoId)" x-text="candidate.name + (candidate.department ? ' (' + candidate.department + ')' : '') + (String(candidate.id) === String(selectedDefenseGroup?.adviser_id || '') ? ' (Group Adviser)' : '')"></option>
                             </template>
                         </select>
                     </div>
                     <div class="space-y-1.5">
-                        <label for="def-member-two" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Panel Member 2</label>
+                        <div class="flex items-center justify-between">
+                            <label for="def-member-two" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Panel Member 2</label>
+                            <template x-if="selectedDefenseGroup?.member_2_id && String(scheduleForm.memberTwoId) === String(selectedDefenseGroup?.member_2_id)">
+                                <span class="text-[10px] font-black uppercase text-[#0e5c3a] bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    <i class="ph ph-link-simple text-xs"></i>
+                                    <span>Auto-Linked</span>
+                                </span>
+                            </template>
+                        </div>
                         <select id="def-member-two" name="panel_user_ids[]" x-model="scheduleForm.memberTwoId" required class="w-full px-3.5 py-2.5 bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 outline-none cursor-pointer transition-all">
                             <option value="">Select Panel Member...</option>
-                            <template x-for="candidate in defensePanelCandidates" :key="candidate.id">
-                                <option :value="candidate.id" :disabled="String(candidate.id) === String(scheduleForm.chairpersonId) || String(candidate.id) === String(scheduleForm.memberOneId)" x-text="candidate.name + (String(candidate.id) === String(selectedDefenseGroup?.adviser_id || '') ? ' (Group Adviser)' : '')"></option>
+                            <template x-for="candidate in departmentFilteredPanelCandidates" :key="candidate.id">
+                                <option :value="candidate.id" :disabled="String(candidate.id) === String(scheduleForm.chairpersonId) || String(candidate.id) === String(scheduleForm.memberOneId)" x-text="candidate.name + (candidate.department ? ' (' + candidate.department + ')' : '') + (String(candidate.id) === String(selectedDefenseGroup?.adviser_id || '') ? ' (Group Adviser)' : '')"></option>
                             </template>
                         </select>
                     </div>
@@ -3322,6 +4132,9 @@
             </div>
         </div>
     </div>
+
+    @include('pages.facilitator.defense-class-committees-modal')
+    @include('pages.facilitator.defense-bulk-schedule-modal')
 
 </div>
 @endsection

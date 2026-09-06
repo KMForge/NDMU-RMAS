@@ -10,6 +10,7 @@ use App\Models\DefensePanelAssignment;
 use App\Models\DefenseRoom;
 use App\Models\DefenseSchedule;
 use App\Models\ResearchClassGroup;
+use App\Models\ResearchGroupPanelCommittee;
 use App\Models\User;
 use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Carbon\CarbonInterface;
@@ -53,13 +54,22 @@ class ScheduleDefense
             throw new InvalidArgumentException('Duplicate panel user IDs in request.');
         }
 
+        if ($chairpersonUserId === null || empty($panelUserIds)) {
+            $groupCommittee = ResearchGroupPanelCommittee::with('members')
+                ->where('research_class_group_id', $group->id)
+                ->where('defense_type', $defenseType)
+                ->first();
+            if ($groupCommittee) {
+                $chairpersonUserId = $chairpersonUserId ?? $groupCommittee->chairperson_id;
+                if (empty($panelUserIds)) {
+                    $panelUserIds = $groupCommittee->members->pluck('user_id')->all();
+                }
+            }
+        }
+
         if ($chairpersonUserId !== null) {
             if (count($panelUserIds) !== 2 || in_array($chairpersonUserId, $panelUserIds, true)) {
                 throw new InvalidArgumentException('The Chairperson and two Panel Members must be three distinct Faculty users.');
-            }
-
-            if ((int) $group->adviser_id === $chairpersonUserId) {
-                throw new InvalidArgumentException("The assigned Thesis Adviser cannot serve as Chairperson for the same group's defense, but may serve as a Panel Member.");
             }
         }
 
@@ -73,10 +83,6 @@ class ScheduleDefense
 
             if (! $lockedGroup->researchClass || (int) $lockedGroup->researchClass->facilitator_id !== (int) $actor->id) {
                 throw new AuthorizationException('Unauthorized: You do not own the research class for this group.');
-            }
-
-            if ($chairpersonUserId !== null && (int) $lockedGroup->adviser_id === $chairpersonUserId) {
-                throw new InvalidArgumentException("The assigned Thesis Adviser cannot serve as Chairperson for the same group's defense, but may serve as a Panel Member.");
             }
 
             // Fail-Closed Initial Defense Rule: Only 1 initial defense aggregate per group and defense type
@@ -119,7 +125,8 @@ class ScheduleDefense
             // 4. Overlap Checks (Half-open: existing.starts_at < requested_ends AND existing.ends_at > requested_starts)
             // Group conflict
             $groupConflict = DefenseSchedule::whereHas('defense', function ($q) use ($lockedGroup) {
-                $q->where('research_class_group_id', $lockedGroup->id);
+                $q->where('research_class_group_id', $lockedGroup->id)
+                    ->whereIn('status', ['scheduled', 'in_progress', 'rescheduled']);
             })
                 ->where('status', 'current')
                 ->where('starts_at', '<', $endsAt)
@@ -127,11 +134,14 @@ class ScheduleDefense
                 ->exists();
 
             if ($groupConflict) {
-                throw new InvalidArgumentException('Group already has a defense schedule during the requested time interval.');
+                throw new InvalidArgumentException('Group already has an active defense schedule during the requested time interval.');
             }
 
             // Room conflict
             $roomConflict = DefenseSchedule::where('room_id', $roomId)
+                ->whereHas('defense', function ($q) {
+                    $q->whereIn('status', ['scheduled', 'in_progress', 'rescheduled']);
+                })
                 ->where('status', 'current')
                 ->where('starts_at', '<', $endsAt)
                 ->where('ends_at', '>', $startsAt)
@@ -144,6 +154,9 @@ class ScheduleDefense
             // Panelist conflict
             $panelConflict = DefensePanelAssignment::whereIn('user_id', $assignedUserIds)
                 ->whereNull('ended_at')
+                ->whereHas('defense', function ($q) {
+                    $q->whereIn('status', ['scheduled', 'in_progress', 'rescheduled']);
+                })
                 ->whereHas('defense.currentSchedule', function ($q) use ($startsAt, $endsAt) {
                     $q->where('status', 'current')
                         ->where('starts_at', '<', $endsAt)
@@ -152,7 +165,7 @@ class ScheduleDefense
                 ->exists();
 
             if ($panelConflict) {
-                throw new InvalidArgumentException('One or more panel members have a schedule conflict during the requested time interval.');
+                throw new InvalidArgumentException('One or more panel members have an active schedule conflict during the requested time interval.');
             }
 
             // 5. Create Defense

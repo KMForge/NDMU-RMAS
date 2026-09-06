@@ -4,7 +4,9 @@ namespace App\Modules\DefenseScheduling\Queries;
 
 use App\Enums\AccountStatus;
 use App\Enums\UserType;
+use App\Models\DefenseEvaluationRound;
 use App\Models\DefenseSchedule;
+use App\Models\OfficialFormInstance;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
@@ -21,6 +23,9 @@ class GetDefenseScheduleCalendar
                 'defense.group.researchClass',
                 'defense.group.researchGroup.currentProject',
                 'defense.activePanelAssignments.user',
+                'defense.evaluationRounds.evaluations',
+                'defense.evaluationRounds.summarySigner',
+                'defense.titlePresentation',
                 'room',
             ]);
 
@@ -49,7 +54,7 @@ class GetDefenseScheduleCalendar
             return collect();
         }
 
-        $schedules = $query->orderBy('starts_at', 'asc')->get();
+        $schedules = $query->orderByDesc('id')->get();
 
         return $schedules->map(function (DefenseSchedule $schedule) use ($user) {
             $defense = $schedule->defense;
@@ -88,14 +93,39 @@ class GetDefenseScheduleCalendar
                 default => 'Research Defense',
             };
 
+            $round = $defense?->evaluationRounds?->firstWhere('defense_schedule_id', $schedule->id)
+                ?? $defense?->evaluationRounds?->sortByDesc('id')->first();
+            $evaluationsSubmittedCount = $round?->evaluations?->where('status', 'submitted')->count() ?? 0;
+
+            $isTitlePresentationCompleted = $defense?->defense_type === 'title_presentation'
+                && $defense?->titlePresentation
+                && in_array($defense->titlePresentation->status, ['presented', 'awaiting_panel_signatures', 'awaiting_program_coordinator', 'awaiting_dean', 'finalized'], true);
+
+            $isEvaluationRoundCompleted = $round !== null && in_array($round->status, ['finalized', 'released', 'complete', 'completed'], true);
+
+            $isCompleted = $isTitlePresentationCompleted || $isEvaluationRoundCompleted || $defense?->status === 'completed' || $schedule->status === 'completed';
+            $computedDefenseStatus = $isCompleted ? 'completed' : $defense?->status;
+            $computedScheduleStatus = $isCompleted ? 'completed' : $schedule->status;
+
+            $res037Instance = $round
+                ? OfficialFormInstance::query()
+                    ->where('source_type', DefenseEvaluationRound::class)
+                    ->where('source_id', $round->id)
+                    ->latest('id')
+                    ->first()
+                : null;
+
             return [
                 'id' => $schedule->id,
                 'defense_id' => $defense?->id,
                 'defense_type' => $defense?->defense_type,
                 'defense_type_label' => $defenseTypeLabel,
-                'schedule_status' => $schedule->status,
-                'defense_status' => $defense?->status,
+                'schedule_status' => $computedScheduleStatus,
+                'defense_status' => $computedDefenseStatus,
                 'is_current' => $schedule->status === 'current' && $defense?->current_schedule_id === $schedule->id,
+                'defense_session_id' => $schedule->defense_session_id,
+                'presentation_order' => $schedule->presentation_order,
+                'presentation_order_label' => $schedule->presentation_order ? "Order #{$schedule->presentation_order}" : null,
                 'starts_at' => $schedule->starts_at?->toIso8601String(),
                 'ends_at' => $schedule->ends_at?->toIso8601String(),
                 'formatted_date' => $schedule->starts_at?->format('M d, Y'),
@@ -110,11 +140,20 @@ class GetDefenseScheduleCalendar
                 'reason' => $schedule->reason,
                 'can_manage' => $isFacilitator && $user->can('defenses.manage'),
                 'can_initiate_res036' => $isPanelist && $schedule->status === 'current' && $defense?->status === 'scheduled' && $user->hasPermissionTo('forms.res-036.evaluate'),
+                'evaluation_round' => $round ? [
+                    'id' => $round->id,
+                    'status' => $round->status,
+                    'summary_signer_id' => $round->summary_signer_user_id,
+                    'summary_signer_name' => $round->summarySigner?->name,
+                    'submitted_count' => $evaluationsSubmittedCount,
+                    'res037_url' => $res037Instance ? route('official-forms.workspace.show', $res037Instance) : null,
+                ] : null,
                 'res036_url' => route('official-forms.workspace.store-from-source', [
                     'definition' => 'res-036',
                     'sourceKind' => 'defense-schedule',
                     'source' => $schedule->id,
                 ]),
+                'res037_url' => $res037Instance ? route('official-forms.workspace.show', $res037Instance) : null,
             ];
         });
     }

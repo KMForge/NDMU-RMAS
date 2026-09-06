@@ -6,6 +6,7 @@ use App\Enums\AccountStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\OfficialFormWorkspaceController;
 use App\Models\DefenseRoom;
+use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
 use App\Modules\Classes\Queries\GetFacilitatorClassData;
@@ -76,25 +77,62 @@ class DashboardController extends Controller
                 ]),
                 'leader:id,name',
                 'adviser:id,name',
+                'defenses' => fn ($query) => $query->with([
+                    'activePanelAssignments.user:id,name',
+                ])->orderByDesc('id'),
             ])
             ->orderBy('name')
             ->get()
-            ->map(fn (ResearchClassGroup $group): array => [
-                'id' => $group->id,
-                'name' => $group->name,
-                'class_name' => $group->researchClass?->name,
-                'research_title' => $group->researchGroup?->currentProject?->title,
-                'leader_name' => $group->leader?->name,
-                'adviser_id' => $group->adviser_id,
-                'adviser_name' => $group->adviser?->name,
-            ]);
+            ->map(function (ResearchClassGroup $group): array {
+                $titleDefense = $group->defenses->firstWhere('defense_type', 'title_presentation');
+                $titleChairperson = $titleDefense?->activePanelAssignments->firstWhere('panel_position', 'chairperson');
+                $latestChairperson = $titleChairperson ?? $group->defenses->flatMap->activePanelAssignments->firstWhere('panel_position', 'chairperson');
+
+                $titleMember1 = $titleDefense?->activePanelAssignments->firstWhere('panel_position', 'member_1')
+                    ?? $group->defenses->flatMap->activePanelAssignments->firstWhere('panel_position', 'member_1');
+
+                $titleMember2 = $titleDefense?->activePanelAssignments->firstWhere('panel_position', 'member_2')
+                    ?? $group->defenses->flatMap->activePanelAssignments->firstWhere('panel_position', 'member_2');
+
+                $groupDept = $group->leader?->department
+                    ?: ($group->adviser?->department
+                    ?: ($group->researchClass?->facilitator?->department ?: 'Computer Studies Department'));
+
+                return [
+                    'id' => $group->id,
+                    'name' => $group->name,
+                    'department' => $groupDept,
+                    'class_name' => $group->researchClass?->name,
+                    'research_title' => $group->researchGroup?->currentProject?->title,
+                    'leader_name' => $group->leader?->name,
+                    'adviser_id' => $group->adviser_id,
+                    'adviser_name' => $group->adviser?->name,
+                    'adviser_department' => $group->adviser?->department,
+                    'chairperson_id' => $latestChairperson?->user_id,
+                    'chairperson_name' => $latestChairperson?->user?->name,
+                    'has_title_chairperson' => $titleChairperson !== null,
+                    'member_1_id' => $titleMember1?->user_id,
+                    'member_1_name' => $titleMember1?->user?->name,
+                    'member_2_id' => $titleMember2?->user_id,
+                    'member_2_name' => $titleMember2?->user?->name,
+                ];
+            });
+        $facilitatorClasses = ResearchClass::query()
+            ->where('facilitator_id', $request->user()->id)
+            ->with(['groups' => fn ($q) => $q->where('status', 'active')])
+            ->orderBy('name')
+            ->get();
+
         $defensePanelCandidates = User::query()
-            ->permission('evaluations.create')
+            ->where('user_type', 'faculty')
+            ->where(function ($query) {
+                $query->permission(['forms.res-036.evaluate', 'evaluations.create', 'classes.serve-as-adviser']);
+            })
             ->where('status', AccountStatus::Active)
             ->whereNotNull('approved_at')
             ->whereNotNull('email_verified_at')
             ->orderBy('name')
-            ->get(['id', 'name', 'email']);
+            ->get(['id', 'name', 'email', 'department']);
         $screening = $screeningData->for($request->user());
         $titleProposalScreeningQueue = $screening['titleProposalScreeningQueue'];
         $adviserApprovedDefenseDocuments = $screening['adviserApprovedDefenseDocuments'];
@@ -108,6 +146,7 @@ class DashboardController extends Controller
         return view('pages.facilitator-dashboard', [
             'area' => 'Research Facilitator',
             'facilitator' => $request->user(),
+            'facilitatorClasses' => $facilitatorClasses,
             'pendingFormInstances' => $pendingFormInstances,
             'pendingAcademicActions' => $pendingActionsService->execute($request->user()),
             'officialFormPhases' => config('official-forms.phases', []),
@@ -133,7 +172,7 @@ class DashboardController extends Controller
                 'screening' => $titleProposalScreeningQueue->count() + $adviserApprovedDefenseDocuments->count(),
                 'title-proposal-screening' => $titleProposalScreeningQueue->count(),
                 'defense-scheduling-ready' => $adviserApprovedDefenseDocuments->count(),
-                'defenses' => count($defenseSchedulingGroups),
+                'defenses' => $defenses->filter(fn ($d) => ! in_array(data_get($d, 'defense_status') ?? data_get($d, 'schedule_status') ?? data_get($d, 'status'), ['completed', 'cancelled'], true))->count(),
                 'notifications' => Schema::hasTable('notifications')
                     ? $request->user()->unreadNotifications()->count()
                     : 0,
