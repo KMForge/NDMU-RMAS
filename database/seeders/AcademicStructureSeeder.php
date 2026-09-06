@@ -23,8 +23,8 @@ class AcademicStructureSeeder extends Seeder
         DB::transaction(function (): void {
             $now = now();
             $college = config('academic.college');
-            $department = config('academic.department');
-            $programs = config('academic.programs');
+            $departments = config('academic.departments', []);
+            $programs = config('academic.programs', []);
 
             DB::table('colleges')
                 ->where('code', '<>', $college['code'])
@@ -42,22 +42,28 @@ class AcademicStructureSeeder extends Seeder
                 ],
             );
 
+            $departmentIdsByCode = [];
+            $departmentCodes = collect($departments)->pluck('code')->all();
+
             DB::table('departments')
-                ->where('code', '<>', $department['code'])
+                ->whereNotIn('code', $departmentCodes)
                 ->update([
                     'is_active' => false,
                     'updated_at' => $now,
                 ]);
 
-            $departmentId = $this->upsertReferenceRecord(
-                'departments',
-                $department['code'],
-                [
-                    'college_id' => $collegeId,
-                    'name' => $department['name'],
-                    'is_active' => true,
-                ],
-            );
+            foreach ($departments as $dept) {
+                $deptId = $this->upsertReferenceRecord(
+                    'departments',
+                    $dept['code'],
+                    [
+                        'college_id' => $collegeId,
+                        'name' => $dept['name'],
+                        'is_active' => true,
+                    ],
+                );
+                $departmentIdsByCode[$dept['code']] = $deptId;
+            }
 
             $programCodes = collect($programs)->pluck('code')->all();
 
@@ -69,11 +75,14 @@ class AcademicStructureSeeder extends Seeder
                 ]);
 
             foreach ($programs as $program) {
+                $deptCode = $program['department_code'] ?? 'CSD';
+                $deptId = $departmentIdsByCode[$deptCode] ?? array_values($departmentIdsByCode)[0];
+
                 $this->upsertReferenceRecord(
                     'programs',
                     $program['code'],
                     [
-                        'department_id' => $departmentId,
+                        'department_id' => $deptId,
                         'name' => $program['name'],
                         'degree_level' => 'Bachelor',
                         'is_active' => true,

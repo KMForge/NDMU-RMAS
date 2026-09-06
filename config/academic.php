@@ -6,56 +6,138 @@ return [
         'name' => 'College of Engineering, Architecture, and Computing (CEAC)',
     ],
 
-    /*
-     * The current database schema relates programs through a department.
-     * Because NDMU-RMAS is scoped to one college, this single organizational
-     * unit groups every supported CEAC program.
-     */
-    'department' => [
-        'code' => 'CEAC-PROGRAMS',
-        'name' => 'CEAC Academic Programs',
+    'departments' => [
+        [
+            'code' => 'CSD',
+            'name' => 'Computer Studies Department',
+            'label' => 'Computer Studies Department (CSD)',
+            'student_organizations' => 'Course-specific computing/library organizations',
+            'programs' => [
+                [
+                    'code' => 'BSCS',
+                    'name' => 'BS Computer Science',
+                    'label' => 'BS Computer Science (BSCS)',
+                ],
+                [
+                    'code' => 'BSIT',
+                    'name' => 'BS Information Technology',
+                    'label' => 'BS Information Technology (BSIT)',
+                ],
+                [
+                    'code' => 'BLIS',
+                    'name' => 'Bachelor of Library and Information Science',
+                    'label' => 'Bachelor of Library and Information Science (BLIS)',
+                ],
+            ],
+        ],
+        [
+            'code' => 'EECE',
+            'name' => 'Electrical, Electronics, and Computer Engineering Department',
+            'label' => 'Electrical, Electronics, and Computer Engineering Department (EECE)',
+            'student_organizations' => 'IIEE, JIECEP and ICpEP.SE',
+            'programs' => [
+                [
+                    'code' => 'BSEE',
+                    'name' => 'BS Electrical Engineering',
+                    'label' => 'BS Electrical Engineering (BSEE)',
+                ],
+                [
+                    'code' => 'BSECE',
+                    'name' => 'BS Electronics Engineering',
+                    'label' => 'BS Electronics Engineering (BSECE)',
+                ],
+                [
+                    'code' => 'BSCPE',
+                    'name' => 'BS Computer Engineering',
+                    'label' => 'BS Computer Engineering (BSCpE)',
+                ],
+            ],
+        ],
+        [
+            'code' => 'CED',
+            'name' => 'Civil Engineering Department',
+            'label' => 'Civil Engineering Department',
+            'student_organizations' => 'PICE–NDMU Student Chapter',
+            'programs' => [
+                [
+                    'code' => 'BSCE',
+                    'name' => 'BS Civil Engineering',
+                    'label' => 'BS Civil Engineering (BSCE)',
+                ],
+            ],
+        ],
+        [
+            'code' => 'AD',
+            'name' => 'Architecture Department',
+            'label' => 'Architecture Department',
+            'student_organizations' => 'UAPSA–NDMU Chapter',
+            'programs' => [
+                [
+                    'code' => 'BSARCH',
+                    'name' => 'BS Architecture',
+                    'label' => 'BS Architecture (BSArch)',
+                ],
+            ],
+        ],
     ],
 
+    // Flattened helper list for backward compatibility
     'programs' => [
         [
             'code' => 'BSARCH',
-            'name' => 'Bachelor of Science in Architecture',
-            'label' => 'Bachelor of Science in Architecture (BS Architecture)',
+            'name' => 'BS Architecture',
+            'label' => 'BS Architecture (BSArch)',
+            'department_code' => 'AD',
+            'student_organizations' => 'UAPSA–NDMU Chapter',
         ],
         [
             'code' => 'BSCE',
-            'name' => 'Bachelor of Science in Civil Engineering',
-            'label' => 'Bachelor of Science in Civil Engineering (BS Civil Engineering)',
+            'name' => 'BS Civil Engineering',
+            'label' => 'BS Civil Engineering (BSCE)',
+            'department_code' => 'CED',
+            'student_organizations' => 'PICE–NDMU Student Chapter',
         ],
         [
             'code' => 'BSCPE',
-            'name' => 'Bachelor of Science in Computer Engineering',
-            'label' => 'Bachelor of Science in Computer Engineering (BS Computer Engineering)',
+            'name' => 'BS Computer Engineering',
+            'label' => 'BS Computer Engineering (BSCpE)',
+            'department_code' => 'EECE',
+            'student_organizations' => 'IIEE, JIECEP and ICpEP.SE',
         ],
         [
             'code' => 'BSCS',
-            'name' => 'Bachelor of Science in Computer Science',
-            'label' => 'Bachelor of Science in Computer Science (BS Computer Science)',
+            'name' => 'BS Computer Science',
+            'label' => 'BS Computer Science (BSCS)',
+            'department_code' => 'CSD',
+            'student_organizations' => 'Course-specific computing/library organizations',
         ],
         [
             'code' => 'BSEE',
-            'name' => 'Bachelor of Science in Electrical Engineering',
-            'label' => 'Bachelor of Science in Electrical Engineering (BS Electrical Engineering)',
+            'name' => 'BS Electrical Engineering',
+            'label' => 'BS Electrical Engineering (BSEE)',
+            'department_code' => 'EECE',
+            'student_organizations' => 'IIEE, JIECEP and ICpEP.SE',
         ],
         [
             'code' => 'BSECE',
-            'name' => 'Bachelor of Science in Electronics Engineering',
-            'label' => 'Bachelor of Science in Electronics Engineering (BS Electronics Engineering)',
+            'name' => 'BS Electronics Engineering',
+            'label' => 'BS Electronics Engineering (BSECE)',
+            'department_code' => 'EECE',
+            'student_organizations' => 'IIEE, JIECEP and ICpEP.SE',
         ],
         [
             'code' => 'BSIT',
-            'name' => 'Bachelor of Science in Information Technology',
-            'label' => 'Bachelor of Science in Information Technology (BS Information Technology)',
+            'name' => 'BS Information Technology',
+            'label' => 'BS Information Technology (BSIT)',
+            'department_code' => 'CSD',
+            'student_organizations' => 'Course-specific computing/library organizations',
         ],
         [
             'code' => 'BLIS',
             'name' => 'Bachelor of Library and Information Science',
             'label' => 'Bachelor of Library and Information Science (BLIS)',
+            'department_code' => 'CSD',
+            'student_organizations' => 'Course-specific computing/library organizations',
         ],
     ],
 ];

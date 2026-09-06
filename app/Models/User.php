@@ -48,6 +48,16 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne(UserSignature::class);
     }
 
+    public function facultyProfile(): HasOne
+    {
+        return $this->hasOne(FacultyProfile::class);
+    }
+
+    public function studentProfile(): HasOne
+    {
+        return $this->hasOne(StudentProfile::class);
+    }
+
     public function sendEmailVerificationNotification(): void
     {
         $this->notify(new SendNDMUEmailVerification);
