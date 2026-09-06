@@ -30,18 +30,33 @@ class TurnstileRule implements ValidationRule
         }
 
         try {
+            $data = [
+                'secret' => $secretKey,
+                'response' => $value,
+            ];
+
+            $clientIp = request()->ip();
+            if (! empty($clientIp) && ! in_array($clientIp, ['127.0.0.1', '::1'], true)) {
+                $data['remoteip'] = $clientIp;
+            }
+
             $response = Http::asForm()
-                ->timeout(5)
-                ->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
-                    'secret' => $secretKey,
-                    'response' => $value,
-                    'remoteip' => request()->ip(),
-                ]);
+                ->timeout(10)
+                ->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', $data);
 
             if (! $response->successful() || $response->json('success') !== true) {
+                \Log::warning('Turnstile verification failed', [
+                    'status' => $response->status(),
+                    'body' => $response->json(),
+                ]);
+
                 $fail('Security verification failed. Please try again.');
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            \Log::error('Turnstile connection error', [
+                'message' => $e->getMessage(),
+            ]);
+
             $fail('Unable to complete security verification. Please try again.');
         }
     }
