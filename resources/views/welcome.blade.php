@@ -47,30 +47,29 @@
             @auth
                 <a
                     href="{{ route('dashboard') }}"
-                    class="inline-flex items-center gap-2 rounded-2xl bg-[#073823] hover:bg-[#0e5c3a] px-5 py-2.5 text-xs font-black text-white shadow-md shadow-emerald-950/20 transition duration-200 hover:-translate-y-0.5"
+                    class="inline-flex items-center gap-2 rounded-2xl bg-[#073823] hover:bg-[#0e5c3a] px-4 py-2.5 text-xs font-black text-white shadow-md shadow-emerald-950/20 transition duration-200 hover:-translate-y-0.5"
                 >
                     <i class="ph ph-squares-four text-sm text-[#eebc3f]"></i>
-                    <span>Go to Dashboard</span>
+                    <span>Dashboard</span>
                 </a>
-            @else
-                @if(Route::has('login'))
-                    <a
-                        href="{{ route('login') }}"
-                        class="px-4 py-2.5 text-xs font-black text-[#073823] hover:text-[#0e5c3a] transition duration-200"
-                    >
-                        Sign In
-                    </a>
-                @endif
-                @if(Route::has('register'))
-                    <a
-                        href="{{ route('register') }}"
-                        class="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#eebc3f] to-[#f4c542] hover:brightness-105 px-4.5 py-2.5 text-xs font-black text-[#073823] shadow-md shadow-amber-950/15 transition duration-200 hover:-translate-y-0.5"
-                    >
-                        <i class="ph ph-user-plus text-sm"></i>
-                        <span>Register Account</span>
-                    </a>
-                @endif
             @endauth
+            @if(Route::has('login'))
+                <a
+                    href="{{ route('login') }}"
+                    class="px-4 py-2.5 text-xs font-black text-[#073823] hover:text-[#0e5c3a] transition duration-200"
+                >
+                    Log in
+                </a>
+            @endif
+            @if(Route::has('register'))
+                <a
+                    href="{{ route('register') }}"
+                    class="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#eebc3f] to-[#f4c542] hover:brightness-105 px-4.5 py-2.5 text-xs font-black text-[#073823] shadow-md shadow-amber-950/15 transition duration-200 hover:-translate-y-0.5"
+                >
+                    <i class="ph ph-user-plus text-sm"></i>
+                    <span>Register</span>
+                </a>
+            @endif
         </div>
     </div>
 </header>

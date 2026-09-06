@@ -13,7 +13,7 @@
                         NDMU-RMAS Account Access
                     </span>
                 </div>
-                <h1 class="mt-3 font-heading text-2xl sm:text-3xl font-black tracking-tight text-white">Access Assignment Pending</h1>
+                <h1 class="mt-3 font-heading text-2xl sm:text-3xl font-black tracking-tight text-white">Access assignment pending</h1>
                 <p class="mt-2 text-xs sm:text-sm leading-relaxed text-emerald-100/85 max-w-xl">
                     Your institutional account is verified, but an operational research role has not been designated yet.
                 </p>
