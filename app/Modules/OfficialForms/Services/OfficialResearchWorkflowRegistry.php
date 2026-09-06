@@ -318,7 +318,7 @@ class OfficialResearchWorkflowRegistry
                 'record' => [
                     'label' => 'Record Proceedings & Deliberation',
                     'permission' => 'forms.res-035.record',
-                    'actor_type' => 'panel_chair',
+                    'actor_type' => 'adviser',
                     'from_states' => ['draft', 'submitted', 'in_progress'],
                     'to_state' => 'completed',
                     'signature_required' => true,

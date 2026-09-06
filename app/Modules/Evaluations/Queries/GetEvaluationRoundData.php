@@ -7,6 +7,7 @@ use App\Models\DefenseEvaluationRound;
 use App\Models\OfficialFormInstance;
 use App\Models\ResearchClassGroupMember;
 use App\Models\User;
+use App\Modules\Evaluations\Services\Res036Rubric;
 
 class GetEvaluationRoundData
 {
@@ -84,6 +85,8 @@ class GetEvaluationRoundData
                     'group_name' => $round->defense->group?->name,
                     'research_title' => $round->defense->group?->title ?? $round->defense->group?->name,
                     'status' => $round->status,
+                    'program_code' => $round->program_code,
+                    'rubric_version' => Res036Rubric::VERSION,
                     'opened_at' => $round->opened_at?->toIso8601String(),
                     'all_submitted_at' => $round->all_submitted_at?->toIso8601String(),
                     'finalized_at' => $round->finalized_at?->toIso8601String(),
@@ -159,6 +162,7 @@ class GetEvaluationRoundData
                         'research_quality_score' => $eval->research_quality_score,
                         'originality_score' => $eval->originality_score,
                         'relevance_score' => $eval->relevance_score,
+                        'paper_scores' => $eval->paper_criterion_scores,
                         'research_paper_total' => $eval->research_paper_total,
                         'general_comments' => $eval->general_comments,
                         'recommendations' => $eval->recommendations,
@@ -168,6 +172,7 @@ class GetEvaluationRoundData
                                 'communication_score' => $s->communication_score,
                                 'organization_score' => $s->organization_score,
                                 'effectiveness_score' => $s->effectiveness_score,
+                                'presentation_scores' => $s->presentation_criterion_scores,
                                 'presentation_total' => $s->presentation_total,
                             ],
                         ])->all(),

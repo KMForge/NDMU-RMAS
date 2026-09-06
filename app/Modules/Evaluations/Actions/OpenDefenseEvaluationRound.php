@@ -10,6 +10,7 @@ use App\Models\DefenseEvaluationRoundStudent;
 use App\Models\DefenseSchedule;
 use App\Models\User;
 use App\Modules\Evaluations\Services\EvaluationAuthorization;
+use App\Modules\Evaluations\Services\Res036Rubric;
 use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -19,6 +20,7 @@ class OpenDefenseEvaluationRound
     public function __construct(
         private readonly EvaluationAuthorization $auth = new EvaluationAuthorization,
         private readonly WorkflowNotificationDispatcher $notifications = new WorkflowNotificationDispatcher,
+        private readonly Res036Rubric $rubric = new Res036Rubric,
     ) {}
 
     public function handle(User $actor, Defense $defense, ?int $designatedSignerUserId = null): DefenseEvaluationRound
@@ -101,6 +103,7 @@ class OpenDefenseEvaluationRound
                 'defense_id' => $lockedDefense->id,
                 'defense_schedule_id' => $schedule->id,
                 'research_class_group_id' => $lockedDefense->research_class_group_id,
+                'program_code' => $this->rubric->resolveProgramCode($lockedDefense->group),
                 'status' => 'open',
                 'summary_signer_user_id' => $signerUserId,
                 'opened_by' => $actor->id,

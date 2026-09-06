@@ -2,6 +2,7 @@
 
 namespace App\Modules\OfficialForms\Validators;
 
+use App\Modules\Evaluations\Services\Res036Rubric;
 use Carbon\CarbonImmutable;
 use InvalidArgumentException;
 
@@ -33,7 +34,7 @@ class OfficialFormPayloadValidator
         'RES-032' => ['date' => 'string', 'consultant_types' => 'array', 'specific_concerns' => 'string', 'recommendations' => 'string', 'follow_up_date' => 'string'],
         'RES-033' => ['date' => 'string', 'defense_type' => 'string', 'defense_date' => 'string', 'time' => 'string'],
         'RES-034' => ['date' => 'string', 'time' => 'string', 'defense_type' => 'string', 'issues' => 'array', 'pages' => 'array'],
-        'RES-035' => ['date' => 'string', 'defense_type' => 'string', 'comments' => 'array'],
+        'RES-035' => ['date' => 'string', 'time' => 'string', 'defense_type' => 'string', 'comments' => 'array', 'decision' => 'string'],
         'RES-036' => [
             'res_036_defense_type' => 'string',
             'res_036_date' => 'string',
@@ -41,6 +42,7 @@ class OfficialFormPayloadValidator
             'res_036_venue' => 'string',
             'res_036_research_title' => 'string',
             'res_036_paper_ratings' => 'array',
+            'res_036_paper_scores' => 'array',
             'res_036_paper_comments' => 'array',
             'res_036_paper_total' => 'string',
             'res_036_presenters' => 'array',
@@ -191,6 +193,29 @@ class OfficialFormPayloadValidator
             && isset($payload['defense_type'])
             && ! in_array($payload['defense_type'], ['title_presentation', 'proposal_defense', 'pre_final_defense', 'final_defense'], true)) {
             throw new InvalidArgumentException('RES-033 defense type must match one of the four supported defense stages.');
+        }
+
+        if ($code === 'RES-035') {
+            if (isset($payload['defense_type']) && ! in_array($payload['defense_type'], ['proposal', 'final'], true)) {
+                throw new InvalidArgumentException('RES-035 defense type must be proposal or final.');
+            }
+            if (isset($payload['decision']) && $payload['decision'] !== '' && ! in_array($payload['decision'], ['passed', 'passed_with_revisions', 'failed'], true)) {
+                throw new InvalidArgumentException('RES-035 decision is invalid.');
+            }
+            if (count($payload['comments'] ?? []) > 50) {
+                throw new InvalidArgumentException('RES-035 permits at most 50 proceedings entries.');
+            }
+        }
+
+        if ($code === 'RES-036') {
+            if (isset($payload['res_036_paper_scores'])) {
+                app(Res036Rubric::class)->validatePaperScores($payload['res_036_paper_scores']);
+            }
+            foreach ($payload['res_036_presenters'] ?? [] as $presenter) {
+                if (isset($presenter['scores'])) {
+                    app(Res036Rubric::class)->validatePresentationScores($presenter['scores']);
+                }
+            }
         }
 
         if ($code === 'RES-041') {

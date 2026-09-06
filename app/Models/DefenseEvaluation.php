@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'research_quality_score',
     'originality_score',
     'relevance_score',
+    'paper_criterion_scores',
+    'rubric_version',
     'research_paper_total',
     'general_comments',
     'recommendations',
@@ -54,6 +56,7 @@ class DefenseEvaluation extends Model
             'research_quality_score' => 'decimal:2',
             'originality_score' => 'decimal:2',
             'relevance_score' => 'decimal:2',
+            'paper_criterion_scores' => 'array',
             'research_paper_total' => 'decimal:2',
             'submitted_at' => 'datetime',
         ];

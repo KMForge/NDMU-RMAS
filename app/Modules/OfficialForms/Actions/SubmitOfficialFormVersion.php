@@ -12,6 +12,7 @@ use App\Models\OfficialFormVersion;
 use App\Models\User;
 use App\Models\UserSignature;
 use App\Modules\Evaluations\Actions\SubmitDefenseEvaluation;
+use App\Modules\Evaluations\Services\Res036Rubric;
 use App\Modules\OfficialForms\Services\NotifyNextRequiredOfficialForms;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use App\Modules\OfficialForms\Validators\OfficialFormPayloadValidator;
@@ -227,11 +228,15 @@ class SubmitOfficialFormVersion
             return;
         }
 
+        $rubric = app(Res036Rubric::class);
+        $detailedPaper = isset($payload['res_036_paper_scores'])
+            ? $rubric->validatePaperScores($payload['res_036_paper_scores'])
+            : null;
         $paperRatings = $payload['res_036_paper_ratings'] ?? [];
-        $q = isset($paperRatings[0]) && is_numeric($paperRatings[0]) ? (float) $paperRatings[0] : 0.0;
-        $o = isset($paperRatings[1]) && is_numeric($paperRatings[1]) ? (float) $paperRatings[1] : 0.0;
-        $r = isset($paperRatings[2]) && is_numeric($paperRatings[2]) ? (float) $paperRatings[2] : 0.0;
-        $paperTotal = round($q + $o + $r, 2);
+        $q = $detailedPaper ? null : (isset($paperRatings[0]) && is_numeric($paperRatings[0]) ? (float) $paperRatings[0] : 0.0);
+        $o = $detailedPaper ? null : (isset($paperRatings[1]) && is_numeric($paperRatings[1]) ? (float) $paperRatings[1] : 0.0);
+        $r = $detailedPaper ? null : (isset($paperRatings[2]) && is_numeric($paperRatings[2]) ? (float) $paperRatings[2] : 0.0);
+        $paperTotal = $detailedPaper['total'] ?? round($q + $o + $r, 2);
 
         $comments = $payload['res_036_paper_comments'] ?? [];
         $generalComments = is_array($comments) ? implode("\n\n", array_filter(array_map('trim', $comments))) : (string) $comments;
@@ -247,6 +252,8 @@ class SubmitOfficialFormVersion
                 'research_quality_score' => $q,
                 'originality_score' => $o,
                 'relevance_score' => $r,
+                'paper_criterion_scores' => $detailedPaper['scores'] ?? null,
+                'rubric_version' => $detailedPaper ? Res036Rubric::VERSION : null,
                 'research_paper_total' => $paperTotal,
                 'general_comments' => $generalComments,
                 'submitted_at' => now(),
@@ -262,10 +269,19 @@ class SubmitOfficialFormVersion
                 $studentIndex++;
                 $presData = $presenters[$studentIndex] ?? null;
                 if ($presData) {
-                    $comm = isset($presData['communication']) && is_numeric($presData['communication']) ? (float) $presData['communication'] : 0.0;
-                    $org = isset($presData['organization']) && is_numeric($presData['organization']) ? (float) $presData['organization'] : 0.0;
-                    $eff = isset($presData['effectiveness']) && is_numeric($presData['effectiveness']) ? (float) $presData['effectiveness'] : 0.0;
-                    $total = round($comm + $org + $eff, 2);
+                    $detailedPresentation = isset($presData['scores']) ? $rubric->validatePresentationScores($presData['scores']) : null;
+                    if ($detailedPresentation) {
+                        $scores = $detailedPresentation['scores'];
+                        $comm = round((($scores['voice_projection_pronunciation'] + $scores['grammar_sentence_structure']) / 20) * 100, 2);
+                        $org = round((($scores['assigned_topic_clarity'] + $scores['participation_in_defense']) / 30) * 100, 2);
+                        $eff = round((($scores['ability_to_answer_questions'] + $scores['mastery_of_study_details'] + $scores['ability_to_convince_panelists']) / 50) * 100, 2);
+                        $total = $detailedPresentation['total'];
+                    } else {
+                        $comm = isset($presData['communication']) && is_numeric($presData['communication']) ? (float) $presData['communication'] : 0.0;
+                        $org = isset($presData['organization']) && is_numeric($presData['organization']) ? (float) $presData['organization'] : 0.0;
+                        $eff = isset($presData['effectiveness']) && is_numeric($presData['effectiveness']) ? (float) $presData['effectiveness'] : 0.0;
+                        $total = round($comm + $org + $eff, 2);
+                    }
 
                     DefenseEvaluationStudentScore::query()->updateOrCreate(
                         [
@@ -277,6 +293,7 @@ class SubmitOfficialFormVersion
                             'communication_score' => $comm,
                             'organization_score' => $org,
                             'effectiveness_score' => $eff,
+                            'presentation_criterion_scores' => $detailedPresentation['scores'] ?? null,
                             'presentation_total' => $total,
                         ]
                     );

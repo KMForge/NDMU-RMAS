@@ -74,7 +74,7 @@ class OfficialFormAuthorization
         'res-032' => ['sign' => 'specialist'],
         'res-033' => ['endorse' => 'adviser', 'receive' => 'program_head'],
         'res-034' => ['fill' => 'panel_chair'],
-        'res-035' => ['record' => 'panel_chair'],
+        'res-035' => ['record' => 'adviser'],
         'res-036' => ['fill' => 'panelist', 'evaluate' => 'panelist'],
         'res-037' => ['fill' => 'panel_chair', 'sign' => 'panel_chair'],
         'res-038' => ['endorse' => 'program_head', 'conforme' => 'adviser', 'receive' => 'adviser'],

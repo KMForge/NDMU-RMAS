@@ -12,13 +12,14 @@
                 linear-gradient(145deg, #31594c, #24483d);
         }
         .official-form-paper {
-            box-sizing: border-box; color: #111827; font-family: Arial, Helvetica, sans-serif;
+            box-sizing: border-box; color: #111827; font-family: "Times New Roman", Times, serif;
             display: flex; flex-direction: column;
             width: 8.5in; min-width: 8.5in; min-height: 11in;
             background: #ffffff;
             border: 1px solid #d1d5db;
             border-radius: .2rem;
             box-shadow: 0 24px 55px rgba(15, 23, 42, .32);
+            padding: .62in .70in;
         }
         .official-form-body { flex: 1 1 auto; min-height: 0; overflow: visible; }
         .official-form-actions {
@@ -59,13 +60,15 @@
 @endonce
 
 <div class="official-form-viewport w-full">
-<div class="official-form-print-area official-form-paper mx-auto bg-white px-12 py-9">
+<div class="official-form-print-area official-form-paper mx-auto bg-white">
     <div class="flex items-start justify-between gap-6 text-xs">
         <strong>{{ $code }}</strong>
-        <div class="text-right italic">
-            <div>NDMU Undergraduate Research Guidebook</div>
-            <strong class="not-italic">{{ $guidebookPage }}</strong>
-        </div>
+        @if (filled($guidebookPage))
+            <div class="text-right italic">
+                <div>NDMU Undergraduate Research Guidebook</div>
+                <strong class="not-italic">{{ $guidebookPage }}</strong>
+            </div>
+        @endif
     </div>
 
     <div class="mt-3 text-center text-sm leading-5">

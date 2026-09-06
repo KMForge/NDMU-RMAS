@@ -22,6 +22,7 @@ use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupMember;
 use App\Models\RevisionRequest;
 use App\Models\User;
+use App\Modules\Evaluations\Services\Res036Rubric;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use App\Modules\OfficialForms\Validators\OfficialFormPayloadValidator;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +32,8 @@ class CreateOfficialFormInstance
 {
     public function __construct(
         private readonly OfficialFormAuthorization $authorization = new OfficialFormAuthorization,
-        private readonly OfficialFormPayloadValidator $payloadValidator = new OfficialFormPayloadValidator
+        private readonly OfficialFormPayloadValidator $payloadValidator = new OfficialFormPayloadValidator,
+        private readonly Res036Rubric $res036Rubric = new Res036Rubric,
     ) {}
 
     /**
@@ -104,24 +106,12 @@ class CreateOfficialFormInstance
                 $idx = 1;
                 foreach ($group->members as $member) {
                     $presenters[$idx++] = [
+                        'student_id' => $member->student_id,
                         'name' => $member->student?->name ?? '',
-                        'communication' => null,
-                        'organization' => null,
-                        'effectiveness' => null,
-                        'total' => null,
+                        'scores' => [],
                     ];
                 }
             }
-            for ($i = count($presenters) + 1; $i <= 4; $i++) {
-                $presenters[$i] = [
-                    'name' => '',
-                    'communication' => null,
-                    'organization' => null,
-                    'effectiveness' => null,
-                    'total' => null,
-                ];
-            }
-
             $sourceSnapshot = [
                 'defense_type' => $defenseSchedule->defense->defense_type,
                 'starts_at' => $defenseSchedule->starts_at?->toIso8601String(),
@@ -131,6 +121,8 @@ class CreateOfficialFormInstance
                 'location_notes' => $defenseSchedule->room?->location_notes,
                 'research_title' => $researchTitle,
                 'group_name' => $group?->name ?? 'Group #'.$group?->id,
+                'program_code' => $this->res036Rubric->resolveProgramCode($group),
+                'presenters' => array_values($presenters),
             ];
 
             $defaultPayload = [

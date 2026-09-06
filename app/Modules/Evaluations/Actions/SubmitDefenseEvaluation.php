@@ -15,6 +15,7 @@ use App\Models\OfficialFormInstance;
 use App\Models\OfficialFormVersion;
 use App\Models\User;
 use App\Modules\Evaluations\Services\EvaluationAuthorization;
+use App\Modules\Evaluations\Services\Res036Rubric;
 use App\Notifications\AcademicWorkflowNotification;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -29,7 +30,8 @@ class SubmitDefenseEvaluation
     ];
 
     public function __construct(
-        private readonly EvaluationAuthorization $auth = new EvaluationAuthorization
+        private readonly EvaluationAuthorization $auth = new EvaluationAuthorization,
+        private readonly Res036Rubric $rubric = new Res036Rubric,
     ) {}
 
     /**
@@ -75,12 +77,13 @@ class SubmitDefenseEvaluation
                 throw new InvalidArgumentException('Evaluation has already been submitted and is immutable.');
             }
 
-            // Require all Research Paper criteria
-            $quality = $this->requireScore($data['research_quality_score'] ?? null, 'research_quality_score');
-            $originality = $this->requireScore($data['originality_score'] ?? null, 'originality_score');
-            $relevance = $this->requireScore($data['relevance_score'] ?? null, 'relevance_score');
-
-            $paperTotal = round(($quality * 0.50) + ($originality * 0.25) + ($relevance * 0.25), 2);
+            $detailedPaper = isset($data['paper_scores'])
+                ? $this->rubric->validatePaperScores($data['paper_scores'])
+                : null;
+            $quality = $detailedPaper ? null : $this->requireScore($data['research_quality_score'] ?? null, 'research_quality_score');
+            $originality = $detailedPaper ? null : $this->requireScore($data['originality_score'] ?? null, 'originality_score');
+            $relevance = $detailedPaper ? null : $this->requireScore($data['relevance_score'] ?? null, 'relevance_score');
+            $paperTotal = $detailedPaper['total'] ?? round(($quality * 0.50) + ($originality * 0.25) + ($relevance * 0.25), 2);
 
             $evaluation = DefenseEvaluation::query()->updateOrCreate(
                 [
@@ -93,6 +96,8 @@ class SubmitDefenseEvaluation
                     'research_quality_score' => $quality,
                     'originality_score' => $originality,
                     'relevance_score' => $relevance,
+                    'paper_criterion_scores' => $detailedPaper['scores'] ?? null,
+                    'rubric_version' => $detailedPaper ? Res036Rubric::VERSION : null,
                     'research_paper_total' => $paperTotal,
                     'general_comments' => isset($data['general_comments']) ? trim((string) $data['general_comments']) : null,
                     'recommendations' => isset($data['recommendations']) ? trim((string) $data['recommendations']) : null,
@@ -124,11 +129,21 @@ class SubmitDefenseEvaluation
             foreach ($lockedRound->roundStudents as $roundStudent) {
                 $studentInput = $studentScoresInput[$roundStudent->student_id];
 
-                $comm = $this->requireScore($studentInput['communication_score'] ?? null, "student #{$roundStudent->student_id} communication_score");
-                $org = $this->requireScore($studentInput['organization_score'] ?? null, "student #{$roundStudent->student_id} organization_score");
-                $eff = $this->requireScore($studentInput['effectiveness_score'] ?? null, "student #{$roundStudent->student_id} effectiveness_score");
-
-                $presentationTotal = round(($comm * 0.20) + ($org * 0.30) + ($eff * 0.50), 2);
+                $detailedPresentation = isset($studentInput['presentation_scores'])
+                    ? $this->rubric->validatePresentationScores($studentInput['presentation_scores'])
+                    : null;
+                if ($detailedPresentation) {
+                    $scores = $detailedPresentation['scores'];
+                    $comm = round((($scores['voice_projection_pronunciation'] + $scores['grammar_sentence_structure']) / 20) * 100, 2);
+                    $org = round((($scores['assigned_topic_clarity'] + $scores['participation_in_defense']) / 30) * 100, 2);
+                    $eff = round((($scores['ability_to_answer_questions'] + $scores['mastery_of_study_details'] + $scores['ability_to_convince_panelists']) / 50) * 100, 2);
+                    $presentationTotal = $detailedPresentation['total'];
+                } else {
+                    $comm = $this->requireScore($studentInput['communication_score'] ?? null, "student #{$roundStudent->student_id} communication_score");
+                    $org = $this->requireScore($studentInput['organization_score'] ?? null, "student #{$roundStudent->student_id} organization_score");
+                    $eff = $this->requireScore($studentInput['effectiveness_score'] ?? null, "student #{$roundStudent->student_id} effectiveness_score");
+                    $presentationTotal = round(($comm * 0.20) + ($org * 0.30) + ($eff * 0.50), 2);
+                }
 
                 DefenseEvaluationStudentScore::query()->updateOrCreate(
                     [
@@ -140,6 +155,7 @@ class SubmitDefenseEvaluation
                         'communication_score' => $comm,
                         'organization_score' => $org,
                         'effectiveness_score' => $eff,
+                        'presentation_criterion_scores' => $detailedPresentation['scores'] ?? null,
                         'presentation_total' => $presentationTotal,
                     ]
                 );
@@ -229,6 +245,13 @@ class SubmitDefenseEvaluation
             'official_form_instance_id' => $instance->id,
             'version_number' => 1,
             'payload' => [
+                'res_036_paper_scores' => $evaluation->paper_criterion_scores ?? [],
+                'res_036_presenters' => $evaluation->studentScores->values()->mapWithKeys(fn ($s, $index) => [($index + 1) => [
+                    'student_id' => $s->student_id,
+                    'name' => $s->roundStudent?->student_name_snapshot ?? "Student #{$s->student_id}",
+                    'scores' => $s->presentation_criterion_scores ?? [],
+                ]])->toArray(),
+                'res_036_signed_at' => now()->format('Y-m-d'),
                 'research_quality_score' => $evaluation->research_quality_score,
                 'originality_score' => $evaluation->originality_score,
                 'relevance_score' => $evaluation->relevance_score,
@@ -249,6 +272,11 @@ class SubmitDefenseEvaluation
                 'ends_at' => $schedule?->ends_at?->toIso8601String(),
                 'room_code' => $schedule?->room?->code,
                 'research_title' => $round->defense->group?->title ?? $round->defense->group?->name ?? 'Untitled Research',
+                'program_code' => $round->program_code,
+                'presenters' => $round->roundStudents->map(fn ($student) => [
+                    'student_id' => $student->student_id,
+                    'name' => $student->student_name_snapshot,
+                ])->values()->toArray(),
             ],
             'created_by' => $panelist->id,
             'is_current' => true,

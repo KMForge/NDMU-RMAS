@@ -8,6 +8,7 @@ use App\Models\DefenseEvaluationRound;
 use App\Models\DefenseEvaluationStudentScore;
 use App\Models\User;
 use App\Modules\Evaluations\Services\EvaluationAuthorization;
+use App\Modules\Evaluations\Services\Res036Rubric;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -21,7 +22,8 @@ class SaveDefenseEvaluationDraft
     ];
 
     public function __construct(
-        private readonly EvaluationAuthorization $auth = new EvaluationAuthorization
+        private readonly EvaluationAuthorization $auth = new EvaluationAuthorization,
+        private readonly Res036Rubric $rubric = new Res036Rubric,
     ) {}
 
     /**
@@ -67,13 +69,17 @@ class SaveDefenseEvaluationDraft
                 throw new InvalidArgumentException('Cannot modify an evaluation that has already been submitted.');
             }
 
-            // Clean & validate Research Paper scores (0-100)
-            $quality = $this->parseScore($data['research_quality_score'] ?? null, 'research_quality_score');
-            $originality = $this->parseScore($data['originality_score'] ?? null, 'originality_score');
-            $relevance = $this->parseScore($data['relevance_score'] ?? null, 'relevance_score');
+            $detailedPaper = isset($data['paper_scores'])
+                ? $this->rubric->validatePaperScores($data['paper_scores'], false)
+                : null;
+            $quality = $detailedPaper ? null : $this->parseScore($data['research_quality_score'] ?? null, 'research_quality_score');
+            $originality = $detailedPaper ? null : $this->parseScore($data['originality_score'] ?? null, 'originality_score');
+            $relevance = $detailedPaper ? null : $this->parseScore($data['relevance_score'] ?? null, 'relevance_score');
 
             $paperTotal = null;
-            if ($quality !== null && $originality !== null && $relevance !== null) {
+            if ($detailedPaper && count($detailedPaper['scores']) === count(Res036Rubric::PAPER_MAXIMUMS)) {
+                $paperTotal = $detailedPaper['total'];
+            } elseif ($quality !== null && $originality !== null && $relevance !== null) {
                 $paperTotal = round(($quality * 0.50) + ($originality * 0.25) + ($relevance * 0.25), 2);
             }
 
@@ -88,6 +94,8 @@ class SaveDefenseEvaluationDraft
                     'research_quality_score' => $quality,
                     'originality_score' => $originality,
                     'relevance_score' => $relevance,
+                    'paper_criterion_scores' => $detailedPaper['scores'] ?? null,
+                    'rubric_version' => $detailedPaper ? Res036Rubric::VERSION : null,
                     'research_paper_total' => $paperTotal,
                     'general_comments' => isset($data['general_comments']) ? trim((string) $data['general_comments']) : null,
                     'recommendations' => isset($data['recommendations']) ? trim((string) $data['recommendations']) : null,
@@ -108,12 +116,17 @@ class SaveDefenseEvaluationDraft
             foreach ($lockedRound->roundStudents as $roundStudent) {
                 $studentInput = $studentScoresInput[$roundStudent->student_id] ?? null;
 
-                $comm = $this->parseScore($studentInput['communication_score'] ?? null, "student #{$roundStudent->student_id} communication_score");
-                $org = $this->parseScore($studentInput['organization_score'] ?? null, "student #{$roundStudent->student_id} organization_score");
-                $eff = $this->parseScore($studentInput['effectiveness_score'] ?? null, "student #{$roundStudent->student_id} effectiveness_score");
+                $detailedPresentation = isset($studentInput['presentation_scores'])
+                    ? $this->rubric->validatePresentationScores($studentInput['presentation_scores'], false)
+                    : null;
+                $comm = $detailedPresentation ? null : $this->parseScore($studentInput['communication_score'] ?? null, "student #{$roundStudent->student_id} communication_score");
+                $org = $detailedPresentation ? null : $this->parseScore($studentInput['organization_score'] ?? null, "student #{$roundStudent->student_id} organization_score");
+                $eff = $detailedPresentation ? null : $this->parseScore($studentInput['effectiveness_score'] ?? null, "student #{$roundStudent->student_id} effectiveness_score");
 
                 $presentationTotal = null;
-                if ($comm !== null && $org !== null && $eff !== null) {
+                if ($detailedPresentation && count($detailedPresentation['scores']) === count(Res036Rubric::PRESENTATION_MAXIMUMS)) {
+                    $presentationTotal = $detailedPresentation['total'];
+                } elseif ($comm !== null && $org !== null && $eff !== null) {
                     $presentationTotal = round(($comm * 0.20) + ($org * 0.30) + ($eff * 0.50), 2);
                 }
 
@@ -127,6 +140,7 @@ class SaveDefenseEvaluationDraft
                         'communication_score' => $comm,
                         'organization_score' => $org,
                         'effectiveness_score' => $eff,
+                        'presentation_criterion_scores' => $detailedPresentation['scores'] ?? null,
                         'presentation_total' => $presentationTotal,
                     ]
                 );

@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'communication_score',
     'organization_score',
     'effectiveness_score',
+    'presentation_criterion_scores',
     'presentation_total',
 ])]
 class DefenseEvaluationStudentScore extends Model
@@ -38,6 +39,7 @@ class DefenseEvaluationStudentScore extends Model
             'communication_score' => 'decimal:2',
             'organization_score' => 'decimal:2',
             'effectiveness_score' => 'decimal:2',
+            'presentation_criterion_scores' => 'array',
             'presentation_total' => 'decimal:2',
         ];
     }

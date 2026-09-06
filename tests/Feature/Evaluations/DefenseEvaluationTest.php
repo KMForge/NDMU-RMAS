@@ -18,6 +18,7 @@ use App\Modules\Evaluations\Actions\OpenDefenseEvaluationRound;
 use App\Modules\Evaluations\Actions\ReleaseDefenseEvaluationResults;
 use App\Modules\Evaluations\Actions\SaveDefenseEvaluationDraft;
 use App\Modules\Evaluations\Actions\SubmitDefenseEvaluation;
+use App\Modules\Evaluations\Services\Res036Rubric;
 use App\Modules\OfficialForms\Actions\ApplyOfficialFormSignature;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -284,6 +285,27 @@ class DefenseEvaluationTest extends TestCase
 
         $this->assertNotNull($res037);
         $this->assertEquals('RES-037', $res037->definition->code);
+    }
+
+    public function test_panelist_submission_persists_the_detailed_res036_rubric(): void
+    {
+        $round = (new OpenDefenseEvaluationRound)->handle($this->facilitator, $this->defense, $this->panelist1->id);
+        $paperScores = Res036Rubric::PAPER_MAXIMUMS;
+        $presentationScores = Res036Rubric::PRESENTATION_MAXIMUMS;
+
+        $evaluation = (new SubmitDefenseEvaluation)->handle($this->panelist1, $round, [
+            'paper_scores' => $paperScores,
+            'student_scores' => [
+                $this->student1->id => ['presentation_scores' => $presentationScores],
+                $this->student2->id => ['presentation_scores' => $presentationScores],
+            ],
+        ]);
+
+        $this->assertSame(Res036Rubric::VERSION, $evaluation->rubric_version);
+        $this->assertSame($paperScores, $evaluation->paper_criterion_scores);
+        $this->assertEquals(100, $evaluation->research_paper_total);
+        $this->assertSame($presentationScores, $evaluation->studentScores->first()->presentation_criterion_scores);
+        $this->assertEquals(100, $evaluation->studentScores->first()->presentation_total);
     }
 
     public function test_signature_on_res037_finalizes_round_and_facilitator_can_release(): void

@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'defense_id',
     'defense_schedule_id',
     'research_class_group_id',
+    'program_code',
     'status',
     'summary_signer_user_id',
     'opened_by',
