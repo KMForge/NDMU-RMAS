@@ -4,18 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $instance->definition->code }} | NDMU-RMAS</title>
-    <style>[x-cloak] { display: none !important; }</style>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="min-h-screen bg-[#f4f7f6] text-gray-900">
-    <header class="border-b border-gray-200 bg-white">
+<body class="official-form-workspace min-h-screen bg-[#eef2f0] text-slate-900">
+    <header class="border-b border-slate-200 bg-white shadow-sm">
         <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
             <div>
                 <p class="text-[10px] font-black uppercase tracking-[.2em] text-amber-500">Authoritative Official Form</p>
-                <h1 class="text-xl font-black text-[#0e5c3a]">{{ $instance->definition->code }} · {{ $instance->definition->title }}</h1>
+                <h1 class="text-xl font-black text-[#164b38]">{{ $instance->definition->code }} · {{ $instance->definition->title }}</h1>
             </div>
-            <a href="{{ route('official-forms.workspace.index') }}" class="rounded-xl border border-gray-200 px-4 py-2 text-xs font-bold">Back to Forms</a>
+            <a href="{{ route('official-forms.workspace.index') }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm hover:border-[#2b7659] hover:text-[#164b38]">Back to Forms</a>
         </div>
     </header>
 
@@ -220,9 +222,9 @@
             @endif
         </form>
 
-        <section class="sticky bottom-4 z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-xl backdrop-blur">
+        <section class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-slate-900 shadow-sm">
             @can('updateDraft', $instance)
-                <button type="submit" form="official-form-editor" class="rounded-xl bg-[#0e5c3a] px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-900 transition-colors">Save New Draft Version</button>
+                <button type="submit" form="official-form-editor" class="rounded-xl bg-[#1e684c] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#17533d] transition-colors">Save New Draft Version</button>
                 <button type="submit" form="official-form-editor" formaction="{{ route('official-forms.workspace.submit', $instance) }}" formmethod="POST" class="rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-blue-700 transition-colors shadow-sm">
                     {{ strtoupper($instance->definition->code) === 'RES-036' ? 'Sign & Submit Evaluation' : 'Submit' }}
                 </button>
@@ -252,10 +254,10 @@
                     @csrf
                     <input type="hidden" name="expected_version_id" value="{{ $instance->current_version_id }}">
                     <input type="hidden" name="actor_type" value="student_researcher">
-                    <button type="submit" class="rounded-xl bg-emerald-800 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-900">Sign Authorship Attestation</button>
+                    <button type="submit" class="rounded-xl bg-emerald-700 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-600">Sign Authorship Attestation</button>
                 </form>
             @endif
-            <a href="{{ route('official-forms.print', $instance) }}" target="_blank" rel="noopener" class="ml-auto rounded-xl border border-gray-200 px-5 py-2.5 text-xs font-bold">Print saved version</a>
+            <a href="{{ route('official-forms.print', $instance) }}" target="_blank" rel="noopener" class="ml-auto rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 shadow-sm hover:border-[#2b7659] hover:text-[#164b38]">Print saved version</a>
         </section>
 
         <section class="rounded-2xl border border-gray-200 bg-white p-5">

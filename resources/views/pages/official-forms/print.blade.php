@@ -7,8 +7,8 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         @page { size: Letter portrait; margin: 0; }
-        body { margin: 0; background: #eef3f1; }
-        .print-toolbar { position: sticky; top: 0; z-index: 50; padding: .75rem; text-align: center; background: white; border-bottom: 1px solid #ddd; }
+        body { margin: 0; background: #eef2f0; }
+        .print-toolbar { position: sticky; top: 0; z-index: 50; padding: .75rem; text-align: center; background: white; color: #1e293b; border-bottom: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(15, 23, 42, .08); }
         .official-form-paper input, .official-form-paper textarea, .official-form-paper select { pointer-events: none !important; }
         @media print {
             .print-toolbar, .official-form-actions { display: none !important; }
@@ -30,11 +30,11 @@
 
     <div class="print-toolbar flex items-center justify-between px-8">
         <div>
-            <p class="text-xs font-bold text-[#0e5c3a]">
+            <p class="text-xs font-bold text-[#164b38]">
                 Saved authoritative version {{ $version?->version_number ?? 0 }} · {{ strtoupper($instance->status) }}
             </p>
             @if ($verifyUrl)
-                <p class="text-[10px] text-gray-500 font-mono">Verification: {{ $verificationRef }}</p>
+                <p class="text-[10px] text-slate-500 font-mono">Verification: {{ $verificationRef }}</p>
             @endif
         </div>
         <div class="flex items-center space-x-4">
@@ -43,7 +43,7 @@
                     <img src="{{ $qrDataUri }}" alt="QR Code" class="h-full w-full">
                 </div>
             @endif
-            <button type="button" onclick="window.print()" class="rounded-lg bg-[#0e5c3a] px-5 py-2 text-xs font-bold text-white">Print / Save as PDF</button>
+            <button type="button" onclick="window.print()" class="rounded-lg bg-[#237655] px-5 py-2 text-xs font-bold text-white hover:bg-[#2b8a65]">Print / Save as PDF</button>
         </div>
     </div>
 
