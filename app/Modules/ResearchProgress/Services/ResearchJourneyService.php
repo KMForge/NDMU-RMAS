@@ -5,6 +5,8 @@ namespace App\Modules\ResearchProgress\Services;
 use App\Enums\DocumentStage;
 use App\Enums\DocumentStatus;
 use App\Enums\ResearchMilestoneStatus;
+use App\Models\DefenseEvaluationRound;
+use App\Models\DefenseSchedule;
 use App\Models\Document;
 use App\Models\OfficialFormInstance;
 use App\Models\ResearchClassGroup;
@@ -24,7 +26,15 @@ class ResearchJourneyService
         ]);
 
         $instances = OfficialFormInstance::query()
-            ->where('research_class_group_id', $group->id)
+            ->where(function ($q) use ($group) {
+                $q->where('research_class_group_id', $group->id);
+                if ($group->research_class_id) {
+                    $q->orWhere(function ($cq) use ($group) {
+                        $cq->where('research_class_id', $group->research_class_id)
+                            ->whereNull('research_class_group_id');
+                    });
+                }
+            })
             ->with(['definition', 'actorAssignments.user', 'titlePresentation.defense.currentSchedule.room', 'titlePresentation.defense.activePanelAssignments.user'])
             ->get()
             ->keyBy(fn ($i) => strtolower($i->definition->code));
@@ -100,6 +110,10 @@ class ResearchJourneyService
             return $this->evaluateProposalFormulationStage($group, $instances, $milestones);
         }
 
+        if ($stageNum === 5) {
+            return $this->evaluateSurveyInstrumentValidationStage($group, $instances, $milestones);
+        }
+
         $stageConfig = $this->getStageConfig($stageNum);
         $code = $stageConfig['code'];
         $name = $stageConfig['name'];
@@ -109,7 +123,19 @@ class ResearchJourneyService
         $milestone = $milestones->get($code);
 
         $isMilestoneCompleted = $milestone !== null && $milestone->status === ResearchMilestoneStatus::Completed;
-        $isFormCompleted = $instance !== null && in_array($instance->status, ['approved', 'completed', 'signed'], true);
+
+        $isFormMatchingStage = true;
+        if ($formCode === 'res-037' && $instance !== null) {
+            $schedule = $instance->source instanceof DefenseSchedule ? $instance->source : ($instance->source instanceof DefenseEvaluationRound ? $instance->source->defenseSchedule : null);
+            $defenseType = $schedule?->defense?->defense_type ?? $instance->source?->defense?->defense_type ?? '';
+            if ($stageNum === 3 && in_array($defenseType, ['final_defense', 'final_oral_defense'], true)) {
+                $isFormMatchingStage = false;
+            } elseif ($stageNum === 10 && in_array($defenseType, ['proposal_defense', 'proposal', 'title_proposal', ''], true)) {
+                $isFormMatchingStage = false;
+            }
+        }
+
+        $isFormCompleted = $isFormMatchingStage && $instance !== null && in_array($instance->status, ['approved', 'completed', 'signed'], true);
 
         $isCompleted = $isMilestoneCompleted || ($isFormCompleted && $stageConfig['form_completes_stage']);
 
@@ -254,6 +280,17 @@ class ResearchJourneyService
 
         $isCompleted = $milestone?->status === ResearchMilestoneStatus::Completed;
 
+        $nextRoute = match ($nextActionType) {
+            'form' => $instance !== null
+                ? route('official-forms.workspace.show', $instance)
+                : route('official-forms.workspace.index', [
+                    'form' => 'RES-026',
+                    'group_id' => $group->id,
+                ]),
+            'presentation' => route('student.dashboard', ['tab' => 'defense']),
+            default => route('student.dashboard', ['tab' => 'proposal']),
+        };
+
         return [
             'stage' => 1,
             'code' => 'research-title-presentation',
@@ -264,7 +301,7 @@ class ResearchJourneyService
             'waiting_on' => $waitingOn,
             'next_action' => $nextLabel === null ? null : [
                 'label' => $nextLabel,
-                'route' => $instance ? route('official-forms.workspace.show', $instance) : route('student.dashboard', ['tab' => 'proposal']),
+                'route' => $nextRoute,
                 'form_code' => $nextActionType === 'form' ? 'res-026' : null,
                 'action_type' => $nextActionType,
                 'actor_type' => $actorType,
@@ -350,6 +387,79 @@ class ResearchJourneyService
                 'route' => $nextRoute,
                 'form_code' => null,
                 'action_type' => $nextActionType,
+                'actor_type' => $actorType,
+            ],
+            'completed_requirements' => array_values(array_unique($completed)),
+            'pending_requirements' => array_values(array_unique($pending)),
+            'blockers' => [],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function evaluateSurveyInstrumentValidationStage(ResearchClassGroup $group, Collection $instances, Collection $milestones): array
+    {
+        $milestone = $milestones->get('validation-survey-instrument');
+        $isMilestoneCompleted = $milestone !== null && $milestone->status === ResearchMilestoneStatus::Completed;
+
+        $res042 = $instances->get('res-042');
+        $res043b = $instances->get('res-043b');
+        $isFormCompleted = $res043b !== null && in_array($res043b->status, ['completed', 'validated', 'approved', 'signed'], true);
+
+        $isCompleted = $isMilestoneCompleted || $isFormCompleted;
+
+        $completed = [];
+        $pending = [];
+        $waitingOn = null;
+        $nextLabel = null;
+        $nextRoute = null;
+        $formCode = 'res-042';
+        $actorType = 'student_researcher';
+
+        if ($isCompleted) {
+            $completed[] = 'Survey instrument validation completed on RES-043B';
+        } elseif ($res042 === null) {
+            $pending[] = 'Submit Request for Instrument Validation (RES-042)';
+            $nextLabel = 'Submit RES-042 (Instrument Validation Request)';
+            $nextRoute = route('official-forms.workspace.index', [
+                'form' => 'RES-042',
+                'group_id' => $group->id,
+            ]);
+            $waitingOn = 'Student Researchers to request instrument validation';
+        } elseif ($res042->status === 'draft') {
+            $completed[] = 'RES-042 draft created';
+            $pending[] = 'Submit RES-042 for validator assignment';
+            $nextLabel = 'Submit RES-042';
+            $nextRoute = route('official-forms.workspace.show', $res042->id);
+            $waitingOn = 'Student Researchers to submit RES-042';
+        } elseif ($res043b === null) {
+            $completed[] = 'Instrument Validation Request (RES-042) submitted';
+            $pending[] = 'Appointed Validator rating (RES-043A/B)';
+            $waitingOn = 'Appointed Instrument Validator to complete validation rating (RES-043A/B)';
+            $formCode = 'res-043b';
+            $actorType = 'instrument_validator';
+        } else {
+            $completed[] = 'Instrument Validation Request (RES-042) submitted';
+            $pending[] = "Instrument Validator action ({$res043b->status})";
+            $waitingOn = 'Appointed Instrument Validator to finalize RES-043B';
+            $nextLabel = 'Complete RES-043B Rating';
+            $nextRoute = route('official-forms.workspace.show', $res043b->id);
+            $formCode = 'res-043b';
+            $actorType = 'instrument_validator';
+        }
+
+        return [
+            'stage' => 5,
+            'code' => 'validation-survey-instrument',
+            'name' => 'Validation of Survey Instrument',
+            'is_completed' => $isCompleted,
+            'primary_form' => $res043b ? 'res-043b' : 'res-042',
+            'form_status' => $res043b ? $res043b->status : ($res042 ? $res042->status : 'not_started'),
+            'waiting_on' => $waitingOn,
+            'next_action' => $nextLabel === null ? null : [
+                'label' => $nextLabel,
+                'route' => $nextRoute,
+                'form_code' => $formCode,
+                'action_type' => 'form',
                 'actor_type' => $actorType,
             ],
             'completed_requirements' => array_values(array_unique($completed)),
