@@ -43,6 +43,11 @@ class OfficialFormInstance extends Model
         return $this->belongsTo(User::class, 'initiated_by');
     }
 
+    public function initiatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'initiated_by');
+    }
+
     public function currentVersion(): BelongsTo
     {
         return $this->belongsTo(OfficialFormVersion::class, 'current_version_id');

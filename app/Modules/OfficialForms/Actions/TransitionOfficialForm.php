@@ -5,6 +5,7 @@ namespace App\Modules\OfficialForms\Actions;
 use App\Models\AuditLog;
 use App\Models\OfficialFormInstance;
 use App\Models\User;
+use App\Modules\OfficialForms\Services\NotifyNextRequiredOfficialForms;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -19,7 +20,10 @@ class TransitionOfficialForm
         private readonly ConfirmLanguageEditorAssignment $confirmEditorAction = new ConfirmLanguageEditorAssignment,
         private readonly ReplaceCurrentAdviser $replaceAdviserAction = new ReplaceCurrentAdviser,
         private readonly ReplaceDefensePanelist $replacePanelistAction = new ReplaceDefensePanelist,
-    ) {}
+        private readonly NotifyNextRequiredOfficialForms $nextFormNotifications = new NotifyNextRequiredOfficialForms,
+    ) {
+        // Dependencies are injectable so workflow side effects remain testable.
+    }
 
     /**
      * Orchestrates a form transition, executing authorization checks and side effects.
@@ -82,6 +86,8 @@ class TransitionOfficialForm
                 'auditable_id' => $updatedInstance->id,
                 'description' => "Transitioned form instance #{$updatedInstance->id} ({$code}) via action [{$action}] to status [{$targetStatus}].",
             ]);
+
+            $this->nextFormNotifications->handle($actor, $updatedInstance);
 
             return $updatedInstance->load(['definition', 'currentVersion']);
         });

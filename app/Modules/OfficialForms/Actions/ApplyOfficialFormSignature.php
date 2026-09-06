@@ -7,11 +7,14 @@ use App\Models\DefenseEvaluationRound;
 use App\Models\OfficialFormInstance;
 use App\Models\OfficialFormSignature;
 use App\Models\OfficialFormVerification;
+use App\Models\OfficialFormVersion;
+use App\Models\ResearchClassActorAssignment;
 use App\Models\ResearchClassGroup;
 use App\Models\TitlePresentation;
 use App\Models\User;
 use App\Models\UserSignature;
 use App\Modules\Evaluations\Actions\FinalizeDefenseEvaluationRound;
+use App\Modules\OfficialForms\Services\InstitutionalActorResolver;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use App\Modules\OfficialForms\Services\OfficialFormSignatureHasher;
 use App\Modules\Research\Actions\EnsureCanonicalResearchGroup;
@@ -207,10 +210,37 @@ class ApplyOfficialFormSignature
 
                 if (strtoupper($lockedInstance->definition->code) === 'RES-026') {
                     $this->advanceRes026AfterSignature($lockedInstance, $signatureRecord, $actor);
+                    $this->applyDualSignaturesIfEligible($actor, $lockedInstance, $currentVersion, $academicAction, $specimen, $specimenBytes, $request, $disk);
                 }
 
                 if (strtoupper($lockedInstance->definition->code) === 'RES-037' && $lockedInstance->source_type === DefenseEvaluationRound::class && $lockedInstance->source) {
                     app(FinalizeDefenseEvaluationRound::class)->handle($lockedInstance->source);
+                }
+
+                if (strtoupper($lockedInstance->definition->code) === 'RES-041' && in_array($lockedInstance->status, ['approved', 'completed'], true)) {
+                    $class = $lockedInstance->researchClass ?? $lockedInstance->group?->researchClass;
+                    if ($class) {
+                        $class->loadMissing('groups');
+                        foreach ($class->groups as $classGroup) {
+                            $this->synchronizeMilestone->complete(
+                                $classGroup,
+                                'revision-research-proposal',
+                                $actor,
+                                'official_form',
+                                $lockedInstance->id,
+                                'Completed Revision of Research Proposal Paper (RES-041).',
+                            );
+                        }
+                    } elseif ($lockedInstance->group) {
+                        $this->synchronizeMilestone->complete(
+                            $lockedInstance->group,
+                            'revision-research-proposal',
+                            $actor,
+                            'official_form',
+                            $lockedInstance->id,
+                            'Completed Revision of Research Proposal Paper (RES-041).',
+                        );
+                    }
                 }
 
                 return $signatureRecord;
@@ -221,6 +251,128 @@ class ApplyOfficialFormSignature
                 throw $e;
             }
         });
+    }
+
+    private function applyDualSignaturesIfEligible(
+        User $actor,
+        OfficialFormInstance $instance,
+        OfficialFormVersion $currentVersion,
+        string $primaryAction,
+        UserSignature $specimen,
+        string $specimenBytes,
+        ?Request $request,
+        string $disk
+    ): void {
+        $code = strtoupper($instance->definition->code);
+
+        if ($code === 'RES-026') {
+            $potentialActions = [
+                'sign_chairperson' => 'title_panel_chairperson',
+                'sign_member_1' => 'title_panel_member_1',
+                'sign_member_2' => 'title_panel_member_2',
+                'endorse' => 'program_coordinator',
+            ];
+
+            foreach ($potentialActions as $action => $actorType) {
+                if ($action === $primaryAction) {
+                    continue;
+                }
+
+                $qualifies = false;
+                if ($action === 'endorse') {
+                    $class = $instance->researchClass ?? $instance->group?->researchClass;
+                    $qualifies = app(InstitutionalActorResolver::class)->isProgramCoordinator($actor, $class, $instance->group)
+                        || ($class !== null && ResearchClassActorAssignment::query()->where('research_class_id', $class->id)->where('user_id', $actor->id)->whereIn('actor_type', ['program_coordinator', 'program_head'])->where('status', 'active')->exists());
+                } elseif (str_starts_with($action, 'sign_')) {
+                    $position = match ($action) {
+                        'sign_chairperson' => 'chairperson',
+                        'sign_member_1' => 'member_1',
+                        'sign_member_2' => 'member_2',
+                        default => null,
+                    };
+                    $qualifies = $position !== null
+                        && $instance->titlePresentation !== null
+                        && $instance->titlePresentation->defense->activePanelAssignments()
+                            ->where('user_id', $actor->id)
+                            ->where('panel_position', $position)
+                            ->exists();
+                }
+
+                if (! $qualifies) {
+                    continue;
+                }
+
+                $alreadySigned = OfficialFormSignature::query()
+                    ->where('official_form_version_id', $currentVersion->id)
+                    ->where('signer_user_id', $actor->id)
+                    ->where('academic_action', $action)
+                    ->exists();
+
+                if ($alreadySigned) {
+                    continue;
+                }
+
+                $snapshotUuid = (string) Str::uuid();
+                $snapshotPath = "official_form_signatures/{$instance->id}/v{$currentVersion->version_number}_{$actor->id}_{$snapshotUuid}.png";
+                Storage::disk($disk)->put($snapshotPath, $specimenBytes);
+
+                $payloadHash = $this->hasher->hashVersion($currentVersion);
+                $sigHash = hash('sha256', (string) $specimenBytes);
+                $secretKey = config('signatures.verification_key');
+                $keyVersion = config('signatures.verification_key_version', 'v1');
+                $signedAt = now();
+
+                $attestationHash = $this->hasher->calculateHmac([
+                    'instance_id' => (int) $instance->id,
+                    'version_id' => (int) $currentVersion->id,
+                    'version_number' => (int) $currentVersion->version_number,
+                    'signer_user_id' => (int) $actor->id,
+                    'actor_type' => $actorType,
+                    'academic_action' => $action,
+                    'version_payload_sha256' => $payloadHash,
+                    'signature_sha256' => $sigHash,
+                    'key_version' => (string) $keyVersion,
+                    'signed_at' => $signedAt->toIso8601String(),
+                ], (string) $secretKey);
+
+                $dualSig = OfficialFormSignature::query()->create([
+                    'official_form_instance_id' => $instance->id,
+                    'official_form_version_id' => $currentVersion->id,
+                    'signer_user_id' => $actor->id,
+                    'user_signature_id' => $specimen->id,
+                    'actor_type' => $actorType,
+                    'academic_action' => $action,
+                    'signer_name_snapshot' => $actor->name,
+                    'signer_email_snapshot' => $actor->email,
+                    'signature_storage_disk' => $disk,
+                    'signature_storage_path' => $snapshotPath,
+                    'signature_sha256' => $sigHash,
+                    'version_payload_sha256' => $payloadHash,
+                    'attestation_hash' => $attestationHash,
+                    'attestation_key_version' => (string) $keyVersion,
+                    'signed_at' => $signedAt,
+                    'ip_address' => $request?->ip(),
+                    'user_agent' => $request?->userAgent(),
+                ]);
+
+                AuditLog::query()->create([
+                    'user_id' => $actor->id,
+                    'actor_name' => $actor->name,
+                    'actor_email' => $actor->email,
+                    'event' => 'official_form.signature_applied',
+                    'auditable_type' => OfficialFormInstance::class,
+                    'auditable_id' => $instance->id,
+                    'description' => "Auto-applied co-assigned digital signature for {$action} ({$actorType}) on form {$instance->definition->code} v{$currentVersion->version_number}.",
+                    'subject_snapshot' => [
+                        'official_form_signature_id' => $dualSig->id,
+                        'academic_action' => $action,
+                        'actor_type' => $actorType,
+                    ],
+                ]);
+
+                $this->advanceRes026AfterSignature($instance, $dualSig, $actor);
+            }
+        }
     }
 
     private function advanceRes026AfterSignature(OfficialFormInstance $instance, OfficialFormSignature $signature, User $actor): void
@@ -236,14 +388,36 @@ class ApplyOfficialFormSignature
                 ->pluck('academic_action')
                 ->all();
             if (count(array_intersect($required, $signed)) === 3) {
-                $presentation->update(['status' => 'awaiting_program_coordinator']);
+                $coordinatorSigned = OfficialFormSignature::query()
+                    ->where('official_form_version_id', $presentation->official_form_version_id)
+                    ->where('academic_action', 'endorse')
+                    ->exists();
+
+                $nextPresStatus = $coordinatorSigned ? 'awaiting_dean' : 'awaiting_program_coordinator';
+                $presentation->update(['status' => $nextPresStatus]);
+                if ($coordinatorSigned) {
+                    $instance->update(['status' => 'endorsed']);
+                }
             }
             $event = 'RES026_PANEL_SIGNED';
         } elseif ($signature->academic_action === 'endorse') {
-            $presentation->update(['status' => 'awaiting_dean']);
+            $required = ['sign_chairperson', 'sign_member_1', 'sign_member_2'];
+            $signed = OfficialFormSignature::query()
+                ->where('official_form_version_id', $presentation->official_form_version_id)
+                ->whereIn('academic_action', $required)
+                ->distinct()
+                ->pluck('academic_action')
+                ->all();
+
+            if (count(array_intersect($required, $signed)) === 3) {
+                $presentation->update(['status' => 'awaiting_dean']);
+                $instance->update(['status' => 'endorsed']);
+            }
             $event = 'RES026_COORDINATOR_ACTION';
         } elseif ($signature->academic_action === 'approve') {
             $this->finalizeCanonicalTitle($presentation, $actor);
+            $instance->update(['status' => 'approved']);
+            $presentation->update(['status' => 'approved']);
             $event = 'RES026_DEAN_ACTION';
         } else {
             return;

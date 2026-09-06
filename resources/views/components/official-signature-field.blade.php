@@ -5,16 +5,22 @@
     'actorType' => null,
     'academicAction' => null,
     'signature' => null,
+    'instance' => null,
 ])
 
 <div {{ $attributes->class(['space-y-2 text-center']) }}>
     @php
-        $officialFormInstance = $instance ?? (request()->route('instance') instanceof \App\Models\OfficialFormInstance ? request()->route('instance') : null);
+        $formInstance = $instance
+            ?? ($officialFormInstance ?? null)
+            ?? ($__data['officialFormInstance'] ?? null)
+            ?? ($__data['instance'] ?? null)
+            ?? (request()->route('instance') instanceof \App\Models\OfficialFormInstance ? request()->route('instance') : null)
+            ?? (is_numeric(request()->route('instance')) ? \App\Models\OfficialFormInstance::with('currentVersion.signatures')->find((int) request()->route('instance')) : null);
         
         // If signature prop wasn't passed explicitly, attempt to resolve from instance currentVersion
         $appliedSignature = $signature;
-        if (! $appliedSignature && $officialFormInstance instanceof \App\Models\OfficialFormInstance && $officialFormInstance->currentVersion) {
-            $appliedSignature = $officialFormInstance->currentVersion->signatures
+        if (! $appliedSignature && $formInstance instanceof \App\Models\OfficialFormInstance && $formInstance->currentVersion) {
+            $appliedSignature = $formInstance->currentVersion->signatures
                 ->first(function ($sig) use ($actorType, $academicAction, $label) {
                     if ($actorType && $sig->actor_type !== $actorType) return false;
                     if ($academicAction && $sig->academic_action !== $academicAction) return false;
@@ -31,27 +37,27 @@
         $authoritativeName = null;
         if ($appliedSignature) {
             $authoritativeName = $appliedSignature->signer_name_snapshot;
-        } elseif ($officialFormInstance instanceof \App\Models\OfficialFormInstance) {
+        } elseif ($formInstance instanceof \App\Models\OfficialFormInstance) {
             $effectiveActorType = $actorType ?? \Illuminate\Support\Str::snake(\Illuminate\Support\Str::lower($label));
-            $classAssignments = $officialFormInstance->researchClass?->officialFormActorAssignments
-                ?? $officialFormInstance->group?->researchClass?->officialFormActorAssignments;
-            $titlePanelAssignments = $officialFormInstance->titlePresentation?->defense?->activePanelAssignments?->keyBy('panel_position');
+            $classAssignments = $formInstance->researchClass?->officialFormActorAssignments
+                ?? $formInstance->group?->researchClass?->officialFormActorAssignments;
+            $titlePanelAssignments = $formInstance->titlePresentation?->defense?->activePanelAssignments?->keyBy('panel_position');
             $institutionalDean = app(\App\Modules\OfficialForms\Services\InstitutionalActorResolver::class)->dean();
 
             $authoritativeName = match ($effectiveActorType) {
-                'research_adviser', 'adviser' => $officialFormInstance->group?->adviser?->name,
-                'facilitator' => $officialFormInstance->researchClass?->facilitator?->name
-                    ?? $officialFormInstance->group?->researchClass?->facilitator?->name,
-                'program_coordinator' => $officialFormInstance->actorAssignments->firstWhere('actor_type', 'program_coordinator')?->user?->name
+                'research_adviser', 'adviser' => $formInstance->group?->adviser?->name,
+                'facilitator' => $formInstance->researchClass?->facilitator?->name
+                    ?? $formInstance->group?->researchClass?->facilitator?->name,
+                'program_coordinator' => $formInstance->actorAssignments->firstWhere('actor_type', 'program_coordinator')?->user?->name
                     ?? $classAssignments?->firstWhere('actor_type', 'program_coordinator')?->user?->name
                     ,
                 'dean', 'college_dean' => $institutionalDean?->name
-                    ?? $officialFormInstance->actorAssignments->firstWhere('actor_type', 'dean')?->user?->name
+                    ?? $formInstance->actorAssignments->firstWhere('actor_type', 'dean')?->user?->name
                     ?? $classAssignments?->firstWhere('actor_type', 'dean')?->user?->name,
                 'title_panel_chairperson' => $titlePanelAssignments?->get('chairperson')?->user?->name,
                 'title_panel_member_1' => $titlePanelAssignments?->get('member_1')?->user?->name,
                 'title_panel_member_2' => $titlePanelAssignments?->get('member_2')?->user?->name,
-                default => $officialFormInstance->actorAssignments->firstWhere('actor_type', $effectiveActorType)?->user?->name
+                default => $formInstance->actorAssignments->firstWhere('actor_type', $effectiveActorType)?->user?->name
                     ?? $classAssignments?->firstWhere('actor_type', $effectiveActorType)?->user?->name,
             };
         }
@@ -82,7 +88,7 @@
             </span>
         </div>
     @else
-        @if ($nameField && $officialFormInstance instanceof \App\Models\OfficialFormInstance)
+        @if ($nameField && $formInstance instanceof \App\Models\OfficialFormInstance)
             <div class="border-b border-[#173c30] px-2 py-1 font-bold">{{ $authoritativeName ?: 'Authorized actor pending assignment' }}</div>
         @elseif ($nameField)
             <label class="block text-left">

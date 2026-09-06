@@ -2,7 +2,6 @@
 
 namespace App\Policies;
 
-use App\Models\DefenseSchedule;
 use App\Models\OfficialFormDefinition;
 use App\Models\OfficialFormInstance;
 use App\Models\ResearchClass;
@@ -59,10 +58,6 @@ class OfficialFormInstancePolicy
 
     public function updateDraft(User $user, OfficialFormInstance $instance): bool
     {
-        if ($this->isDefenseBackedForm($instance)) {
-            return false;
-        }
-
         if (! in_array($instance->status, ['draft', 'returned_for_correction'], true)) {
             return false;
         }
@@ -72,29 +67,47 @@ class OfficialFormInstancePolicy
 
     public function submit(User $user, OfficialFormInstance $instance): bool
     {
-        if ($this->isDefenseBackedForm($instance)) {
-            return false;
-        }
-
         return $this->authorization->canSubmit($user, $instance);
     }
 
     public function endorse(User $user, OfficialFormInstance $instance): bool
     {
-        if ($this->isDefenseBackedForm($instance)) {
-            return false;
-        }
-
         return $this->authorization->canPerformAction($user, $instance, 'endorse');
     }
 
     public function certify(User $user, OfficialFormInstance $instance): bool
     {
-        if ($this->isDefenseBackedForm($instance)) {
-            return false;
-        }
-
         return $this->authorization->canCertify($user, $instance);
+    }
+
+    public function sign(User $user, OfficialFormInstance $instance): bool
+    {
+        return $this->authorization->canPerformAction($user, $instance, 'sign');
+    }
+
+    public function sign_authorship(User $user, OfficialFormInstance $instance): bool
+    {
+        return $this->authorization->canPerformAction($user, $instance, 'sign_authorship');
+    }
+
+    public function note(User $user, OfficialFormInstance $instance): bool
+    {
+        return $this->authorization->canPerformAction($user, $instance, 'note');
+    }
+
+    public function record(User $user, OfficialFormInstance $instance): bool
+    {
+        return $this->authorization->canPerformAction($user, $instance, 'record');
+    }
+
+    public function conforme(User $user, OfficialFormInstance $instance): bool
+    {
+        return $this->authorization->canPerformAction($user, $instance, 'conforme');
+    }
+
+    public function respond(User $user, OfficialFormInstance $instance): bool
+    {
+        return $this->authorization->canPerformAction($user, $instance, 'respond');
     }
 
     public function sign_chairperson(User $user, OfficialFormInstance $instance): bool
@@ -114,48 +127,26 @@ class OfficialFormInstancePolicy
 
     public function approve(User $user, OfficialFormInstance $instance): bool
     {
-        if ($this->isDefenseBackedForm($instance)) {
-            return false;
-        }
-
         return $this->authorization->canPerformAction($user, $instance, 'approve');
     }
 
     public function receive(User $user, OfficialFormInstance $instance): bool
     {
-        if ($this->isDefenseBackedForm($instance)) {
-            return false;
-        }
-
         return $this->authorization->canPerformAction($user, $instance, 'receive');
     }
 
     public function validate(User $user, OfficialFormInstance $instance): bool
     {
-        if ($this->isDefenseBackedForm($instance)) {
-            return false;
-        }
-
         return $this->authorization->canPerformAction($user, $instance, 'validate');
     }
 
     public function evaluate(User $user, OfficialFormInstance $instance): bool
     {
-        if ($this->isDefenseBackedForm($instance)) {
-            return false;
-        }
-
         return $this->authorization->canPerformAction($user, $instance, 'evaluate');
     }
 
     public function assignActor(User $user, OfficialFormInstance $instance): bool
     {
         return $this->authorization->canAssignActor($user, $instance);
-    }
-
-    private function isDefenseBackedForm(OfficialFormInstance $instance): bool
-    {
-        return strtoupper($instance->definition->code) === 'RES-036'
-            && $instance->source_type === DefenseSchedule::class;
     }
 }

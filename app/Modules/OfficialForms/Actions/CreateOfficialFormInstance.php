@@ -42,7 +42,7 @@ class CreateOfficialFormInstance
         'RES-026' => [Document::class],
         'RES-031' => [ConsultationRecord::class],
         'RES-036' => [DefenseSchedule::class],
-        'RES-037' => [DefenseEvaluationRound::class],
+        'RES-037' => [DefenseEvaluationRound::class, DefenseSchedule::class],
         'RES-039' => [DocumentReview::class, RevisionRequest::class],
         'RES-043A' => [OfficialFormInstance::class],
         'RES-043B' => [OfficialFormInstance::class],
@@ -82,7 +82,11 @@ class CreateOfficialFormInstance
 
         if ($formCodeUpper === 'RES-036' && $sourceType === DefenseSchedule::class) {
             /** @var DefenseSchedule|null $defenseSchedule */
-            $defenseSchedule = DefenseSchedule::query()->with(['defense.group', 'room'])->find($sourceId);
+            $defenseSchedule = DefenseSchedule::query()->with([
+                'defense.group.members.student',
+                'defense.group.researchGroup.currentProject',
+                'room',
+            ])->find($sourceId);
             if (! $defenseSchedule) {
                 throw new InvalidArgumentException('Target DefenseSchedule source does not exist.');
             }
@@ -92,6 +96,31 @@ class CreateOfficialFormInstance
             }
 
             $groupId = (int) $defenseSchedule->defense->research_class_group_id;
+            $group = $defenseSchedule->defense->group;
+            $researchTitle = $group?->researchGroup?->currentProject?->title ?? $group?->name ?? 'Untitled Research';
+
+            $presenters = [];
+            if ($group && $group->members) {
+                $idx = 1;
+                foreach ($group->members as $member) {
+                    $presenters[$idx++] = [
+                        'name' => $member->student?->name ?? '',
+                        'communication' => null,
+                        'organization' => null,
+                        'effectiveness' => null,
+                        'total' => null,
+                    ];
+                }
+            }
+            for ($i = count($presenters) + 1; $i <= 4; $i++) {
+                $presenters[$i] = [
+                    'name' => '',
+                    'communication' => null,
+                    'organization' => null,
+                    'effectiveness' => null,
+                    'total' => null,
+                ];
+            }
 
             $sourceSnapshot = [
                 'defense_type' => $defenseSchedule->defense->defense_type,
@@ -100,9 +129,33 @@ class CreateOfficialFormInstance
                 'room_code' => $defenseSchedule->room?->code,
                 'room_name' => $defenseSchedule->room?->name,
                 'location_notes' => $defenseSchedule->room?->location_notes,
-                'research_title' => $defenseSchedule->defense->group?->title ?? $defenseSchedule->defense->group?->name ?? 'Untitled Research',
-                'group_name' => $defenseSchedule->defense->group?->name ?? 'Group #'.$defenseSchedule->defense->group?->id,
+                'research_title' => $researchTitle,
+                'group_name' => $group?->name ?? 'Group #'.$group?->id,
             ];
+
+            $defaultPayload = [
+                'res_036_defense_type' => in_array($defenseSchedule->defense->defense_type, ['proposal_defense', 'title_proposal', 'proposal']) ? 'proposal' : 'final',
+                'res_036_date' => $defenseSchedule->starts_at?->format('Y-m-d'),
+                'res_036_time' => $defenseSchedule->starts_at?->format('H:i'),
+                'res_036_venue' => $defenseSchedule->room?->name ?? $defenseSchedule->room?->code,
+                'res_036_research_title' => $researchTitle,
+                'res_036_presenters' => $presenters,
+                'res_036_panelist_printed_name' => $initiator->name,
+                'res_036_signed_at' => now()->format('Y-m-d'),
+            ];
+
+            $validatedPayload = array_merge($defaultPayload, $validatedPayload);
+        }
+
+        if ($formCodeUpper === 'RES-037' && $sourceType === DefenseSchedule::class && $sourceId !== null) {
+            /** @var DefenseSchedule|null $defenseSchedule */
+            $defenseSchedule = DefenseSchedule::query()->find($sourceId);
+            $round = $defenseSchedule ? DefenseEvaluationRound::query()->where('defense_schedule_id', $defenseSchedule->id)->latest('id')->first() : null;
+            if ($round) {
+                $sourceType = DefenseEvaluationRound::class;
+                $sourceId = $round->id;
+                $groupId = (int) $round->research_class_group_id;
+            }
         }
 
         $group = $groupId !== null ? ResearchClassGroup::query()->find($groupId) : null;

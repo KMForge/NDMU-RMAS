@@ -37,7 +37,7 @@ class GetAdviserDashboardOverview
             ];
         }
 
-        $documentScope = $this->reviewerAccess->scopeFor(Document::query(), $adviser);
+        $documentScope = $this->reviewerAccess->scopeForReviewQueue(Document::query(), $adviser);
         $pendingDocumentScope = (clone $documentScope)
             ->whereIn('status', [
                 DocumentStatus::Pending->value,

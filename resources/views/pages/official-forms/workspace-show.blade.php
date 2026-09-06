@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $instance->definition->code }} | NDMU-RMAS</title>
+    <style>[x-cloak] { display: none !important; }</style>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @livewireStyles
 </head>
 <body class="min-h-screen bg-[#f4f7f6] text-gray-900">
     <header class="border-b border-gray-200 bg-white">
@@ -21,7 +23,7 @@
         @if (session('official_form_success'))
             <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('official_form_success') }}</div>
         @endif
-        @if ($errors->any())
+        @if (isset($errors) && $errors->any())
             <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 <ul class="list-disc space-y-1 pl-5">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
             </div>
@@ -79,65 +81,127 @@
                 @elseif ($titlePresentation?->status === 'panel_assigned')
                     <form method="POST" action="{{ route('facilitator.title-presentations.complete', $titlePresentation) }}" class="mt-4">@csrf @method('PATCH')<button class="rounded-xl bg-[#0e5c3a] px-5 py-2.5 text-xs font-bold text-white">Mark Presentation Completed</button></form>
                 @elseif ($titlePresentation?->status === 'presented')
-                    <form method="POST" action="{{ route('facilitator.title-presentations.result', $titlePresentation) }}" class="mt-4 grid gap-3 md:grid-cols-[12rem_1fr_auto]">
-                        @csrf @method('PATCH')
-                        <select name="approved_title_number" required class="rounded-xl border border-gray-200 px-3 py-2 text-xs"><option value="">Approved Title No.</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
-                        <input name="remarks" maxlength="2000" placeholder="Official remarks (optional)" class="rounded-xl border border-gray-200 px-3 py-2 text-xs">
-                        <button class="rounded-xl bg-[#0e5c3a] px-5 py-2.5 text-xs font-bold text-white">Record Result</button>
-                    </form>
+                    <div class="mt-4 space-y-4 rounded-2xl bg-slate-50 p-4 border border-slate-200">
+                        <div>
+                            <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800">Option A: Approve One Title</span>
+                            <form method="POST" action="{{ route('facilitator.title-presentations.result', $titlePresentation) }}" class="mt-2 grid gap-3 md:grid-cols-[12rem_1fr_auto]">
+                                @csrf @method('PATCH')
+                                <select name="approved_title_number" required class="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-slate-800">
+                                    <option value="">Approved Title No.</option>
+                                    <option value="1">Title #1</option>
+                                    <option value="2">Title #2</option>
+                                    <option value="3">Title #3</option>
+                                </select>
+                                <input name="remarks" maxlength="2000" placeholder="Panel commendations / remarks (optional)" class="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium">
+                                <button type="submit" class="rounded-xl bg-[#0e5c3a] hover:bg-[#073823] px-5 py-2 text-xs font-black text-white transition-colors cursor-pointer flex items-center gap-1.5">
+                                    <i class="ph ph-check-circle"></i> Approve Selected Title
+                                </button>
+                            </form>
+                        </div>
+
+                        <hr class="border-slate-200">
+
+                        <div>
+                            <span class="text-[10px] font-black uppercase tracking-wider text-rose-700">Option B: Disapprove All Proposed Titles (Require Re-Proposal)</span>
+                            <form method="POST" action="{{ route('facilitator.title-presentations.disapprove', $titlePresentation) }}" onsubmit="return confirm('Disapprove all 3 proposed titles? The research group will be required to submit brand-new title topics and an updated document.')" class="mt-2 grid gap-3 md:grid-cols-[1fr_auto]">
+                                @csrf @method('PATCH')
+                                <input name="remarks" required minlength="3" maxlength="2000" placeholder="Reason why all 3 titles are disapproved (required for student re-proposal guidance)..." class="rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-medium text-slate-900 focus:border-rose-500 focus:outline-none">
+                                <button type="submit" class="rounded-xl border border-rose-300 bg-rose-600 hover:bg-rose-700 px-5 py-2 text-xs font-black text-white transition-colors cursor-pointer flex items-center gap-1.5">
+                                    <i class="ph ph-x-circle"></i> Disapprove All &amp; Require Re-Proposal
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 @endif
             </section>
         @endif
 
-        @if ($canManageActors && $actorOptions->isNotEmpty())
+        @if (!in_array(strtoupper($instance->definition->code), ['RES-036', 'RES-037'], true))
             <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                        <p class="text-[10px] font-black uppercase tracking-[.18em] text-amber-500">Context assignment</p>
-                        <h2 class="mt-1 font-black text-[#0e5c3a]">Academic actors for this form</h2>
-                        <p class="mt-1 text-xs text-gray-500">This assigns a person to this exact form instance. It does not change their Spatie roles.</p>
+                        <p class="text-[10px] font-black uppercase tracking-[.18em] text-emerald-600">Institutional routing</p>
+                        <h2 class="mt-1 font-black text-[#0e5c3a]">Academic Signers & Officers</h2>
+                        <p class="mt-1 text-xs text-gray-500">Signers and endorsements are automatically resolved from class, department, and college assignments.</p>
                     </div>
                 </div>
 
-                <div class="mt-4 grid gap-4 lg:grid-cols-2">
-                    @foreach ($actorOptions as $actorType => $candidates)
-                        <form method="POST" action="{{ route('official-forms.workspace.actors.store', $instance) }}" class="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                            @csrf
-                            <input type="hidden" name="actor_type" value="{{ $actorType }}">
-                            <label class="text-xs font-bold text-gray-700">{{ str($actorType)->headline() }}</label>
-                            <div class="mt-2 flex gap-2">
-                                <select name="user_id" required class="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs">
-                                    <option value="">Select eligible faculty</option>
-                                    @foreach ($candidates as $candidate)
-                                        <option value="{{ $candidate->id }}">{{ $candidate->name }} ({{ $candidate->email }})</option>
-                                    @endforeach
-                                </select>
-                                <button type="submit" class="rounded-xl bg-[#0e5c3a] px-4 py-2 text-xs font-bold text-white">Assign</button>
-                            </div>
-                            @if ($candidates->isEmpty())
-                                <p class="mt-2 text-[10px] font-semibold text-amber-700">No active, approved faculty currently has the required permission.</p>
-                            @endif
-                        </form>
-                    @endforeach
+                <!-- Auto-Resolved Departmental Actors Display -->
+                <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    @if (isset($autoResolvedActors['program_coordinator']))
+                        <div class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3.5 space-y-1">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-800">Program Coordinator</span>
+                            <p class="text-xs font-black text-gray-900 truncate">{{ $autoResolvedActors['program_coordinator']->name }}</p>
+                            <p class="text-[10px] text-emerald-700">Auto-resolved from department</p>
+                        </div>
+                    @endif
+                    @if (isset($autoResolvedActors['facilitator']))
+                        <div class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3.5 space-y-1">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-800">Research Instructor</span>
+                            <p class="text-xs font-black text-gray-900 truncate">{{ $autoResolvedActors['facilitator']->name }}</p>
+                            <p class="text-[10px] text-emerald-700">Class Instructor</p>
+                        </div>
+                    @endif
+                    @if (isset($autoResolvedActors['adviser']))
+                        <div class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3.5 space-y-1">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-800">Thesis Adviser</span>
+                            <p class="text-xs font-black text-gray-900 truncate">{{ $autoResolvedActors['adviser']->name }}</p>
+                            <p class="text-[10px] text-emerald-700">Assigned Adviser</p>
+                        </div>
+                    @endif
+                    @if (isset($autoResolvedActors['dean']))
+                        <div class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3.5 space-y-1">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-800">College Dean</span>
+                            <p class="text-xs font-black text-gray-900 truncate">{{ $autoResolvedActors['dean']->name }}</p>
+                            <p class="text-[10px] text-emerald-700">CEAC Dean</p>
+                        </div>
+                    @endif
                 </div>
 
-                <div class="mt-4 space-y-2">
-                    @forelse ($instance->actorAssignments->where('status', 'active') as $assignment)
-                        <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-100 px-4 py-3 text-xs">
-                            <div>
-                                <span class="font-bold">{{ $assignment->user?->name }}</span>
-                                <span class="text-gray-500">Â· {{ str($assignment->actor_type)->headline() }} Â· assigned {{ $assignment->assigned_at?->format('M j, Y g:i A') }}</span>
-                            </div>
-                            <form method="POST" action="{{ route('official-forms.workspace.actors.destroy', [$instance, $assignment]) }}">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="rounded-lg border border-red-200 px-3 py-1.5 font-bold text-red-600">Deactivate</button>
-                            </form>
+                @if ($canManageActors && $actorOptions->isNotEmpty())
+                    <details class="mt-4 border-t border-gray-100 pt-3">
+                        <summary class="text-xs font-bold text-gray-500 hover:text-gray-700 cursor-pointer">
+                            Need a custom actor override? Click to assign explicit instance actors
+                        </summary>
+                        <div class="mt-3 grid gap-4 lg:grid-cols-2">
+                            @foreach ($actorOptions as $actorType => $candidates)
+                                <form method="POST" action="{{ route('official-forms.workspace.actors.store', $instance) }}" class="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                                    @csrf
+                                    <input type="hidden" name="actor_type" value="{{ $actorType }}">
+                                    <label class="text-xs font-bold text-gray-700">{{ str($actorType)->headline() }}</label>
+                                    <div class="mt-2 flex gap-2">
+                                        <select name="user_id" required class="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs">
+                                            <option value="">Select eligible faculty</option>
+                                            @foreach ($candidates as $candidate)
+                                                <option value="{{ $candidate->id }}">{{ $candidate->name }} ({{ $candidate->email }})</option>
+                                            @endforeach
+                                        </select>
+                                        <button type="submit" class="rounded-xl bg-[#0e5c3a] px-4 py-2 text-xs font-bold text-white">Override</button>
+                                    </div>
+                                    @if ($candidates->isEmpty())
+                                        <p class="mt-2 text-[10px] font-semibold text-amber-700">No active, approved faculty currently has the required permission.</p>
+                                    @endif
+                                </form>
+                            @endforeach
                         </div>
-                    @empty
-                        <p class="text-xs text-gray-500">No active instance-scoped actor is assigned.</p>
-                    @endforelse
-                </div>
+
+                        <div class="mt-3 space-y-2">
+                            @foreach ($instance->actorAssignments->where('status', 'active') as $assignment)
+                                <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-100 px-4 py-3 text-xs">
+                                    <div>
+                                        <span class="font-bold">{{ $assignment->user?->name }}</span>
+                                        <span class="text-gray-500">· {{ str($assignment->actor_type)->headline() }} · assigned {{ $assignment->assigned_at?->format('M j, Y g:i A') }}</span>
+                                    </div>
+                                    <form method="POST" action="{{ route('official-forms.workspace.actors.destroy', [$instance, $assignment]) }}">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="rounded-lg border border-red-200 px-3 py-1.5 font-bold text-red-600">Deactivate</button>
+                                    </form>
+                                </div>
+                            @endforeach
+                        </div>
+                    </details>
+                @endif
             </section>
         @endif
 
@@ -158,15 +222,23 @@
 
         <section class="sticky bottom-4 z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-xl backdrop-blur">
             @can('updateDraft', $instance)
-                <button type="submit" form="official-form-editor" class="rounded-xl bg-[#0e5c3a] px-5 py-2.5 text-xs font-bold text-white">Save New Draft Version</button>
-                <button type="submit" form="official-form-editor" formaction="{{ route('official-forms.workspace.submit', $instance) }}" formmethod="POST" class="rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white">Submit</button>
+                <button type="submit" form="official-form-editor" class="rounded-xl bg-[#0e5c3a] px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-900 transition-colors">Save New Draft Version</button>
+                <button type="submit" form="official-form-editor" formaction="{{ route('official-forms.workspace.submit', $instance) }}" formmethod="POST" class="rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-blue-700 transition-colors shadow-sm">
+                    {{ strtoupper($instance->definition->code) === 'RES-036' ? 'Sign & Submit Evaluation' : 'Submit' }}
+                </button>
             @endcan
+            @if ($instance->status === 'submitted')
+                <div class="inline-flex items-center gap-2 rounded-xl bg-emerald-100 px-4 py-2 text-xs font-black text-emerald-800">
+                    <span class="inline-block h-2 w-2 rounded-full bg-emerald-500"></span> Evaluation Submitted
+                </div>
+            @endif
             @foreach ($availableActions as $action)
                 <form method="POST" action="{{ route('official-forms.workspace.sign-action', [$instance, $action]) }}">
                     @csrf
                     <input type="hidden" name="expected_version_id" value="{{ $instance->current_version_id }}">
                     <button type="submit" class="rounded-xl bg-amber-500 px-5 py-2.5 text-xs font-bold text-[#0e5c3a]">
                         {{ match ($action) {
+                            'sign' => strtoupper($instance->definition->code) === 'RES-037' ? 'Sign Evaluation Summary (RES-037)' : 'Sign Form',
                             'sign_chairperson' => 'Sign as Chairperson',
                             'sign_member_1' => 'Sign as Panel Member 1',
                             'sign_member_2' => 'Sign as Panel Member 2',
@@ -198,5 +270,6 @@
             </div>
         </section>
     </main>
+    @livewireScripts
 </body>
 </html>

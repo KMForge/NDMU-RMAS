@@ -47,6 +47,10 @@ class RecordApprovedTitle
                 'status' => 'awaiting_panel_signatures', 'approved_title_number' => $approvedTitleNumber,
                 'remarks' => trim((string) $remarks) ?: null, 'result_recorded_by' => $actor->id, 'result_recorded_at' => now(),
             ]);
+            if ($locked->defense && $locked->defense->status !== 'completed') {
+                $locked->defense->update(['status' => 'completed']);
+                $locked->defense->currentSchedule?->update(['status' => 'completed']);
+            }
             AuditLog::query()->create([
                 'user_id' => $actor->id, 'actor_name' => $actor->name, 'actor_email' => $actor->email,
                 'event' => 'RES026_APPROVED_TITLE_RECORDED', 'auditable_type' => TitlePresentation::class, 'auditable_id' => $locked->id,

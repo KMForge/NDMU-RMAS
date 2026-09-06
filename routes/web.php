@@ -97,9 +97,9 @@ Route::middleware(['auth', 'verified', 'active'])
     ->group(function (): void {
         Route::get('/', [OfficialFormWorkspaceController::class, 'index'])->name('index');
         Route::post('/definitions/{definition}', [OfficialFormWorkspaceController::class, 'store'])
-            ->whereNumber('definition')->middleware('throttle:30,1')->name('store');
-        Route::post('/definitions/{definition}/sources/{sourceKind}/{source}', [OfficialFormWorkspaceController::class, 'storeFromSource'])
-            ->whereNumber(['definition', 'source'])
+            ->middleware('throttle:30,1')->name('store');
+        Route::match(['GET', 'POST'], '/definitions/{definition}/sources/{sourceKind}/{source}', [OfficialFormWorkspaceController::class, 'storeFromSource'])
+            ->whereNumber('source')
             ->whereIn('sourceKind', ['consultation-record', 'document-review', 'revision-request', 'res-042', 'defense-schedule'])
             ->middleware('throttle:30,1')->name('store-from-source');
         Route::get('/instances/{instance}', [OfficialFormWorkspaceController::class, 'show'])
@@ -113,6 +113,7 @@ Route::middleware(['auth', 'verified', 'active'])
             ->middleware('throttle:30,1')->name('action');
         Route::post('/instances/{instance}/actions/{action}/sign', [OfficialFormWorkspaceController::class, 'signAction'])
             ->whereNumber('instance')->whereIn('action', [
+                'sign',
                 'endorse',
                 'receive',
                 'approve',

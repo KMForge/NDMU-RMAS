@@ -72,6 +72,8 @@
     selectedNotification: null,
     notifications: @js($adviserNotifications),
     assignedResearchers: @js($adviserOverviewAdvisees),
+    researcherSearch: '',
+    researcherClassFilter: 'all',
     adviserEvaluations: @js($adviserEvaluations ?? []),
     selectedEvaluation: null,
     evaluationSearch: '',
@@ -892,33 +894,45 @@
             </div>
 
             <!-- TAB: My Classes Workspace -->
-            <div x-show="activeTab === 'classes'" x-cloak class="space-y-8">
+            <div x-show="activeTab === 'classes'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Header & Stats Bar -->
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                        <h1 class="text-2xl font-bold font-heading text-gray-850">My Classes Workspace</h1>
-                        <p class="text-xs text-gray-500 mt-1">Review pending adviser invitations and manage your assigned research groups.</p>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-[#0e5c3a]/10 text-[#0e5c3a] border border-[#0e5c3a]/20">
+                                Advising Cohorts &amp; Classes
+                            </span>
+                        </div>
+                        <h1 class="text-2xl font-black font-heading text-slate-900 tracking-tight">My Classes Workspace</h1>
+                        <p class="text-xs text-slate-500 mt-1">Review pending adviser invitations and manage your assigned research cohorts.</p>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <span class="px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-2">
-                            <i class="ph ph-bell-ringing text-sm"></i>
-                            <span>Pending Requests: {{ $pendingCount }}</span>
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <span class="px-3.5 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-2 shadow-2xs">
+                            <i class="ph ph-bell-ringing text-sm text-amber-600"></i>
+                            <span>Pending Requests: <strong>{{ $pendingCount }}</strong></span>
                         </span>
-                        <span class="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                        <span class="px-3.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[#0e5c3a] text-xs font-bold flex items-center gap-2 shadow-2xs">
                             <i class="ph ph-users-three text-sm"></i>
-                            <span>Assigned Groups: {{ $assignedCount }}</span>
+                            <span>Assigned Groups: <strong>{{ $assignedCount }}</strong></span>
+                        </span>
+                        <span class="px-3.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold flex items-center gap-2 shadow-2xs">
+                            <i class="ph ph-student text-sm text-slate-500"></i>
+                            <span>Total Students: <strong>{{ ($groupsAssigned ?? collect())->sum(fn($g) => $g->members->count()) }}</strong></span>
                         </span>
                     </div>
                 </div>
 
                 <!-- Case 1: Absolutely No Pending Requests AND No Assigned Groups -->
                 @if ($pendingCount === 0 && $assignedCount === 0)
-                    <div class="bg-white rounded-3xl p-12 border border-gray-100 shadow-sm text-center max-w-lg mx-auto space-y-4">
-                        <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 text-3xl flex items-center justify-center mx-auto">
+                    <div class="bg-white rounded-3xl p-12 border border-slate-200/70 shadow-xs text-center max-w-lg mx-auto space-y-4">
+                        <div class="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 text-[#0e5c3a] text-3xl flex items-center justify-center mx-auto shadow-sm">
                             <i class="ph ph-chalkboard-teacher"></i>
                         </div>
-                        <div>
-                            <h3 class="font-bold text-gray-800 text-base">No Research Groups Assigned</h3>
-                            <p class="text-xs text-gray-500 mt-1">No research groups have been assigned to you yet. When a Research Facilitator invites you to advise a group, the request will appear here.</p>
+                        <div class="space-y-1.5">
+                            <h3 class="font-bold text-slate-900 text-base font-heading">No Research Groups Assigned</h3>
+                            <p class="text-xs text-slate-500 leading-relaxed">
+                                No research groups have been assigned to your advisership yet. When a Research Facilitator sends an invitation to advise a group, the request will appear here for your confirmation.
+                            </p>
                         </div>
                     </div>
                 @else
@@ -926,11 +940,15 @@
                     @if ($pendingCount > 0)
                         <section class="space-y-4">
                             <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-2">
-                                    <h2 class="text-base font-bold text-gray-850">Pending Adviser Requests</h2>
-                                    <span class="px-2 py-0.5 text-[10px] font-black rounded-full bg-rose-500 text-white shadow-2xs">{{ $pendingCount }}</span>
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-1.5 h-4 rounded-full bg-amber-500"></span>
+                                    <h2 class="text-base font-black font-heading text-slate-900">Pending Adviser Requests</h2>
+                                    <span class="px-2 py-0.5 text-[10px] font-black rounded-full bg-rose-500 text-white shadow-2xs animate-pulse">{{ $pendingCount }}</span>
                                 </div>
-                                <span class="text-xs text-amber-700 font-semibold">Action required before assignment is finalized</span>
+                                <span class="text-xs text-amber-700 font-bold flex items-center gap-1.5">
+                                    <i class="ph ph-warning-circle text-sm"></i>
+                                    <span>Action required to finalize advising assignment</span>
+                                </span>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -940,73 +958,80 @@
                                         $pClass = $pGroup?->researchClass;
                                         $pMembersCount = $pGroup?->members?->count() ?? 0;
                                     @endphp
-                                    <div class="bg-white rounded-2xl border-2 border-amber-200 p-6 shadow-sm space-y-5 relative overflow-hidden" x-data="{ confirmingAccept: false, confirmingDecline: false }">
-                                        <div class="flex justify-between items-start border-b border-gray-100 pb-4">
+                                    <div class="bg-white rounded-3xl border border-amber-200/90 shadow-md p-6 space-y-5 relative overflow-hidden group" x-data="{ confirmingAccept: false, confirmingDecline: false }">
+                                        <!-- Top Amber Accent Stripe -->
+                                        <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-400 via-orange-500 to-[#eebc3f]"></div>
+
+                                        <div class="flex justify-between items-start border-b border-slate-100 pb-4 pt-1">
                                             <div>
-                                                <span class="text-[10px] font-black uppercase tracking-wider text-amber-600">Adviser Invitation</span>
-                                                <h3 class="font-bold text-gray-850 text-lg mt-0.5">{{ $pGroup?->name ?? 'Unnamed Group' }}</h3>
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900">
+                                                    <i class="ph ph-envelope-simple text-xs"></i>
+                                                    Adviser Invitation
+                                                </span>
+                                                <h3 class="font-black text-slate-900 font-heading text-lg mt-1">{{ $pGroup?->name ?? 'Unnamed Group' }}</h3>
                                             </div>
-                                            <span class="px-3 py-1 bg-amber-100 text-amber-800 text-[10px] font-extrabold rounded-full uppercase tracking-wider">
-                                                Pending
+                                            <span class="px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-black rounded-full uppercase tracking-wider shadow-2xs">
+                                                Awaiting Response
                                             </span>
                                         </div>
 
                                         <div class="grid grid-cols-2 gap-4 text-xs">
-                                            <div>
-                                                <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Research Class</p>
-                                                <p class="font-bold text-gray-800 mt-1">{{ $pClass?->name ?? 'N/A' }}</p>
+                                            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Research Class</p>
+                                                <p class="font-bold text-slate-900 mt-1 truncate">{{ $pClass?->name ?? 'N/A' }}</p>
                                             </div>
-                                            <div>
-                                                <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Requested By</p>
-                                                <p class="font-bold text-gray-800 mt-1">{{ $pReq->requester?->name ?? 'Facilitator' }}</p>
+                                            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Requested By</p>
+                                                <p class="font-bold text-slate-900 mt-1 truncate">{{ $pReq->requester?->name ?? 'Facilitator' }}</p>
                                             </div>
-                                            <div>
-                                                <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Members</p>
-                                                <p class="font-bold text-gray-800 mt-1">{{ $pMembersCount }} / 4 Students</p>
+                                            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Group Size</p>
+                                                <p class="font-bold text-[#0e5c3a] mt-1">{{ $pMembersCount }} Students</p>
                                             </div>
-                                            <div>
-                                                <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Request Date</p>
-                                                <p class="font-bold text-gray-800 mt-1">{{ $pReq->requested_at?->format('M j, Y') ?? 'Recently' }}</p>
+                                            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Request Date</p>
+                                                <p class="font-bold text-slate-900 mt-1">{{ $pReq->requested_at?->format('M j, Y') ?? 'Recently' }}</p>
                                             </div>
                                         </div>
 
-                                        <div class="pt-2 flex items-center justify-end gap-3 border-t border-gray-100">
-                                            <button type="button" @click="confirmingDecline = true" class="px-4 py-2.5 border border-gray-200 text-gray-700 text-xs font-bold rounded-xl hover:bg-gray-50 transition cursor-pointer">
+                                        <div class="pt-2 flex items-center justify-end gap-3 border-t border-slate-100">
+                                            <button type="button" @click="confirmingDecline = true" class="px-4 py-2.5 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-50 transition cursor-pointer">
                                                 Decline Request
                                             </button>
-                                            <button type="button" @click="confirmingAccept = true" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-sm transition cursor-pointer">
-                                                Accept Assignment
+                                            <button type="button" @click="confirmingAccept = true" class="px-4.5 py-2.5 bg-gradient-to-r from-[#073823] to-[#0e5c3a] hover:brightness-110 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-950/20 transition cursor-pointer flex items-center gap-1.5">
+                                                <i class="ph ph-check-circle text-sm text-[#eebc3f]"></i>
+                                                <span>Accept Assignment</span>
                                             </button>
                                         </div>
 
                                         <!-- Accept Confirmation Overlay Modal -->
                                         <div x-show="confirmingAccept" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                                            <div class="absolute inset-0 bg-black/50" @click="confirmingAccept = false"></div>
-                                            <div class="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 space-y-5 text-left" @click.stop>
-                                                <div class="flex items-center gap-3 text-emerald-700">
-                                                    <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-xl font-bold">
+                                            <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-xs" @click="confirmingAccept = false"></div>
+                                            <div class="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 space-y-5 text-left border border-white/40" @click.stop>
+                                                <div class="flex items-center gap-3 text-[#0e5c3a]">
+                                                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-2xl font-bold">
                                                         <i class="ph ph-check-circle"></i>
                                                     </div>
                                                     <div>
-                                                        <h3 class="font-bold text-lg text-gray-850">Accept Adviser Assignment?</h3>
-                                                        <p class="text-xs text-gray-500">Confirm your role for this research group.</p>
+                                                        <h3 class="font-black text-lg font-heading text-slate-900">Accept Advising Role?</h3>
+                                                        <p class="text-xs text-slate-500">Confirm your role as official research adviser.</p>
                                                     </div>
                                                 </div>
 
-                                                <p class="text-xs leading-relaxed text-gray-600">
-                                                    You are about to become the official research adviser for <strong>{{ $pGroup?->name }}</strong> in <strong>{{ $pClass?->name }}</strong>. After accepting, this group will appear under "My Assigned Research Groups".
+                                                <p class="text-xs leading-relaxed text-slate-600 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                                    You are accepting the official research advising assignment for <strong class="text-slate-900">{{ $pGroup?->name }}</strong> in <strong class="text-slate-900">{{ $pClass?->name }}</strong>. This group will activate in your workspace immediately.
                                                 </p>
 
                                                 <div class="flex justify-end gap-3 pt-2">
-                                                    <button type="button" @click="confirmingAccept = false" class="px-4 py-2.5 border border-gray-200 text-gray-700 text-xs font-bold rounded-xl hover:bg-gray-50">
+                                                    <button type="button" @click="confirmingAccept = false" class="px-4 py-2.5 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-50">
                                                         Cancel
                                                     </button>
                                                     <form method="POST" action="{{ route('adviser.group-requests.respond', $pReq) }}">
                                                         @csrf
                                                         @method('PATCH')
                                                         <input type="hidden" name="decision" value="accept">
-                                                        <button type="submit" class="px-4 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl">
-                                                            Accept Assignment
+                                                        <button type="submit" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#073823] text-white text-xs font-bold rounded-xl shadow-md transition cursor-pointer">
+                                                            Confirm &amp; Accept
                                                         </button>
                                                     </form>
                                                 </div>
@@ -1015,32 +1040,32 @@
 
                                         <!-- Decline Confirmation Overlay Modal -->
                                         <div x-show="confirmingDecline" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                                            <div class="absolute inset-0 bg-black/50" @click="confirmingDecline = false"></div>
-                                            <div class="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 space-y-5 text-left" @click.stop>
+                                            <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-xs" @click="confirmingDecline = false"></div>
+                                            <div class="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 space-y-5 text-left border border-white/40" @click.stop>
                                                 <div class="flex items-center gap-3 text-rose-700">
-                                                    <div class="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-xl font-bold">
+                                                    <div class="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-2xl font-bold">
                                                         <i class="ph ph-warning-circle"></i>
                                                     </div>
                                                     <div>
-                                                        <h3 class="font-bold text-lg text-gray-850">Decline Adviser Request?</h3>
-                                                        <p class="text-xs text-gray-500">Decline invitation for this group.</p>
+                                                        <h3 class="font-black text-lg font-heading text-slate-900">Decline Adviser Request?</h3>
+                                                        <p class="text-xs text-slate-500">Decline invitation for this research group.</p>
                                                     </div>
                                                 </div>
 
-                                                <p class="text-xs leading-relaxed text-gray-600">
-                                                    You will not be assigned as adviser for <strong>{{ $pGroup?->name }}</strong> in <strong>{{ $pClass?->name }}</strong>. The Research Facilitator may send another adviser request later if needed.
+                                                <p class="text-xs leading-relaxed text-slate-600 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                                    You will not be designated as adviser for <strong class="text-slate-900">{{ $pGroup?->name }}</strong> in <strong class="text-slate-900">{{ $pClass?->name }}</strong>. The Facilitator will be notified to reassign the group.
                                                 </p>
 
                                                 <div class="flex justify-end gap-3 pt-2">
-                                                    <button type="button" @click="confirmingDecline = false" class="px-4 py-2.5 border border-gray-200 text-gray-700 text-xs font-bold rounded-xl hover:bg-gray-50">
+                                                    <button type="button" @click="confirmingDecline = false" class="px-4 py-2.5 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-50">
                                                         Cancel
                                                     </button>
                                                     <form method="POST" action="{{ route('adviser.group-requests.respond', $pReq) }}">
                                                         @csrf
                                                         @method('PATCH')
                                                         <input type="hidden" name="decision" value="decline">
-                                                        <button type="submit" class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl">
-                                                            Decline Request
+                                                        <button type="submit" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md transition cursor-pointer">
+                                                            Confirm Decline
                                                         </button>
                                                     </form>
                                                 </div>
@@ -1055,13 +1080,19 @@
                     <!-- Section 2: My Assigned Research Groups -->
                     <section class="space-y-4">
                         <div class="flex items-center justify-between">
-                            <h2 class="text-base font-bold text-gray-850">My Assigned Research Groups</h2>
-                            <span class="text-xs text-gray-500 font-semibold">Active groups where you are the accepted adviser</span>
+                            <div class="flex items-center gap-2.5">
+                                <span class="w-1.5 h-4 rounded-full bg-[#0e5c3a]"></span>
+                                <h2 class="text-base font-black font-heading text-slate-900">Active Advisee Cohorts</h2>
+                                <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-50 text-[#0e5c3a] border border-emerald-200">{{ $assignedCount }} Groups</span>
+                            </div>
+                            <span class="text-xs text-slate-500 font-semibold">Active groups under your official advising designation</span>
                         </div>
 
                         @if ($assignedCount === 0)
-                            <div class="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm text-center text-xs text-gray-500">
-                                No accepted research groups yet.
+                            <div class="bg-white rounded-3xl p-10 border border-slate-200/70 shadow-xs text-center text-xs text-slate-500 space-y-2">
+                                <i class="ph ph-chalkboard-teacher text-3xl text-slate-300"></i>
+                                <p class="font-semibold text-slate-700">No accepted research groups yet.</p>
+                                <p class="text-slate-400">Accepted group invitations will be listed here.</p>
                             </div>
                         @else
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1070,61 +1101,98 @@
                                         $aClass = $aGrp->researchClass;
                                         $aMembers = $aGrp->members;
                                     @endphp
-                                    <div class="bg-white rounded-2xl border border-gray-150 p-6 shadow-sm space-y-4 border-t-4 border-t-[#0e5c3a]">
-                                        <div class="flex justify-between items-start border-b border-gray-100 pb-4">
-                                            <div>
-                                                <h3 class="font-extrabold text-gray-850 text-base">{{ $aGrp->name }}</h3>
-                                                <p class="text-xs font-semibold text-[#0e5c3a] mt-0.5">{{ $aClass?->name ?? 'Research Class' }}</p>
+                                    <div class="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs hover:shadow-md transition-all duration-200 space-y-5 relative overflow-hidden group">
+                                        <!-- Top Accent Gradient Stripe -->
+                                        <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#073823] via-[#0e5c3a] to-[#eebc3f]"></div>
+
+                                        <div class="flex justify-between items-start border-b border-slate-100 pb-4 pt-1">
+                                            <div class="space-y-1">
+                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-[#0e5c3a] border border-emerald-200/80">
+                                                    <i class="ph ph-chalkboard text-xs"></i>
+                                                    {{ $aClass?->name ?? 'Research Class' }}
+                                                </span>
+                                                <h3 class="font-black text-slate-900 font-heading text-lg tracking-tight">{{ $aGrp->name }}</h3>
                                             </div>
                                             <span class="px-3 py-1 bg-emerald-50 text-[#0e5c3a] border border-emerald-200 text-[10px] font-black rounded-full uppercase tracking-wider shadow-2xs">
                                                 Active Adviser
                                             </span>
                                         </div>
 
-                                        <!-- Research Title Placeholder for future integration -->
-                                        <div class="rounded-xl bg-gray-50 p-3.5 border border-gray-100 space-y-1">
-                                            <p class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Research Title</p>
-                                            <p class="text-xs font-semibold text-gray-500 italic">No title selected yet</p>
-                                        </div>
-
                                         <!-- Members List -->
-                                        <div class="space-y-2">
+                                        <div class="space-y-2.5">
                                             <div class="flex items-center justify-between text-xs">
-                                                <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Group Members</span>
-                                                <span class="font-bold text-gray-700">Members ({{ $aMembers->count() }}/4)</span>
+                                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Advisee Members</span>
+                                                <span class="font-bold text-slate-700">{{ $aMembers->count() }} Students Enrolled</span>
                                             </div>
                                             @if ($aMembers->isEmpty())
-                                                <p class="text-xs text-gray-400 italic">No students assigned to group.</p>
+                                                <p class="text-xs text-slate-400 italic">No students assigned to group.</p>
                                             @else
-                                                <ul class="space-y-2 border border-gray-150 rounded-xl p-3 bg-white">
+                                                <ul class="space-y-2 rounded-2xl p-3 bg-slate-50/70 border border-slate-150">
                                                     @foreach ($aMembers as $aMb)
                                                         @php
                                                             $isGroupLeader = (int) $aGrp->leader_student_id === (int) $aMb->student_id;
+                                                            $mbStudent = $aMb->student;
                                                         @endphp
                                                         <li @class([
-                                                            'text-xs font-bold text-gray-800 flex items-center justify-between gap-2 rounded-xl px-3 py-2 transition-all',
-                                                            'bg-amber-50/80 border border-amber-300 shadow-2xs' => $isGroupLeader,
-                                                            'bg-gray-50/60 border border-gray-100' => ! $isGroupLeader,
+                                                            'text-xs font-bold flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 transition-all',
+                                                            'bg-white border-2 border-amber-300 shadow-2xs text-slate-900' => $isGroupLeader,
+                                                            'bg-white border border-slate-200 text-slate-800' => ! $isGroupLeader,
                                                         ])>
                                                             <div class="flex items-center gap-2.5 min-w-0">
-                                                                <i @class([
-                                                                    'ph text-base shrink-0',
-                                                                    'ph-crown-fill text-amber-500' => $isGroupLeader,
-                                                                    'ph-user-circle text-gray-400' => ! $isGroupLeader,
-                                                                ])></i>
-                                                                <span class="truncate text-xs font-bold text-gray-850">{{ $aMb->student?->name ?? 'Student' }}</span>
+                                                                <div @class([
+                                                                    'w-7 h-7 rounded-lg flex items-center justify-center text-sm shrink-0 font-black',
+                                                                    'bg-amber-100 text-amber-900' => $isGroupLeader,
+                                                                    'bg-slate-100 text-slate-600' => ! $isGroupLeader,
+                                                                ])>
+                                                                    <i @class([
+                                                                        'ph text-base',
+                                                                        'ph-crown-fill text-amber-600' => $isGroupLeader,
+                                                                        'ph-user' => ! $isGroupLeader,
+                                                                    ])></i>
+                                                                </div>
+                                                                <div class="min-w-0">
+                                                                    <span class="truncate text-xs font-bold block text-slate-900">{{ $mbStudent?->name ?? 'Student' }}</span>
+                                                                    <span class="text-[10px] text-slate-400 font-mono block">ID: {{ $mbStudent?->student_id ?: 'N/A' }}</span>
+                                                                </div>
                                                             </div>
                                                             @if ($isGroupLeader)
                                                                 <span class="shrink-0 inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-900 shadow-2xs">
                                                                     <i class="ph ph-star-fill text-amber-600 text-[10px]"></i>
-                                                                    <span>Student Leader</span>
-                                                                    <span class="sr-only">Group Leader</span>
+                                                                    <span>Leader</span>
                                                                 </span>
                                                             @endif
                                                         </li>
                                                     @endforeach
                                                 </ul>
                                             @endif
+                                        </div>
+
+                                        <!-- Card Action Buttons Strip -->
+                                        <div class="pt-2 flex flex-wrap items-center gap-2 border-t border-slate-100">
+                                            <button
+                                                type="button"
+                                                @click="activeTab = 'docreview'"
+                                                class="flex-1 py-2.5 px-3 rounded-xl bg-[#0e5c3a] hover:bg-[#073823] text-white text-xs font-bold shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                                            >
+                                                <i class="ph ph-file-magnifying-glass text-sm text-[#eebc3f]"></i>
+                                                <span>Review Drafts</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                @click="activeTab = 'consultation'"
+                                                class="py-2.5 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-2xs hover:shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                                            >
+                                                <i class="ph ph-chats-teardrop text-sm text-blue-600"></i>
+                                                <span>Consultations</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                @click="activeTab = 'monitoring'"
+                                                class="py-2.5 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-2xs hover:shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                                            >
+                                                <i class="ph ph-chart-line-up text-sm text-emerald-600"></i>
+                                                <span>Progress</span>
+                                            </button>
                                         </div>
                                     </div>
                                 @endforeach
@@ -1550,16 +1618,252 @@
             </div>
 
             <!-- TAB: Assigned Researchers -->
-            <div x-show="activeTab === 'researchers'" x-cloak class="space-y-6">
-                <div>
-                    <h1 class="text-2xl font-bold font-heading text-gray-850">Assigned Researchers</h1>
-                    <p class="text-sm text-gray-500 mt-1">View students and research groups assigned to your advisership.</p>
+            <div x-show="activeTab === 'researchers'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Section Header & Controls -->
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-[#0e5c3a]/10 text-[#0e5c3a] border border-[#0e5c3a]/20">
+                                Advisee Roster &amp; Directory
+                            </span>
+                        </div>
+                        <h1 class="text-2xl font-black font-heading text-slate-900 tracking-tight">Assigned Researchers</h1>
+                        <p class="text-xs text-slate-500 mt-1">Directory of students and research cohorts assigned to your academic advisership.</p>
+                    </div>
+
+                    <!-- Search & Filter Controls -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="relative min-w-[240px]">
+                            <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                            <input
+                                type="text"
+                                x-model="researcherSearch"
+                                placeholder="Search student, ID, program, group..."
+                                class="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0e5c3a] focus:ring-2 focus:ring-emerald-600/15 transition-all shadow-2xs"
+                            >
+                        </div>
+                    </div>
                 </div>
 
-                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-                    <i class="ph ph-users-three text-4xl text-gray-300"></i>
-                    <p class="mt-3 text-sm text-gray-500">Assigned researcher backend will be rebuilt in the upcoming adviser workflow phase.</p>
+                <!-- Modern 4-KPI Metric Strip -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <!-- KPI 1: Advisee Groups -->
+                    <div class="bg-white rounded-3xl p-5 border border-slate-200/70 shadow-xs relative overflow-hidden group">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-[#0e5c3a]"></div>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Advisee Groups</span>
+                                <span class="text-2xl font-black text-slate-900 mt-1 block">{{ $assignedCount }}</span>
+                            </div>
+                            <span class="w-11 h-11 rounded-2xl bg-emerald-50 text-[#0e5c3a] border border-emerald-100 flex items-center justify-center text-xl shadow-2xs">
+                                <i class="ph ph-users-three"></i>
+                            </span>
+                        </div>
+                        <div class="mt-3 flex items-center gap-1.5 text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+                            <span class="w-1.5 h-1.5 rounded-full bg-[#0e5c3a]"></span>
+                            <span>Active advising cohorts</span>
+                        </div>
+                    </div>
+
+                    <!-- KPI 2: Total Researchers -->
+                    <div class="bg-white rounded-3xl p-5 border border-slate-200/70 shadow-xs relative overflow-hidden group">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Advisees</span>
+                                <span class="text-2xl font-black text-blue-700 mt-1 block">{{ ($groupsAssigned ?? collect())->sum(fn($g) => $g->members->count()) }}</span>
+                            </div>
+                            <span class="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center text-xl shadow-2xs">
+                                <i class="ph ph-student"></i>
+                            </span>
+                        </div>
+                        <div class="mt-3 flex items-center gap-1.5 text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                            <span>Enrolled student researchers</span>
+                        </div>
+                    </div>
+
+                    <!-- KPI 3: Student Leaders -->
+                    <div class="bg-white rounded-3xl p-5 border border-slate-200/70 shadow-xs relative overflow-hidden group">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-[#eebc3f]"></div>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Group Leaders</span>
+                                <span class="text-2xl font-black text-amber-700 mt-1 block">{{ ($groupsAssigned ?? collect())->filter(fn($g) => $g->leader_student_id)->count() }}</span>
+                            </div>
+                            <span class="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center text-xl shadow-2xs">
+                                <i class="ph ph-crown-fill text-amber-500"></i>
+                            </span>
+                        </div>
+                        <div class="mt-3 flex items-center gap-1.5 text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            <span>Designated primary points of contact</span>
+                        </div>
+                    </div>
+
+                    <!-- KPI 4: Academic Classes -->
+                    <div class="bg-white rounded-3xl p-5 border border-slate-200/70 shadow-xs relative overflow-hidden group">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-600"></div>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Classes Represented</span>
+                                <span class="text-2xl font-black text-purple-700 mt-1 block">{{ ($groupsAssigned ?? collect())->pluck('research_class_id')->unique()->filter()->count() }}</span>
+                            </div>
+                            <span class="w-11 h-11 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center text-xl shadow-2xs">
+                                <i class="ph ph-chalkboard"></i>
+                            </span>
+                        </div>
+                        <div class="mt-3 flex items-center gap-1.5 text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+                            <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                            <span>Distinct research sections</span>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Researchers Advisee Groups Cards -->
+                @if (($assignedCount ?? 0) === 0)
+                    <div class="bg-white rounded-3xl p-12 border border-slate-200/70 shadow-xs text-center max-w-lg mx-auto space-y-4">
+                        <div class="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 text-[#0e5c3a] text-3xl flex items-center justify-center mx-auto shadow-sm">
+                            <i class="ph ph-users-three"></i>
+                        </div>
+                        <div class="space-y-1.5">
+                            <h3 class="font-bold text-slate-900 text-base font-heading">No Assigned Researchers</h3>
+                            <p class="text-xs text-slate-500 leading-relaxed">
+                                You do not have any advisees assigned yet. When a Research Facilitator designates you to advise a student research group, they will appear here.
+                            </p>
+                        </div>
+                        <div class="pt-2">
+                            <button
+                                type="button"
+                                @click="activeTab = 'classes'"
+                                class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#073823] text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
+                            >
+                                Check Class Invitations
+                            </button>
+                        </div>
+                    </div>
+                @else
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        @foreach ($groupsAssigned as $rGrp)
+                            @php
+                                $rClass = $rGrp->researchClass;
+                                $rMembers = $rGrp->members;
+                                $searchString = mb_strtolower($rGrp->name . ' ' . ($rClass?->name ?? '') . ' ' . $rMembers->map(fn($m) => ($m->student?->name ?? '') . ' ' . ($m->student?->student_id ?? '') . ' ' . ($m->student?->program ?? '') . ' ' . ($m->student?->email ?? ''))->implode(' '));
+                            @endphp
+                            <div
+                                x-show="!researcherSearch || @js($searchString).includes(researcherSearch.toLowerCase().trim())"
+                                class="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs hover:shadow-md transition-all duration-200 space-y-5 relative overflow-hidden group flex flex-col justify-between"
+                            >
+                                <!-- Top Accent Stripe -->
+                                <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#073823] via-[#0e5c3a] to-[#eebc3f]"></div>
+
+                                <div class="space-y-4">
+                                    <!-- Group Header -->
+                                    <div class="flex justify-between items-start border-b border-slate-100 pb-4 pt-1">
+                                        <div class="space-y-1 min-w-0">
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-[#0e5c3a] border border-emerald-200/80">
+                                                <i class="ph ph-chalkboard text-xs"></i>
+                                                {{ $rClass?->name ?? 'Research Class' }}
+                                            </span>
+                                            <h3 class="font-black text-slate-900 font-heading text-lg tracking-tight truncate">{{ $rGrp->name }}</h3>
+                                        </div>
+                                        <span class="px-3 py-1 bg-emerald-50 text-[#0e5c3a] border border-emerald-200 text-[10px] font-black rounded-full uppercase tracking-wider shadow-2xs shrink-0">
+                                            {{ $rMembers->count() }} {{ Str::plural('Researcher', $rMembers->count()) }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Members Detailed Roster -->
+                                    <div class="space-y-2.5">
+                                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Assigned Student Researchers</span>
+                                        <div class="space-y-2">
+                                            @foreach ($rMembers as $rMb)
+                                                @php
+                                                    $isLeader = (int) $rGrp->leader_student_id === (int) $rMb->student_id;
+                                                    $studentObj = $rMb->student;
+                                                @endphp
+                                                <div @class([
+                                                    'p-3.5 rounded-2xl border transition-all space-y-2',
+                                                    'bg-amber-50/70 border-2 border-amber-300 shadow-2xs' => $isLeader,
+                                                    'bg-slate-50/70 border border-slate-200/80 hover:bg-white' => ! $isLeader,
+                                                ])>
+                                                    <div class="flex items-center justify-between gap-3">
+                                                        <div class="flex items-center gap-2.5 min-w-0">
+                                                            <div @class([
+                                                                'w-8 h-8 rounded-xl flex items-center justify-center text-sm shrink-0 font-black shadow-2xs',
+                                                                'bg-amber-100 text-amber-900 border border-amber-200' => $isLeader,
+                                                                'bg-white text-slate-700 border border-slate-200' => ! $isLeader,
+                                                            ])>
+                                                                <i @class([
+                                                                    'ph text-base',
+                                                                    'ph-crown-fill text-amber-600' => $isLeader,
+                                                                    'ph-user text-slate-500' => ! $isLeader,
+                                                                ])></i>
+                                                            </div>
+                                                            <div class="min-w-0">
+                                                                <div class="flex items-center gap-2">
+                                                                    <span class="font-black text-xs text-slate-900 truncate">{{ $studentObj?->name ?? 'Student Researcher' }}</span>
+                                                                    @if ($isLeader)
+                                                                        <span class="px-2 py-0.5 rounded-full bg-amber-200/80 text-amber-950 text-[9px] font-black uppercase tracking-wider">Leader</span>
+                                                                    @endif
+                                                                </div>
+                                                                <span class="text-[11px] text-slate-500 font-medium block truncate">{{ $studentObj?->email }}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="text-right shrink-0">
+                                                            <span class="inline-block px-2 py-0.5 rounded-lg bg-white border border-slate-200 text-[10px] font-mono font-bold text-[#0e5c3a] shadow-2xs">
+                                                                {{ $studentObj?->student_id ?: 'ID: N/A' }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    @if ($studentObj?->program)
+                                                        <div class="flex items-center gap-2 pt-1 border-t border-slate-200/60 text-[10px] text-slate-500">
+                                                            <i class="ph ph-graduation-cap text-xs text-slate-400"></i>
+                                                            <span class="font-semibold truncate">{{ $studentObj->program }}</span>
+                                                            @if ($studentObj->year_level)
+                                                                <span class="text-slate-300">•</span>
+                                                                <span>Year {{ $studentObj->year_level }}</span>
+                                                            @endif
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons Footer -->
+                                <div class="pt-4 mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100">
+                                    <button
+                                        type="button"
+                                        @click="activeTab = 'docreview'"
+                                        class="flex-1 py-2.5 px-3 rounded-xl bg-[#0e5c3a] hover:bg-[#073823] text-white text-xs font-bold shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                                    >
+                                        <i class="ph ph-file-magnifying-glass text-sm text-[#eebc3f]"></i>
+                                        <span>Review Drafts</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="activeTab = 'consultation'"
+                                        class="py-2.5 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-2xs hover:shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                                    >
+                                        <i class="ph ph-chats-teardrop text-sm text-blue-600"></i>
+                                        <span>Consultations</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="activeTab = 'monitoring'"
+                                        class="py-2.5 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-2xs hover:shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                                    >
+                                        <i class="ph ph-chart-line-up text-sm text-emerald-600"></i>
+                                        <span>Progress</span>
+                                    </button>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
             </div>
 
             <!-- TAB: Research Monitoring -->
@@ -1582,27 +1886,105 @@
             </div>
 
             <!-- TAB: Defense Endorsement -->
-            <div x-show="activeTab === 'endorsement'" x-cloak class="space-y-6">
-                <div>
-                    <h1 class="text-2xl font-bold font-heading text-gray-850">Defense Endorsement</h1>
-                    <p class="text-sm text-gray-500 mt-1">Prepare and track endorsement records for proposal or final defense.</p>
+            <div x-show="activeTab === 'endorsement'" x-cloak class="space-y-8 animate-fade-in">
+                <!-- Section Header -->
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-[#0e5c3a]/10 text-[#0e5c3a] border border-[#0e5c3a]/20">
+                                Academic Defense Endorsement
+                            </span>
+                        </div>
+                        <h1 class="text-2xl font-black font-heading text-slate-900 tracking-tight">Defense Endorsement Workstation</h1>
+                        <p class="text-xs text-slate-500 mt-1">Prepare, endorse, and monitor defense schedules and readiness for your advisees.</p>
+                    </div>
+
+                    <div class="flex items-center gap-2.5">
+                        <span class="px-3.5 py-1.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-800 text-xs font-bold flex items-center gap-2 shadow-2xs">
+                            <i class="ph ph-calendar-check text-sm text-purple-600"></i>
+                            <span>Scheduled Defenses: <strong>{{ count($adviserDefenses ?? []) }}</strong></span>
+                        </span>
+                    </div>
                 </div>
 
-                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-                    <i class="ph ph-seal-check text-4xl text-gray-300"></i>
-                    @forelse ($adviserDefenses ?? [] as $defense)
-                        <div class="mt-3 p-4 rounded-xl border border-gray-200 bg-white text-left flex justify-between items-center">
-                            <div>
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">{{ data_get($defense, 'defense_type_label', 'Research Defense') }}</span>
-                                <h4 class="font-bold text-gray-800 text-sm mt-1">{{ data_get($defense, 'research_title', data_get($defense, 'group_name', 'Research Project')) }}</h4>
-                                <p class="text-xs text-gray-500">📅 {{ data_get($defense, 'formatted_date', data_get($defense, 'starts_at', 'TBA')) }} · 📍 {{ data_get($defense, 'room_name', data_get($defense, 'room_code', 'Venue Pending')) }}</p>
-                            </div>
-                            <span class="text-xs font-semibold text-gray-600">{{ ucfirst(data_get($defense, 'schedule_status', 'scheduled')) }}</span>
+                @php
+                    $defList = collect($adviserDefenses ?? []);
+                @endphp
+
+                @if ($defList->isEmpty())
+                    <div class="bg-white rounded-3xl p-12 border border-slate-200/70 shadow-xs text-center max-w-lg mx-auto space-y-4">
+                        <div class="w-16 h-16 rounded-2xl bg-purple-50 border border-purple-100 text-purple-600 text-3xl flex items-center justify-center mx-auto shadow-sm">
+                            <i class="ph ph-seal-check"></i>
                         </div>
-                    @empty
-                        <p class="mt-3 text-sm text-gray-500">No defense schedules recorded for your advisees.</p>
-                    @endforelse
-                </div>
+                        <div class="space-y-1.5">
+                            <h3 class="font-bold text-slate-900 text-base font-heading">No Defense Schedules Recorded</h3>
+                            <p class="text-xs text-slate-500 leading-relaxed">
+                                No defense schedules are currently active for your assigned cohorts. When your advisees are endorsed and scheduled for Proposal or Final Defense, their records will appear here.
+                            </p>
+                        </div>
+                    </div>
+                @else
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        @foreach ($defList as $defense)
+                            <div class="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs hover:shadow-md transition-all duration-200 space-y-5 relative overflow-hidden group">
+                                <!-- Top Accent Gradient Stripe -->
+                                <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#073823] via-[#0e5c3a] to-[#eebc3f]"></div>
+
+                                <div class="flex justify-between items-start border-b border-slate-100 pb-4 pt-1">
+                                    <div class="space-y-1">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200">
+                                            <i class="ph ph-seal-check text-xs"></i>
+                                            {{ data_get($defense, 'defense_type_label', 'Research Defense') }}
+                                        </span>
+                                        <h3 class="font-black text-slate-900 font-heading text-base tracking-tight leading-snug">
+                                            {{ data_get($defense, 'research_title', data_get($defense, 'group_name', 'Research Project')) }}
+                                        </h3>
+                                    </div>
+                                    <span class="px-3 py-1 bg-emerald-50 text-[#0e5c3a] border border-emerald-200 text-[10px] font-black rounded-full uppercase tracking-wider shadow-2xs shrink-0">
+                                        {{ ucfirst(data_get($defense, 'schedule_status', 'Scheduled')) }}
+                                    </span>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-3 text-xs">
+                                    <div class="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-0.5">
+                                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Date &amp; Time</span>
+                                        <div class="flex items-center gap-1.5 font-bold text-slate-800">
+                                            <i class="ph ph-calendar-blank text-[#0e5c3a]"></i>
+                                            <span class="truncate">{{ data_get($defense, 'formatted_date', data_get($defense, 'starts_at', 'TBA')) }}</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-0.5">
+                                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Venue / Room</span>
+                                        <div class="flex items-center gap-1.5 font-bold text-slate-800">
+                                            <i class="ph ph-map-pin text-[#0e5c3a]"></i>
+                                            <span class="truncate">{{ data_get($defense, 'room_name', data_get($defense, 'room_code', 'Venue Pending')) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="pt-2 flex flex-wrap items-center gap-2 border-t border-slate-100">
+                                    <button
+                                        type="button"
+                                        @click="activeTab = 'evaluations'"
+                                        class="flex-1 py-2.5 px-3 rounded-xl bg-[#0e5c3a] hover:bg-[#073823] text-white text-xs font-bold shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                                    >
+                                        <i class="ph ph-clipboard-text text-sm text-[#eebc3f]"></i>
+                                        <span>View Evaluations</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="activeTab = 'docreview'"
+                                        class="py-2.5 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-2xs hover:shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                                    >
+                                        <i class="ph ph-file-magnifying-glass text-sm text-slate-600"></i>
+                                        <span>Manuscript</span>
+                                    </button>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
             </div>
 
             <!-- TAB: Evaluation Records -->

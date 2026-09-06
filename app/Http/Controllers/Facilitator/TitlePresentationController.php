@@ -8,6 +8,7 @@ use App\Models\TitlePresentation;
 use App\Modules\TitlePresentations\Actions\AssignTitlePresentationPanel;
 use App\Modules\TitlePresentations\Actions\CompleteTitlePresentation;
 use App\Modules\TitlePresentations\Actions\RecordApprovedTitle;
+use App\Modules\TitlePresentations\Actions\RecordDisapprovedTitlePresentation;
 use App\Modules\TitlePresentations\Actions\ScheduleTitlePresentation;
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -57,6 +58,15 @@ class TitlePresentationController extends Controller
         ]);
 
         return $this->mutate(fn () => $record->handle($request->user(), $presentation, (int) $validated['approved_title_number'], $validated['remarks'] ?? null), 'Approved Research Title No. recorded.');
+    }
+
+    public function disapprove(Request $request, TitlePresentation $presentation, RecordDisapprovedTitlePresentation $disapprove): RedirectResponse
+    {
+        $validated = $request->validate([
+            'remarks' => ['required', 'string', 'min:3', 'max:2000'],
+        ]);
+
+        return $this->mutate(fn () => $disapprove->handle($request->user(), $presentation, $validated['remarks']), 'Title Presentation marked as Disapproved. Re-proposal cycle initiated.');
     }
 
     private function mutate(callable $callback, string $message): RedirectResponse

@@ -1,22 +1,42 @@
 @php
     $officialFormInstance = $officialFormInstance ?? null;
     $payload = $payload ?? [];
+    $group = $officialFormInstance?->group;
+    $class = $officialFormInstance?->researchClass ?? $group?->researchClass;
+    $resolver = app(\App\Modules\OfficialForms\Services\InstitutionalActorResolver::class);
+
+    $currentResearchTitle = $payload['research_title']
+        ?? $payload['title']
+        ?? $group?->researchGroup?->currentProject?->title
+        ?? $group?->titlePresentation?->approved_title
+        ?? '';
+
+    $members = $group?->members?->values() ?? collect();
+    $program = $members->first()?->student?->studentProfile?->program;
+    $programName = $payload['course'] ?? $program?->name ?? $members->first()?->student?->program ?? ($class?->name ?? 'Information Technology');
+    $adviserName = $group?->adviser?->name ?? 'Research Adviser';
+
+    $programCoordinator = $resolver->programCoordinatorForGroup($group) ?? $resolver->programCoordinatorForClass($class);
+    $programCoordinatorName = $programCoordinator?->name ?? 'Program Coordinator';
 @endphp
 <div x-show="activeOfficialForm === 'RES-027'" x-cloak>
     <x-student-official-form code="RES-Form-027" title="Invitation to Research Adviser" guidebook-page="102">
-        <label class="ml-auto flex w-fit items-center gap-2">Date: <input type="date" name="payload[date]" value="{{ $payload['date'] ?? '' }}"></label>
-        <p>Dear <input type="text" value="{{ $officialFormInstance?->group?->adviser?->name }}" class="w-72" placeholder="Name of Research Adviser" readonly>,</p>
+        <label class="ml-auto flex w-fit items-center gap-2">Date: <input type="date" name="payload[date]" value="{{ $payload['date'] ?? now()->format('Y-m-d') }}"></label>
+        <p>Dear <input type="text" value="{{ $adviserName }}" class="w-72 font-bold" placeholder="Name of Research Adviser" readonly>,</p>
         <p class="leading-7">May I invite you to be the <strong>RESEARCH ADVISER</strong> of the following
-            <input type="text" name="payload[course]" value="{{ $payload['course'] ?? '' }}" class="w-56" placeholder="course"> student/s:</p>
+            <input type="text" name="payload[course]" value="{{ $programName }}" class="w-72 font-semibold" placeholder="course" readonly> student/s:</p>
         <fieldset>
             <legend class="mb-2 font-bold">Name/s:</legend>
             <div class="grid gap-3 md:grid-cols-2">
                 @for ($i = 1; $i <= 4; $i++)
-                    <label class="flex gap-2"><span>{{ $i }}.</span><input type="text" value="{{ $officialFormInstance?->group?->members?->values()?->get($i - 1)?->student?->name }}" class="flex-1" readonly></label>
+                    <label class="flex gap-2">
+                        <span>{{ $i }}.</span>
+                        <input type="text" value="{{ $members->get($i - 1)?->student?->name }}" class="flex-1 font-medium" readonly placeholder="Researcher {{ $i }}">
+                    </label>
                 @endfor
             </div>
         </fieldset>
-        <label class="block font-bold">Research Title:<input type="text" name="payload[research_title]" value="{{ $payload['research_title'] ?? ($officialFormInstance?->group?->title ?? '') }}" class="mt-1 w-full font-normal"></label>
+        <label class="block font-bold">Research Title:<input type="text" name="payload[research_title]" value="{{ $currentResearchTitle }}" class="mt-1 w-full font-bold" readonly></label>
         <div class="space-y-2 text-xs leading-5">
             <p>As Research Adviser, please be guided by the following:</p>
             <ol class="list-decimal space-y-1 pl-5">
@@ -29,8 +49,14 @@
         </div>
         <p>Thank you very much.</p>
         <div class="grid gap-8 pt-8 text-center md:grid-cols-2">
-            <label><input type="text" class="w-full text-center" placeholder="Program Coordinator / College Dean" readonly><span class="block">Program Coordinator / College Dean</span></label>
-            <x-official-signature-field label="Research Adviser" />
+            <div>
+                <input type="text" class="w-full text-center font-bold" value="{{ $programCoordinatorName }}" readonly>
+                <span class="block text-xs text-slate-500">Program Coordinator / College Dean</span>
+            </div>
+            <div>
+                <x-official-signature-field label="Research Adviser Conforme" />
+                <p class="mt-1 text-xs font-bold text-slate-800">{{ $adviserName }}</p>
+            </div>
         </div>
     </x-student-official-form>
 </div>

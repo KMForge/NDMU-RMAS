@@ -49,6 +49,36 @@ class SaveOfficialFormDraft
                 return $locked->currentVersion;
             }
 
+            $isInitialDraft = $locked->currentVersion !== null
+                && (int) $locked->currentVersion->version_number === 1
+                && $locked->status === 'draft'
+                && $locked->currentVersion->signatures()->count() === 0;
+
+            if ($isInitialDraft) {
+                $locked->currentVersion->update([
+                    'payload' => $validatedPayload,
+                    'created_by' => $actor->id,
+                ]);
+
+                AuditLog::query()->create([
+                    'user_id' => $actor->id,
+                    'actor_name' => $actor->name,
+                    'actor_email' => $actor->email,
+                    'event' => 'official_form.draft_saved',
+                    'auditable_type' => OfficialFormInstance::class,
+                    'auditable_id' => $locked->id,
+                    'description' => "Saved draft version v1 for {$locked->definition->code}.",
+                    'subject_snapshot' => [
+                        'actor_function' => 'form_editor',
+                        'old_status' => $locked->status,
+                        'new_status' => 'draft',
+                        'version_number' => 1,
+                    ],
+                ]);
+
+                return $locked->currentVersion;
+            }
+
             $nextNumber = ($locked->versions()->max('version_number') ?? 0) + 1;
             $previous = $locked->currentVersion;
             $oldStatus = $locked->status;

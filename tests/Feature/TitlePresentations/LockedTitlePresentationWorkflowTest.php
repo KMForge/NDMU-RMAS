@@ -99,6 +99,7 @@ class LockedTitlePresentationWorkflowTest extends TestCase
         $this->assertSame('Upload Title Proposal Document', $journey['next_action']['label']);
         $this->assertSame('document', $journey['next_action']['action_type']);
         $this->assertNull($journey['next_action']['form_code']);
+        $this->assertSame(route('student.dashboard', ['tab' => 'proposal']), $journey['next_action']['route']);
 
         $this->titleDocument(DocumentStatus::ApprovedForPresentation);
         $journey = app(ResearchJourneyService::class)->getJourneyForGroup($this->group->fresh(), $this->student);
@@ -107,6 +108,10 @@ class LockedTitlePresentationWorkflowTest extends TestCase
         $this->assertSame('Create RES-026', $journey['next_action']['label']);
         $this->assertSame('form', $journey['next_action']['action_type']);
         $this->assertSame('res-026', $journey['next_action']['form_code']);
+        $this->assertSame(route('official-forms.workspace.index', [
+            'form' => 'RES-026',
+            'group_id' => $this->group->id,
+        ]), $journey['next_action']['route']);
     }
 
     public function test_approved_document_unlocks_res026_and_submission_requires_exactly_three_titles(): void
@@ -355,7 +360,7 @@ class LockedTitlePresentationWorkflowTest extends TestCase
 
         $journey = app(ResearchJourneyService::class)->getJourneyForGroup($this->group->fresh(), $this->student);
         $this->assertSame(2, $journey['current_stage']);
-        $this->assertSame(7.7, $journey['percentage']);
+        $this->assertSame(8, $journey['percentage']);
     }
 
     private function eligibleUser(UserType $type, array $permissions): User

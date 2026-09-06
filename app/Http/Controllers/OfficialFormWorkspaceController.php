@@ -7,7 +7,9 @@ use App\Enums\DocumentStage;
 use App\Enums\DocumentStatus;
 use App\Enums\UserType;
 use App\Models\ConsultationRecord;
+use App\Models\DefenseEvaluationRound;
 use App\Models\DefenseRoom;
+use App\Models\DefenseSchedule;
 use App\Models\Document;
 use App\Models\DocumentReview;
 use App\Models\OfficialFormActorAssignment;
@@ -27,6 +29,7 @@ use App\Modules\OfficialForms\Actions\CreateOfficialFormInstance;
 use App\Modules\OfficialForms\Actions\DeactivateOfficialFormActor;
 use App\Modules\OfficialForms\Actions\SaveOfficialFormDraft;
 use App\Modules\OfficialForms\Actions\SubmitOfficialFormVersion;
+use App\Modules\OfficialForms\Services\InstitutionalActorResolver;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
@@ -112,11 +115,20 @@ class OfficialFormWorkspaceController extends Controller
                 ->get(['id', 'name', 'email'])
             : collect();
 
+        $resolver = app(InstitutionalActorResolver::class);
+        $autoResolvedActors = [
+            'dean' => $resolver->dean(),
+            'program_coordinator' => $resolver->programCoordinatorForGroup($instance->group) ?? $resolver->programCoordinatorForClass($instance->researchClass),
+            'facilitator' => $instance->group?->researchClass?->facilitator ?? $instance->researchClass?->facilitator,
+            'adviser' => $instance->group?->adviser,
+        ];
+
         return view('pages.official-forms.workspace-show', [
             'instance' => $instance,
             'payload' => $instance->currentVersion?->payload ?? [],
             'canManageActors' => $canManageActors,
             'actorOptions' => $actorOptions,
+            'autoResolvedActors' => $autoResolvedActors,
             'isOwningFacilitator' => $isOwningFacilitator,
             'titlePanelCandidates' => $titlePanelCandidates,
             'defenseRooms' => $isOwningFacilitator ? DefenseRoom::query()->where('is_active', true)->orderBy('name')->get() : collect(),
@@ -204,6 +216,22 @@ class OfficialFormWorkspaceController extends Controller
             default => $sourceModel->research_class_group_id,
         };
 
+        $existing = OfficialFormInstance::query()
+            ->where('official_form_definition_id', $definition->id)
+            ->where('source_type', $sourceModel::class)
+            ->where('source_id', $sourceModel->getKey())
+            ->where(function ($query) use ($request) {
+                $query->where('initiated_by', $request->user()->id)
+                    ->orWhereHas('actorAssignments', function ($aq) use ($request) {
+                        $aq->where('user_id', $request->user()->id)->where('status', 'active');
+                    });
+            })
+            ->first();
+
+        if ($existing) {
+            return to_route('official-forms.workspace.show', $existing);
+        }
+
         try {
             $instance = $create->handle(
                 $request->user(),
@@ -217,6 +245,22 @@ class OfficialFormWorkspaceController extends Controller
                 [],
             );
         } catch (InvalidArgumentException $exception) {
+            $fallback = OfficialFormInstance::query()
+                ->where('official_form_definition_id', $definition->id)
+                ->where('research_class_group_id', (int) $groupId)
+                ->where(function ($query) use ($request) {
+                    $query->where('initiated_by', $request->user()->id)
+                        ->orWhereHas('actorAssignments', function ($aq) use ($request) {
+                            $aq->where('user_id', $request->user()->id)->where('status', 'active');
+                        });
+                })
+                ->latest('id')
+                ->first();
+
+            if ($fallback) {
+                return to_route('official-forms.workspace.show', $fallback);
+            }
+
             return back()->withErrors(['official_form' => $exception->getMessage()]);
         }
 
@@ -380,7 +424,21 @@ class OfficialFormWorkspaceController extends Controller
 
         return $this->visibleInstances($request)
             ->filter(function (OfficialFormInstance $instance) use ($user, $authorization): bool {
+                $code = strtoupper((string) ($instance->definition?->code ?? ''));
+
+                // Facilitator pending action on submitted RES-026 (Title presentation scheduling / panel / verdict)
+                if ($code === 'RES-026' && in_array($instance->status, ['submitted', 'in_review'], true)) {
+                    $isFacilitator = (int) ($instance->researchClass?->facilitator_id ?? $instance->group?->researchClass?->facilitator_id ?? 0) === (int) $user->id;
+                    if ($isFacilitator && $user->can('defenses.manage')) {
+                        $presentation = $instance->titlePresentation;
+                        if ($presentation === null || in_array($presentation->status, ['scheduled', 'panel_assigned', 'presented'], true)) {
+                            return true;
+                        }
+                    }
+                }
+
                 return collect([
+                    'sign',
                     'sign_chairperson',
                     'sign_member_1',
                     'sign_member_2',
@@ -409,7 +467,21 @@ class OfficialFormWorkspaceController extends Controller
     private function visibleInstances(Request $request): Collection
     {
         return OfficialFormInstance::query()
-            ->with(['definition', 'currentVersion.signatures', 'group.researchClass', 'researchClass'])
+            ->with([
+                'definition',
+                'currentVersion.signatures.signer',
+                'currentVersion.creator',
+                'versions.creator',
+                'group.researchClass',
+                'group.adviser',
+                'group.leader',
+                'group.researchGroup.currentProject',
+                'researchClass.facilitator',
+                'actorAssignments.user',
+                'titlePresentation',
+                'source',
+                'initiatedBy',
+            ])
             ->where(function ($query) use ($request): void {
                 $userId = $request->user()->id;
                 $query->where('initiated_by', $userId)
@@ -428,7 +500,52 @@ class OfficialFormWorkspaceController extends Controller
                 }
             })
             ->get()
-            ->filter(fn (OfficialFormInstance $instance) => Gate::forUser($request->user())->allows('view', $instance));
+            ->filter(fn (OfficialFormInstance $instance) => Gate::forUser($request->user())->allows('view', $instance))
+            ->each(function (OfficialFormInstance $instance): void {
+                $authorName = $instance->currentVersion?->creator?->name
+                    ?? $instance->initiatedBy?->name
+                    ?? $instance->actorAssignments->first()?->user?->name
+                    ?? 'Authorized Academic Actor';
+
+                $authorRole = 'Academic Author';
+                $code = strtoupper($instance->definition->code);
+
+                if ($code === 'RES-036') {
+                    $creatorId = $instance->currentVersion?->created_by ?? $instance->initiated_by;
+                    if ($instance->source instanceof DefenseSchedule) {
+                        $assignment = $instance->source->defense?->activePanelAssignments->firstWhere('user_id', $creatorId);
+                        $authorRole = match ($assignment?->panel_position) {
+                            'chairperson' => 'Chairperson',
+                            'member_1' => 'Panel Member 1',
+                            'member_2' => 'Panel Member 2',
+                            default => 'Defense Panelist',
+                        };
+                    } else {
+                        $authorRole = 'Defense Panelist';
+                    }
+                    if ($instance->currentVersion?->creator) {
+                        $authorName = $instance->currentVersion->creator->name;
+                    }
+                } elseif ($code === 'RES-037') {
+                    if ($instance->source instanceof DefenseEvaluationRound) {
+                        $authorName = $instance->source->summarySigner?->name ?? $authorName;
+                        $authorRole = 'Summary Signer / Chairperson';
+                    }
+                } elseif ($code === 'RES-040') {
+                    $authorName = $instance->group?->adviser?->name ?? $authorName;
+                    $authorRole = 'Thesis Adviser';
+                } elseif ($code === 'RES-041') {
+                    $authorName = $instance->researchClass?->facilitator?->name ?? $instance->group?->researchClass?->facilitator?->name ?? $authorName;
+                    $authorRole = 'Research Instructor';
+                } elseif ($code === 'RES-026') {
+                    $authorRole = 'Research Group Leader';
+                } elseif ($code === 'RES-031') {
+                    $authorRole = 'Adviser & Researchers';
+                }
+
+                $instance->setAttribute('computed_author_name', $authorName);
+                $instance->setAttribute('computed_author_role', $authorRole);
+            });
     }
 
     /** @return array{groups: Collection, classes: Collection} */

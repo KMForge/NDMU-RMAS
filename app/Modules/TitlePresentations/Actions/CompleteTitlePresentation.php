@@ -34,6 +34,7 @@ class CompleteTitlePresentation
                 throw new InvalidArgumentException('The scheduled Title Presentation must have its complete panel before it can be marked completed.');
             }
             $locked->update(['status' => 'presented', 'presented_at' => now(), 'presentation_completed_by' => $actor->id]);
+            $locked->defense->update(['status' => 'completed']);
             AuditLog::query()->create([
                 'user_id' => $actor->id, 'actor_name' => $actor->name, 'actor_email' => $actor->email,
                 'event' => 'TITLE_PRESENTATION_COMPLETED', 'auditable_type' => TitlePresentation::class, 'auditable_id' => $locked->id,

@@ -75,8 +75,8 @@ class OfficialFormAuthorization
         'res-033' => ['endorse' => 'adviser', 'receive' => 'program_head'],
         'res-034' => ['fill' => 'panel_chair'],
         'res-035' => ['record' => 'panel_chair'],
-        'res-036' => ['evaluate' => 'panelist'],
-        'res-037' => ['sign' => 'panel_chair'],
+        'res-036' => ['fill' => 'panelist', 'evaluate' => 'panelist'],
+        'res-037' => ['fill' => 'panel_chair', 'sign' => 'panel_chair'],
         'res-038' => ['endorse' => 'program_head', 'conforme' => 'adviser', 'receive' => 'adviser'],
         'res-039' => ['sign' => 'adviser'],
         'res-040' => ['fill' => 'adviser', 'endorse' => 'adviser', 'receive' => 'research_instructor'],
@@ -132,6 +132,9 @@ class OfficialFormAuthorization
         ],
         'res-035' => [
             'record' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'completed'],
+        ],
+        'res-036' => [
+            'evaluate' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'submitted'],
         ],
         'res-037' => ['sign' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'signed']],
         'res-038' => [
@@ -396,16 +399,14 @@ class OfficialFormAuthorization
                 || ($instance->group !== null && $instance->group->researchClass !== null && (int) $instance->group->researchClass->facilitator_id === (int) $user->id);
         }
 
-        if ($requiredActorType === 'program_coordinator') {
+        if ($requiredActorType === 'program_coordinator' || $requiredActorType === 'program_head') {
             $class = $instance->researchClass ?? $instance->group?->researchClass;
 
-            return $class !== null && $this->hasClassActorAssignment($user, $class, 'program_coordinator');
-        }
+            if ($this->institutionalActors->isProgramCoordinator($user, $class, $instance->group)) {
+                return true;
+            }
 
-        if ($requiredActorType === 'program_head') {
-            $class = $instance->researchClass ?? $instance->group?->researchClass;
-
-            return $class !== null && $this->hasClassActorAssignment($user, $class, 'program_head');
+            return $class !== null && ($this->hasClassActorAssignment($user, $class, 'program_coordinator') || $this->hasClassActorAssignment($user, $class, 'program_head'));
         }
 
         if ($requiredActorType === 'dean') {
@@ -440,7 +441,8 @@ class OfficialFormAuthorization
                 ->where('research_class_group_id', $instance->group->id)
                 ->whereHas('actorAssignments', fn ($q) => $q->where('user_id', $user->id)->where('actor_type', $requiredActorType)->where('status', 'active'))
                 ->exists())
-            || ($instance->researchClass !== null && $this->hasClassActorAssignment($user, $instance->researchClass, $requiredActorType));
+            || (($class = $instance->researchClass ?? $instance->group?->researchClass) !== null
+                && $this->hasClassActorAssignment($user, $class, $requiredActorType));
     }
 
     private function checkAcademicContextualAccess(User $user, OfficialFormInstance $instance): bool
@@ -481,6 +483,16 @@ class OfficialFormAuthorization
                 }
                 if ($instance->titlePresentation !== null && $instance->titlePresentation->defense->activePanelAssignments()->where('user_id', $user->id)->exists()) {
                     return true;
+                }
+                if ($instance->source_type === DefenseEvaluationRound::class && $instance->source) {
+                    if ((int) $instance->source->summary_signer_user_id === (int) $user->id || $instance->source->roundPanelists()->where('panelist_user_id', $user->id)->exists()) {
+                        return true;
+                    }
+                }
+                if ($instance->source_type === DefenseSchedule::class && $instance->source) {
+                    if (DefensePanelAssignment::where('defense_id', $instance->source->defense_id)->where('user_id', $user->id)->exists()) {
+                        return true;
+                    }
                 }
             }
         }

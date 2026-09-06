@@ -29,6 +29,53 @@ class GetPendingAcademicActionsForUser
                 continue;
             }
 
+            // Facilitator action on submitted RES-026
+            if ($code === 'res-026' && in_array($instance->status, ['submitted', 'in_review'], true)) {
+                $isFacilitator = (int) ($instance->researchClass?->facilitator_id ?? $instance->group?->researchClass?->facilitator_id ?? 0) === (int) $user->id;
+                if ($isFacilitator && $user->can('defenses.manage')) {
+                    $presentation = $instance->titlePresentation;
+                    if ($presentation === null) {
+                        $actions->push([
+                            'id' => "form-{$instance->id}-schedule-title-presentation",
+                            'form_code' => $code,
+                            'form_title' => $formSpec['title'],
+                            'instance_id' => $instance->id,
+                            'group_id' => $instance->research_class_group_id,
+                            'group_name' => $instance->group ? $instance->group->name : 'Unassigned Group',
+                            'class_name' => $instance->group && $instance->group->researchClass ? $instance->group->researchClass->name : ($instance->researchClass ? $instance->researchClass->name : 'N/A'),
+                            'stage' => $formSpec['stage'],
+                            'stage_name' => $formSpec['stage_name'],
+                            'academic_actor_type' => 'facilitator',
+                            'actor_type_label' => 'Research Facilitator',
+                            'action' => 'schedule_title_presentation',
+                            'action_label' => 'Schedule Title Presentation',
+                            'status' => $instance->status,
+                            'route' => route('official-forms.workspace.show', $instance->id),
+                            'created_at' => $instance->updated_at ? $instance->updated_at->diffForHumans() : 'Recently',
+                        ]);
+                    } elseif ($presentation->status === 'presented') {
+                        $actions->push([
+                            'id' => "form-{$instance->id}-record-title-result",
+                            'form_code' => $code,
+                            'form_title' => $formSpec['title'],
+                            'instance_id' => $instance->id,
+                            'group_id' => $instance->research_class_group_id,
+                            'group_name' => $instance->group ? $instance->group->name : 'Unassigned Group',
+                            'class_name' => $instance->group && $instance->group->researchClass ? $instance->group->researchClass->name : ($instance->researchClass ? $instance->researchClass->name : 'N/A'),
+                            'stage' => $formSpec['stage'],
+                            'stage_name' => $formSpec['stage_name'],
+                            'academic_actor_type' => 'facilitator',
+                            'actor_type_label' => 'Research Facilitator',
+                            'action' => 'record_title_result',
+                            'action_label' => 'Record Title Verdict',
+                            'status' => $instance->status,
+                            'route' => route('official-forms.workspace.show', $instance->id),
+                            'created_at' => $instance->updated_at ? $instance->updated_at->diffForHumans() : 'Recently',
+                        ]);
+                    }
+                }
+            }
+
             foreach ($formSpec['actions'] as $actionKey => $actionSpec) {
                 $permission = $actionSpec['permission'];
                 $requiredActorType = $actionSpec['actor_type'];

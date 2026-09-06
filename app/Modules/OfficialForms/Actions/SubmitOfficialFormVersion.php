@@ -3,9 +3,16 @@
 namespace App\Modules\OfficialForms\Actions;
 
 use App\Models\AuditLog;
+use App\Models\DefenseEvaluation;
+use App\Models\DefenseEvaluationRound;
+use App\Models\DefenseEvaluationStudentScore;
+use App\Models\DefenseSchedule;
 use App\Models\OfficialFormInstance;
 use App\Models\OfficialFormVersion;
 use App\Models\User;
+use App\Models\UserSignature;
+use App\Modules\Evaluations\Actions\SubmitDefenseEvaluation;
+use App\Modules\OfficialForms\Services\NotifyNextRequiredOfficialForms;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use App\Modules\OfficialForms\Validators\OfficialFormPayloadValidator;
 use Illuminate\Support\Facades\DB;
@@ -15,8 +22,11 @@ class SubmitOfficialFormVersion
 {
     public function __construct(
         private readonly OfficialFormAuthorization $authorization = new OfficialFormAuthorization,
-        private readonly OfficialFormPayloadValidator $payloadValidator = new OfficialFormPayloadValidator
-    ) {}
+        private readonly OfficialFormPayloadValidator $payloadValidator = new OfficialFormPayloadValidator,
+        private readonly NotifyNextRequiredOfficialForms $nextFormNotifications = new NotifyNextRequiredOfficialForms,
+    ) {
+        // Dependencies are injectable so submission side effects remain testable.
+    }
 
     /** @var list<string> */
     private const ALLOWED_SUBMISSION_STATUSES = ['submitted', 'in_progress', 'pending_action'];
@@ -56,7 +66,7 @@ class SubmitOfficialFormVersion
             $validatedPayload['topics'] = $topics;
         }
 
-        return DB::transaction(function () use ($actor, $instance, $nextStatus, $validatedPayload) {
+        return DB::transaction(function () use ($actor, $instance, $nextStatus, $validatedPayload, $formCode) {
             /** @var OfficialFormInstance $lockedInstance */
             $lockedInstance = OfficialFormInstance::query()
                 ->lockForUpdate()
@@ -81,8 +91,52 @@ class SubmitOfficialFormVersion
                 );
             }
 
+            $isInitialDraft = $currentVersion !== null
+                && (int) $currentVersion->version_number === 1
+                && $lockedInstance->status === 'draft'
+                && $currentVersion->signatures()->count() === 0;
+
+            if ($isInitialDraft) {
+                $currentVersion->update([
+                    'payload' => $validatedPayload,
+                    'created_by' => $actor->id,
+                ]);
+
+                $lockedInstance->update(['status' => $nextStatus]);
+
+                if ($formCode === 'RES-036' && $lockedInstance->source_type === DefenseSchedule::class) {
+                    $this->syncDefenseEvaluationSubmission($actor, $lockedInstance, $validatedPayload);
+                    $this->applyPanelistEvaluationSignature($actor, $lockedInstance, $currentVersion);
+                }
+
+                AuditLog::query()->create([
+                    'user_id' => $actor->id,
+                    'actor_name' => $actor->name,
+                    'actor_email' => $actor->email,
+                    'event' => strtoupper($lockedInstance->definition->code) === 'RES-026' ? 'RES026_SUBMITTED' : 'official_form.submitted',
+                    'auditable_type' => OfficialFormInstance::class,
+                    'auditable_id' => $lockedInstance->id,
+                    'description' => "Submitted official form version v1 (status: {$nextStatus}).",
+                    'subject_snapshot' => [
+                        'actor_function' => 'form_submitter',
+                        'old_status' => $oldStatus,
+                        'new_status' => $nextStatus,
+                        'version_number' => 1,
+                    ],
+                ]);
+
+                $this->nextFormNotifications->handle($actor, $lockedInstance);
+
+                return $currentVersion;
+            }
+
             if ($currentVersion !== null && $currentVersion->payload === $validatedPayload) {
                 $lockedInstance->update(['status' => $nextStatus]);
+
+                if ($formCode === 'RES-036' && $lockedInstance->source_type === DefenseSchedule::class) {
+                    $this->syncDefenseEvaluationSubmission($actor, $lockedInstance, $validatedPayload);
+                    $this->applyPanelistEvaluationSignature($actor, $lockedInstance, $currentVersion);
+                }
 
                 AuditLog::query()->create([
                     'user_id' => $actor->id,
@@ -99,6 +153,8 @@ class SubmitOfficialFormVersion
                         'version_number' => $currentVersion->version_number,
                     ],
                 ]);
+
+                $this->nextFormNotifications->handle($actor, $lockedInstance);
 
                 return $currentVersion;
             }
@@ -124,6 +180,11 @@ class SubmitOfficialFormVersion
                 'status' => $nextStatus,
             ]);
 
+            if ($formCode === 'RES-036' && $lockedInstance->source_type === DefenseSchedule::class) {
+                $this->syncDefenseEvaluationSubmission($actor, $lockedInstance, $validatedPayload);
+                $this->applyPanelistEvaluationSignature($actor, $lockedInstance, $newVersion);
+            }
+
             AuditLog::query()->create([
                 'user_id' => $actor->id,
                 'actor_name' => $actor->name,
@@ -140,8 +201,104 @@ class SubmitOfficialFormVersion
                 ],
             ]);
 
+            $this->nextFormNotifications->handle($actor, $lockedInstance);
+
             return $newVersion;
         });
+    }
+
+    private function syncDefenseEvaluationSubmission(User $actor, OfficialFormInstance $instance, array $payload): void
+    {
+        $scheduleId = (int) $instance->source_id;
+        /** @var DefenseEvaluationRound|null $round */
+        $round = DefenseEvaluationRound::query()
+            ->with(['roundPanelists', 'roundStudents', 'evaluations.studentScores'])
+            ->where('defense_schedule_id', $scheduleId)
+            ->whereIn('status', ['open', 'in_progress'])
+            ->latest('id')
+            ->first();
+
+        if (! $round) {
+            return;
+        }
+
+        $roundPanelist = $round->roundPanelists->firstWhere('panelist_user_id', $actor->id);
+        if (! $roundPanelist) {
+            return;
+        }
+
+        $paperRatings = $payload['res_036_paper_ratings'] ?? [];
+        $q = isset($paperRatings[0]) && is_numeric($paperRatings[0]) ? (float) $paperRatings[0] : 0.0;
+        $o = isset($paperRatings[1]) && is_numeric($paperRatings[1]) ? (float) $paperRatings[1] : 0.0;
+        $r = isset($paperRatings[2]) && is_numeric($paperRatings[2]) ? (float) $paperRatings[2] : 0.0;
+        $paperTotal = round($q + $o + $r, 2);
+
+        $comments = $payload['res_036_paper_comments'] ?? [];
+        $generalComments = is_array($comments) ? implode("\n\n", array_filter(array_map('trim', $comments))) : (string) $comments;
+
+        $evaluation = DefenseEvaluation::query()->updateOrCreate(
+            [
+                'defense_evaluation_round_id' => $round->id,
+                'panelist_user_id' => $actor->id,
+            ],
+            [
+                'round_panelist_id' => $roundPanelist->id,
+                'status' => 'submitted',
+                'research_quality_score' => $q,
+                'originality_score' => $o,
+                'relevance_score' => $r,
+                'research_paper_total' => $paperTotal,
+                'general_comments' => $generalComments,
+                'submitted_at' => now(),
+            ]
+        );
+
+        $instance->update(['defense_evaluation_id' => $evaluation->id]);
+
+        $presenters = $payload['res_036_presenters'] ?? [];
+        if (is_array($presenters)) {
+            $studentIndex = 0;
+            foreach ($round->roundStudents as $roundStudent) {
+                $studentIndex++;
+                $presData = $presenters[$studentIndex] ?? null;
+                if ($presData) {
+                    $comm = isset($presData['communication']) && is_numeric($presData['communication']) ? (float) $presData['communication'] : 0.0;
+                    $org = isset($presData['organization']) && is_numeric($presData['organization']) ? (float) $presData['organization'] : 0.0;
+                    $eff = isset($presData['effectiveness']) && is_numeric($presData['effectiveness']) ? (float) $presData['effectiveness'] : 0.0;
+                    $total = round($comm + $org + $eff, 2);
+
+                    DefenseEvaluationStudentScore::query()->updateOrCreate(
+                        [
+                            'defense_evaluation_id' => $evaluation->id,
+                            'student_id' => $roundStudent->student_id,
+                        ],
+                        [
+                            'round_student_id' => $roundStudent->id,
+                            'communication_score' => $comm,
+                            'organization_score' => $org,
+                            'effectiveness_score' => $eff,
+                            'presentation_total' => $total,
+                        ]
+                    );
+                }
+            }
+        }
+
+        $submittedCount = DefenseEvaluation::query()
+            ->where('defense_evaluation_round_id', $round->id)
+            ->where('status', 'submitted')
+            ->count();
+
+        $totalRequired = $round->roundPanelists->count();
+        if ($totalRequired > 0 && $submittedCount >= $totalRequired) {
+            $round->update([
+                'status' => 'complete',
+                'all_submitted_at' => now(),
+            ]);
+            app(SubmitDefenseEvaluation::class)->generateSummaryAndRes037($round);
+        } elseif ($round->status === 'open') {
+            $round->update(['status' => 'in_progress']);
+        }
     }
 
     /**
@@ -206,5 +363,16 @@ class SubmitOfficialFormVersion
             'evaluation_date' => $payload['evaluation_date'],
             'totals' => $totals,
         ];
+    }
+
+    private function applyPanelistEvaluationSignature(User $actor, OfficialFormInstance $instance, OfficialFormVersion $version): void
+    {
+        if (UserSignature::query()->where('user_id', $actor->id)->exists()) {
+            try {
+                app(ApplyOfficialFormSignature::class)->handle($actor, $instance->id, $version->id, 'evaluate');
+            } catch (\Throwable) {
+                // If already signed or cannot apply, fail-soft without breaking submission
+            }
+        }
     }
 }

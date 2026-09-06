@@ -28,6 +28,7 @@ use App\Modules\OfficialForms\Actions\SaveOfficialFormDraft;
 use App\Modules\OfficialForms\Actions\SubmitOfficialFormVersion;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
 use App\Modules\OfficialForms\Actions\TransitionOfficialForm;
+use App\Modules\OfficialForms\Services\NotifyNextRequiredOfficialForms;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use App\Modules\OfficialForms\Validators\OfficialFormPayloadValidator;
 use Database\Seeders\RolePermissionSeeder;
@@ -1504,6 +1505,60 @@ class OfficialFormBackendTest extends TestCase
 
         $certified = (new TransitionOfficialForm)->handle($editor, $res046, 'certify', 'completed');
         $this->assertSame('completed', $certified->status);
+    }
+
+    public function test_completing_res_040_notifies_facilitator_and_research_instructor_that_res_041_is_required(): void
+    {
+        $adviser = User::factory()->create(['user_type' => 'faculty']);
+        $instructor = User::factory()->create(['user_type' => 'faculty']);
+        $instructor->givePermissionTo(
+            'forms.res-040.receive',
+            'forms.res-041.fill',
+            'forms.res-041.endorse',
+        );
+        $group = $this->createGroup(adviser: $adviser);
+        $facilitator = $group->researchClass->facilitator;
+
+        (new AssignResearchClassFormActor)->handle(
+            $facilitator,
+            $group->researchClass,
+            $instructor,
+            'research_instructor',
+        );
+
+        $res040 = OfficialFormInstance::query()->create([
+            'official_form_definition_id' => OfficialFormDefinition::query()->where('code', 'RES-040')->sole()->id,
+            'research_class_group_id' => $group->id,
+            'context_key' => 'general',
+            'initiated_by' => $adviser->id,
+            'status' => 'endorsed',
+        ]);
+
+        $this->assertSame(0, $facilitator->notifications()->count());
+        $this->assertSame(0, $instructor->notifications()->count());
+
+        $completed = (new TransitionOfficialForm)->handle(
+            $instructor,
+            $res040,
+            'receive',
+            'approved',
+        );
+
+        $this->assertSame('approved', $completed->status);
+
+        foreach ([$facilitator, $instructor] as $recipient) {
+            $notification = $recipient->notifications()->sole();
+
+            $this->assertSame('official-form.next-required', $notification->data['event_key']);
+            $this->assertStringContainsString('RES-041', $notification->data['title']);
+            $this->assertStringContainsString($group->name, $notification->data['title']);
+            $this->assertSame('official-forms.workspace.index', $notification->data['route_name']);
+        }
+
+        (new NotifyNextRequiredOfficialForms)->handle($instructor, $completed);
+
+        $this->assertSame(1, $facilitator->notifications()->count());
+        $this->assertSame(1, $instructor->notifications()->count());
     }
 
     public function test_official_form_payload_validator_rejects_client_injected_protected_keys(): void

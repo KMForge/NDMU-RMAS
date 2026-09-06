@@ -25,6 +25,17 @@ class OfficialFormDefinition extends Model
         return $this->hasMany(OfficialFormInstance::class);
     }
 
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        if (is_numeric($value)) {
+            return $this->where($field ?? 'id', (int) $value)->firstOrFail();
+        }
+
+        $code = strtoupper(str_replace('_', '-', (string) $value));
+
+        return $this->where('code', $code)->firstOrFail();
+    }
+
     protected function casts(): array
     {
         return [
