@@ -942,27 +942,166 @@
                         <div class="p-6">
                             <!-- All Users Panel -->
                             <div x-show="userManagementTab === 'all-users'" x-cloak class="space-y-6">
-                                    <!-- Search & Filter Controls -->
-                                    <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
-                                        <!-- Search input -->
-                                        <div class="relative w-full md:w-96">
-                                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 pointer-events-none">
-                                                <i class="ph ph-magnifying-glass text-lg"></i>
-                                            </span>
-                                            <input 
-                                                wire:model.live.debounce.400ms="searchQuery"
-                                                type="text" 
-                                                placeholder="Search by name or email..." 
-                                                class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300"
+
+                                    <!-- Department Overview Stat Cards -->
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+                                        @foreach ($departmentStats as $dKey => $dStat)
+                                            @php
+                                                $isSelected = ($selectedDepartment === $dKey);
+                                                $cardBg = match($dKey) {
+                                                    'CSD' => 'from-emerald-900 to-teal-950 border-emerald-500/40 text-white',
+                                                    'EECE' => 'from-blue-900 to-indigo-950 border-blue-500/40 text-white',
+                                                    'CED' => 'from-amber-900 to-orange-950 border-amber-500/40 text-white',
+                                                    'AD' => 'from-purple-900 to-fuchsia-950 border-purple-500/40 text-white',
+                                                    default => 'from-slate-800 to-slate-900 border-slate-600/40 text-white',
+                                                };
+                                                $icon = match($dKey) {
+                                                    'CSD' => 'ph-laptop',
+                                                    'EECE' => 'ph-cpu',
+                                                    'CED' => 'ph-hard-hat',
+                                                    'AD' => 'ph-compass-tool',
+                                                    default => 'ph-buildings',
+                                                };
+                                            @endphp
+                                            <button 
+                                                type="button"
+                                                wire:click="setDepartmentFilter('{{ $isSelected ? 'all' : $dKey }}')"
+                                                class="text-left rounded-2xl p-4 bg-gradient-to-br {{ $cardBg }} border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg cursor-pointer relative overflow-hidden group {{ $isSelected ? 'ring-3 ring-[#eebc3f] shadow-xl' : 'opacity-90 hover:opacity-100' }}"
                                             >
+                                                <div class="flex items-center justify-between gap-2 mb-2">
+                                                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white/15 text-[10px] font-black tracking-wider uppercase backdrop-blur-sm">
+                                                        <i class="ph {{ $icon }} text-xs text-[#eebc3f]"></i>
+                                                        {{ $dStat['code'] }}
+                                                    </span>
+                                                    <span class="text-base font-black text-[#eebc3f]">
+                                                        {{ $dStat['total'] }} <span class="text-[10px] font-normal text-white/70">users</span>
+                                                    </span>
+                                                </div>
+                                                <div class="text-xs font-black truncate text-white leading-tight mb-1" title="{{ $dStat['name'] }}">
+                                                    {{ $dStat['name'] }}
+                                                </div>
+                                                <div class="text-[10px] text-white/70 truncate flex items-center gap-1 mb-1.5" title="Coordinator: {{ $dStat['coordinator'] }}">
+                                                    <i class="ph ph-user-circle-gear text-[#eebc3f]"></i>
+                                                    <span class="truncate">{{ $dStat['coordinator'] }}</span>
+                                                </div>
+                                                <div class="flex items-center gap-2 pt-1.5 border-t border-white/10 text-[9px] font-semibold text-white/80">
+                                                    <span>{{ $dStat['faculty_count'] }} Faculty</span>
+                                                    <span>•</span>
+                                                    <span>{{ $dStat['student_count'] }} Students</span>
+                                                </div>
+                                            </button>
+                                        @endforeach
+                                    </div>
+
+                                    <!-- Department Filter Tabs -->
+                                    <div class="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3 pt-2">
+                                        <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1">
+                                            <i class="ph ph-funnel text-xs"></i> Dept:
+                                        </span>
+                                        <button
+                                            type="button"
+                                            wire:click="setDepartmentFilter('all')"
+                                            class="px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer {{ $selectedDepartment === 'all' ? 'bg-[#0e5c3a] text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}"
+                                        >
+                                            All CEAC ({{ $totalUsersCount }})
+                                        </button>
+                                        <button
+                                            type="button"
+                                            wire:click="setDepartmentFilter('CSD')"
+                                            class="px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer {{ $selectedDepartment === 'CSD' ? 'bg-emerald-800 text-white shadow-sm' : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100' }}"
+                                        >
+                                            💻 Computer Studies (CSD)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            wire:click="setDepartmentFilter('EECE')"
+                                            class="px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer {{ $selectedDepartment === 'EECE' ? 'bg-blue-800 text-white shadow-sm' : 'bg-blue-50 text-blue-800 hover:bg-blue-100' }}"
+                                        >
+                                            ⚡ EECE
+                                        </button>
+                                        <button
+                                            type="button"
+                                            wire:click="setDepartmentFilter('CED')"
+                                            class="px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer {{ $selectedDepartment === 'CED' ? 'bg-amber-800 text-white shadow-sm' : 'bg-amber-50 text-amber-800 hover:bg-amber-100' }}"
+                                        >
+                                            🏗️ Civil Engineering
+                                        </button>
+                                        <button
+                                            type="button"
+                                            wire:click="setDepartmentFilter('AD')"
+                                            class="px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer {{ $selectedDepartment === 'AD' ? 'bg-purple-800 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100' }}"
+                                        >
+                                            🏛️ Architecture
+                                        </button>
+                                        <button
+                                            type="button"
+                                            wire:click="setDepartmentFilter('institutional')"
+                                            class="px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer {{ $selectedDepartment === 'institutional' ? 'bg-slate-800 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' }}"
+                                        >
+                                            🎓 College Admin
+                                        </button>
+                                    </div>
+
+                                    <!-- User Type Segment Pills & Search Bar -->
+                                    <div class="flex flex-col lg:flex-row gap-4 items-center justify-between">
+                                        <!-- User Type Pills -->
+                                        <div class="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
+                                            <button
+                                                type="button"
+                                                wire:click="setUserTypeFilter('all')"
+                                                class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer {{ $selectedUserType === 'all' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}"
+                                            >
+                                                All Types
+                                            </button>
+                                            <button
+                                                type="button"
+                                                wire:click="setUserTypeFilter('faculty')"
+                                                class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer {{ $selectedUserType === 'faculty' ? 'bg-teal-700 text-white' : 'bg-teal-50 text-teal-700 hover:bg-teal-100' }}"
+                                            >
+                                                Faculty & Advisers
+                                            </button>
+                                            <button
+                                                type="button"
+                                                wire:click="setUserTypeFilter('student')"
+                                                class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer {{ $selectedUserType === 'student' ? 'bg-indigo-700 text-white' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100' }}"
+                                            >
+                                                Students
+                                            </button>
+                                            <button
+                                                type="button"
+                                                wire:click="setUserTypeFilter('staff')"
+                                                class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer {{ $selectedUserType === 'staff' ? 'bg-emerald-700 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' }}"
+                                            >
+                                                Admin & Staff
+                                            </button>
+                                            <button
+                                                type="button"
+                                                wire:click="setUserTypeFilter('pending')"
+                                                class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer {{ $selectedUserType === 'pending' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700 hover:bg-amber-100' }}"
+                                            >
+                                                Pending Approvals ({{ $pendingApprovalCount }})
+                                            </button>
                                         </div>
 
-                                        <!-- Filter and Refresh Controls -->
-                                        <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+                                        <!-- Search & Role Dropdown -->
+                                        <div class="flex items-center gap-3 w-full lg:w-auto justify-end">
+                                            <!-- Search input -->
+                                            <div class="relative w-full sm:w-64">
+                                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 pointer-events-none">
+                                                    <i class="ph ph-magnifying-glass text-base"></i>
+                                                </span>
+                                                <input 
+                                                    wire:model.live.debounce.300ms="searchQuery"
+                                                    type="text" 
+                                                    placeholder="Search name, email, ID..." 
+                                                    class="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#0e5c3a] focus:ring-2 focus:ring-[#0e5c3a]/10 transition-all"
+                                                >
+                                            </div>
+
                                             <!-- Role Filter -->
                                             <select 
                                                 wire:model.live="selectedRole"
-                                                class="px-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300 appearance-none pr-10 relative"
+                                                class="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#0e5c3a] focus:ring-2 focus:ring-[#0e5c3a]/10 transition-all pr-8"
                                             >
                                                 <option value="">All Roles</option>
                                                 <option value="__without_roles__">Without Roles</option>
@@ -977,65 +1116,119 @@
                                                 wire:click="refreshUserManagement"
                                                 wire:loading.attr="disabled"
                                                 wire:target="refreshUserManagement"
-                                                class="px-4 py-2.5 bg-white hover:bg-gray-50 border border-gray-200 text-gray-600 hover:text-gray-800 text-sm font-semibold rounded-2xl flex items-center gap-2 shadow-sm transition-all duration-300"
+                                                class="p-2 bg-white hover:bg-gray-50 border border-gray-200 text-gray-600 hover:text-gray-800 text-xs font-semibold rounded-xl flex items-center gap-1 shadow-xs transition-all cursor-pointer"
+                                                title="Refresh Users"
                                             >
-                                                <i class="ph ph-arrows-counter-clockwise"></i> Refresh
+                                                <i class="ph ph-arrows-counter-clockwise"></i>
                                             </button>
                                         </div>
                                     </div>
 
                                     <!-- Table Container -->
-                                    <div id="user-management-table" class="overflow-x-auto rounded-2xl border border-gray-100">
+                                    <div id="user-management-table" class="overflow-x-auto rounded-2xl border border-gray-100 shadow-xs">
                                         <table class="w-full border-collapse text-left text-sm text-gray-500">
                                             <thead class="bg-gradient-to-r from-[#0e5c3a] to-[#0a4a2e] text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
                                                 <tr>
-                                                    <th scope="col" class="px-6 py-4">Name</th>
+                                                    <th scope="col" class="px-6 py-4">Name & ID</th>
                                                     <th scope="col" class="px-6 py-4">Email</th>
                                                     <th scope="col" class="px-6 py-4">Type</th>
-                                                    <th scope="col" class="px-6 py-4">Role</th>
+                                                    <th scope="col" class="px-6 py-4">Department & Program</th>
+                                                    <th scope="col" class="px-6 py-4">Role(s)</th>
                                                     <th scope="col" class="px-6 py-4">Status</th>
-                                                    <th scope="col" class="px-6 py-4">Department</th>
-                                                    <th scope="col" class="px-6 py-4">Created</th>
                                                     <th scope="col" class="px-6 py-4">Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody class="divide-y divide-gray-100 bg-white">
                                                 @forelse($usersList as $user)
-                                                    <tr class="group transition-all duration-200 hover:bg-emerald-50/80 hover:shadow-[inset_4px_0_0_#0e5c3a]">
-                                                        <!-- Name (avatar + name) -->
-                                                        <td class="px-6 py-4 flex items-center gap-3">
-                                                            <div class="w-8 h-8 rounded-full bg-[#0e5c3a]/10 text-[#0e5c3a] flex items-center justify-center font-bold text-sm">
-                                                                {{ substr($user->name, 0, 1) }}
+                                                    @php
+                                                        $status = $user->status instanceof \App\Enums\AccountStatus ? $user->status->value : $user->status;
+                                                        $statusBadgeClass = match($status) {
+                                                            'active' => 'bg-emerald-100 text-emerald-800',
+                                                            'pending' => 'bg-amber-100 text-amber-800',
+                                                            'rejected' => 'bg-red-100 text-red-800',
+                                                            default => 'bg-gray-100 text-gray-800',
+                                                        };
+                                                        $deptCode = match(true) {
+                                                            str_contains((string)$user->department, 'Computer') || in_array($user->program, ['BSCS', 'BSIT', 'BLIS']) => 'CSD',
+                                                            str_contains((string)$user->department, 'Electrical') || in_array($user->program, ['BSEE', 'BSECE', 'BSCPE', 'BSCpE']) => 'EECE',
+                                                            str_contains((string)$user->department, 'Civil') || in_array($user->program, ['BSCE']) => 'CED',
+                                                            str_contains((string)$user->department, 'Architecture') || in_array($user->program, ['BSARCH', 'BSArch']) => 'AD',
+                                                            default => 'ADMIN',
+                                                        };
+                                                        $deptBadgeClass = match($deptCode) {
+                                                            'CSD' => 'bg-emerald-50 text-emerald-800 border-emerald-200',
+                                                            'EECE' => 'bg-blue-50 text-blue-800 border-blue-200',
+                                                            'CED' => 'bg-amber-50 text-amber-800 border-amber-200',
+                                                            'AD' => 'bg-purple-50 text-purple-800 border-purple-200',
+                                                            default => 'bg-slate-100 text-slate-700 border-slate-200',
+                                                        };
+                                                    @endphp
+                                                    <tr class="group transition-all duration-200 hover:bg-emerald-50/60 hover:shadow-[inset_4px_0_0_#0e5c3a]">
+                                                        <!-- Name & ID -->
+                                                        <td class="px-6 py-4">
+                                                            <div class="flex items-center gap-3">
+                                                                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0e5c3a]/15 to-[#eebc3f]/20 text-[#0e5c3a] font-black text-sm flex items-center justify-center shadow-2xs">
+                                                                    {{ substr($user->name, 0, 1) }}
+                                                                </div>
+                                                                <div>
+                                                                    <div class="font-black text-slate-900 leading-tight">{{ $user->name }}</div>
+                                                                    <div class="text-[11px] text-slate-400 font-semibold mt-0.5">
+                                                                        @if ($user->student_id)
+                                                                            <span class="font-mono text-slate-600">ID: {{ $user->student_id }}</span>
+                                                                        @elseif ($user->employee_id)
+                                                                            <span class="font-mono text-slate-600">Emp: {{ $user->employee_id }}</span>
+                                                                        @else
+                                                                            <span class="text-slate-400">#{{ $user->id }}</span>
+                                                                        @endif
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                            <div class="font-bold text-gray-800">{{ $user->name }}</div>
                                                         </td>
 
                                                         <!-- Email -->
-                                                        <td class="px-6 py-4">{{ $user->email }}</td>
+                                                        <td class="px-6 py-4 text-xs font-semibold text-slate-600 font-mono">{{ $user->email }}</td>
 
+                                                        <!-- Type -->
                                                         <td class="px-6 py-4">
                                                             <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-700">
                                                                 {{ $user->user_type->label() }}
                                                             </span>
                                                         </td>
 
+                                                        <!-- Department & Program -->
+                                                        <td class="px-6 py-4">
+                                                            <div class="space-y-1">
+                                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black border {{ $deptBadgeClass }}">
+                                                                    {{ $deptCode }}
+                                                                </span>
+                                                                <div class="text-xs font-semibold text-slate-700 truncate max-w-[170px]" title="{{ $user->department ?? $user->program }}">
+                                                                    {{ $user->program ?: ($user->department ?: 'Institutional') }}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+
                                                         <!-- Role Badges -->
                                                         <td class="px-6 py-4">
-                                                            <div class="flex flex-wrap gap-1">
+                                                            <div class="flex flex-wrap gap-1 max-w-[220px]">
                                                                 @forelse ($user->roles as $assignedRole)
                                                                     @php
+                                                                        $isCoordinator = ($assignedRole->name === 'program-coordinator');
                                                                         $roleBadgeClass = match($assignedRole->name) {
-                                                                            'system-administrator' => 'bg-emerald-50 text-emerald-700 border-emerald-100',
-                                                                            'college-dean' => 'bg-indigo-50 text-indigo-700 border-indigo-100',
-                                                                            'research-facilitator' => 'bg-sky-50 text-sky-700 border-sky-100',
-                                                                            'research-adviser' => 'bg-teal-50 text-teal-700 border-teal-100',
-                                                                            'panelist' => 'bg-purple-50 text-purple-700 border-purple-100',
-                                                                            default => 'bg-gray-50 text-gray-700 border-gray-100',
+                                                                            'program-coordinator' => 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-2xs font-black',
+                                                                            'system-administrator' => 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold',
+                                                                            'college-dean' => 'bg-indigo-50 text-indigo-700 border-indigo-200 font-bold',
+                                                                            'research-facilitator' => 'bg-sky-50 text-sky-700 border-sky-200 font-bold',
+                                                                            'research-adviser', 'thesis-adviser' => 'bg-teal-50 text-teal-700 border-teal-200 font-bold',
+                                                                            'panelist' => 'bg-purple-50 text-purple-700 border-purple-200 font-bold',
+                                                                            default => 'bg-gray-50 text-gray-700 border-gray-200 font-medium',
                                                                         };
                                                                         $roleLabel = $assignedRole->display_name ?: str($assignedRole->name)->replace('-', ' ')->title();
                                                                     @endphp
-                                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border {{ $roleBadgeClass }}">
-                                                                        {{ $roleLabel }}
+                                                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] border {{ $roleBadgeClass }}">
+                                                                        @if ($isCoordinator)
+                                                                            <i class="ph ph-star-fill text-[10px] text-white"></i>
+                                                                        @endif
+                                                                        <span>{{ $roleLabel }}</span>
                                                                     </span>
                                                                 @empty
                                                                     <span class="text-xs text-gray-400">No role</span>
@@ -1045,37 +1238,38 @@
 
                                                         <!-- Status Badge -->
                                                         <td class="px-6 py-4">
-                                                            @php
-                                                                $status = $user->status instanceof \App\Enums\AccountStatus ? $user->status->value : $user->status;
-                                                                $statusBadgeClass = match($status) {
-                                                                    'active' => 'bg-emerald-100 text-emerald-800',
-                                                                    'pending' => 'bg-amber-100 text-amber-800',
-                                                                    'rejected' => 'bg-red-100 text-red-800',
-                                                                    default => 'bg-gray-100 text-gray-800',
-                                                                };
-                                                            @endphp
                                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {{ $statusBadgeClass }}">
                                                                 {{ ucfirst($status) }}
                                                             </span>
                                                         </td>
 
-                                                        <!-- Department -->
-                                                        <td class="px-6 py-4 text-xs font-medium text-gray-500 max-w-[150px] truncate">
-                                                            {{ $user->department ?? ($user->program ?? 'N/A') }}
-                                                        </td>
-
-                                                        <!-- Created Date -->
-                                                        <td class="px-6 py-4">{{ $user->created_at?->format('Y-m-d') }}</td>
-
                                                         <!-- Actions -->
-                                                        <td class="min-w-[190px] px-6 py-4 whitespace-nowrap">
+                                                        <td class="min-w-[240px] px-6 py-4 whitespace-nowrap">
                                                             @if (auth()->id() === $user->id)
                                                                 <span class="text-xs font-bold text-gray-400">Current account</span>
                                                             @else
-                                                                <div class="flex flex-nowrap items-center gap-2">
-                                                                    <button type="button" wire:click="openRoleAssignment({{ $user->id }})" class="shrink-0 px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-xs font-bold text-blue-700 hover:bg-blue-100">
-                                                                        Assign Role
+                                                                <div class="flex flex-nowrap items-center gap-1.5">
+                                                                    <!-- Assign Button -->
+                                                                    <button 
+                                                                        type="button" 
+                                                                        wire:click="openRoleAssignment({{ $user->id }}, 'assign')" 
+                                                                        class="shrink-0 px-2.5 py-1.5 rounded-xl border border-blue-200 bg-blue-50 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer flex items-center gap-1"
+                                                                        title="Assign new roles"
+                                                                    >
+                                                                        <i class="ph ph-plus-circle text-xs"></i> Assign
                                                                     </button>
+
+                                                                    <!-- Edit Button -->
+                                                                    <button 
+                                                                        type="button" 
+                                                                        wire:click="openRoleAssignment({{ $user->id }}, 'edit')" 
+                                                                        class="shrink-0 px-2.5 py-1.5 rounded-xl border border-indigo-200 bg-indigo-50 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition-colors cursor-pointer flex items-center gap-1"
+                                                                        title="Edit or unselect roles"
+                                                                    >
+                                                                        <i class="ph ph-pencil-simple text-xs"></i> Edit
+                                                                    </button>
+
+                                                                    <!-- Disable / Enable Button -->
                                                                     @if ($status === 'active')
                                                                         <button
                                                                             type="button"
@@ -1083,8 +1277,11 @@
                                                                             wire:confirm="Disable this account? The user will no longer be able to sign in."
                                                                             wire:loading.attr="disabled"
                                                                             wire:target="suspendUser({{ $user->id }})"
-                                                                            class="shrink-0 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-xs font-bold text-amber-700 hover:bg-amber-100 disabled:opacity-50"
-                                                                        >Disable</button>
+                                                                            class="shrink-0 px-2.5 py-1.5 rounded-xl border border-amber-200 bg-amber-50 text-xs font-bold text-amber-700 hover:bg-amber-100 disabled:opacity-50 transition-colors cursor-pointer flex items-center gap-1"
+                                                                            title="Disable account"
+                                                                        >
+                                                                            <i class="ph ph-prohibit text-xs"></i> Disable
+                                                                        </button>
                                                                     @else
                                                                         <button
                                                                             type="button"
@@ -1092,8 +1289,11 @@
                                                                             wire:confirm="Enable this account and allow the user to sign in again?"
                                                                             wire:loading.attr="disabled"
                                                                             wire:target="activateUser({{ $user->id }})"
-                                                                            class="shrink-0 px-3 py-2 rounded-xl bg-[#0e5c3a] text-xs font-bold text-white hover:bg-[#0a4a2e] disabled:opacity-50"
-                                                                        >Enable</button>
+                                                                            class="shrink-0 px-2.5 py-1.5 rounded-xl bg-[#0e5c3a] text-xs font-bold text-white hover:bg-[#0a4a2e] disabled:opacity-50 transition-colors cursor-pointer flex items-center gap-1"
+                                                                            title="Enable account"
+                                                                        >
+                                                                            <i class="ph ph-check-circle text-xs"></i> Enable
+                                                                        </button>
                                                                     @endif
                                                                 </div>
                                                             @endif
@@ -1102,7 +1302,7 @@
                                                 @empty
                                                     <tr>
                                                         <td colspan="7" class="px-6 py-12 text-center text-gray-400 font-light">
-                                                            No users found matching your criteria.
+                                                            No users found matching your department or filter criteria.
                                                         </td>
                                                     </tr>
                                                 @endforelse

@@ -18,6 +18,7 @@ use App\Modules\UserManagement\Actions\ManageUserAccount;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -70,8 +71,20 @@ class AdminDashboard extends Component
 
     public ?int $roleAssignmentUserId = null;
 
+    public string $roleAssignmentMode = 'edit';
+
     /** @var list<string> */
     public array $assignedRoles = [];
+
+    /** @var list<string> */
+    public array $originalAssignedRoles = [];
+
+    /** @var array{advised_groups_count: int, panel_evaluations_count: int, pending_forms_count: int} */
+    public array $userActiveDuties = [
+        'advised_groups_count' => 0,
+        'panel_evaluations_count' => 0,
+        'pending_forms_count' => 0,
+    ];
 
     public string $assignedUserType = '';
 
@@ -101,9 +114,15 @@ class AdminDashboard extends Component
 
     public string $userManagementTab = 'all-users';
 
+    public string $selectedDepartment = 'all';
+
+    public string $selectedUserType = 'all';
+
     protected $queryString = [
         'tab' => ['except' => 'dashboard'],
         'userManagementTab' => ['except' => 'all-users'],
+        'selectedDepartment' => ['except' => 'all'],
+        'selectedUserType' => ['except' => 'all'],
         'searchQuery' => ['except' => ''],
         'selectedRole' => ['except' => ''],
         'auditSearch' => ['except' => ''],
@@ -195,6 +214,18 @@ class AdminDashboard extends Component
             ->exists()) {
             $this->settingsAcademicTermId = null;
         }
+    }
+
+    public function setDepartmentFilter(string $department): void
+    {
+        $this->selectedDepartment = $department;
+        $this->resetPage();
+    }
+
+    public function setUserTypeFilter(string $userType): void
+    {
+        $this->selectedUserType = $userType;
+        $this->resetPage();
     }
 
     public function refreshUserManagement(): void
@@ -366,14 +397,21 @@ class AdminDashboard extends Component
         $this->dispatch('role-editor-closed');
     }
 
-    public function openRoleAssignment(int $userId): void
+    public function openRoleAssignment(int $userId, string $mode = 'edit'): void
     {
         $subject = User::query()->with('roles:id,name')->findOrFail($userId);
         Gate::authorize('manageRoles', $subject);
 
+        $this->roleAssignmentMode = $mode;
         $this->roleAssignmentUserId = (int) $subject->getKey();
         $this->assignedRoles = $subject->roles->pluck('name')->sort()->values()->all();
+        $this->originalAssignedRoles = $this->assignedRoles;
         $this->assignedUserType = $subject->user_type->value;
+        $this->userActiveDuties = [
+            'advised_groups_count' => Schema::hasTable('research_class_groups') ? DB::table('research_class_groups')->where('adviser_id', $subject->id)->where('status', 'active')->count() : 0,
+            'panel_evaluations_count' => Schema::hasTable('defense_panel_assignments') ? DB::table('defense_panel_assignments')->where('user_id', $subject->id)->whereNull('ended_at')->count() : 0,
+            'pending_forms_count' => Schema::hasTable('official_form_actor_assignments') ? DB::table('official_form_actor_assignments')->where('user_id', $subject->id)->where('status', 'pending')->count() : 0,
+        ];
         $this->resetValidation();
         $this->dispatch('role-assignment-opened');
     }
@@ -428,9 +466,23 @@ class AdminDashboard extends Component
         $this->resetValidation('assignedRoles');
     }
 
+    public function toggleRole(string $roleName): void
+    {
+        if (in_array($roleName, $this->assignedRoles, true)) {
+            $this->assignedRoles = array_values(array_diff($this->assignedRoles, [$roleName]));
+        } else {
+            $this->assignedRoles[] = $roleName;
+        }
+    }
+
+    public function removeAssignedRole(string $roleName): void
+    {
+        $this->assignedRoles = array_values(array_diff($this->assignedRoles, [$roleName]));
+    }
+
     public function closeRoleAssignment(): void
     {
-        $this->reset(['roleAssignmentUserId', 'assignedRoles', 'assignedUserType']);
+        $this->reset(['roleAssignmentUserId', 'assignedRoles', 'originalAssignedRoles', 'assignedUserType', 'userActiveDuties']);
         $this->resetValidation();
         $this->dispatch('role-assignment-closed');
     }
@@ -611,6 +663,10 @@ class AdminDashboard extends Component
                 : 0,
         ];
 
+        $data['roleAssignmentUser'] = $this->roleAssignmentUserId
+            ? User::query()->with('roles:id,name,display_name')->find($this->roleAssignmentUserId)
+            : null;
+
         return view('livewire.admin-dashboard-content', $data);
     }
 
@@ -708,13 +764,192 @@ class AdminDashboard extends Component
 
         $pendingStudents = $pendingStudentsQuery->get();
 
+        $departmentStats = [
+            'CSD' => [
+                'code' => 'CSD',
+                'name' => 'Computer Studies Department',
+                'programs' => 'BSCS, BSIT, BLIS',
+                'student_org' => 'Course-specific computing/library organizations',
+                'coordinator' => User::role('program-coordinator')->where(function ($q) {
+                    $q->where('department', 'like', '%Computer Studies%')->orWhere('department', 'CSD');
+                })->first()?->name ?? 'Engr. Jose Montero',
+                'faculty_count' => User::where(fn ($q) => $q->where('user_type', 'faculty')->orWhere('user_type', 'faculty_member'))->where(function ($q) {
+                    $q->where('department', 'like', '%Computer Studies%')->orWhere('department', 'CSD');
+                })->count(),
+                'student_count' => User::where('user_type', 'student')->where(function ($q) {
+                    $q->where('department', 'like', '%Computer Studies%')
+                        ->orWhere('department', 'CSD')
+                        ->orWhere('program', 'like', '%BSCS%')
+                        ->orWhere('program', 'like', '%BSIT%')
+                        ->orWhere('program', 'like', '%BLIS%');
+                })->count(),
+                'total' => User::where(function ($q) {
+                    $q->where('department', 'like', '%Computer Studies%')
+                        ->orWhere('department', 'CSD')
+                        ->orWhere('program', 'like', '%BSCS%')
+                        ->orWhere('program', 'like', '%BSIT%')
+                        ->orWhere('program', 'like', '%BLIS%');
+                })->count(),
+            ],
+            'EECE' => [
+                'code' => 'EECE',
+                'name' => 'Electrical, Electronics, and Computer Engineering',
+                'programs' => 'BSEE, BSECE, BSCpE',
+                'student_org' => 'IIEE, JIECEP and ICpEP.SE',
+                'coordinator' => User::role('program-coordinator')->where(function ($q) {
+                    $q->where('department', 'like', '%Electrical%')->orWhere('department', 'EECE');
+                })->first()?->name ?? 'Engr. Michael Diaz',
+                'faculty_count' => User::where(fn ($q) => $q->where('user_type', 'faculty')->orWhere('user_type', 'faculty_member'))->where(function ($q) {
+                    $q->where('department', 'like', '%Electrical%')->orWhere('department', 'EECE');
+                })->count(),
+                'student_count' => User::where('user_type', 'student')->where(function ($q) {
+                    $q->where('department', 'like', '%Electrical%')
+                        ->orWhere('department', 'EECE')
+                        ->orWhere('program', 'like', '%BSEE%')
+                        ->orWhere('program', 'like', '%BSECE%')
+                        ->orWhere('program', 'like', '%BSCPE%')
+                        ->orWhere('program', 'like', '%BSCpE%');
+                })->count(),
+                'total' => User::where(function ($q) {
+                    $q->where('department', 'like', '%Electrical%')
+                        ->orWhere('department', 'EECE')
+                        ->orWhere('program', 'like', '%BSEE%')
+                        ->orWhere('program', 'like', '%BSECE%')
+                        ->orWhere('program', 'like', '%BSCPE%')
+                        ->orWhere('program', 'like', '%BSCpE%');
+                })->count(),
+            ],
+            'CED' => [
+                'code' => 'CED',
+                'name' => 'Civil Engineering Department',
+                'programs' => 'BSCE',
+                'student_org' => 'PICE–NDMU Student Chapter',
+                'coordinator' => User::role('program-coordinator')->where(function ($q) {
+                    $q->where('department', 'like', '%Civil%')->orWhere('department', 'CED');
+                })->first()?->name ?? 'Engr. Sarah Reyes',
+                'faculty_count' => User::where(fn ($q) => $q->where('user_type', 'faculty')->orWhere('user_type', 'faculty_member'))->where(function ($q) {
+                    $q->where('department', 'like', '%Civil%')->orWhere('department', 'CED');
+                })->count(),
+                'student_count' => User::where('user_type', 'student')->where(function ($q) {
+                    $q->where('department', 'like', '%Civil%')
+                        ->orWhere('department', 'CED')
+                        ->orWhere('program', 'like', '%BSCE%');
+                })->count(),
+                'total' => User::where(function ($q) {
+                    $q->where('department', 'like', '%Civil%')
+                        ->orWhere('department', 'CED')
+                        ->orWhere('program', 'like', '%BSCE%');
+                })->count(),
+            ],
+            'AD' => [
+                'code' => 'AD',
+                'name' => 'Architecture Department',
+                'programs' => 'BSArch',
+                'student_org' => 'UAPSA–NDMU Chapter',
+                'coordinator' => User::role('program-coordinator')->where(function ($q) {
+                    $q->where('department', 'like', '%Architecture%')->orWhere('department', 'AD');
+                })->first()?->name ?? 'Ar. Jonathan Tan',
+                'faculty_count' => User::where(fn ($q) => $q->where('user_type', 'faculty')->orWhere('user_type', 'faculty_member'))->where(function ($q) {
+                    $q->where('department', 'like', '%Architecture%')->orWhere('department', 'AD');
+                })->count(),
+                'student_count' => User::where('user_type', 'student')->where(function ($q) {
+                    $q->where('department', 'like', '%Architecture%')
+                        ->orWhere('department', 'AD')
+                        ->orWhere('program', 'like', '%BSARCH%')
+                        ->orWhere('program', 'like', '%BSArch%');
+                })->count(),
+                'total' => User::where(function ($q) {
+                    $q->where('department', 'like', '%Architecture%')
+                        ->orWhere('department', 'AD')
+                        ->orWhere('program', 'like', '%BSARCH%')
+                        ->orWhere('program', 'like', '%BSArch%');
+                })->count(),
+            ],
+            'institutional' => [
+                'code' => 'institutional',
+                'name' => 'College Administration',
+                'programs' => 'Dean, Ethics, Librarian, Admin',
+                'student_org' => 'CEAC Institutional Leadership',
+                'coordinator' => 'Dr. Leonardo Castillo (Dean)',
+                'faculty_count' => User::where(function ($q) {
+                    $q->where('user_type', 'staff')
+                        ->orWhereHas('roles', fn ($r) => $r->whereIn('name', ['college-dean', 'system-administrator', 'ethics-evaluator']));
+                })->count(),
+                'student_count' => 0,
+                'total' => User::where(function ($q) {
+                    $q->where(function ($sq) {
+                        $sq->whereNull('department')
+                            ->orWhere('department', '')
+                            ->orWhere('department', 'like', '%College%')
+                            ->orWhere('department', 'like', '%Administration%');
+                    })->where(function ($sq) {
+                        $sq->where('user_type', '<>', 'student')
+                            ->orWhereHas('roles', fn ($r) => $r->whereIn('name', ['college-dean', 'system-administrator', 'ethics-evaluator']));
+                    });
+                })->count(),
+            ],
+        ];
+
         $usersList = User::query()
             ->with('roles:id,name,display_name')
             ->when($this->searchQuery, function ($query) {
                 $query->where(function ($query) {
                     $query->where('name', 'like', '%'.$this->searchQuery.'%')
-                        ->orWhere('email', 'like', '%'.$this->searchQuery.'%');
+                        ->orWhere('email', 'like', '%'.$this->searchQuery.'%')
+                        ->orWhere('student_id', 'like', '%'.$this->searchQuery.'%')
+                        ->orWhere('employee_id', 'like', '%'.$this->searchQuery.'%');
                 });
+            })
+            ->when($this->selectedDepartment !== 'all', function ($query) {
+                match ($this->selectedDepartment) {
+                    'CSD' => $query->where(function ($q) {
+                        $q->where('department', 'like', '%Computer Studies%')
+                            ->orWhere('department', 'CSD')
+                            ->orWhere('program', 'like', '%BSCS%')
+                            ->orWhere('program', 'like', '%BSIT%')
+                            ->orWhere('program', 'like', '%BLIS%');
+                    }),
+                    'EECE' => $query->where(function ($q) {
+                        $q->where('department', 'like', '%Electrical%')
+                            ->orWhere('department', 'EECE')
+                            ->orWhere('program', 'like', '%BSEE%')
+                            ->orWhere('program', 'like', '%BSECE%')
+                            ->orWhere('program', 'like', '%BSCPE%')
+                            ->orWhere('program', 'like', '%BSCpE%');
+                    }),
+                    'CED' => $query->where(function ($q) {
+                        $q->where('department', 'like', '%Civil%')
+                            ->orWhere('department', 'CED')
+                            ->orWhere('program', 'like', '%BSCE%');
+                    }),
+                    'AD' => $query->where(function ($q) {
+                        $q->where('department', 'like', '%Architecture%')
+                            ->orWhere('department', 'AD')
+                            ->orWhere('program', 'like', '%BSARCH%')
+                            ->orWhere('program', 'like', '%BSArch%');
+                    }),
+                    'institutional' => $query->where(function ($q) {
+                        $q->where(function ($sq) {
+                            $sq->whereNull('department')
+                                ->orWhere('department', '')
+                                ->orWhere('department', 'like', '%College%')
+                                ->orWhere('department', 'like', '%Administration%');
+                        })->where(function ($sq) {
+                            $sq->where('user_type', '<>', 'student')
+                                ->orWhereHas('roles', fn ($r) => $r->whereIn('name', ['college-dean', 'system-administrator', 'ethics-evaluator']));
+                        });
+                    }),
+                    default => null,
+                };
+            })
+            ->when($this->selectedUserType !== 'all', function ($query) {
+                match ($this->selectedUserType) {
+                    'faculty' => $query->where(fn ($q) => $q->where('user_type', 'faculty')->orWhere('user_type', 'faculty_member')),
+                    'student' => $query->where('user_type', 'student'),
+                    'staff' => $query->where(fn ($q) => $q->where('user_type', 'staff')->orWhereHas('roles', fn ($r) => $r->where('name', 'system-administrator'))),
+                    'pending' => $query->where('status', AccountStatus::Pending),
+                    default => null,
+                };
             })
             ->when($this->selectedRole, function ($query) {
                 $this->selectedRole === '__without_roles__'
@@ -722,7 +957,7 @@ class AdminDashboard extends Component
                     : $query->role($this->selectedRole);
             })
             ->orderBy('id')
-            ->paginate(10);
+            ->paginate(15);
 
         return [
             'totalUsersCount' => (int) $counts->total_users_count,
@@ -731,6 +966,7 @@ class AdminDashboard extends Component
             'activeAccountsCount' => (int) $counts->active_accounts_count,
             'rejectedCount' => (int) $counts->rejected_count,
             'withoutRolesCount' => User::query()->doesntHave('roles')->count(),
+            'departmentStats' => $departmentStats,
             'usersList' => $usersList,
             'pendingStudents' => $pendingStudents,
         ];
