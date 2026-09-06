@@ -35,7 +35,7 @@ class DashboardController extends Controller
         $selectedReviewPaper = $assignedPapers->firstWhere(
             'id',
             $request->integer('document_id'),
-        );
+        ) ?? $assignedPapers->first();
         $evaluationRounds = collect($evaluationData['rounds'] ?? []);
         $pendingEvaluations = $evaluationRounds->filter(
             fn (array $round): bool => in_array($round['status'] ?? null, ['open', 'in_progress'], true)

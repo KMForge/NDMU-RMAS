@@ -71,6 +71,13 @@ class ReleaseDefenseEvaluationResults
                 'released_by' => $actor->id,
             ]);
 
+            if ($lockedRound->defense) {
+                $lockedRound->defense->update(['status' => 'completed']);
+            }
+            if ($lockedRound->defenseSchedule) {
+                $lockedRound->defenseSchedule->update(['status' => 'completed']);
+            }
+
             AuditLog::query()->create([
                 'user_id' => $actor->id,
                 'actor_name' => $actor->name,

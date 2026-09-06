@@ -40,6 +40,7 @@ class GetPanelistAssignedDocuments
                     ->whereHas('activePanelAssignments', fn (Builder $assignment) => $assignment
                         ->where('user_id', $panelist->getKey()))
                     ->with([
+                        'currentSchedule',
                         'activePanelAssignments' => fn ($assignments) => $assignments
                             ->where('user_id', $panelist->getKey()),
                         'evaluationRounds' => fn ($rounds) => $rounds
@@ -73,6 +74,7 @@ class GetPanelistAssignedDocuments
         $researchTitle = $group?->researchGroup?->currentProject?->title
             ?? $group?->name
             ?? $document->original_filename;
+        $scheduleId = $defense?->current_schedule_id ?? $round?->defense_schedule_id ?? $defense?->currentSchedule?->id;
 
         return [
             'id' => $document->getKey(),
@@ -102,11 +104,17 @@ class GetPanelistAssignedDocuments
                 : 'border-t-4 border-t-blue-500',
             'viewUrl' => route('documents.view', $document),
             'downloadUrl' => route('documents.download', $document),
-            'evaluationUrl' => route('panelist.dashboard', [
-                'tab' => in_array($stage, ['title_proposal', 'proposal_defense'], true)
-                    ? 'proposal-eval'
-                    : 'final-eval',
-            ]),
+            'evaluationUrl' => $scheduleId
+                ? route('official-forms.workspace.store-from-source', [
+                    'definition' => 'res-036',
+                    'sourceKind' => 'defense-schedule',
+                    'source' => $scheduleId,
+                ])
+                : route('panelist.dashboard', [
+                    'tab' => in_array($stage, ['title_proposal', 'proposal_defense'], true)
+                        ? 'proposal-eval'
+                        : 'final-eval',
+                ]),
             'reviewUrl' => route('panelist.dashboard', [
                 'tab' => 'recommendations',
                 'document_id' => $document->getKey(),
@@ -119,6 +127,7 @@ class GetPanelistAssignedDocuments
                 'time' => $comment->created_at?->diffForHumans() ?? '',
                 'text' => $comment->comment,
                 'page' => $comment->page_number === null ? 'General' : 'Page '.$comment->page_number,
+                'page_number' => $comment->page_number,
                 'severity' => $comment->severity,
                 'borderClass' => match ($comment->severity) {
                     'critical' => 'border-l-4 border-l-red-500 border border-red-100 bg-red-50/30',

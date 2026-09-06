@@ -2,6 +2,7 @@
 
 namespace App\Modules\Documents\Support;
 
+use App\Enums\DocumentStage;
 use App\Models\Document;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -45,7 +46,7 @@ class DocumentReviewerAccess
     /**
      * Scopes documents specifically for the Adviser Document Review Queue.
      * Requires documents.review permission and active assigned adviser relationship.
-     * Broad permissions (research.view-all, admin, facilitator) do NOT broaden this queue.
+     * Title Proposals are handled exclusively by the Research Instructor/Facilitator and excluded from the Adviser queue.
      *
      * @param  Builder<Document>  $query
      * @return Builder<Document>
@@ -64,7 +65,11 @@ class DocumentReviewerAccess
                 ->where('review_groups.adviser_id', $reviewer->getKey())
                 ->where('review_groups.status', 'active')
                 ->whereNull('review_groups.disbanded_at');
-        });
+        })
+            ->where(function (Builder $stageQuery): void {
+                $stageQuery->where('documents.document_stage', '!=', DocumentStage::TitleProposal->value)
+                    ->orWhereNull('documents.document_stage');
+            });
     }
 
     /**
@@ -136,6 +141,25 @@ class DocumentReviewerAccess
 
     private function hasCurrentGroupAccess(User $reviewer, Document $document): bool
     {
+        // Title Proposal stage is reviewed by the Research Instructor / Facilitator of the research class
+        if ($document->document_stage === DocumentStage::TitleProposal) {
+            return DB::table('research_class_groups')
+                ->join('research_classes', 'research_classes.id', '=', 'research_class_groups.research_class_id')
+                ->where('research_class_groups.id', $document->research_class_group_id)
+                ->where(function ($q) use ($reviewer): void {
+                    $q->where('research_classes.facilitator_id', $reviewer->getKey())
+                        ->orWhereExists(function ($actorQ) use ($reviewer): void {
+                            $actorQ->selectRaw('1')
+                                ->from('research_class_actor_assignments')
+                                ->whereColumn('research_class_actor_assignments.research_class_id', 'research_classes.id')
+                                ->where('research_class_actor_assignments.user_id', $reviewer->getKey())
+                                ->whereIn('research_class_actor_assignments.actor_type', ['research_instructor', 'research_facilitator']);
+                        });
+                })
+                ->exists();
+        }
+
+        // Proposal Defense, Pre-Final, Final Defense, and Final Manuscript are reviewed by the assigned Adviser first
         return DB::table('research_class_groups')
             ->where('id', $document->research_class_group_id)
             ->where('adviser_id', $reviewer->getKey())

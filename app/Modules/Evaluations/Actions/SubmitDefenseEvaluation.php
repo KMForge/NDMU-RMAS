@@ -9,11 +9,13 @@ use App\Models\DefenseEvaluationStudentScore;
 use App\Models\DefenseEvaluationStudentSummary;
 use App\Models\DefenseEvaluationSummary;
 use App\Models\DefenseSchedule;
+use App\Models\OfficialFormActorAssignment;
 use App\Models\OfficialFormDefinition;
 use App\Models\OfficialFormInstance;
 use App\Models\OfficialFormVersion;
 use App\Models\User;
 use App\Modules\Evaluations\Services\EvaluationAuthorization;
+use App\Notifications\AcademicWorkflowNotification;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -255,7 +257,7 @@ class SubmitDefenseEvaluation
         $instance->update(['current_version_id' => $version->id]);
     }
 
-    private function generateSummaryAndRes037(DefenseEvaluationRound $round): void
+    public function generateSummaryAndRes037(DefenseEvaluationRound $round): void
     {
         $evaluations = DefenseEvaluation::query()
             ->where('defense_evaluation_round_id', $round->id)
@@ -307,25 +309,61 @@ class SubmitDefenseEvaluation
                 ->where('source_id', $round->id)
                 ->first();
 
+            $initiatorId = $round->opened_by ?? $round->summary_signer_user_id
+                ?? $round->defense?->group?->researchClass?->facilitator_id;
+
             if (! $existing037) {
-                $inst037 = OfficialFormInstance::query()->create([
+                $existing037 = OfficialFormInstance::query()->create([
                     'official_form_definition_id' => $def037->id,
                     'research_class_group_id' => $round->research_class_group_id,
                     'research_class_id' => null,
                     'context_key' => "evaluation-summary-round-{$round->id}",
                     'source_type' => DefenseEvaluationRound::class,
                     'source_id' => $round->id,
-                    'initiated_by' => $round->opened_by,
+                    'initiated_by' => $initiatorId,
                     'status' => 'draft',
                 ]);
+            }
 
+            // Always ensure actors are assigned — idempotent for both new and orphan instances
+            if ($round->summary_signer_user_id) {
+                OfficialFormActorAssignment::query()->firstOrCreate(
+                    [
+                        'official_form_instance_id' => $existing037->id,
+                        'user_id' => $round->summary_signer_user_id,
+                        'actor_type' => 'panel_chair',
+                    ],
+                    [
+                        'status' => 'active',
+                        'assigned_at' => now(),
+                    ]
+                );
+            }
+
+            $facilitatorId = $round->defense?->group?->researchClass?->facilitator_id;
+            if ($facilitatorId) {
+                OfficialFormActorAssignment::query()->firstOrCreate(
+                    [
+                        'official_form_instance_id' => $existing037->id,
+                        'user_id' => $facilitatorId,
+                        'actor_type' => 'facilitator',
+                    ],
+                    [
+                        'status' => 'active',
+                        'assigned_at' => now(),
+                    ]
+                );
+            }
+
+            // Create the version only if one does not yet exist (handles orphan instances too)
+            if ($existing037->current_version_id === null) {
                 $studentSummaries = DefenseEvaluationStudentSummary::query()
                     ->where('defense_evaluation_summary_id', $summary->id)
                     ->with('student')
                     ->get();
 
                 $ver037 = OfficialFormVersion::query()->create([
-                    'official_form_instance_id' => $inst037->id,
+                    'official_form_instance_id' => $existing037->id,
                     'version_number' => 1,
                     'payload' => [
                         'research_paper_average' => $summary->research_paper_average,
@@ -349,11 +387,30 @@ class SubmitDefenseEvaluation
                         'group_id' => $round->research_class_group_id,
                         'summary_signer_user_id' => $round->summary_signer_user_id,
                     ],
-                    'created_by' => $round->opened_by,
+                    'created_by' => $initiatorId,
                     'is_current' => true,
                 ]);
 
-                $inst037->update(['current_version_id' => $ver037->id]);
+                $existing037->update(['current_version_id' => $ver037->id]);
+
+                // Notify the Panel Chair that RES-037 is ready for their signature
+                if ($round->summary_signer_user_id) {
+                    $panelChair = User::find($round->summary_signer_user_id);
+                    if ($panelChair) {
+                        $panelChair->notify(new AcademicWorkflowNotification(
+                            eventKey: 'res_037_ready_for_signing',
+                            title: 'Defense Evaluation Summary Ready for Signing',
+                            message: 'The RES-037 Evaluation Summary sheet for the research defense has been generated and requires your signature as Panel Chairperson.',
+                            category: 'official_form',
+                            logicalKey: "res-037-instance-{$existing037->id}",
+                            routeName: 'official-forms.workspace.show',
+                            routeParameters: ['instance' => $existing037->id],
+                            actingAs: 'Panel Chairperson',
+                            sourceType: 'official_form_instance',
+                            sourceId: $existing037->id,
+                        ));
+                    }
+                }
             }
         }
     }

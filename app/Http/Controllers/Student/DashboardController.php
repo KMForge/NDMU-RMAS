@@ -107,7 +107,10 @@ class DashboardController extends Controller
             'revisions' => collect($data['revisions'] ?? [])
                 ->whereIn('status', ['open', 'in_progress'])
                 ->count() + (int) ($data['documentFeedbackCount'] ?? 0),
-            'defense' => is_countable($data['defenses'] ?? null) ? count($data['defenses']) : 0,
+            'defense' => collect($data['defenses'] ?? [])
+                ->whereNotIn('defense_status', ['completed', 'cancelled'])
+                ->whereNotIn('schedule_status', ['completed', 'cancelled'])
+                ->count(),
             'evaluations' => is_countable($data['releasedEvaluations'] ?? null) ? count($data['releasedEvaluations']) : 0,
             'forms' => $pendingAcademicActions->count(),
             'notifications' => Schema::hasTable('notifications')

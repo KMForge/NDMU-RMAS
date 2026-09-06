@@ -71,6 +71,11 @@ class Document extends Model
         return $this->hasMany(DocumentReviewComment::class);
     }
 
+    public function reviewComments(): HasMany
+    {
+        return $this->hasMany(DocumentReviewComment::class);
+    }
+
     public function reviews(): HasMany
     {
         return $this->hasMany(DocumentReview::class);

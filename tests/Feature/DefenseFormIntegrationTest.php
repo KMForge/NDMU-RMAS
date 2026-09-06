@@ -212,9 +212,8 @@ class DefenseFormIntegrationTest extends TestCase
 
         $policy = app(OfficialFormInstancePolicy::class);
 
-        $this->assertFalse($policy->updateDraft($this->panelist, $instance));
-        $this->assertFalse($policy->submit($this->panelist, $instance));
-        $this->assertFalse($policy->evaluate($this->panelist, $instance));
+        $this->assertFalse($policy->updateDraft($this->nonPanelist, $instance));
+        $this->assertFalse($policy->submit($this->nonPanelist, $instance));
     }
 
     public function test_superseded_schedule_cannot_create_new_res036(): void

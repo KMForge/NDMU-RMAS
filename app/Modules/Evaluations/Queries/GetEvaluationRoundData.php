@@ -71,7 +71,7 @@ class GetEvaluationRoundData
                 if ($res037Instance && $res037Instance->currentVersion && $round->summary_signer_user_id) {
                     $is037Signed = $res037Instance->currentVersion->signatures()
                         ->where('signer_user_id', $round->summary_signer_user_id)
-                        ->where('signature_type', 'formal_signature')
+                        ->where('academic_action', 'sign')
                         ->exists();
                 }
 

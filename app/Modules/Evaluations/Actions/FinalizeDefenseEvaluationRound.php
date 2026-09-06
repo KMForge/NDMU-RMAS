@@ -67,6 +67,13 @@ class FinalizeDefenseEvaluationRound
                 'finalized_at' => $now,
             ]);
 
+            if ($lockedRound->defense) {
+                $lockedRound->defense->update(['status' => 'completed']);
+            }
+            if ($lockedRound->defenseSchedule) {
+                $lockedRound->defenseSchedule->update(['status' => 'completed']);
+            }
+
             AuditLog::query()->create([
                 'user_id' => $lockedRound->summary_signer_user_id,
                 'actor_name' => $validSignature->signer_name_snapshot ?? 'Signer',

@@ -125,3 +125,107 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     background: rgba(100, 116, 139, 0.6);
 }
 
+/* In-System DOCX Document Viewer Styling */
+.docx-rendered-document {
+    background-color: #ffffff !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    margin: 0 auto 1.5rem auto;
+    padding: 3.5rem 4rem;
+    border-radius: 0.75rem;
+    max-width: 900px;
+    color: #1e293b;
+    font-family: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    border: 1px solid #e2e8f0;
+}
+
+.docx-rendered-document section.docx-wrapper {
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+.docx-rendered-document table {
+    width: 100% !important;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.docx-rendered-document th,
+.docx-rendered-document td {
+    border: 1px solid #cbd5e1;
+    padding: 0.5rem 0.75rem;
+}
+
+/* In-System PDF Document Viewer Styling */
+.pdf-page-container {
+    background-color: #ffffff;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    margin: 0 auto 1.5rem auto;
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    max-width: 900px;
+    border: 1px solid #e2e8f0;
+    width: 100%;
+}
+
+.pdf-page-container canvas {
+    display: block;
+    margin: 0 auto;
+    border-radius: 0.25rem;
+}
+
+/* In-Document Attached Reviewer Note Callout */
+.reviewer-note-callout {
+    margin: 1.75rem 0 1.25rem 0;
+    padding: 1rem 1.25rem;
+    background-color: #fffdf5;
+    border-left: 4px solid #f59e0b;
+    border-top: 1px solid #fef3c7;
+    border-right: 1px solid #fef3c7;
+    border-bottom: 1px solid #fef3c7;
+    border-radius: 0 0.75rem 0.75rem 0;
+    box-shadow: 0 1px 3px 0 rgba(245, 158, 11, 0.08);
+}
+
+.reviewer-note-callout .reviewer-note-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+.reviewer-note-callout .reviewer-note-icon {
+    width: 1rem;
+    height: 1rem;
+    color: #d97706;
+    flex-shrink: 0;
+}
+
+.reviewer-note-callout .reviewer-note-title {
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #b45309;
+}
+
+.reviewer-note-callout .reviewer-note-page-tag {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #92400e;
+    background-color: #fde68a;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.35rem;
+    margin-left: auto;
+}
+
+.reviewer-note-callout .reviewer-note-body {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.55;
+    color: #78350f;
+    margin-left: 1.5rem;
+    white-space: pre-line;
+}
+
+

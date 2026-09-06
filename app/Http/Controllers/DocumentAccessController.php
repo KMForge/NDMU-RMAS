@@ -30,20 +30,28 @@ class DocumentAccessController extends Controller
 
             $audit->handle($document, $request->user(), 'viewed', $request->ip(), $request->userAgent());
 
-            if ($document->file_type === 'docx') {
-                return view('pages.document-details', ['document' => $document->loadMissing(['user:id,name,email', 'researchClassGroup:id,name'])]);
+            if ($request->boolean('raw')) {
+                if (! in_array($document->file_type, ['pdf', 'docx'], true)) {
+                    return $this->errorResponse($request, 'This document type cannot be streamed.', 415);
+                }
+
+                return $disk->response(
+                    $document->storage_path,
+                    $document->original_filename,
+                    $this->previewHeaders($document),
+                    'inline',
+                );
             }
 
-            if ($document->file_type !== 'pdf') {
-                return $this->errorResponse($request, 'This document type cannot be viewed.', 415);
-            }
-
-            return $disk->response(
-                $document->storage_path,
-                $document->original_filename,
-                $this->previewHeaders($document),
-                'inline',
-            );
+            return view('pages.document-details', [
+                'document' => $document->loadMissing([
+                    'user:id,name,email',
+                    'researchClassGroup:id,name',
+                    'researchClassGroup.researchClass',
+                    'researchClassGroup.researchGroup.currentProject',
+                    'reviewComments' => fn ($query) => $query->with('author.roles')->latest(),
+                ]),
+            ]);
         } catch (Throwable $exception) {
             report($exception);
 
@@ -107,7 +115,9 @@ class DocumentAccessController extends Controller
     private function previewHeaders(Document $document): array
     {
         return [
-            'Content-Type' => 'application/pdf',
+            'Content-Type' => $document->file_type === 'pdf'
+                ? 'application/pdf'
+                : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'X-Content-Type-Options' => 'nosniff',
             'Content-Security-Policy' => "frame-ancestors 'self'",
             'Cross-Origin-Resource-Policy' => 'same-origin',
