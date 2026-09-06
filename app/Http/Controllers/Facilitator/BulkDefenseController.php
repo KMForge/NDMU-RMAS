@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Facilitator;
 
 use App\Http\Controllers\Controller;
 use App\Models\ResearchClass;
+use App\Models\ResearchClassGroup;
 use App\Modules\DefenseScheduling\Actions\BulkScheduleDefenses;
 use App\Modules\DefenseScheduling\Services\CheckDefenseSchedulingConflicts;
+use App\Modules\DefenseScheduling\Services\DefenseEndorsementEligibility;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -17,6 +19,7 @@ class BulkDefenseController extends Controller
     public function checkConflicts(
         Request $request,
         CheckDefenseSchedulingConflicts $conflictChecker,
+        DefenseEndorsementEligibility $endorsementEligibility,
     ): JsonResponse {
         $validated = $request->validate([
             'research_class_id' => ['required', 'integer', 'exists:research_classes,id'],
@@ -29,6 +32,17 @@ class BulkDefenseController extends Controller
         ]);
 
         $researchClass = ResearchClass::findOrFail($validated['research_class_id']);
+
+        try {
+            $this->ensureGroupEndorsements(
+                $researchClass,
+                array_map('intval', $validated['ordered_group_ids']),
+                $validated['defense_type'],
+                $endorsementEligibility,
+            );
+        } catch (InvalidArgumentException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
 
         $result = $conflictChecker->check(
             $researchClass,
@@ -45,6 +59,7 @@ class BulkDefenseController extends Controller
     public function store(
         Request $request,
         BulkScheduleDefenses $bulkSchedule,
+        DefenseEndorsementEligibility $endorsementEligibility,
     ): JsonResponse|RedirectResponse {
         $validated = $request->validate([
             'research_class_id' => ['required', 'integer', 'exists:research_classes,id'],
@@ -60,6 +75,13 @@ class BulkDefenseController extends Controller
         $researchClass = ResearchClass::findOrFail($validated['research_class_id']);
 
         try {
+            $this->ensureGroupEndorsements(
+                $researchClass,
+                array_map('intval', $validated['ordered_group_ids']),
+                $validated['defense_type'],
+                $endorsementEligibility,
+            );
+
             $session = $bulkSchedule->handle(
                 $request->user(),
                 $researchClass,
@@ -89,5 +111,26 @@ class BulkDefenseController extends Controller
 
         return to_route('facilitator.dashboard', ['tab' => 'defenses'])
             ->with('status', 'Bulk defense schedule created successfully for '.count($validated['ordered_group_ids']).' groups.');
+    }
+
+    /** @param list<int> $groupIds */
+    private function ensureGroupEndorsements(
+        ResearchClass $researchClass,
+        array $groupIds,
+        string $defenseType,
+        DefenseEndorsementEligibility $endorsementEligibility,
+    ): void {
+        $groups = ResearchClassGroup::query()
+            ->where('research_class_id', $researchClass->id)
+            ->whereIn('id', $groupIds)
+            ->get()
+            ->keyBy('id');
+
+        foreach ($groupIds as $groupId) {
+            $group = $groups->get($groupId);
+            if ($group !== null) {
+                $endorsementEligibility->ensureComplete($group, $defenseType);
+            }
+        }
     }
 }

@@ -3944,6 +3944,10 @@
                             <option value="pre_final_defense">Pre-Final Defense</option>
                             <option value="final_defense">Final Defense</option>
                         </select>
+                        <p class="flex items-start gap-1.5 text-[10px] font-semibold leading-4 text-amber-700">
+                            <i class="ph ph-shield-warning mt-0.5"></i>
+                            <span>The matching RES-033 must be endorsed by the Adviser and received by the Program Coordinator before scheduling.</span>
+                        </p>
                     </div>
                 </div>
 

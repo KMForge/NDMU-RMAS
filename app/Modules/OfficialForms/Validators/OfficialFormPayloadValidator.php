@@ -187,6 +187,12 @@ class OfficialFormPayloadValidator
             throw new InvalidArgumentException('RES-026 permits exactly three proposed topics when submitted.');
         }
 
+        if ($code === 'RES-033'
+            && isset($payload['defense_type'])
+            && ! in_array($payload['defense_type'], ['title_presentation', 'proposal_defense', 'pre_final_defense', 'final_defense'], true)) {
+            throw new InvalidArgumentException('RES-033 defense type must match one of the four supported defense stages.');
+        }
+
         if ($code === 'RES-041') {
             $this->validateRows($payload['entries'] ?? [], ['title', 'researchers'], $code, 'entries', 8);
         }

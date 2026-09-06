@@ -442,8 +442,15 @@
                                 @endif
                                 @if ($definition->cardinality === 'single_per_context')
                                     <select name="context_key" class="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
-                                        <option value="proposal_defense">Proposal defense</option>
-                                        <option value="final_defense">Final defense</option>
+                                        @if ($definition->code === 'RES-033')
+                                            <option value="title_presentation">Title Proposal / Title Presentation</option>
+                                            <option value="proposal_defense">Proposal Defense</option>
+                                            <option value="pre_final_defense">Pre-Final Defense</option>
+                                            <option value="final_defense">Final Defense</option>
+                                        @else
+                                            <option value="proposal_defense">Proposal Defense</option>
+                                            <option value="final_defense">Final Defense</option>
+                                        @endif
                                     </select>
                                 @endif
                                 @if ($res026Locked)<p class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[10px] font-semibold text-amber-800">Your Title Proposal document must first be approved for Title Presentation.</p>@endif

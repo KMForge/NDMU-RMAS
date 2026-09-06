@@ -10,6 +10,7 @@ use App\Modules\DefenseScheduling\Actions\AssignDefensePanel;
 use App\Modules\DefenseScheduling\Actions\CancelDefense;
 use App\Modules\DefenseScheduling\Actions\RescheduleDefense;
 use App\Modules\DefenseScheduling\Actions\ScheduleDefense;
+use App\Modules\DefenseScheduling\Services\DefenseEndorsementEligibility;
 use App\Modules\TitlePresentations\Actions\AssignTitlePresentationPanel;
 use App\Modules\TitlePresentations\Actions\ScheduleTitlePresentation;
 use Carbon\Carbon;
@@ -26,6 +27,7 @@ class DefenseController extends Controller
         ScheduleDefense $scheduleDefense,
         ScheduleTitlePresentation $scheduleTitlePresentation,
         AssignTitlePresentationPanel $assignTitlePresentationPanel,
+        DefenseEndorsementEligibility $endorsementEligibility,
     ): RedirectResponse {
         $validated = $request->validate([
             'research_class_group_id' => ['required', 'integer', 'exists:research_class_groups,id'],
@@ -49,6 +51,8 @@ class DefenseController extends Controller
         }
 
         try {
+            $endorsementEligibility->ensureComplete($group, $validated['defense_type']);
+
             if ($validated['defense_type'] === 'title_presentation') {
                 $instance = OfficialFormInstance::query()
                     ->where('research_class_group_id', $group->id)
