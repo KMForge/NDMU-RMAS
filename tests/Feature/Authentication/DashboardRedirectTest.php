@@ -52,6 +52,30 @@ class DashboardRedirectTest extends TestCase
             ->assertRedirect(route('admin.dashboard'));
     }
 
+    public function test_dashboard_entry_preserves_the_active_workspace_for_a_multi_role_account(): void
+    {
+        $faculty = User::factory()->create();
+        $faculty->assignRole(['research-facilitator', 'thesis-adviser']);
+
+        $this->actingAs($faculty)
+            ->withSession(['active_workspace' => 'adviser'])
+            ->get(route('dashboard'))
+            ->assertRedirect(route('adviser.dashboard'))
+            ->assertSessionHas('active_workspace', 'adviser');
+    }
+
+    public function test_dashboard_entry_ignores_an_unauthorized_stale_workspace(): void
+    {
+        $student = User::factory()->create();
+        $student->assignRole('student-researcher');
+
+        $this->actingAs($student)
+            ->withSession(['active_workspace' => 'facilitator'])
+            ->get(route('dashboard'))
+            ->assertRedirect(route('student.dashboard'))
+            ->assertSessionHas('active_workspace', 'student');
+    }
+
     public function test_welcome_page_always_shows_login_and_register_navigation(): void
     {
         $this->get(route('home'))

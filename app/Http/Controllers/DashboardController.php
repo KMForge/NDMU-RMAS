@@ -15,13 +15,22 @@ class DashboardController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $route = $dashboard->routeFor($user);
+        $activeWorkspace = $request->session()->get('active_workspace');
+        $route = is_string($activeWorkspace)
+            ? $dashboard->routeForWorkspace($user, $activeWorkspace)
+            : null;
+        $route ??= $dashboard->routeFor($user);
 
         if ($route === null && $user->user_type === UserType::Faculty) {
             return redirect()->route('access.pending');
         }
 
         abort_if($route === null, 403, 'No dashboard is assigned to this account.');
+
+        $workspace = $dashboard->workspaceForRoute($route);
+        if ($workspace !== null) {
+            $request->session()->put('active_workspace', $workspace);
+        }
 
         return redirect()->route($route);
     }
