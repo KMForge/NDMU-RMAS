@@ -11,6 +11,7 @@ use App\Modules\ReportsAnalytics\Exports\PdfReportExporter;
 use App\Modules\ReportsAnalytics\Queries\RunReport;
 use App\Modules\ReportsAnalytics\ReportCatalog;
 use App\Modules\ReportsAnalytics\Services\ResolveReportScope;
+use App\Modules\ReportsAnalytics\ValueObjects\ReportFilters;
 use App\Policies\ReportPolicy;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -31,8 +32,33 @@ final class ReportController extends Controller
     {
         $this->authorizeView($request);
         $scope = $this->scope($request);
+        $filters = new ReportFilters;
 
-        return view('pages.reports.index', ['reports' => $this->catalog->all(), 'scope' => $scope]);
+        $researchStatuses = collect($this->reports->execute('research-summary', $scope, $filters)['rows'])
+            ->pluck('Groups', 'Status');
+        $documentStatuses = collect($this->reports->execute('document-review-status', $scope, $filters)['rows']);
+        $defenseStatuses = collect($this->reports->execute('defense-status', $scope, $filters)['rows'])
+            ->pluck('Defenses', 'Status');
+        $revisionStatuses = collect($this->reports->execute('revision-summary', $scope, $filters)['rows']);
+        $evaluationStatuses = collect($this->reports->execute('evaluation-release-status', $scope, $filters)['rows'])
+            ->pluck('Evaluation Rounds', 'Release Status');
+
+        $summaryCards = [
+            ['label' => 'Research Groups', 'value' => (int) $researchStatuses->except('Delayed (Unavailable)')->sum(), 'icon' => 'ph-users-three', 'report' => 'research-stage-status'],
+            ['label' => 'Active', 'value' => (int) $researchStatuses->get('Active', 0), 'icon' => 'ph-activity', 'report' => 'research-summary'],
+            ['label' => 'Completed', 'value' => (int) $researchStatuses->get('Completed', 0), 'icon' => 'ph-check-circle', 'report' => 'research-summary'],
+            ['label' => 'Overdue', 'value' => (int) $researchStatuses->get('Overdue', 0), 'icon' => 'ph-warning-circle', 'report' => 'research-summary'],
+            ['label' => 'Awaiting Review', 'value' => (int) $documentStatuses->sum('Awaiting Review'), 'icon' => 'ph-file-magnifying-glass', 'report' => 'document-review-status'],
+            ['label' => 'Defenses to Schedule', 'value' => (int) $defenseStatuses->get('Pending', 0), 'icon' => 'ph-calendar-plus', 'report' => 'defense-status'],
+            ['label' => 'Overdue Revisions', 'value' => (int) $revisionStatuses->sum('Overdue'), 'icon' => 'ph-arrows-clockwise', 'report' => 'revision-summary'],
+            ['label' => 'Unreleased Evaluations', 'value' => (int) $evaluationStatuses->get('Not Released', 0), 'icon' => 'ph-lock-key', 'report' => 'evaluation-release-status'],
+        ];
+
+        return view('pages.reports.index', [
+            'reports' => $this->catalog->all(),
+            'scope' => $scope,
+            'summaryCards' => $summaryCards,
+        ]);
     }
 
     public function show(ReportFilterRequest $request, string $report): View

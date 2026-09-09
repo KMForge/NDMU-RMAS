@@ -118,6 +118,20 @@ class ReportsAnalyticsTest extends TestCase
             ->assertSessionHasErrors('research_class_id');
     }
 
+    public function test_facilitator_report_catalog_uses_the_authorized_reporting_workspace(): void
+    {
+        $facilitator = $this->user(UserType::Faculty, ['dashboards.facilitator.view', 'reports.view']);
+
+        $this->actingAs($facilitator)
+            ->get(route('facilitator.reports.index'))
+            ->assertOk()
+            ->assertSee('Research reporting snapshot')
+            ->assertSee('Research Groups')
+            ->assertSee('Detailed reports and exports')
+            ->assertSee('Research by Stage and Status')
+            ->assertSee('Evaluation Release Status');
+    }
+
     public function test_csv_formula_prefixes_are_neutralized(): void
     {
         $exporter = app(CsvReportExporter::class);
