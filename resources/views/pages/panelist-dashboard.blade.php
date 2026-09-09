@@ -104,6 +104,22 @@ document.addEventListener('alpine:init', () => {
         recommendationComments: config.selectedReviewPaper?.comments || [],
         activePageNumber: 1,
         isSubmittingCritique: false,
+        isDownloadingAnnotated: false,
+        async downloadAnnotatedCopy() {
+            if (!this.selectedReviewPaper || this.isDownloadingAnnotated) return;
+            this.isDownloadingAnnotated = true;
+
+            try {
+                await window.downloadAnnotatedPdf(Object.assign({}, this.selectedReviewPaper, {
+                    comments: this.recommendationComments,
+                }));
+            } catch (error) {
+                console.error('Error creating annotated PDF:', error);
+                alert(error instanceof Error ? error.message : 'Unable to create the annotated PDF.');
+            } finally {
+                this.isDownloadingAnnotated = false;
+            }
+        },
         async submitCritique(event) {
             const form = event.target;
             const formData = new FormData(form);
@@ -125,27 +141,7 @@ document.addEventListener('alpine:init', () => {
                     if (txt) txt.value = '';
 
                     const targetPageNum = data.comment.page_number || this.activePageNumber || 1;
-                    const pageEl = document.getElementById('pdf-page-' + targetPageNum) || document.getElementById('doc-page-' + targetPageNum);
-                    if (pageEl) {
-                        const callout = document.createElement('div');
-                        callout.className = 'reviewer-note-callout';
-                        const authorLabel = `${data.comment.name} (${data.comment.role})`;
-                        const pageLabel = `Page ${targetPageNum}`;
-                        const commentBody = (data.comment.text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                        callout.innerHTML = `
-                            <div class="reviewer-note-header">
-                                <svg class="reviewer-note-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                                </svg>
-                                <span class="reviewer-note-title">REVIEWER NOTE · ${authorLabel}</span>
-                                <span class="reviewer-note-page-tag">${pageLabel}</span>
-                            </div>
-                            <div class="reviewer-note-body">${commentBody}</div>
-                        `;
-                        pageEl.appendChild(callout);
-                    }
+                    window.appendDocumentComment?.(Object.assign({}, data.comment, { page_number: targetPageNum }));
                 } else if (data.message) {
                     alert(data.message);
                 }
@@ -1622,7 +1618,7 @@ document.addEventListener('alpine:init', () => {
                     </div>
 
                     <!-- Selected Paper Header Bar -->
-                    <div class="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div class="flex items-center gap-3.5 min-w-0">
                             <span class="w-11 h-11 rounded-xl bg-emerald-50 text-[#0e5c3a] border border-emerald-100 flex items-center justify-center text-xl shrink-0 shadow-2xs">
                                 <i class="ph ph-file-text"></i>
@@ -1667,10 +1663,27 @@ document.addEventListener('alpine:init', () => {
 
                             <a href="{{ $selectedReviewPaper['downloadUrl'] }}" class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-2xs">
                                 <i class="ph ph-download-simple text-sm"></i>
-                                <span>Download</span>
+                                <span>Original</span>
                             </a>
 
-                            <a href="{{ $selectedReviewPaper['viewUrl'] }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-xl bg-[#0e5c3a] hover:bg-[#073823] px-3.5 py-2 text-xs font-bold text-white transition shadow-xs">
+                            @if ($selectedReviewPaper['fileType'] === 'PDF')
+                                <button
+                                    type="button"
+                                    @click="downloadAnnotatedCopy()"
+                                    :disabled="isDownloadingAnnotated || recommendationComments.length === 0"
+                                    class="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2 text-xs font-bold text-amber-900 hover:bg-amber-100 transition shadow-2xs disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <i class="ph text-sm" :class="isDownloadingAnnotated ? 'ph-spinner animate-spin' : 'ph-note-pencil'"></i>
+                                    <span x-text="isDownloadingAnnotated ? 'Creating...' : 'Annotated PDF'">Annotated PDF</span>
+                                </button>
+                            @endif
+
+                            <a href="{{ $selectedReviewPaper['evaluationUrl'] }}" class="inline-flex items-center gap-1.5 rounded-xl bg-[#0e5c3a] hover:bg-[#073823] px-3.5 py-2 text-xs font-bold text-white transition shadow-xs">
+                                <i class="ph ph-check-circle text-sm"></i>
+                                <span>Open Scoring</span>
+                            </a>
+
+                            <a href="{{ $selectedReviewPaper['viewUrl'] }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 transition shadow-2xs">
                                 <i class="ph ph-arrows-out-simple text-sm"></i>
                                 <span>Full Screen</span>
                             </a>
@@ -1680,8 +1693,8 @@ document.addEventListener('alpine:init', () => {
                     <!-- Split Screen: Document Preview (2/3) + Comments & Feedback (1/3) -->
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                         <!-- Left Panel: Live Document Preview -->
-                        <section class="lg:col-span-2 overflow-hidden bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col">
-                            <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3.5 bg-slate-50/50">
+                        <section class="lg:col-span-2 h-[72vh] min-h-[560px] max-h-[850px] overflow-hidden bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col">
+                            <div class="shrink-0 flex items-center justify-between border-b border-slate-100 px-5 py-3.5 bg-slate-50/50">
                                 <div class="flex items-center gap-2">
                                     <i class="ph ph-book-open text-base text-slate-600"></i>
                                     <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700">Document Preview</h2>
@@ -1691,7 +1704,7 @@ document.addEventListener('alpine:init', () => {
                                 </span>
                             </div>
 
-                            <div class="p-4 bg-slate-100/70 min-h-[700px] flex flex-col items-center justify-center overflow-auto">
+                            <div class="min-h-0 flex-1 p-4 bg-slate-100/70 flex flex-col items-center overflow-y-auto overscroll-contain">
                                 @if ($selectedReviewPaper['fileType'] === 'PDF')
                                     <div
                                         class="w-full flex flex-col items-center"
@@ -1739,8 +1752,8 @@ document.addEventListener('alpine:init', () => {
                         </section>
 
                         <!-- Right Panel: Comments & Feedback (Criticisms) -->
-                        <aside class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-5 lg:sticky lg:top-5">
-                            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <aside class="h-[72vh] min-h-[560px] max-h-[850px] bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex flex-col gap-5 lg:sticky lg:top-40 overflow-hidden">
+                            <div class="shrink-0 flex items-center justify-between border-b border-slate-100 pb-3">
                                 <div class="flex items-center gap-2">
                                     <i class="ph ph-chats-circle text-base text-slate-600"></i>
                                     <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700">Comments & Feedback</h2>
@@ -1749,7 +1762,7 @@ document.addEventListener('alpine:init', () => {
                             </div>
 
                             <!-- Comment Feed -->
-                            <div class="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                            <div class="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1">
                                 <template x-for="c in recommendationComments" :key="c.id || (c.name + c.time)">
                                     <div :class="c.borderClass || 'border border-slate-200 bg-slate-50/50'" class="rounded-xl p-3.5 space-y-2">
                                         <div class="flex justify-between items-start gap-2">
@@ -1776,7 +1789,7 @@ document.addEventListener('alpine:init', () => {
                             </div>
 
                             <!-- Post Comment / Critique Form -->
-                            <form method="POST" action="{{ $selectedReviewPaper['commentUrl'] }}" class="space-y-3 border-t border-slate-100 pt-4" @submit.prevent="submitCritique($event)" @document-page-change.window="activePageNumber = $event.detail.page">
+                            <form method="POST" action="{{ $selectedReviewPaper['commentUrl'] }}" class="shrink-0 space-y-3 border-t border-slate-100 pt-4" @submit.prevent="submitCritique($event)" @document-page-change.window="activePageNumber = $event.detail.page">
                                 @csrf
                                 <textarea
                                     name="comment"
@@ -1839,7 +1852,7 @@ document.addEventListener('alpine:init', () => {
                     <div class="bg-white rounded-2xl border border-slate-200/60 shadow-xs p-5 space-y-3">
                         <span class="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Defense Review Actions</span>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                             <a
                                 href="{{ $selectedReviewPaper['evaluationUrl'] }}"
                                 class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#073823] text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
@@ -1854,6 +1867,17 @@ document.addEventListener('alpine:init', () => {
                                 <i class="ph ph-download-simple text-base"></i>
                                 <span>Download Original Manuscript</span>
                             </a>
+                            @if ($selectedReviewPaper['fileType'] === 'PDF')
+                                <button
+                                    type="button"
+                                    @click="downloadAnnotatedCopy()"
+                                    :disabled="isDownloadingAnnotated || recommendationComments.length === 0"
+                                    class="px-5 py-3 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-900 text-xs font-bold rounded-xl shadow-2xs transition flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <i class="ph text-base" :class="isDownloadingAnnotated ? 'ph-spinner animate-spin' : 'ph-note-pencil'"></i>
+                                    <span x-text="isDownloadingAnnotated ? 'Creating Annotated PDF...' : 'Download Annotated PDF'">Download Annotated PDF</span>
+                                </button>
+                            @endif
                             <a
                                 href="{{ route('panelist.dashboard', ['tab' => 'assigned-papers']) }}"
                                 class="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"

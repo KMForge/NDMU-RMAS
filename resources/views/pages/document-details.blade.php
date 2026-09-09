@@ -4,6 +4,17 @@
 @php
     $comments = $document->reviewComments ?? collect();
     $unresolvedCount = $comments->whereNull('resolved_at')->count();
+    $viewerComments = $comments->map(fn ($comment) => [
+        'id' => $comment->id,
+        'name' => $comment->author?->name ?? 'Reviewer',
+        'role' => $comment->author?->roles?->first()?->name
+            ? \Illuminate\Support\Str::headline($comment->author->roles->first()->name)
+            : 'Reviewer',
+        'page_number' => $comment->page_number,
+        'severity' => $comment->severity,
+        'comment' => $comment->comment,
+        'resolved' => $comment->resolved_at !== null,
+    ])->values();
 @endphp
 <div class="mx-auto max-w-7xl space-y-5" x-data="{
     zoomLevel: 100,
@@ -11,7 +22,14 @@
     showComments: true,
     zoomIn() { if (this.zoomLevel < 150) this.zoomLevel += 10; },
     zoomOut() { if (this.zoomLevel > 70) this.zoomLevel -= 10; },
-    resetZoom() { this.zoomLevel = 100; }
+    resetZoom() { this.zoomLevel = 100; },
+    jumpToPage(page) {
+        if (!page) return;
+        const target = document.getElementById(`pdf-page-${page}`) || document.getElementById(`doc-page-${page}`);
+        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        target?.classList.add('review-page-highlight');
+        window.setTimeout(() => target?.classList.remove('review-page-highlight'), 1800);
+    }
 }">
     <!-- Document Viewer Header & Navigation -->
     <div class="sticky top-2 z-20 rounded-2xl bg-white/95 backdrop-blur-md p-4 sm:p-5 shadow-md border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -140,18 +158,19 @@
         <!-- Left / Center: Document Viewport -->
         <div class="{{ $comments->isNotEmpty() ? 'lg:col-span-8' : 'w-full' }} min-h-[750px] rounded-3xl bg-slate-100/90 border border-slate-200/80 p-4 sm:p-6 shadow-inner flex flex-col items-center justify-center overflow-auto">
             @if ($document->file_type === 'pdf')
-                <!-- In-System PDF Embed -->
-                <div class="w-full h-full min-h-[800px] rounded-2xl overflow-hidden shadow-md border border-slate-300 bg-white">
-                    <iframe
-                        src="{{ route('documents.view', [$document, 'raw' => 1]) }}"
-                        class="w-full h-full min-h-[800px] border-0"
-                        title="{{ $document->original_filename }}"
-                    >
-                        <p class="p-6 text-center text-sm text-slate-600">
-                            Your browser does not support embedded PDF frames.
-                            <a href="{{ route('documents.download', $document) }}" class="font-bold text-[#0e5c3a] underline">Click here to download the PDF</a>.
-                        </p>
-                    </iframe>
+                <!-- PDF.js viewer with page-attached reviewer notes -->
+                <div
+                    class="w-full"
+                    data-pdf-viewer
+                    data-pdf-url="{{ route('documents.view', [$document, 'raw' => 1]) }}"
+                    data-pdf-comments="{{ $viewerComments->toJson() }}"
+                >
+                    <div data-pdf-status class="py-24 text-center">
+                        <div class="mb-3 inline-block h-10 w-10 animate-spin rounded-full border-4 border-emerald-600 border-r-transparent"></div>
+                        <p class="text-sm font-bold text-slate-700">Rendering PDF and attached reviewer notes...</p>
+                        <p class="mt-1 text-xs text-slate-500">Preparing the secured manuscript preview.</p>
+                    </div>
+                    <div data-pdf-content class="hidden w-full"></div>
                 </div>
             @elseif ($document->file_type === 'docx')
                 <!-- In-System Client-Side DOCX Rendering Viewport -->
@@ -159,13 +178,7 @@
                     class="w-full flex flex-col items-center"
                     data-docx-viewer
                     data-docx-url="{{ route('documents.view', [$document, 'raw' => 1]) }}"
-                    data-docx-comments="{{ json_encode($comments->map(fn ($c) => [
-                        'name' => $c->author?->name ?? 'Reviewer',
-                        'role' => $c->author?->roles?->first()?->name ? \Illuminate\Support\Str::headline($c->author->roles->first()->name) : 'Reviewer',
-                        'page_number' => $c->page_number,
-                        'severity' => $c->severity,
-                        'comment' => $c->comment,
-                    ])) }}"
+                    data-docx-comments="{{ $viewerComments->toJson() }}"
                 >
                     <!-- Loading State Spinner -->
                     <div data-docx-status class="py-24 text-center">
@@ -200,7 +213,7 @@
                         <i class="ph ph-chat-centered-dots text-lg text-amber-600"></i>
                         <div>
                             <h2 class="text-xs font-black uppercase tracking-wider text-slate-800">Attached Critiques</h2>
-                            <p class="text-[10px] text-slate-400 font-semibold">Manuscript Review Feedback</p>
+                            <p class="text-[10px] text-slate-400 font-semibold">Select a page comment to jump to its note</p>
                         </div>
                     </div>
                     <span class="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-black text-amber-800">
@@ -231,7 +244,7 @@
                                 default => 'bg-blue-100 text-blue-800 border-blue-200',
                             };
                         @endphp
-                        <div class="rounded-2xl border p-3.5 space-y-2.5 shadow-2xs {{ $borderClass }}">
+                        <button type="button" @click="jumpToPage({{ $comment->page_number ?: 'null' }})" class="block w-full rounded-2xl border p-3.5 space-y-2.5 text-left shadow-2xs transition hover:-translate-y-0.5 hover:shadow-sm {{ $borderClass }}">
                             <div class="flex items-start justify-between gap-2">
                                 <div>
                                     <div class="flex items-center gap-1.5 flex-wrap">
@@ -268,7 +281,7 @@
                                     </span>
                                 @endif
                             </div>
-                        </div>
+                        </button>
                     @endforeach
                 </div>
             </aside>

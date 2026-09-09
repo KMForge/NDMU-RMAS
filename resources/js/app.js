@@ -1,13 +1,266 @@
 import './bootstrap';
 import * as docx from 'docx-preview';
-import * as pdfjsLib from 'pdfjs-dist';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import PdfJsWorker from 'pdfjs-dist/legacy/build/pdf.worker.mjs?worker';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+pdfjsLib.GlobalWorkerOptions.workerPort = new PdfJsWorker();
 window.docx = docx;
 window.pdfjsLib = pdfjsLib;
 window.initializeDocxViewers = initializeDocxViewers;
 window.initializePdfViewers = initializePdfViewers;
+
+function commentPageNumber(comment, fallback = 1) {
+    const value = comment?.page_number ?? comment?.page;
+    const parsed = Number.parseInt(String(value ?? '').replace(/\D/g, ''), 10);
+
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function appendReviewerNote(pageElement, comment, pageNumber = 1) {
+    if (!(pageElement instanceof HTMLElement)) {
+        return false;
+    }
+
+    const commentId = comment?.id ? String(comment.id) : null;
+    if (commentId && pageElement.querySelector(`[data-review-comment-id="${CSS.escape(commentId)}"]`)) {
+        return true;
+    }
+
+    const callout = document.createElement('div');
+    callout.className = 'reviewer-note-callout';
+    if (commentId) {
+        callout.dataset.reviewCommentId = commentId;
+    }
+
+    const header = document.createElement('div');
+    header.className = 'reviewer-note-header';
+    header.innerHTML = `
+        <svg class="reviewer-note-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+    `;
+
+    const author = comment?.name
+        ? `${comment.name}${comment.role ? ` (${comment.role})` : ''}`
+        : 'Reviewer Note';
+    const title = document.createElement('span');
+    title.className = 'reviewer-note-title';
+    title.textContent = `REVIEWER NOTE - ${author}`;
+
+    const pageTag = document.createElement('span');
+    pageTag.className = 'reviewer-note-page-tag';
+    pageTag.textContent = `Page ${pageNumber}`;
+
+    const body = document.createElement('div');
+    body.className = 'reviewer-note-body';
+    body.textContent = comment?.text ?? comment?.comment ?? '';
+
+    header.append(title, pageTag);
+    callout.append(header, body);
+    pageElement.appendChild(callout);
+
+    return true;
+}
+
+function appendDocumentComment(comment, root = document) {
+    const pageNumber = commentPageNumber(comment);
+    const pageElement = root.querySelector(`#pdf-page-${pageNumber}, #doc-page-${pageNumber}`);
+
+    return appendReviewerNote(pageElement, comment, pageNumber);
+}
+
+window.appendDocumentComment = appendDocumentComment;
+
+function printablePdfText(value) {
+    return String(value ?? '')
+        .replace(/[\u2018\u2019]/g, "'")
+        .replace(/[\u201C\u201D]/g, '"')
+        .replace(/[\u2013\u2014]/g, '-')
+        .normalize('NFKD')
+        .replace(/[^\x20-\x7E\n]/g, '');
+}
+
+function wrapPdfText(text, font, size, maxWidth) {
+    const lines = [];
+
+    printablePdfText(text).split(/\r?\n/).forEach((paragraph) => {
+        const words = paragraph.trim().split(/\s+/).filter(Boolean);
+        if (words.length === 0) {
+            lines.push('');
+            return;
+        }
+
+        let line = '';
+        words.forEach((word) => {
+            const candidate = line ? `${line} ${word}` : word;
+            if (font.widthOfTextAtSize(candidate, size) <= maxWidth || !line) {
+                line = candidate;
+            } else {
+                lines.push(line);
+                line = word;
+            }
+        });
+        if (line) lines.push(line);
+    });
+
+    return lines;
+}
+
+async function downloadAnnotatedPdf({ downloadUrl, filename, comments = [] }) {
+    if (!downloadUrl) {
+        throw new Error('The original manuscript download URL is unavailable.');
+    }
+
+    const response = await fetch(downloadUrl, { credentials: 'same-origin' });
+    if (!response.ok) {
+        throw new Error(`Unable to retrieve the original manuscript (HTTP ${response.status}).`);
+    }
+
+    const sourcePdf = await PDFDocument.load(await response.arrayBuffer());
+    const annotatedPdf = await PDFDocument.create();
+    const regularFont = await annotatedPdf.embedFont(StandardFonts.Helvetica);
+    const boldFont = await annotatedPdf.embedFont(StandardFonts.HelveticaBold);
+    const sourcePages = await annotatedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
+    const pageComments = new Map();
+    const generalComments = [];
+
+    comments.forEach((comment) => {
+        const pageNumber = commentPageNumber(comment, 0);
+        if (pageNumber < 1 || pageNumber > sourcePages.length) {
+            generalComments.push(comment);
+            return;
+        }
+
+        const existing = pageComments.get(pageNumber) ?? [];
+        existing.push(comment);
+        pageComments.set(pageNumber, existing);
+    });
+
+    const addCommentSheets = (referencedPage, attachedComments, pageSize) => {
+        if (attachedComments.length === 0) return;
+
+        const [width, height] = pageSize;
+        const margin = 48;
+        const contentWidth = width - (margin * 2);
+        let sheet;
+        let y;
+
+        const startSheet = () => {
+            sheet = annotatedPdf.addPage([width, height]);
+            sheet.drawRectangle({ x: 0, y: 0, width, height, color: rgb(1, 1, 1) });
+            sheet.drawText('NDMU-RMAS REVIEW COPY', {
+                x: margin,
+                y: height - 55,
+                size: 9,
+                font: boldFont,
+                color: rgb(0.06, 0.36, 0.23),
+            });
+            sheet.drawText(referencedPage ? `Reviewer Comments - Original Page ${referencedPage}` : 'General Reviewer Comments', {
+                x: margin,
+                y: height - 82,
+                size: 17,
+                font: boldFont,
+                color: rgb(0.08, 0.12, 0.2),
+            });
+            sheet.drawLine({
+                start: { x: margin, y: height - 96 },
+                end: { x: width - margin, y: height - 96 },
+                thickness: 2,
+                color: rgb(0.96, 0.62, 0.04),
+            });
+            y = height - 125;
+        };
+
+        startSheet();
+
+        attachedComments.forEach((comment) => {
+            const bodyLines = wrapPdfText(comment.text ?? comment.comment, regularFont, 10, contentWidth - 32);
+            const chunks = [];
+            for (let index = 0; index < Math.max(bodyLines.length, 1); index += 30) {
+                chunks.push(bodyLines.slice(index, index + 30));
+            }
+
+            chunks.forEach((lines, chunkIndex) => {
+                const blockHeight = 58 + (Math.max(lines.length, 1) * 14);
+                if (y - blockHeight < margin) startSheet();
+
+                sheet.drawRectangle({
+                    x: margin,
+                    y: y - blockHeight,
+                    width: contentWidth,
+                    height: blockHeight,
+                    color: rgb(1, 0.98, 0.89),
+                    borderColor: rgb(0.98, 0.75, 0.25),
+                    borderWidth: 1,
+                });
+                sheet.drawRectangle({
+                    x: margin,
+                    y: y - blockHeight,
+                    width: 5,
+                    height: blockHeight,
+                    color: rgb(0.96, 0.62, 0.04),
+                });
+
+                const author = printablePdfText(comment.name || 'Reviewer');
+                const role = printablePdfText(comment.role || 'Reviewer');
+                const severity = printablePdfText(comment.severity || 'comment').toUpperCase();
+                sheet.drawText(`${author} (${role})${chunkIndex ? ' - continued' : ''}`, {
+                    x: margin + 16,
+                    y: y - 22,
+                    size: 10,
+                    font: boldFont,
+                    color: rgb(0.45, 0.25, 0.04),
+                });
+                sheet.drawText(severity, {
+                    x: margin + 16,
+                    y: y - 39,
+                    size: 8,
+                    font: boldFont,
+                    color: rgb(0.72, 0.32, 0.02),
+                });
+
+                lines.forEach((line, lineIndex) => {
+                    sheet.drawText(line, {
+                        x: margin + 16,
+                        y: y - 57 - (lineIndex * 14),
+                        size: 10,
+                        font: regularFont,
+                        color: rgb(0.18, 0.12, 0.08),
+                    });
+                });
+                y -= blockHeight + 14;
+            });
+        });
+    };
+
+    sourcePages.forEach((page, index) => {
+        annotatedPdf.addPage(page);
+        const pageNumber = index + 1;
+        const size = [page.getWidth(), page.getHeight()];
+        addCommentSheets(pageNumber, pageComments.get(pageNumber) ?? [], size);
+    });
+
+    if (generalComments.length > 0) {
+        const lastPage = sourcePages.at(-1);
+        addCommentSheets(null, generalComments, lastPage ? [lastPage.getWidth(), lastPage.getHeight()] : [612, 792]);
+    }
+
+    const bytes = await annotatedPdf.save();
+    const blobUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+    const link = document.createElement('a');
+    const baseName = printablePdfText(filename || 'research-manuscript').replace(/\.pdf$/i, '');
+    link.href = blobUrl;
+    link.download = `${baseName}-annotated.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+}
+
+window.downloadAnnotatedPdf = downloadAnnotatedPdf;
 
 function initializeDocxViewers(root = document) {
     root.querySelectorAll('[data-docx-viewer]').forEach((container) => {
@@ -161,16 +414,6 @@ function initializePdfViewers(root = document) {
             return;
         }
 
-        const renderIframeFallback = () => {
-            if (statusEl) statusEl.classList.add('hidden');
-            contentEl.classList.remove('hidden');
-            contentEl.innerHTML = `
-                <div class="w-full h-full min-h-[750px] rounded-xl overflow-hidden shadow-xs border border-slate-300 bg-white">
-                    <iframe src="${url}" class="w-full h-full min-h-[750px] border-0" title="PDF Preview"></iframe>
-                </div>
-            `;
-        };
-
         fetch(url, { credentials: 'same-origin' })
             .then((res) => {
                 if (!res.ok) throw new Error(`HTTP error ${res.status}`);
@@ -179,8 +422,7 @@ function initializePdfViewers(root = document) {
             .then(async (buffer) => {
                 const loadingTask = pdfjsLib.getDocument({
                     data: new Uint8Array(buffer),
-                    cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/cmaps/',
-                    cMapPacked: true,
+                    useSystemFonts: true,
                 });
 
                 const pdf = await loadingTask.promise;
@@ -204,7 +446,8 @@ function initializePdfViewers(root = document) {
 
                 for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
                     const page = await pdf.getPage(pageNum);
-                    const scale = 1.6;
+                    // Render above the displayed CSS width so manuscript text stays sharp.
+                    const scale = 1.5;
                     const viewport = page.getViewport({ scale });
 
                     const pageWrapper = document.createElement('div');
@@ -213,17 +456,20 @@ function initializePdfViewers(root = document) {
                     pageWrapper.setAttribute('id', `pdf-page-${pageNum}`);
 
                     const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-                    canvas.height = viewport.height;
-                    canvas.width = viewport.width;
+                    canvas.height = Math.ceil(viewport.height);
+                    canvas.width = Math.ceil(viewport.width);
                     canvas.style.width = '100%';
                     canvas.style.height = 'auto';
 
                     const renderContext = {
-                        canvasContext: context,
-                        viewport: viewport,
+                        canvas,
+                        viewport,
                     };
-                    await page.render(renderContext).promise;
+                    try {
+                        await page.render(renderContext).promise;
+                    } catch (error) {
+                        console.error(`Error rendering PDF page ${pageNum}:`, error);
+                    }
 
                     pageWrapper.appendChild(canvas);
 
@@ -294,8 +540,25 @@ function initializePdfViewers(root = document) {
                 updateCurrentPage();
             })
             .catch((err) => {
-                console.warn('PDF.js canvas rendering fallback to iframe:', err);
-                renderIframeFallback();
+                console.error('Error rendering annotatable PDF preview:', err);
+                contentEl.classList.add('hidden');
+                if (statusEl) {
+                    statusEl.classList.remove('hidden');
+                    statusEl.innerHTML = `
+                        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center text-amber-900">
+                            <i class="ph ph-warning-circle text-3xl mb-2 block text-amber-600"></i>
+                            <p class="font-bold text-sm">The annotatable PDF preview could not be loaded.</p>
+                            <p class="text-xs text-amber-700 mt-1">Refresh the page to retry. The original manuscript remains available from the Download button.</p>
+                            <p data-pdf-error-detail class="mt-2 text-[10px] font-mono text-amber-800"></p>
+                        </div>
+                    `;
+                    const errorDetail = statusEl.querySelector('[data-pdf-error-detail]');
+                    if (errorDetail) {
+                        const errorName = err instanceof Error ? err.name : 'PDFError';
+                        const errorMessage = err instanceof Error ? err.message : String(err);
+                        errorDetail.textContent = `${errorName}: ${errorMessage}`;
+                    }
+                }
             });
     });
 }

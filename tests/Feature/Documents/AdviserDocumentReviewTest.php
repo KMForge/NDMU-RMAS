@@ -181,15 +181,39 @@ class AdviserDocumentReviewTest extends TestCase
         Storage::disk('private')->put($document->storage_path, '%PDF-1.7 content%%EOF');
 
         $this->actingAs($adviser)
-            ->get(route('documents.view', $document))
+            ->get(route('documents.view', [$document, 'raw' => 1]))
             ->assertOk()
             ->assertHeader('Content-Type', 'application/pdf')
             ->assertHeader('X-Content-Type-Options', 'nosniff')
             ->assertHeader('Content-Security-Policy', "frame-ancestors 'self'");
 
         $this->actingAs($otherAdviser)
-            ->get(route('documents.view', $document))
+            ->get(route('documents.view', [$document, 'raw' => 1]))
             ->assertForbidden();
+    }
+
+    public function test_authorized_document_page_renders_pdf_comments_as_page_attached_notes(): void
+    {
+        $adviser = $this->adviser();
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Annotated Research Team');
+        $document = $this->document($leader, $group, 'annotated-paper.pdf');
+        Storage::disk('private')->put($document->storage_path, '%PDF-1.7 content%%EOF');
+
+        DocumentReviewComment::query()->create([
+            'document_id' => $document->getKey(),
+            'author_id' => $adviser->getKey(),
+            'page_number' => 3,
+            'severity' => 'revision',
+            'comment' => 'Add more details about the preprocessing steps.',
+        ]);
+
+        $this->actingAs($adviser)
+            ->get(route('documents.view', $document))
+            ->assertOk()
+            ->assertSee('data-pdf-viewer', false)
+            ->assertSee('data-pdf-comments', false)
+            ->assertSee('Add more details about the preprocessing steps.')
+            ->assertSee('Page 3');
     }
 
     public function test_assigned_adviser_can_post_sanitized_comment_and_changes_status_to_under_review(): void
