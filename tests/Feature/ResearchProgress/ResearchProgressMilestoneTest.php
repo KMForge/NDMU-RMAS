@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\ResearchProgress;
 
+use App\Enums\DocumentStage;
 use App\Enums\DocumentStatus;
 use App\Enums\ResearchMilestoneStatus;
 use App\Models\Document;
 use App\Models\MilestoneDefinition;
+use App\Models\Program;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
@@ -13,15 +15,20 @@ use App\Models\ResearchClassGroupMember;
 use App\Models\ResearchClassGroupMemberHistory;
 use App\Models\ResearchGroupMilestone;
 use App\Models\ResearchGroupMilestoneEvent;
+use App\Models\StudentProfile;
 use App\Models\User;
 use App\Modules\Classes\Actions\CreateResearchClassGroup;
 use App\Modules\ResearchProgress\Actions\SyncResearchMilestoneDefinitions;
+use App\Modules\ResearchProgress\Queries\GetFacilitatorProgressData;
 use App\Modules\ResearchProgress\Queries\GetResearchGroupProgress;
+use App\Modules\ResearchProgress\Services\ResearchJourneyService;
 use App\Notifications\AcademicWorkflowNotification;
+use Database\Seeders\AcademicStructureSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class ResearchProgressMilestoneTest extends TestCase
@@ -72,13 +79,13 @@ class ResearchProgressMilestoneTest extends TestCase
         ]);
     }
 
-    public function test_initialization_is_idempotent_and_creates_exactly_thirteen_active_records(): void
+    public function test_initialization_is_idempotent_and_creates_exactly_fourteen_active_records(): void
     {
         $query = app(GetResearchGroupProgress::class);
-        $this->assertCount(13, $query->for($this->group)['milestones']);
-        $this->assertCount(13, $query->for($this->group)['milestones']);
-        $this->assertDatabaseCount('milestone_definitions', 13);
-        $this->assertDatabaseCount('research_group_milestones', 13);
+        $this->assertCount(14, $query->for($this->group)['milestones']);
+        $this->assertCount(14, $query->for($this->group)['milestones']);
+        $this->assertDatabaseCount('milestone_definitions', 14);
+        $this->assertDatabaseCount('research_group_milestones', 14);
     }
 
     public function test_new_group_created_through_the_domain_action_is_initialized_immediately(): void
@@ -90,7 +97,7 @@ class ResearchProgressMilestoneTest extends TestCase
             'New Progress Group',
         );
 
-        $this->assertSame(13, $group->milestones()->whereHas('definition', fn ($q) => $q->where('is_active', true))->count());
+        $this->assertSame(14, $group->milestones()->whereHas('definition', fn ($q) => $q->where('is_active', true))->count());
     }
 
     public function test_progress_is_derived_from_weights_and_not_a_client_percentage(): void
@@ -107,6 +114,120 @@ class ResearchProgressMilestoneTest extends TestCase
             $this->startAndComplete($milestone);
         }
         $this->assertSame(100.0, app(GetResearchGroupProgress::class)->for($this->group)['progress_percentage']);
+    }
+
+    public function test_facilitator_monitoring_uses_the_same_authoritative_journey_percentage_as_the_student_dashboard(): void
+    {
+        app(GetResearchGroupProgress::class)->for($this->group);
+
+        $stages = collect(range(1, 14))->mapWithKeys(fn (int $stage): array => [
+            $stage => ['is_completed' => $stage <= 4, 'is_optional' => $stage === 13],
+        ])->all();
+
+        $this->mock(ResearchJourneyService::class, function (MockInterface $mock) use ($stages): void {
+            $mock->shouldReceive('getJourneyForGroup')
+                ->once()
+                ->withArgs(fn (ResearchClassGroup $group, User $actor): bool => $group->is($this->group) && $actor->is($this->facilitator))
+                ->andReturn([
+                    'percentage' => 31,
+                    'current_stage' => 5,
+                    'current_stage_name' => 'Validation of Survey Instrument',
+                    'stages' => $stages,
+                ]);
+        });
+
+        $group = app(GetFacilitatorProgressData::class)->for($this->facilitator)['progressGroups']->first();
+
+        $this->assertSame(31, $group->progress_summary['progress_percentage']);
+        $this->assertSame(4, $group->progress_summary['completed_count']);
+        $this->assertSame(13, $group->progress_summary['applicable_count']);
+        $this->assertSame(5, $group->progress_summary['journey']['current_stage']);
+    }
+
+    public function test_language_and_technical_editing_is_optional_and_does_not_block_final_submission(): void
+    {
+        $milestones = $this->milestones();
+
+        $milestones
+            ->reject(fn (ResearchGroupMilestone $milestone): bool => in_array($milestone->definition->code, [
+                'language-technical-editing',
+                'submission-final-research-paper',
+            ], true))
+            ->each(fn (ResearchGroupMilestone $milestone) => $milestone->update([
+                'status' => ResearchMilestoneStatus::Completed,
+                'completed_at' => now(),
+                'completed_by' => $this->facilitator->getKey(),
+            ]));
+
+        $finalSubmission = $milestones->firstWhere('definition.code', 'submission-final-research-paper');
+        $this->actingAs($this->facilitator)
+            ->patchJson(route('facilitator.progress.start', $finalSubmission))
+            ->assertOk();
+        $this->actingAs($this->facilitator)
+            ->patchJson(route('facilitator.progress.complete', $finalSubmission))
+            ->assertOk();
+
+        $journey = app(ResearchJourneyService::class)->getJourneyForGroup($this->group->fresh(), $this->student);
+        $summary = app(GetResearchGroupProgress::class)->for($this->group);
+
+        $this->assertTrue($journey['stages'][13]['is_optional']);
+        $this->assertFalse($journey['stages'][13]['is_completed']);
+        $this->assertTrue($journey['stages'][14]['is_completed']);
+        $this->assertSame(100, $journey['percentage']);
+        $this->assertSame(13, $journey['required_stage_count']);
+        $this->assertSame(13, $summary['applicable_count']);
+        $this->assertSame(100.0, $summary['progress_percentage']);
+    }
+
+    public function test_bsit_journey_automatically_completes_program_exempt_stages(): void
+    {
+        $this->seed(AcademicStructureSeeder::class);
+        $program = Program::query()->where('code', 'BSIT')->firstOrFail();
+
+        StudentProfile::query()->updateOrCreate(
+            ['user_id' => $this->student->getKey()],
+            [
+                'program_id' => $program->getKey(),
+                'student_number' => 'BSIT-PROGRESS-001',
+                'year_level' => '4th',
+            ],
+        );
+
+        $this->milestones()
+            ->filter(fn (ResearchGroupMilestone $milestone): bool => $milestone->definition->sequence <= 4)
+            ->each(fn (ResearchGroupMilestone $milestone) => $milestone->update([
+                'status' => ResearchMilestoneStatus::Completed,
+                'completed_at' => now(),
+                'completed_by' => $this->facilitator->getKey(),
+            ]));
+
+        $journey = app(ResearchJourneyService::class)->getJourneyForGroup($this->group->fresh(), $this->student);
+
+        foreach ([5, 7, 8, 9, 13] as $stageNumber) {
+            $this->assertTrue($journey['stages'][$stageNumber]['is_auto_completed']);
+            $this->assertTrue($journey['stages'][$stageNumber]['is_completed']);
+            $this->assertEmpty($journey['stages'][$stageNumber]['pending_requirements']);
+        }
+
+        $this->assertSame(6, $journey['current_stage']);
+        $this->assertSame('Submission of Complete Research Proposal Paper', $journey['current_stage_name']);
+        $this->assertSame(62, $journey['percentage']);
+        $this->assertNotSame('res-042', $journey['next_action']['form_code'] ?? null);
+        $this->assertSame('Upload Complete Research Proposal Paper', $journey['next_action']['label']);
+        $this->assertSame('document', $journey['next_action']['action_type']);
+        $this->assertSame('Complete Research Proposal Paper', $journey['next_action']['document_label']);
+        $this->assertSame(route('student.dashboard', ['tab' => 'proposal']), $journey['next_action']['route']);
+
+        $this->travel(1)->second();
+        $this->document($this->group)->update(['document_stage' => DocumentStage::ProposalDefense]);
+
+        $journeyAfterSubmission = app(ResearchJourneyService::class)->getJourneyForGroup($this->group->fresh(), $this->student);
+
+        $this->assertTrue($journeyAfterSubmission['stages'][6]['is_completed']);
+        $this->assertSame(10, $journeyAfterSubmission['current_stage']);
+        $this->assertSame('Research Pre-Final Defense', $journeyAfterSubmission['current_stage_name']);
+        $this->assertSame(69, $journeyAfterSubmission['percentage']);
+        $this->assertNotNull($journeyAfterSubmission['next_action']);
     }
 
     public function test_order_is_enforced_and_controlled_override_requires_reason(): void
@@ -134,6 +255,19 @@ class ResearchProgressMilestoneTest extends TestCase
         $this->assertTrue($surveyValidation->definition->sequence < $dataGathering->definition->sequence);
 
         $this->actingAs($this->facilitator)->patchJson(route('facilitator.progress.start', $dataGathering))->assertUnprocessable();
+    }
+
+    public function test_pre_final_defense_is_a_distinct_required_stage_before_final_oral_defense(): void
+    {
+        $milestones = $this->milestones();
+        $preFinalDefense = $milestones->firstWhere('definition.code', 'research-pre-final-defense');
+        $finalDefense = $milestones->firstWhere('definition.code', 'research-final-oral-defense');
+
+        $this->assertNotNull($preFinalDefense);
+        $this->assertNotNull($finalDefense);
+        $this->assertSame(10, $preFinalDefense->definition->sequence);
+        $this->assertSame(11, $finalDefense->definition->sequence);
+        $this->assertTrue($preFinalDefense->definition->sequence < $finalDefense->definition->sequence);
     }
 
     public function test_proposal_revision_and_whole_paper_revision_are_independent_milestones(): void
@@ -375,7 +509,7 @@ class ResearchProgressMilestoneTest extends TestCase
         ]);
 
         $summary = app(GetResearchGroupProgress::class)->for($this->group);
-        $this->assertCount(13, $summary['milestones']);
+        $this->assertCount(14, $summary['milestones']);
         $this->assertSame(0.0, $summary['progress_percentage']);
     }
 

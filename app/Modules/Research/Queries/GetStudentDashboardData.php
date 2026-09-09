@@ -166,8 +166,12 @@ class GetStudentDashboardData
 
         if (($isDashboard || $activeTab === 'progress') && $activeGroup !== null) {
             $progressSummary = $this->groupProgress->for($activeGroup);
+            $optionalMilestoneCodes = collect(config('research-progress.milestones', []))
+                ->filter(fn (array $definition): bool => (bool) ($definition['optional'] ?? false))
+                ->pluck('code');
             $milestones = $progressSummary['milestones']->map(fn ($milestone): object => (object) [
                 'id' => $milestone->getKey(),
+                'code' => $milestone->definition->code,
                 'name' => $milestone->definition->name,
                 'description' => $milestone->definition->description,
                 'sequence' => $milestone->definition->sequence,
@@ -180,6 +184,7 @@ class GetStudentDashboardData
                 'feedback' => $milestone->remarks,
                 'not_applicable_reason' => $milestone->not_applicable_reason,
                 'is_overdue' => $milestone->isOverdue(),
+                'is_optional' => $optionalMilestoneCodes->contains($milestone->definition->code),
                 'evidences' => $milestone->evidences,
                 'events' => $milestone->events,
             ]);
@@ -604,10 +609,11 @@ class GetStudentDashboardData
         int $pendingDocumentCount,
     ): array {
         $completedStatuses = ['completed'];
-        $completedMilestones = $milestones
+        $applicableMilestones = $milestones->reject(fn (object $milestone): bool => $milestone->status === 'not_applicable'
+            || (bool) ($milestone->is_optional ?? false));
+        $completedMilestones = $applicableMilestones
             ->filter(fn (object $milestone): bool => in_array($milestone->status, $completedStatuses, true))
             ->count();
-        $applicableMilestones = $milestones->reject(fn (object $milestone): bool => $milestone->status === 'not_applicable');
         $applicableWeight = (float) $applicableMilestones->sum(fn (object $milestone): float => (float) ($milestone->weight ?? 1));
         $completedWeight = (float) $applicableMilestones
             ->filter(fn (object $milestone): bool => $milestone->status === 'completed')
@@ -625,7 +631,7 @@ class GetStudentDashboardData
                 'tab' => 'revisions',
             ]);
 
-        $pendingMilestones = $milestones
+        $pendingMilestones = $applicableMilestones
             ->reject(fn (object $milestone): bool => in_array($milestone->status, $completedStatuses, true));
 
         foreach ($pendingMilestones as $milestone) {

@@ -4,18 +4,21 @@ namespace App\Modules\OfficialForms\Services;
 
 use App\Models\OfficialFormInstance;
 use App\Models\User;
+use App\Modules\ResearchProgress\Services\ResearchJourneyService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 
 class GetPendingAcademicActionsForUser
 {
+    public function __construct(private readonly ResearchJourneyService $journey) {}
+
     /** @return Collection<int, array<string, mixed>> */
     public function execute(User $user): Collection
     {
         $authorization = app(OfficialFormAuthorization::class);
 
         $visibleInstances = OfficialFormInstance::query()
-            ->with(['definition', 'currentVersion.signatures', 'group.researchClass', 'researchClass', 'actorAssignments', 'titlePresentation.defense.activePanelAssignments'])
+            ->with(['definition', 'currentVersion.signatures', 'group.researchClass', 'group.members.student.studentProfile.program', 'researchClass', 'actorAssignments', 'titlePresentation.defense.activePanelAssignments'])
             ->get()
             ->filter(fn (OfficialFormInstance $instance) => Gate::forUser($user)->allows('view', $instance));
 
@@ -26,6 +29,11 @@ class GetPendingAcademicActionsForUser
             $formSpec = OfficialResearchWorkflowRegistry::FORMS[$code] ?? null;
 
             if ($formSpec === null) {
+                continue;
+            }
+
+            if ($instance->group !== null
+                && in_array((int) $formSpec['stage'], $this->journey->automaticStageNumbersFor($instance->group), true)) {
                 continue;
             }
 

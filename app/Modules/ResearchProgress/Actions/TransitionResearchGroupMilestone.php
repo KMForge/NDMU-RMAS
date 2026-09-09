@@ -77,11 +77,17 @@ class TransitionResearchGroupMilestone
             }
 
             if (in_array($target, [ResearchMilestoneStatus::InProgress, ResearchMilestoneStatus::Completed], true)) {
+                $optionalMilestoneCodes = collect(config('research-progress.milestones', []))
+                    ->filter(fn (array $definition): bool => (bool) ($definition['optional'] ?? false))
+                    ->pluck('code')
+                    ->all();
+
                 $hasIncompletePrerequisite = ResearchGroupMilestone::query()
                     ->join('milestone_definitions', 'milestone_definitions.id', '=', 'research_group_milestones.milestone_definition_id')
                     ->where('research_group_milestones.research_class_group_id', $group->getKey())
                     ->where('milestone_definitions.is_active', true)
                     ->where('milestone_definitions.sequence', '<', $locked->definition->sequence)
+                    ->when($optionalMilestoneCodes !== [], fn ($query) => $query->whereNotIn('milestone_definitions.code', $optionalMilestoneCodes))
                     ->whereNotIn('research_group_milestones.status', [
                         ResearchMilestoneStatus::Completed->value,
                         ResearchMilestoneStatus::NotApplicable->value,

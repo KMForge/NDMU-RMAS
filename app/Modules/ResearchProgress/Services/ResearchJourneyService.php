@@ -16,14 +16,19 @@ use Illuminate\Support\Collection;
 
 class ResearchJourneyService
 {
+    /** @var list<int> */
+    private const BSIT_AUTOMATIC_STAGE_NUMBERS = [5, 7, 8, 9, 13];
+
     /**
      * @return array<string, mixed>
      */
     public function getJourneyForGroup(ResearchClassGroup $group, ?User $user = null): array
     {
         $group->loadMissing([
-            'members.student', 'adviser', 'researchClass',
+            'members.student.studentProfile.program', 'adviser', 'researchClass',
         ]);
+
+        $automaticStageNumbers = $this->automaticStageNumbersFor($group);
 
         $instances = OfficialFormInstance::query()
             ->where(function ($q) use ($group) {
@@ -48,6 +53,7 @@ class ResearchJourneyService
 
         $stages = [];
         $completedStageCount = 0;
+        $requiredStageCount = 0;
         $currentStageNumber = 1;
         $currentStageName = 'Research Title Presentation';
         $waitingOn = null;
@@ -56,10 +62,36 @@ class ResearchJourneyService
         $completedReqs = [];
         $pendingReqs = [];
         $hasCurrentStage = false;
+        $previousStagesCompleted = true;
 
-        for ($stageNum = 1; $stageNum <= 13; $stageNum++) {
+        $stageCount = count(config('research-progress.milestones', []));
+
+        for ($stageNum = 1; $stageNum <= $stageCount; $stageNum++) {
             $stageDetails = $this->evaluateStage($stageNum, $group, $instances, $milestones);
+            $stageDetails['is_optional'] = (bool) ($this->getStageConfig($stageNum)['optional'] ?? false);
+            $stageDetails['is_auto_completed'] = in_array($stageNum, $automaticStageNumbers, true);
+            $stageDetails['is_completed'] = $stageDetails['is_auto_completed']
+                || ($previousStagesCompleted && $stageDetails['is_completed']);
+
+            if ($stageDetails['is_auto_completed']) {
+                $stageDetails['waiting_on'] = null;
+                $stageDetails['next_action'] = null;
+                $stageDetails['blockers'] = [];
+                $stageDetails['pending_requirements'] = [];
+                $stageDetails['completed_requirements'] = [
+                    $stageDetails['name'].' is automatically completed for the BSIT curriculum.',
+                ];
+            }
+
             $stages[$stageNum] = $stageDetails;
+
+            // Optional stages remain visible and recordable, but they neither count
+            // toward required progress nor block the next required lifecycle stage.
+            if ($stageDetails['is_optional']) {
+                continue;
+            }
+
+            $requiredStageCount++;
 
             if ($stageDetails['is_completed']) {
                 $completedStageCount++;
@@ -73,15 +105,22 @@ class ResearchJourneyService
                 $pendingReqs = $stageDetails['pending_requirements'];
                 $hasCurrentStage = true;
             }
+
+            if (! $stageDetails['is_completed']) {
+                $previousStagesCompleted = false;
+            }
         }
 
-        $percentage = (int) round(($completedStageCount / 13) * 100);
+        $percentage = $requiredStageCount > 0
+            ? (int) round(($completedStageCount / $requiredStageCount) * 100)
+            : 0;
 
         return [
             'current_stage' => $currentStageNumber,
             'current_stage_name' => $currentStageName,
             'stage_status' => $blockers !== [] ? 'blocked' : ($percentage >= 100 ? 'completed' : 'in_progress'),
             'percentage' => $percentage,
+            'required_stage_count' => $requiredStageCount,
             'completed_requirements' => array_values(array_unique($completedReqs)),
             'pending_requirements' => array_values(array_unique($pendingReqs)),
             'blockers' => $blockers,
@@ -114,6 +153,10 @@ class ResearchJourneyService
             return $this->evaluateSurveyInstrumentValidationStage($group, $instances, $milestones);
         }
 
+        if ($stageNum === 6) {
+            return $this->evaluateCompleteProposalSubmissionStage($group, $instances, $milestones);
+        }
+
         $stageConfig = $this->getStageConfig($stageNum);
         $code = $stageConfig['code'];
         $name = $stageConfig['name'];
@@ -128,11 +171,17 @@ class ResearchJourneyService
         if ($formCode === 'res-037' && $instance !== null) {
             $schedule = $instance->source instanceof DefenseSchedule ? $instance->source : ($instance->source instanceof DefenseEvaluationRound ? $instance->source->defenseSchedule : null);
             $defenseType = $schedule?->defense?->defense_type ?? $instance->source?->defense?->defense_type ?? '';
-            if ($stageNum === 3 && in_array($defenseType, ['final_defense', 'final_oral_defense'], true)) {
-                $isFormMatchingStage = false;
-            } elseif ($stageNum === 10 && in_array($defenseType, ['proposal_defense', 'proposal', 'title_proposal', ''], true)) {
-                $isFormMatchingStage = false;
-            }
+            $expectedDefenseTypes = match ($stageNum) {
+                3 => ['proposal_defense', 'proposal', ''],
+                10 => ['pre_final_defense'],
+                11 => ['final_defense', 'final_oral_defense'],
+                default => [],
+            };
+            $isFormMatchingStage = in_array($defenseType, $expectedDefenseTypes, true);
+        }
+
+        if (! $isFormMatchingStage) {
+            $instance = null;
         }
 
         $isFormCompleted = $isFormMatchingStage && $instance !== null && in_array($instance->status, ['approved', 'completed', 'signed'], true);
@@ -305,6 +354,7 @@ class ResearchJourneyService
                 'form_code' => $nextActionType === 'form' ? 'res-026' : null,
                 'action_type' => $nextActionType,
                 'actor_type' => $actorType,
+                'document_label' => $nextActionType === 'document' ? 'Title Proposal Document' : null,
             ],
             'completed_requirements' => array_values(array_unique($completed)),
             'pending_requirements' => array_values(array_unique($pending)),
@@ -388,6 +438,7 @@ class ResearchJourneyService
                 'form_code' => null,
                 'action_type' => $nextActionType,
                 'actor_type' => $actorType,
+                'document_label' => 'Research Proposal Document',
             ],
             'completed_requirements' => array_values(array_unique($completed)),
             'pending_requirements' => array_values(array_unique($pending)),
@@ -468,6 +519,89 @@ class ResearchJourneyService
         ];
     }
 
+    /** @return array<string, mixed> */
+    private function evaluateCompleteProposalSubmissionStage(ResearchClassGroup $group, Collection $instances, Collection $milestones): array
+    {
+        $milestone = $milestones->get('submission-complete-research-proposal');
+        $revisionMilestone = $milestones->get('revision-research-proposal');
+        $res041 = $instances->get('res-041');
+        $revisionCompletedAt = $res041?->updated_at ?? $revisionMilestone?->completed_at;
+
+        $documentQuery = Document::query()
+            ->where('research_class_group_id', $group->id)
+            ->where('document_stage', DocumentStage::ProposalDefense->value)
+            ->where('is_current', true);
+
+        if ($revisionCompletedAt !== null) {
+            $documentQuery->where('submitted_at', '>=', $revisionCompletedAt);
+        }
+
+        $document = $documentQuery->latest('version_number')->first();
+        $isMilestoneCompleted = $milestone?->status === ResearchMilestoneStatus::Completed;
+        $isDocumentSubmitted = $document !== null && ! in_array($document->status, [
+            DocumentStatus::Draft,
+            DocumentStatus::RevisionRequested,
+            DocumentStatus::Rejected,
+        ], true);
+
+        $completed = [];
+        $pending = [];
+        $waitingOn = null;
+        $nextAction = null;
+
+        if ($isMilestoneCompleted || $isDocumentSubmitted) {
+            $completed[] = 'Complete Research Proposal Paper submitted';
+        } elseif ($document === null) {
+            $pending[] = 'Upload the complete revised Research Proposal Paper';
+            $waitingOn = 'Student Group Leader to submit the complete proposal paper';
+            $nextAction = [
+                'label' => 'Upload Complete Research Proposal Paper',
+                'route' => route('student.dashboard', ['tab' => 'proposal']),
+                'form_code' => null,
+                'action_type' => 'document',
+                'actor_type' => 'student_group_leader',
+                'document_label' => 'Complete Research Proposal Paper',
+            ];
+        } elseif (in_array($document->status, [DocumentStatus::RevisionRequested, DocumentStatus::Rejected], true)) {
+            $completed[] = 'Complete proposal paper reviewed';
+            $pending[] = 'Upload the corrected complete Research Proposal Paper';
+            $waitingOn = 'Student Group Leader to address the document review';
+            $nextAction = [
+                'label' => 'Upload Corrected Research Proposal Paper',
+                'route' => route('student.dashboard', ['tab' => 'proposal']),
+                'form_code' => null,
+                'action_type' => 'document',
+                'actor_type' => 'student_group_leader',
+                'document_label' => 'Corrected Complete Research Proposal Paper',
+            ];
+        } else {
+            $pending[] = 'Submit the complete Research Proposal Paper';
+            $waitingOn = 'Student Group Leader to submit the complete proposal paper';
+            $nextAction = [
+                'label' => 'Submit Complete Research Proposal Paper',
+                'route' => route('student.dashboard', ['tab' => 'proposal']),
+                'form_code' => null,
+                'action_type' => 'document',
+                'actor_type' => 'student_group_leader',
+                'document_label' => 'Complete Research Proposal Paper',
+            ];
+        }
+
+        return [
+            'stage' => 6,
+            'code' => 'submission-complete-research-proposal',
+            'name' => 'Submission of Complete Research Proposal Paper',
+            'is_completed' => $isMilestoneCompleted || $isDocumentSubmitted,
+            'primary_form' => 'res-041',
+            'form_status' => $res041?->status ?? 'not_started',
+            'waiting_on' => $waitingOn,
+            'next_action' => $nextAction,
+            'completed_requirements' => $completed,
+            'pending_requirements' => $pending,
+            'blockers' => [],
+        ];
+    }
+
     private function determineWaitingOnActor(string $formCode, string $status): string
     {
         return match ($formCode) {
@@ -492,6 +626,49 @@ class ResearchJourneyService
         };
     }
 
+    /** @return list<int> */
+    public function automaticStageNumbersFor(ResearchClassGroup $group): array
+    {
+        return $this->resolveProgramCode($group) === 'BSIT'
+            ? self::BSIT_AUTOMATIC_STAGE_NUMBERS
+            : [];
+    }
+
+    private function resolveProgramCode(ResearchClassGroup $group): ?string
+    {
+        $group->loadMissing('members.student.studentProfile.program');
+
+        $programCodes = $group->members
+            ->map(function ($member): ?string {
+                $programCode = strtoupper(trim((string) $member->student?->studentProfile?->program?->code));
+
+                if (in_array($programCode, ['BSIT', 'IT'], true)) {
+                    return 'BSIT';
+                }
+
+                if (in_array($programCode, ['BSCS', 'CS'], true)) {
+                    return 'BSCS';
+                }
+
+                $legacyProgram = strtoupper(trim((string) $member->student?->program));
+
+                if (str_contains($legacyProgram, 'BSIT') || str_contains($legacyProgram, 'INFORMATION TECHNOLOGY')) {
+                    return 'BSIT';
+                }
+
+                if (str_contains($legacyProgram, 'BSCS') || str_contains($legacyProgram, 'COMPUTER SCIENCE')) {
+                    return 'BSCS';
+                }
+
+                return null;
+            })
+            ->filter()
+            ->unique()
+            ->values();
+
+        return $programCodes->count() === 1 ? $programCodes->first() : null;
+    }
+
     private function determineActorForFormStatus(string $formCode, string $status): string
     {
         return match ($formCode) {
@@ -512,7 +689,7 @@ class ResearchJourneyService
         };
     }
 
-    /** @return array{code: string, name: string, primary_form: string, form_completes_stage: bool} */
+    /** @return array{code: string, name: string, primary_form: string, form_completes_stage: bool, optional?: bool} */
     private function getStageConfig(int $stageNum): array
     {
         return match ($stageNum) {
@@ -525,10 +702,11 @@ class ResearchJourneyService
             7 => ['code' => 'data-gathering', 'name' => 'Data Gathering', 'primary_form' => 'res-044', 'form_completes_stage' => true],
             8 => ['code' => 'data-processing', 'name' => 'Data Processing', 'primary_form' => 'res-044', 'form_completes_stage' => false],
             9 => ['code' => 'report-writing', 'name' => 'Report Writing', 'primary_form' => 'res-033', 'form_completes_stage' => false],
-            10 => ['code' => 'research-final-oral-defense', 'name' => 'Research Final/Oral Defense', 'primary_form' => 'res-037', 'form_completes_stage' => true],
-            11 => ['code' => 'revision-whole-research-paper', 'name' => 'Revision of Whole Research Paper', 'primary_form' => 'res-039', 'form_completes_stage' => false],
-            12 => ['code' => 'language-technical-editing', 'name' => 'Language and Technical Editing', 'primary_form' => 'res-047', 'form_completes_stage' => true],
-            13 => ['code' => 'submission-final-research-paper', 'name' => 'Submission of Final Copy of Research Paper', 'primary_form' => 'res-049', 'form_completes_stage' => true],
+            10 => ['code' => 'research-pre-final-defense', 'name' => 'Research Pre-Final Defense', 'primary_form' => 'res-037', 'form_completes_stage' => true],
+            11 => ['code' => 'research-final-oral-defense', 'name' => 'Research Final/Oral Defense', 'primary_form' => 'res-037', 'form_completes_stage' => true],
+            12 => ['code' => 'revision-whole-research-paper', 'name' => 'Revision of Whole Research Paper', 'primary_form' => 'res-039', 'form_completes_stage' => false],
+            13 => ['code' => 'language-technical-editing', 'name' => 'Language and Technical Editing', 'primary_form' => 'res-047', 'form_completes_stage' => true, 'optional' => true],
+            14 => ['code' => 'submission-final-research-paper', 'name' => 'Submission of Final Copy of Research Paper', 'primary_form' => 'res-049', 'form_completes_stage' => true],
             default => ['code' => 'research-title-presentation', 'name' => 'Research Title Presentation', 'primary_form' => 'res-026', 'form_completes_stage' => true],
         };
     }

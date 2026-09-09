@@ -4,11 +4,15 @@ namespace App\Modules\ResearchProgress\Queries;
 
 use App\Models\ResearchClassGroup;
 use App\Models\User;
+use App\Modules\ResearchProgress\Services\ResearchJourneyService;
 use Illuminate\Support\Str;
 
 class GetAdviserProgressData
 {
-    public function __construct(private readonly GetResearchGroupProgress $progress) {}
+    public function __construct(
+        private readonly GetResearchGroupProgress $progress,
+        private readonly ResearchJourneyService $journey,
+    ) {}
 
     /** @return array<string, mixed> */
     public function for(
@@ -49,8 +53,20 @@ class GetAdviserProgressData
             ->paginate(10, ['*'], 'progress_page', is_numeric($page) ? (int) $page : null)
             ->withQueryString();
 
-        $groups->setCollection($groups->getCollection()->map(function (ResearchClassGroup $group): ResearchClassGroup {
-            $group->setAttribute('progress_summary', $this->progress->fromLoaded($group, $group->milestones));
+        $groups->setCollection($groups->getCollection()->map(function (ResearchClassGroup $group) use ($adviser): ResearchClassGroup {
+            $summary = $this->progress->fromLoaded($group, $group->milestones);
+            $journey = $this->journey->getJourneyForGroup($group, $adviser);
+
+            $summary['journey'] = $journey;
+            $summary['progress_percentage'] = $journey['percentage'];
+            $summary['completed_count'] = collect($journey['stages'])
+                ->filter(fn (array $stage): bool => $stage['is_completed'] && ! ($stage['is_optional'] ?? false))
+                ->count();
+            $summary['applicable_count'] = collect($journey['stages'])
+                ->reject(fn (array $stage): bool => $stage['is_optional'] ?? false)
+                ->count();
+
+            $group->setAttribute('progress_summary', $summary);
 
             return $group;
         }));

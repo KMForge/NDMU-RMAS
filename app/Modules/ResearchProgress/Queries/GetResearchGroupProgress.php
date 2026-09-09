@@ -31,9 +31,13 @@ class GetResearchGroupProgress
     public function fromLoaded(ResearchClassGroup $group, Collection $milestones): array
     {
         $milestones = $milestones->sortBy(fn (ResearchGroupMilestone $milestone): int => $milestone->definition->sequence)->values();
+        $optionalCodes = collect(config('research-progress.milestones', []))
+            ->filter(fn (array $definition): bool => (bool) ($definition['optional'] ?? false))
+            ->pluck('code');
 
         $applicable = $milestones->filter(fn ($milestone): bool => $milestone->definition->is_active
-            && $milestone->status !== ResearchMilestoneStatus::NotApplicable);
+            && $milestone->status !== ResearchMilestoneStatus::NotApplicable
+            && ! $optionalCodes->contains($milestone->definition->code));
 
         if ($applicable->contains(fn ($milestone): bool => (float) $milestone->definition->weight <= 0)) {
             throw new \UnexpectedValueException('Active research milestone weights must be positive.');

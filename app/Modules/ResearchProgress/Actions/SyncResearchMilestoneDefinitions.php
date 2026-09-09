@@ -32,6 +32,15 @@ class SyncResearchMilestoneDefinitions
                 ]);
             }
 
+            // Temporarily move existing canonical sequences so inserting a stage
+            // between them cannot collide with the unique sequence constraint.
+            MilestoneDefinition::query()
+                ->whereIn('code', $canonicalCodes)
+                ->get()
+                ->each(fn (MilestoneDefinition $definition) => $definition->update([
+                    'sequence' => 2000 + $definition->getKey(),
+                ]));
+
             // 2. Upsert canonical active definitions
             foreach ($canonical as $item) {
                 MilestoneDefinition::query()->updateOrCreate(

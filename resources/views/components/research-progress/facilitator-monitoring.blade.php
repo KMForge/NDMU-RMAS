@@ -64,15 +64,49 @@
     </form>
 
     <!-- Group Progress Cards -->
-    <div class="space-y-8">
+    <div
+        class="space-y-8"
+        data-research-monitoring-groups
+        x-data="{
+            refreshTimer: null,
+            refreshing: false,
+            async refreshFromServer() {
+                if (this.refreshing || document.visibilityState !== 'visible') return;
+                this.refreshing = true;
+
+                try {
+                    const response = await fetch(window.location.href, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        cache: 'no-store',
+                    });
+                    if (!response.ok) return;
+
+                    const documentCopy = new DOMParser().parseFromString(await response.text(), 'text/html');
+                    const updatedGroups = documentCopy.querySelector('[data-research-monitoring-groups]');
+                    if (updatedGroups && updatedGroups.innerHTML !== this.$root.innerHTML) {
+                        this.$root.innerHTML = updatedGroups.innerHTML;
+                    }
+                } finally {
+                    this.refreshing = false;
+                }
+            },
+            init() {
+                this.refreshTimer = window.setInterval(() => this.refreshFromServer(), 15000);
+            },
+            destroy() {
+                window.clearInterval(this.refreshTimer);
+            },
+        }"
+        @focus.window.debounce.750ms="refreshFromServer()"
+    >
         @forelse ($groups as $group)
             @php $summary = $group->progress_summary; @endphp
-            <section class="bg-white rounded-3xl border border-slate-200/80 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden relative">
+            <section class="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
                 <!-- Top Brand Accent Stripe -->
                 <div class="h-1.5 bg-gradient-to-r from-[#073823] via-[#eebc3f] to-[#0e5c3a]"></div>
 
                 <!-- Group Header -->
-                <header class="p-6 sm:p-7 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-gradient-to-br from-slate-50/60 to-white">
+                <div class="relative z-[1] flex flex-col justify-between gap-6 border-b border-slate-100 bg-white p-6 sm:p-7 lg:flex-row lg:items-center">
                     <div class="space-y-2.5 max-w-3xl">
                         <div class="flex flex-wrap items-center gap-2">
                             <span class="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-[10px] font-black uppercase tracking-wider text-[#0e5c3a] border border-emerald-200">
@@ -130,9 +164,14 @@
                             <span class="text-[11px] font-bold text-slate-500 block mt-0.5">
                                 {{ $summary['completed_count'] }} of {{ $summary['applicable_count'] }} Milestones
                             </span>
+                            @if (isset($summary['journey']))
+                                <span class="mt-1 block text-[10px] font-semibold text-slate-400">
+                                    Current: Stage {{ $summary['journey']['current_stage'] }} &mdash; {{ $summary['journey']['current_stage_name'] }}
+                                </span>
+                            @endif
                         </div>
                     </div>
-                </header>
+                </div>
 
                 <!-- Thin Milestone Progression Bar -->
                 <div class="h-2 w-full bg-slate-100">
@@ -147,11 +186,23 @@
                     <div class="grid grid-cols-1 gap-3.5">
                         @foreach ($summary['milestones'] as $milestone)
                             @php
-                                $statusVal = $milestone->status->value;
+                                $persistedStatusVal = $milestone->status->value;
+                                $journeyStage = $summary['journey']['stages'][$milestone->definition->sequence] ?? null;
+                                $statusVal = $journeyStage
+                                    ? (($journeyStage['is_optional'] ?? false) && ! $journeyStage['is_completed']
+                                        ? 'optional'
+                                        : ($journeyStage['is_completed']
+                                        ? 'completed'
+                                        : (($summary['journey']['current_stage'] ?? null) === $milestone->definition->sequence ? 'in_progress' : 'pending')))
+                                    : $persistedStatusVal;
+                                $statusLabel = ($journeyStage['is_auto_completed'] ?? false)
+                                    ? 'Auto-completed'
+                                    : str($statusVal)->replace('_', ' ')->title();
                                 $statusBadgeClass = match($statusVal) {
                                     'completed' => 'bg-emerald-50 text-[#0e5c3a] border-emerald-200',
                                     'in_progress' => 'bg-amber-50 text-amber-800 border-amber-200',
                                     'not_applicable' => 'bg-slate-100 text-slate-500 border-slate-200',
+                                    'optional' => 'bg-violet-50 text-violet-700 border-violet-200',
                                     default => 'bg-slate-50 text-slate-600 border-slate-200',
                                 };
                             @endphp
@@ -161,6 +212,7 @@
                                 'border-amber-200 bg-amber-50/40 ring-2 ring-amber-400/20' => $statusVal === 'in_progress',
                                 'border-slate-200/80 bg-white hover:border-slate-300' => $statusVal === 'pending',
                                 'border-slate-200 bg-slate-50/60' => $statusVal === 'not_applicable',
+                                'border-violet-200 bg-violet-50/30' => $statusVal === 'optional',
                             ])>
                                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div class="space-y-1">
@@ -170,7 +222,7 @@
                                             </span>
                                             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border {{ $statusBadgeClass }}">
                                                 <span class="w-1.5 h-1.5 rounded-full {{ $statusVal === 'completed' ? 'bg-[#0e5c3a]' : ($statusVal === 'in_progress' ? 'bg-amber-500 animate-pulse' : 'bg-slate-400') }}"></span>
-                                                {{ $milestone->status->label() }}
+                                                {{ $statusLabel }}
                                             </span>
                                         </div>
                                         <h3 class="font-black font-heading text-slate-900 text-sm">

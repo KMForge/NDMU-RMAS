@@ -117,9 +117,11 @@ class ReconcileWorkflowMilestones
                     return;
                 }
 
-                $milestoneCode = in_array($defenseType, ['final_defense', 'final_oral_defense'], true)
-                    ? 'research-final-oral-defense'
-                    : 'research-proposal-defense';
+                $milestoneCode = match ($defenseType) {
+                    'pre_final_defense' => 'research-pre-final-defense',
+                    'final_defense', 'final_oral_defense' => 'research-final-oral-defense',
+                    default => 'research-proposal-defense',
+                };
 
                 $actor = $round->summarySigner ?? User::query()->find($round->opened_by) ?? User::query()->first();
                 if ($actor === null) {

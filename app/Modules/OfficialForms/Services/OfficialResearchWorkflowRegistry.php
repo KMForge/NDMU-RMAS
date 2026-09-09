@@ -142,7 +142,7 @@ class OfficialResearchWorkflowRegistry
         'res-029' => [
             'code' => 'res-029',
             'title' => 'Language Editor Invitation',
-            'stage' => 12,
+            'stage' => 13,
             'stage_name' => 'Language and Technical Editing',
             'ownership_scope' => 'group',
             'source_type' => null,
@@ -562,7 +562,7 @@ class OfficialResearchWorkflowRegistry
         'res-045' => [
             'code' => 'res-045',
             'title' => 'Language Editing Certificate',
-            'stage' => 12,
+            'stage' => 13,
             'stage_name' => 'Language and Technical Editing',
             'ownership_scope' => 'group',
             'source_type' => 'Document',
@@ -583,7 +583,7 @@ class OfficialResearchWorkflowRegistry
         'res-046' => [
             'code' => 'res-046',
             'title' => 'Technical Editing Certificate',
-            'stage' => 12,
+            'stage' => 13,
             'stage_name' => 'Language and Technical Editing',
             'ownership_scope' => 'group',
             'source_type' => 'Document',
@@ -604,7 +604,7 @@ class OfficialResearchWorkflowRegistry
         'res-047' => [
             'code' => 'res-047',
             'title' => 'Paper Reproduction Endorsement',
-            'stage' => 12,
+            'stage' => 13,
             'stage_name' => 'Language and Technical Editing',
             'ownership_scope' => 'group',
             'source_type' => 'Document',
@@ -633,12 +633,14 @@ class OfficialResearchWorkflowRegistry
         'res-048' => [
             'code' => 'res-048',
             'title' => 'Self & Peer Evaluation Form',
-            'stage' => 13,
+            'stage' => 14,
             'stage_name' => 'Submission of Final Copy of Research Paper',
             'ownership_scope' => 'user',
             'source_type' => null,
             'signature_required' => true,
-            'prerequisites' => ['res-047'],
+            // Language/technical editing (RES-045 to RES-047) is optional.
+            // Final submission work may begin after the whole-paper revision.
+            'prerequisites' => ['res-039'],
             'actions' => [
                 'fill' => [
                     'label' => 'Submit Self & Peer Evaluation',
@@ -654,12 +656,12 @@ class OfficialResearchWorkflowRegistry
         'res-049' => [
             'code' => 'res-049',
             'title' => 'Certificate of Authentic Authorship',
-            'stage' => 13,
+            'stage' => 14,
             'stage_name' => 'Submission of Final Copy of Research Paper',
             'ownership_scope' => 'group',
             'source_type' => 'Document',
             'signature_required' => true,
-            'prerequisites' => ['res-047', 'res-048'],
+            'prerequisites' => ['res-048'],
             'actions' => [
                 'sign_authorship' => [
                     'label' => 'Sign Authentic Authorship Certificate',

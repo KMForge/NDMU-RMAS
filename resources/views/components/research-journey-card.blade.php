@@ -9,7 +9,7 @@
             <div class="space-y-1.5">
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-[#eebc3f]/30 text-[#eebc3f]">
-                        13-Stage Research Journey
+                        13 Required Stages + 1 Optional
                     </span>
                     <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider
                         {{ $journey['stage_status'] === 'completed' ? 'bg-emerald-500 text-white' : ($journey['stage_status'] === 'blocked' ? 'bg-rose-500 text-white' : 'bg-blue-600 text-white') }}">
@@ -84,7 +84,7 @@
                         </div>
                         <p class="text-xs text-slate-500 font-medium">
                             @if(($journey['next_action']['action_type'] ?? 'form') === 'document')
-                                Requirement: <span class="font-bold text-slate-800">Title Proposal Document</span>
+                                Requirement: <span class="font-bold text-slate-800">{{ $journey['next_action']['document_label'] ?? 'Research Document' }}</span>
                             @elseif(($journey['next_action']['action_type'] ?? 'form') === 'presentation')
                                 Activity: <span class="font-bold text-slate-800">Title Presentation</span>
                             @else
@@ -107,18 +107,24 @@
             </div>
         </div>
 
-        <!-- 13-Stage Timeline Preview -->
+        <!-- Research lifecycle timeline -->
         <div class="mt-6 pt-6 border-t border-slate-200">
             <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-3">Lifecycle Stages Timeline</div>
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2 text-center">
                 @foreach($journey['stages'] as $sNum => $sDetails)
                     <div class="min-h-20 p-2.5 rounded-2xl border text-xs flex flex-col items-center justify-center transition-all
-                        {{ $sDetails['is_completed'] ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold shadow-2xs' : ($sNum === $journey['current_stage'] ? 'bg-emerald-100/60 border-[#0e5c3a] text-[#073823] font-black ring-2 ring-emerald-600/30 shadow-2xs' : 'bg-white border-slate-200 text-slate-400') }}">
+                        {{ $sDetails['is_completed'] ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold shadow-2xs' : (($sDetails['is_optional'] ?? false) ? 'bg-violet-50/60 border-violet-200 border-dashed text-violet-700' : ($sNum === $journey['current_stage'] ? 'bg-emerald-100/60 border-[#0e5c3a] text-[#073823] font-black ring-2 ring-emerald-600/30 shadow-2xs' : 'bg-white border-slate-200 text-slate-400')) }}">
                         <span class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] mb-1 font-black
                             {{ $sDetails['is_completed'] ? 'bg-gradient-to-br from-[#073823] to-[#0e5c3a] text-[#eebc3f]' : ($sNum === $journey['current_stage'] ? 'bg-[#0e5c3a] text-white' : 'bg-slate-100 text-slate-400') }}">
                             {{ $sNum }}
                         </span>
                         <span class="w-full text-[10px] leading-tight whitespace-normal break-words font-semibold" title="{{ $sDetails['name'] }}">{{ $sDetails['name'] }}</span>
+                        @if($sDetails['is_auto_completed'] ?? false)
+                            <span class="mt-1 text-[8px] font-black uppercase tracking-wider text-emerald-700">Auto-completed for BSIT</span>
+                        @endif
+                        @if($sDetails['is_optional'] ?? false)
+                            <span class="mt-1 text-[8px] font-black uppercase tracking-wider text-violet-600">Optional</span>
+                        @endif
                     </div>
                 @endforeach
             </div>
@@ -126,4 +132,3 @@
     </div>
 </div>
 @endif
-

@@ -99,6 +99,9 @@ class DashboardController extends Controller
 
         $activeGroup = $data['activeGroup'] ?? null;
         $journey = $activeGroup ? $journeyService->getJourneyForGroup($activeGroup, $request->user()) : null;
+        if ($journey !== null) {
+            $data['dashboardOverview']['progress_percentage'] = $journey['percentage'];
+        }
         $pendingAcademicActions = $pendingActionsService->execute($request->user());
 
         $data['sidebarBadges'] = [

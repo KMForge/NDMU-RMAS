@@ -263,7 +263,8 @@ class StudentDashboardDataTest extends TestCase
                 && $overview['completed_milestones'] === 1
                 && $overview['total_milestones'] === 13
                 && $overview['urgent_task_count'] === 12)
-            ->assertSee('1 of 13 milestones')
+            ->assertViewHas('journey', fn (array $journey): bool => $journey['percentage'] === 8)
+            ->assertSee('1 of 13 Milestones')
             ->assertSee($milestones->first()->definition->name)
             ->assertSee($milestones->get(1)->definition->name);
     }
