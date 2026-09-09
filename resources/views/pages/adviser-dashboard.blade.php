@@ -233,6 +233,7 @@
                     <div class="flex items-center gap-3">
                         <i class="ph ph-arrows-counter-clockwise text-lg transition-transform group-hover:scale-110"></i>
                         <span>Revision Tracker</span>
+                        <x-sidebar-count-badge :count="$sidebarBadges['revisions'] ?? 0" label="submitted revisions awaiting verification" />
                     </div>
                     <span x-show="activeTab === 'revisions'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </a>
@@ -456,6 +457,12 @@
                         <i class="ph ph-check-circle text-xl text-emerald-600"></i>
                         <span>{{ session('adviser_success') }}</span>
                     </div>
+                </div>
+            @endif
+            @if (session('status'))
+                <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-800 flex items-center gap-3">
+                    <i class="ph ph-check-circle text-xl text-emerald-600"></i>
+                    <span>{{ session('status') }}</span>
                 </div>
             @endif
             @if ($errors->has('adviser_request'))
@@ -1617,6 +1624,143 @@
                 </div>
             </div>
 
+            <!-- TAB: Revision Tracker -->
+            <section x-show="activeTab === 'revisions'" x-cloak class="space-y-6 animate-fade-in">
+                @php
+                    $revisionCards = [
+                        ['label' => 'Open', 'key' => 'open', 'icon' => 'ph-folder-open'],
+                        ['label' => 'In Progress', 'key' => 'in_progress', 'icon' => 'ph-spinner-gap'],
+                        ['label' => 'Awaiting Verification', 'key' => 'submitted', 'icon' => 'ph-clock-countdown'],
+                        ['label' => 'Resolved', 'key' => 'resolved', 'icon' => 'ph-check-circle'],
+                    ];
+                @endphp
+
+                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    @foreach ($revisionCards as $card)
+                        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">{{ $card['label'] }}</p>
+                                    <p class="mt-1 text-3xl font-black text-slate-900">{{ number_format($revisionStats[$card['key']] ?? 0) }}</p>
+                                </div>
+                                <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-xl text-[#0e5c3a]"><i class="ph {{ $card['icon'] }}"></i></span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <form method="GET" action="{{ route('adviser.dashboard') }}" class="grid gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-2xs md:grid-cols-[minmax(0,1fr)_14rem_auto]">
+                    <input type="hidden" name="tab" value="revisions">
+                    <input type="search" name="revision_search" value="{{ $revisionSearch }}" aria-label="Search revisions" placeholder="Search group, title, or document..." class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#0e5c3a] focus:outline-none focus:ring-2 focus:ring-emerald-100">
+                    <select name="revision_status" aria-label="Revision status" class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-[#0e5c3a] focus:outline-none focus:ring-2 focus:ring-emerald-100">
+                        @foreach (['all' => 'All Statuses', 'submitted' => 'Awaiting Verification', 'open' => 'Open', 'in_progress' => 'In Progress', 'resolved' => 'Resolved', 'cancelled' => 'Cancelled'] as $value => $label)
+                            <option value="{{ $value }}" @selected($revisionStatus === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <div class="flex gap-2">
+                        <button type="submit" class="rounded-xl bg-[#0e5c3a] px-5 py-2.5 text-xs font-black text-white hover:bg-[#073823]">Apply</button>
+                        <a href="{{ route('adviser.dashboard', ['tab' => 'revisions']) }}" class="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-black text-slate-700 hover:bg-slate-50">Reset</a>
+                    </div>
+                </form>
+
+                <div class="space-y-4">
+                    @forelse ($revisionRequests as $revision)
+                        @php
+                            $revisionStatusValue = $revision->status instanceof \BackedEnum ? $revision->status->value : (string) $revision->status;
+                            $statusTone = match ($revisionStatusValue) {
+                                'open' => 'border-sky-200 bg-sky-50 text-sky-700',
+                                'in_progress' => 'border-amber-200 bg-amber-50 text-amber-800',
+                                'submitted' => 'border-violet-200 bg-violet-50 text-violet-700',
+                                'resolved' => 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                                default => 'border-slate-200 bg-slate-100 text-slate-600',
+                            };
+                            $isOverdue = $revision->due_at && $revision->due_at->isPast() && !in_array($revisionStatusValue, ['resolved', 'cancelled'], true);
+                        @endphp
+                        <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-2xs">
+                            <div class="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wide {{ $statusTone }}">{{ \Illuminate\Support\Str::headline($revisionStatusValue) }}</span>
+                                        @if ($isOverdue)<span class="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-rose-700">Overdue</span>@endif
+                                    </div>
+                                    <h2 class="mt-3 text-lg font-black text-slate-900">{{ $revision->title }}</h2>
+                                    <p class="mt-1 text-xs font-semibold text-slate-500">
+                                        {{ $revision->researchClassGroup?->name ?? 'Research group unavailable' }}
+                                        @if ($revision->researchClassGroup?->research_title) &middot; {{ $revision->researchClassGroup->research_title }} @endif
+                                    </p>
+                                    <p class="mt-4 whitespace-pre-line text-sm leading-6 text-slate-700">{{ $revision->instructions ?: 'No additional revision instructions were recorded.' }}</p>
+                                    <dl class="mt-5 grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-4">
+                                        <div class="rounded-xl bg-slate-50 p-3"><dt class="font-black uppercase tracking-wide text-slate-400">Requested by</dt><dd class="mt-1 font-bold text-slate-800">{{ $revision->requester?->name ?? 'System' }}</dd></div>
+                                        <div class="rounded-xl bg-slate-50 p-3"><dt class="font-black uppercase tracking-wide text-slate-400">Group leader</dt><dd class="mt-1 font-bold text-slate-800">{{ $revision->researchClassGroup?->leader?->name ?? 'Not assigned' }}</dd></div>
+                                        <div class="rounded-xl bg-slate-50 p-3"><dt class="font-black uppercase tracking-wide text-slate-400">Created</dt><dd class="mt-1 font-bold text-slate-800">{{ $revision->created_at?->format('M j, Y g:i A') }}</dd></div>
+                                        <div class="rounded-xl bg-slate-50 p-3"><dt class="font-black uppercase tracking-wide text-slate-400">Due date</dt><dd class="mt-1 font-bold {{ $isOverdue ? 'text-rose-700' : 'text-slate-800' }}">{{ $revision->due_at?->format('M j, Y') ?? 'Not set' }}</dd></div>
+                                    </dl>
+                                </div>
+                                <div class="flex w-full flex-col gap-2 xl:w-52">
+                                    @if ($revision->sourceDocument)
+                                        <a href="{{ route('documents.view', $revision->sourceDocument) }}" target="_blank" rel="noopener" title="{{ $revision->sourceDocument->original_filename }}" class="rounded-xl border border-slate-200 px-4 py-2.5 text-center text-xs font-black text-slate-700 hover:bg-slate-50">
+                                            <span class="block"><i class="ph ph-file-text mr-1"></i> Source Document</span>
+                                            <span class="mt-1 block truncate text-[10px] font-semibold text-slate-500">{{ $revision->sourceDocument->original_filename }}</span>
+                                        </a>
+                                    @endif
+                                    @if ($revision->submittedDocument)
+                                        <a href="{{ route('documents.view', $revision->submittedDocument) }}" target="_blank" rel="noopener" class="rounded-xl bg-[#0e5c3a] px-4 py-2.5 text-center text-xs font-black text-white hover:bg-[#073823]"><i class="ph ph-file-check mr-1"></i> Revised Document</a>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="mt-6 grid gap-4 border-t border-slate-100 pt-5 lg:grid-cols-2">
+                                @can('updateDueDate', $revision)
+                                    <form method="POST" action="{{ route('adviser.revisions.due-date', $revision) }}" class="flex flex-wrap items-end gap-2 rounded-2xl bg-slate-50 p-4">
+                                        @csrf @method('PATCH')
+                                        <label class="min-w-44 flex-1 text-[10px] font-black uppercase tracking-wide text-slate-500">Due date
+                                            <input type="date" name="due_at" min="{{ now()->toDateString() }}" value="{{ $revision->due_at?->toDateString() }}" class="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800">
+                                        </label>
+                                        <button type="submit" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-black text-slate-700 hover:bg-slate-100">Save Date</button>
+                                    </form>
+                                @endcan
+                                @can('resolve', $revision)
+                                    <form method="POST" action="{{ route('adviser.revisions.resolve', $revision) }}" class="flex flex-wrap items-end gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                                        @csrf @method('PATCH')
+                                        <label class="min-w-44 flex-1 text-[10px] font-black uppercase tracking-wide text-emerald-800">Verification notes
+                                            <input type="text" name="notes" maxlength="1000" placeholder="Optional verification notes" class="mt-1.5 w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs text-slate-800">
+                                        </label>
+                                        <button type="submit" class="rounded-xl bg-[#0e5c3a] px-4 py-2 text-xs font-black text-white hover:bg-[#073823]">Mark Resolved</button>
+                                    </form>
+                                @endcan
+                                @can('reopen', $revision)
+                                    <form method="POST" action="{{ route('adviser.revisions.reopen', $revision) }}" class="flex flex-wrap items-end gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 lg:col-span-2">
+                                        @csrf @method('PATCH')
+                                        <label class="min-w-44 flex-1 text-[10px] font-black uppercase tracking-wide text-amber-800">Reason for reopening
+                                            <input type="text" name="reason" required minlength="5" maxlength="1000" placeholder="Explain why this cycle must be reopened" class="mt-1.5 w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs text-slate-800">
+                                        </label>
+                                        <button type="submit" class="rounded-xl bg-amber-600 px-4 py-2 text-xs font-black text-white hover:bg-amber-700">Reopen Cycle</button>
+                                    </form>
+                                @endcan
+                            </div>
+
+                            @if ($revision->events->isNotEmpty())
+                                <details class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                    <summary class="cursor-pointer text-xs font-black text-slate-700">Workflow history ({{ $revision->events->count() }})</summary>
+                                    <ol class="mt-4 space-y-3 border-l-2 border-slate-200 pl-4">
+                                        @foreach ($revision->events as $event)
+                                            <li class="text-xs text-slate-600"><p class="font-black text-slate-800">{{ \Illuminate\Support\Str::headline($event->action) }}</p><p>{{ $event->actor?->name ?? 'System' }} &middot; {{ $event->occurred_at?->format('M j, Y g:i A') }}</p>@if ($event->notes)<p class="mt-1 whitespace-pre-line">{{ $event->notes }}</p>@endif</li>
+                                        @endforeach
+                                    </ol>
+                                </details>
+                            @endif
+                        </article>
+                    @empty
+                        <div class="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center shadow-2xs">
+                            <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-2xl text-slate-500"><i class="ph ph-arrows-counter-clockwise"></i></span>
+                            <h2 class="mt-4 text-base font-black text-slate-900">No revision requests found</h2>
+                            <p class="mx-auto mt-1 max-w-md text-sm text-slate-500">There are no revisions matching the selected status and search filters for your assigned research groups.</p>
+                        </div>
+                    @endforelse
+                </div>
+                @if ($revisionRequests->hasPages())<div>{{ $revisionRequests->links() }}</div>@endif
+            </section>
+
             <!-- TAB: Assigned Researchers -->
             <div x-show="activeTab === 'researchers'" x-cloak class="space-y-8 animate-fade-in">
                 <!-- Section Header & Controls -->
@@ -1867,7 +2011,7 @@
             </div>
 
             <!-- TAB: Research Monitoring -->
-            <div x-show="activeTab === 'monitoring'" x-cloak class="space-y-8 animate-fade-in">
+            <div x-show="activeTab === 'monitoring'" x-cloak class="space-y-8">
                 @if (isset($progressGroups))
                     <x-research-progress.facilitator-monitoring
                         :groups="$progressGroups"

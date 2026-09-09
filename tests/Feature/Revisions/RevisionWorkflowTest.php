@@ -63,9 +63,10 @@ class RevisionWorkflowTest extends TestCase
         $uploadPerm = Permission::findOrCreate('documents.upload');
         $reviewPerm = Permission::findOrCreate('documents.review');
         $studentDashPerm = Permission::findOrCreate('dashboards.student.view');
+        $adviserDashPerm = Permission::findOrCreate('dashboards.adviser.view');
 
         $adviserRole = Role::findOrCreate('Thesis Adviser');
-        $adviserRole->givePermissionTo([$resolvePerm, $reviewPerm]);
+        $adviserRole->givePermissionTo([$resolvePerm, $reviewPerm, $adviserDashPerm]);
 
         $studentRole = Role::findOrCreate('Student');
         $studentRole->givePermissionTo([$uploadPerm, $studentDashPerm]);
@@ -177,6 +178,29 @@ class RevisionWorkflowTest extends TestCase
             fn (AcademicWorkflowNotification $notification): bool => $notification->eventKey === 'document.review.decision-recorded',
         );
         Notification::assertNotSentTo($this->facilitator, AcademicWorkflowNotification::class);
+    }
+
+    public function test_adviser_revision_tracker_displays_scoped_revision_cycles(): void
+    {
+        app(ReviewDocument::class)->handle(
+            $this->adviser,
+            $this->document,
+            DocumentStatus::RevisionRequested->value,
+            'Please revise Chapter 3 methodology.',
+            '127.0.0.1'
+        );
+
+        $this->actingAs($this->adviser)
+            ->get(route('adviser.dashboard', [
+                'tab' => 'revisions',
+                'revision_status' => 'all',
+            ]))
+            ->assertOk()
+            ->assertSee('Revision Tracker')
+            ->assertSee('Please revise Chapter 3 methodology.')
+            ->assertSee('Group Alpha')
+            ->assertSee('proposal_v1.pdf')
+            ->assertSee('Source Document');
     }
 
     public function test_idempotent_cycle_creation(): void

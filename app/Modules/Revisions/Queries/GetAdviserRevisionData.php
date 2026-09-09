@@ -27,7 +27,7 @@ class GetAdviserRevisionData
                     'total' => 0,
                 ],
                 'revisionSearch' => '',
-                'revisionStatus' => 'submitted',
+                'revisionStatus' => 'all',
             ];
         }
 
@@ -46,11 +46,11 @@ class GetAdviserRevisionData
         $allowedStatuses = ['open', 'in_progress', 'submitted', 'resolved', 'cancelled', 'all'];
         $status = in_array($statusInput, $allowedStatuses, true)
             ? (string) $statusInput
-            : 'submitted';
+            : 'all';
 
         $revisions = (clone $scope)
             ->with([
-                'researchClassGroup:id,name,research_title,adviser_id,status',
+                'researchClassGroup:id,name,research_title,adviser_id,leader_student_id,status',
                 'researchClassGroup.leader:id,name,email',
                 'sourceDocument:id,user_id,original_filename,file_type,file_size,document_stage,version_number,submitted_at,status',
                 'sourceReview:id,reviewer_id,decision,review_notes,reviewed_at',

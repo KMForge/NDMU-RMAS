@@ -9,6 +9,7 @@ use App\Models\ConsultationRequest;
 use App\Models\Document;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupAdviserRequest;
+use App\Models\RevisionRequest;
 use App\Modules\Consultations\Queries\GetAdviserConsultationData;
 use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Documents\Queries\GetAdviserDocumentReviewData;
@@ -19,6 +20,7 @@ use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use App\Modules\Research\Queries\GetAdviserDashboardOverview;
 use App\Modules\ResearchProgress\Queries\GetAdviserProgressData;
 use App\Modules\ResearchProgress\Queries\GetResearchGroupProgress;
+use App\Modules\Revisions\Queries\GetAdviserRevisionData;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -37,6 +39,7 @@ class DashboardController extends Controller
         GetAdviserDashboardOverview $overviewData,
         GetDefenseScheduleCalendar $defenseCalendar,
         GetNotificationsForUser $notificationQuery,
+        GetAdviserRevisionData $revisionData,
     ): View {
         $allowedTabs = [
             'dashboard',
@@ -100,6 +103,15 @@ class DashboardController extends Controller
                 DocumentStatus::UnderReview->value,
             ])
             ->count();
+        $pendingRevisionsCount = Schema::hasTable('revision_requests')
+            ? RevisionRequest::query()
+                ->whereHas('researchClassGroup', fn ($group) => $group
+                    ->where('adviser_id', $user->getKey())
+                    ->where('status', 'active')
+                    ->whereNull('disbanded_at'))
+                ->where('status', 'submitted')
+                ->count()
+            : 0;
 
         $viewData['pendingAdviserRequests'] = $pendingAdviserRequests;
         $viewData['pendingAdviserRequestsCount'] = $pendingAdviserRequests->count();
@@ -111,6 +123,7 @@ class DashboardController extends Controller
             'classes' => $pendingAdviserRequests->count(),
             'docreview' => $pendingDocReviewsCount,
             'consultation' => $pendingConsultationsCount,
+            'revisions' => $pendingRevisionsCount,
             'forms' => $viewData['pendingFormInstances']->count(),
             'notifications' => Schema::hasTable('notifications')
                 ? $user->unreadNotifications()->count()
@@ -166,6 +179,14 @@ class DashboardController extends Controller
             )];
         }
 
+        if ($activeTab === 'revisions') {
+            $viewData = [...$viewData, ...$revisionData->for(
+                $user,
+                $request->query('revision_search'),
+                $request->query('revision_status'),
+            )];
+        }
+
         if ($activeTab === 'notifications') {
             $viewData['userNotifications'] = $notificationQuery->execute($user, (string) $request->query('notification_filter', 'all'));
             $viewData['userUnreadCount'] = $user->unreadNotifications()->count();
@@ -218,6 +239,16 @@ class DashboardController extends Controller
             'pendingDocReviewsCount' => 0,
             'pendingAdviserRequestsCount' => 0,
             'adviserProgressGroups' => new Collection,
+            'revisionRequests' => new LengthAwarePaginator([], 0, 10),
+            'revisionStats' => [
+                'open' => 0,
+                'in_progress' => 0,
+                'submitted' => 0,
+                'resolved' => 0,
+                'total' => 0,
+            ],
+            'revisionSearch' => '',
+            'revisionStatus' => 'all',
         ];
     }
 }
