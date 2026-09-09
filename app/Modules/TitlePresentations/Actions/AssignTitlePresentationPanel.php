@@ -63,6 +63,31 @@ class AssignTitlePresentationPanel
             }
 
             $existing = DefensePanelAssignment::query()->where('defense_id', $locked->defense_id)->whereNull('ended_at')->get();
+            $existingAssignments = $existing
+                ->mapWithKeys(fn (DefensePanelAssignment $assignment): array => [
+                    $assignment->panel_position => (int) $assignment->user_id,
+                ])
+                ->all();
+            $requestedAssignments = collect($assignments)
+                ->map(fn ($userId): int => (int) $userId)
+                ->all();
+
+            // ScheduleDefense may already have populated the saved group committee.
+            // Re-applying that exact fetched roster is idempotent, not a historical
+            // reassignment, so it must not require a correction reason or duplicate rows.
+            $isSameRoster = $existing->count() === count($requestedAssignments)
+                && collect($requestedAssignments)->every(
+                    fn (int $userId, string $position): bool => ($existingAssignments[$position] ?? null) === $userId,
+                );
+
+            if ($isSameRoster) {
+                if ($locked->status !== 'panel_assigned') {
+                    $locked->update(['status' => 'panel_assigned']);
+                }
+
+                return $locked->fresh(['defense.currentSchedule.room', 'defense.activePanelAssignments.user']);
+            }
+
             $changed = $existing->isNotEmpty();
             if ($changed && trim((string) $changeReason) === '') {
                 throw new InvalidArgumentException('A reason is required when changing a historical Title Presentation panel assignment.');

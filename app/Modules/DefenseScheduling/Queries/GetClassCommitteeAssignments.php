@@ -6,10 +6,15 @@ use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassPanelCommittee;
 use App\Models\ResearchGroupPanelCommittee;
+use App\Modules\DefenseScheduling\Services\DefenseEndorsementEligibility;
 use Illuminate\Support\Collection;
 
 class GetClassCommitteeAssignments
 {
+    public function __construct(
+        private readonly DefenseEndorsementEligibility $endorsementEligibility,
+    ) {}
+
     /**
      * @return array{
      *     class: array{id: int, name: string},
@@ -39,7 +44,7 @@ class GetClassCommitteeAssignments
             ->with(['adviser:id,name,email,department', 'leader:id,name'])
             ->orderBy('name')
             ->get()
-            ->map(function (ResearchClassGroup $group) use ($groupCommittees, $classCommittee): array {
+            ->map(function (ResearchClassGroup $group) use ($groupCommittees, $classCommittee, $defenseType): array {
                 $groupCommittee = $groupCommittees->get($group->id);
 
                 if ($groupCommittee !== null) {
@@ -78,6 +83,7 @@ class GetClassCommitteeAssignments
                     'committee_status_label' => $statusLabel,
                     'is_custom' => $isCustom,
                     'is_complete' => $isComplete,
+                    'res033_complete' => $this->endorsementEligibility->isComplete($group, $defenseType),
                     'chairperson_id' => $chairperson?->id,
                     'chairperson_name' => $chairperson?->name,
                     'member_1_id' => $member1?->id,

@@ -1,7 +1,7 @@
 @extends('layouts.blank')
 
 @php
-    $allowedTabs = ['dashboard', 'approvals', 'classes', 'join-requests', 'monitoring', 'screening', 'defenses', 'statistics', 'reports', 'repository', 'forms', 'notifications', 'settings'];
+    $allowedTabs = ['dashboard', 'approvals', 'classes', 'join-requests', 'monitoring', 'screening', 'defenses', 'statistics', 'repository', 'forms', 'notifications', 'settings'];
     $initialTab = in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard';
     $classes = $classes ?? $researchClasses ?? collect();
     $classRequestStats = $classRequestStats ?? ['pending' => 0, 'approved' => 0, 'rejected' => 0, 'total' => 0];
@@ -768,7 +768,7 @@
             this.bulkScheduleForm.classGroupsData = data.groups || [];
             this.bulkClassGroups = (data.groups || []).map(g => ({
                 ...g,
-                selected: Boolean(g.is_complete),
+                selected: Boolean(g.is_complete && g.res033_complete),
             }));
             this.bulkScheduleForm.orderedGroups = this.bulkClassGroups.filter(g => g.selected);
             this.triggerConflictCheck();
@@ -786,7 +786,7 @@
     },
 
     selectAllBulkGroups() {
-        (this.bulkClassGroups || []).forEach(g => g.selected = true);
+        (this.bulkClassGroups || []).forEach(g => g.selected = Boolean(g.res033_complete));
         this.triggerConflictCheck();
     },
 
@@ -936,6 +936,33 @@
         return this.defenseSchedulingGroups.find(group => String(group.id) === String(this.scheduleForm.groupId)) || null;
     },
 
+    get eligibleDefenseSchedulingGroups() {
+        const defenseType = this.scheduleForm.type || 'title_presentation';
+
+        return (this.defenseSchedulingGroups || []).filter(
+            group => Boolean(group.res033_eligibility?.[defenseType])
+        );
+    },
+
+    get unavailableDefenseGroupCount() {
+        return Math.max(0, (this.defenseSchedulingGroups || []).length - this.eligibleDefenseSchedulingGroups.length);
+    },
+
+    onDefenseTypeChange() {
+        if (this.scheduleForm.groupId && !this.eligibleDefenseSchedulingGroups.some(
+            group => String(group.id) === String(this.scheduleForm.groupId)
+        )) {
+            this.scheduleForm.groupId = '';
+            this.scheduleForm.chairpersonId = '';
+            this.scheduleForm.memberOneId = '';
+            this.scheduleForm.memberTwoId = '';
+
+            return;
+        }
+
+        this.onDefenseGroupChange();
+    },
+
     get departmentFilteredPanelCandidates() {
         const group = this.selectedDefenseGroup;
         if (!group || !group.department) {
@@ -969,7 +996,20 @@
             return candDept === groupDept || candDept.includes(groupDept) || groupDept.includes(candDept);
         });
 
-        return matched.length > 0 ? matched : this.defensePanelCandidates;
+        if (matched.length === 0) {
+            return this.defensePanelCandidates;
+        }
+
+        const defenseType = this.scheduleForm.type || 'title_presentation';
+        const committee = group.committee_assignments?.[defenseType];
+        const assignedIds = [committee?.chairperson_id, committee?.member_1_id, committee?.member_2_id]
+            .filter(Boolean)
+            .map(String);
+        const assignedOutsideDepartment = this.defensePanelCandidates.filter(
+            candidate => assignedIds.includes(String(candidate.id)) && !matched.some(item => String(item.id) === String(candidate.id))
+        );
+
+        return [...matched, ...assignedOutsideDepartment];
     },
 
     get eligibleChairpersons() {
@@ -979,26 +1019,47 @@
 
     onDefenseGroupChange() {
         const group = this.selectedDefenseGroup;
-        if (!group) return;
+        if (!group) {
+            this.scheduleForm.chairpersonId = '';
+            this.scheduleForm.memberOneId = '';
+            this.scheduleForm.memberTwoId = '';
 
-        // Automatically populate Chairperson from Title Proposal / Presentation panel if within department
+            return;
+        }
+
+        const defenseType = this.scheduleForm.type || 'title_presentation';
+        const committee = group.committee_assignments?.[defenseType] || null;
+        const hasSavedCommittee = Boolean(committee?.source_label);
+        const chairpersonId = hasSavedCommittee ? committee.chairperson_id : group.chairperson_id;
+        const memberOneId = hasSavedCommittee ? committee.member_1_id : group.member_1_id;
+        const memberTwoId = hasSavedCommittee ? committee.member_2_id : group.member_2_id;
+
+        group.active_committee_label = hasSavedCommittee ? committee.source_label : (group.has_title_chairperson ? 'Title presentation committee' : 'Previous defense committee');
+        group.active_chairperson_id = chairpersonId;
+        group.active_chairperson_name = hasSavedCommittee ? committee.chairperson_name : group.chairperson_name;
+        group.active_member_1_id = memberOneId;
+        group.active_member_1_name = hasSavedCommittee ? committee.member_1_name : group.member_1_name;
+        group.active_member_2_id = memberTwoId;
+        group.active_member_2_name = hasSavedCommittee ? committee.member_2_name : group.member_2_name;
+
+        // Automatically populate the saved committee for the selected defense stage.
         const validChairIds = this.eligibleChairpersons.map(c => String(c.id));
-        if (group.chairperson_id && validChairIds.includes(String(group.chairperson_id))) {
-            this.scheduleForm.chairpersonId = String(group.chairperson_id);
+        if (chairpersonId && validChairIds.includes(String(chairpersonId))) {
+            this.scheduleForm.chairpersonId = String(chairpersonId);
         } else if (!validChairIds.includes(String(this.scheduleForm.chairpersonId))) {
             this.scheduleForm.chairpersonId = '';
         }
 
         // Pre-populate panel members if available and valid in department
         const validPanelIds = this.departmentFilteredPanelCandidates.map(c => String(c.id));
-        if (group.member_1_id && validPanelIds.includes(String(group.member_1_id))) {
-            this.scheduleForm.memberOneId = String(group.member_1_id);
+        if (memberOneId && validPanelIds.includes(String(memberOneId))) {
+            this.scheduleForm.memberOneId = String(memberOneId);
         } else if (!validPanelIds.includes(String(this.scheduleForm.memberOneId))) {
             this.scheduleForm.memberOneId = '';
         }
 
-        if (group.member_2_id && validPanelIds.includes(String(group.member_2_id))) {
-            this.scheduleForm.memberTwoId = String(group.member_2_id);
+        if (memberTwoId && validPanelIds.includes(String(memberTwoId))) {
+            this.scheduleForm.memberTwoId = String(memberTwoId);
         } else if (!validPanelIds.includes(String(this.scheduleForm.memberTwoId))) {
             this.scheduleForm.memberTwoId = '';
         }
@@ -1440,17 +1501,15 @@
                 </button>
 
                 <!-- Research Reports -->
-                <button 
-                    type="button" 
-                    @click="activeTab = 'reports'"
-                    :class="activeTab === 'reports' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
-                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
+                <a
+                    href="{{ route('facilitator.reports.index') }}"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-file-text text-lg transition-transform group-hover:scale-110"></i>
                         <span>Research Reports</span>
                     </div>
-                    <span x-show="activeTab === 'reports'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
-                </button>
+                    <i class="ph ph-arrow-square-out text-sm text-white/50"></i>
+                </a>
 
                 <!-- Research Repository -->
                 <button 
@@ -2209,7 +2268,7 @@
             </div>
 
             <!-- TAB: Research Monitoring -->
-            <div x-show="activeTab === 'monitoring'" x-cloak class="space-y-8 animate-fade-in">
+            <div x-show="activeTab === 'monitoring'" x-cloak class="space-y-8">
                 @if (isset($progressGroups))
                     <x-research-progress.facilitator-monitoring
                         :groups="$progressGroups"
@@ -3930,15 +3989,19 @@
                         <label for="def-group" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Research Group</label>
                         <select id="def-group" name="research_class_group_id" x-model="scheduleForm.groupId" @change="onDefenseGroupChange()" required class="w-full px-4 py-2.5 bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 outline-none cursor-pointer transition-all">
                             <option value="">Select one of your research groups...</option>
-                            @foreach ($defenseSchedulingGroups ?? [] as $groupOption)
-                                <option value="{{ $groupOption['id'] }}">{{ $groupOption['name'] }} — {{ $groupOption['class_name'] }}{{ $groupOption['adviser_name'] ? ' (Adviser: '.$groupOption['adviser_name'].')' : ' (No adviser)' }}</option>
-                            @endforeach
+                            <template x-for="groupOption in eligibleDefenseSchedulingGroups" :key="groupOption.id">
+                                <option :value="groupOption.id" x-text="`${groupOption.name} — ${groupOption.class_name}${groupOption.adviser_name ? ` (Adviser: ${groupOption.adviser_name})` : ' (No adviser)'}`"></option>
+                            </template>
                         </select>
+                        <p x-show="unavailableDefenseGroupCount > 0" x-cloak class="flex items-start gap-1.5 text-[10px] font-semibold leading-4 text-amber-700">
+                            <i class="ph ph-lock-key mt-0.5"></i>
+                            <span><span x-text="unavailableDefenseGroupCount"></span> group(s) hidden until the matching RES-033 is fully signed.</span>
+                        </p>
                     </div>
 
                     <div class="space-y-1.5">
                         <label for="def-type" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Defense Type</label>
-                        <select id="def-type" name="defense_type" x-model="scheduleForm.type" required class="w-full px-4 py-2.5 bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 outline-none cursor-pointer transition-all">
+                        <select id="def-type" name="defense_type" x-model="scheduleForm.type" @change="onDefenseTypeChange()" required class="w-full px-4 py-2.5 bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/10 outline-none cursor-pointer transition-all">
                             <option value="title_presentation">Title Proposal / Title Presentation</option>
                             <option value="proposal_defense">Proposal Defense</option>
                             <option value="pre_final_defense">Pre-Final Defense</option>
@@ -3987,7 +4050,7 @@
                     <div class="space-y-1.5">
                         <div class="flex items-center justify-between">
                             <label for="def-chair" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Chairperson</label>
-                            <template x-if="selectedDefenseGroup?.chairperson_id && String(scheduleForm.chairpersonId) === String(selectedDefenseGroup?.chairperson_id)">
+                            <template x-if="selectedDefenseGroup?.active_chairperson_id && String(scheduleForm.chairpersonId) === String(selectedDefenseGroup?.active_chairperson_id)">
                                 <span class="text-[10px] font-black uppercase text-[#0e5c3a] bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
                                     <i class="ph ph-link-simple text-xs"></i>
                                     <span>Auto-Linked</span>
@@ -4000,23 +4063,18 @@
                                 <option :value="candidate.id" x-text="candidate.name + (candidate.department ? ' (' + candidate.department + ')' : '')"></option>
                             </template>
                         </select>
-                        <div x-show="selectedDefenseGroup?.chairperson_id && String(scheduleForm.chairpersonId) === String(selectedDefenseGroup?.chairperson_id)" x-cloak class="p-2 rounded-xl bg-emerald-50 border border-emerald-200/80 text-[10px] text-[#0e5c3a] font-bold flex items-center gap-1.5">
+                        <div x-show="selectedDefenseGroup?.active_chairperson_id && String(scheduleForm.chairpersonId) === String(selectedDefenseGroup?.active_chairperson_id)" x-cloak class="p-2 rounded-xl bg-emerald-50 border border-emerald-200/80 text-[10px] text-[#0e5c3a] font-bold flex items-center gap-1.5">
                             <i class="ph ph-check-circle text-xs text-[#0e5c3a]"></i>
                             <span>
-                                <template x-if="selectedDefenseGroup?.has_title_chairperson">
-                                    <span>Linked from <strong>Title Proposal Chairperson</strong>: <span x-text="selectedDefenseGroup?.chairperson_name"></span></span>
-                                </template>
-                                <template x-if="!selectedDefenseGroup?.has_title_chairperson">
-                                    <span>Linked from <strong>Previous Defense Chairperson</strong>: <span x-text="selectedDefenseGroup?.chairperson_name"></span></span>
-                                </template>
+                                <span>Linked from <strong x-text="selectedDefenseGroup?.active_committee_label"></strong>: <span x-text="selectedDefenseGroup?.active_chairperson_name"></span></span>
                             </span>
                         </div>
-                        <p x-show="!selectedDefenseGroup?.chairperson_id || String(scheduleForm.chairpersonId) !== String(selectedDefenseGroup?.chairperson_id)" class="text-[10px] text-emerald-700 font-medium">Faculty advisers are eligible to serve as Chairperson.</p>
+                        <p x-show="!selectedDefenseGroup?.active_chairperson_id || String(scheduleForm.chairpersonId) !== String(selectedDefenseGroup?.active_chairperson_id)" class="text-[10px] text-emerald-700 font-medium">Faculty advisers are eligible to serve as Chairperson.</p>
                     </div>
                     <div class="space-y-1.5">
                         <div class="flex items-center justify-between">
                             <label for="def-member-one" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Panel Member 1</label>
-                            <template x-if="selectedDefenseGroup?.member_1_id && String(scheduleForm.memberOneId) === String(selectedDefenseGroup?.member_1_id)">
+                            <template x-if="selectedDefenseGroup?.active_member_1_id && String(scheduleForm.memberOneId) === String(selectedDefenseGroup?.active_member_1_id)">
                                 <span class="text-[10px] font-black uppercase text-[#0e5c3a] bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
                                     <i class="ph ph-link-simple text-xs"></i>
                                     <span>Auto-Linked</span>
@@ -4033,7 +4091,7 @@
                     <div class="space-y-1.5">
                         <div class="flex items-center justify-between">
                             <label for="def-member-two" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Panel Member 2</label>
-                            <template x-if="selectedDefenseGroup?.member_2_id && String(scheduleForm.memberTwoId) === String(selectedDefenseGroup?.member_2_id)">
+                            <template x-if="selectedDefenseGroup?.active_member_2_id && String(scheduleForm.memberTwoId) === String(selectedDefenseGroup?.active_member_2_id)">
                                 <span class="text-[10px] font-black uppercase text-[#0e5c3a] bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
                                     <i class="ph ph-link-simple text-xs"></i>
                                     <span>Auto-Linked</span>

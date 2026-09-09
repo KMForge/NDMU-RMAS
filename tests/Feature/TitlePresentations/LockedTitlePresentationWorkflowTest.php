@@ -13,6 +13,7 @@ use App\Models\ResearchClass;
 use App\Models\ResearchClassActorAssignment;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchGroupMilestone;
+use App\Models\ResearchGroupPanelCommittee;
 use App\Models\User;
 use App\Models\UserSignature;
 use App\Modules\Documents\Actions\ScreenTitleProposalDocument;
@@ -112,6 +113,24 @@ class LockedTitlePresentationWorkflowTest extends TestCase
             'form' => 'RES-026',
             'group_id' => $this->group->id,
         ]), $journey['next_action']['route']);
+    }
+
+    public function test_journey_does_not_count_a_later_completed_stage_before_earlier_stages(): void
+    {
+        app(SynchronizeWorkflowMilestone::class)->complete(
+            $this->group,
+            'revision-research-proposal',
+            $this->facilitator,
+            'official_form',
+            999,
+            'Later-stage artifact imported before prerequisites.',
+        );
+
+        $journey = app(ResearchJourneyService::class)->getJourneyForGroup($this->group->fresh(), $this->student);
+
+        $this->assertSame(1, $journey['current_stage']);
+        $this->assertSame(0, $journey['percentage']);
+        $this->assertFalse($journey['stages'][4]['is_completed']);
     }
 
     public function test_approved_document_unlocks_res026_and_submission_requires_exactly_three_titles(): void
@@ -221,6 +240,58 @@ class LockedTitlePresentationWorkflowTest extends TestCase
         $this->assertSame(2, $result->approved_title_number);
         $this->assertSame('Title B', $result->formVersion->payload['topics'][$result->approved_title_number - 1]);
         $this->assertSame('awaiting_panel_signatures', $result->status);
+    }
+
+    public function test_saved_title_presentation_committee_can_be_reused_without_a_historical_change_reason(): void
+    {
+        $this->titleDocument(DocumentStatus::ApprovedForPresentation);
+        $instance = app(CreateOfficialFormInstance::class)->handle($this->student, 'RES-026', $this->group->id);
+        app(SubmitOfficialFormVersion::class)->handle($this->student, $instance, ['topics' => ['Title A', 'Title B', 'Title C']]);
+
+        $chair = $this->eligibleUser(UserType::Faculty, ['evaluations.create']);
+        $memberOne = $this->eligibleUser(UserType::Faculty, ['evaluations.create']);
+        $memberTwo = $this->eligibleUser(UserType::Faculty, ['evaluations.create']);
+        $committee = ResearchGroupPanelCommittee::query()->create([
+            'research_class_group_id' => $this->group->id,
+            'defense_type' => 'title_presentation',
+            'chairperson_id' => $chair->id,
+            'is_custom' => false,
+            'created_by' => $this->facilitator->id,
+            'updated_by' => $this->facilitator->id,
+        ]);
+        $committee->members()->createMany([
+            ['user_id' => $memberOne->id, 'panel_position' => 'member_1'],
+            ['user_id' => $memberTwo->id, 'panel_position' => 'member_2'],
+        ]);
+
+        $starts = Carbon::now()->addWeek()->setHour(10)->setMinute(0)->setSecond(0);
+        $presentation = app(ScheduleTitlePresentation::class)->handle(
+            $this->facilitator,
+            $instance->fresh(),
+            $this->room->id,
+            $starts,
+            $starts->copy()->addHour(),
+        );
+
+        $assigned = app(AssignTitlePresentationPanel::class)->handle($this->facilitator, $presentation, [
+            'chairperson' => $chair->id,
+            'member_1' => $memberOne->id,
+            'member_2' => $memberTwo->id,
+        ]);
+
+        $this->assertSame('panel_assigned', $assigned->status);
+        $this->assertCount(3, $assigned->defense->activePanelAssignments);
+        $this->assertDatabaseCount('defense_panel_assignments', 3);
+
+        $replacement = $this->eligibleUser(UserType::Faculty, ['evaluations.create']);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('A reason is required when changing a historical Title Presentation panel assignment.');
+        app(AssignTitlePresentationPanel::class)->handle($this->facilitator, $assigned, [
+            'chairperson' => $chair->id,
+            'member_1' => $memberOne->id,
+            'member_2' => $replacement->id,
+        ]);
     }
 
     public function test_exact_panel_coordinator_and_dean_signatures_finalize_the_canonical_title(): void

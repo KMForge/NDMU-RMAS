@@ -273,7 +273,9 @@
                                         <input
                                             type="checkbox"
                                             x-model="grp.selected"
-                                            class="rounded text-[#0e5c3a] focus:ring-[#0e5c3a] cursor-pointer"
+                                            :disabled="!grp.res033_complete"
+                                            :class="grp.res033_complete ? 'cursor-pointer' : 'cursor-not-allowed opacity-40'"
+                                            class="rounded text-[#0e5c3a] focus:ring-[#0e5c3a]"
                                         >
                                     </td>
 
@@ -291,6 +293,9 @@
                                     <td class="py-3 px-4">
                                         <div class="font-black text-slate-900" x-text="grp.group_name"></div>
                                         <div class="text-[11px] text-slate-500 truncate max-w-sm" x-text="grp.title || 'No Approved Proposal Title'"></div>
+                                        <span x-show="!grp.res033_complete" x-cloak class="mt-1 inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9px] font-black uppercase text-amber-700">
+                                            <i class="ph ph-lock-key"></i> RES-033 incomplete
+                                        </span>
                                     </td>
 
                                     <!-- Adviser -->

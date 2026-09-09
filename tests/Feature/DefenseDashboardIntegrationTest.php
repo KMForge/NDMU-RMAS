@@ -14,6 +14,7 @@ use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupMember;
 use App\Models\User;
+use App\Modules\DefenseScheduling\Actions\AssignGroupDefenseCommittee;
 use App\Modules\DefenseScheduling\Actions\ScheduleDefense;
 use Carbon\Carbon;
 use Database\Seeders\RolePermissionSeeder;
@@ -237,7 +238,12 @@ class DefenseDashboardIntegrationTest extends TestCase
             ]))
             ->assertOk()
             ->assertSee('Document Preview')
+            ->assertSee('data-pdf-viewer', false)
+            ->assertSee(route('documents.view', [$document, 'raw' => 1]), false)
+            ->assertSee('h-[72vh]', false)
+            ->assertSee('overflow-y-auto overscroll-contain', false)
             ->assertSeeText('Comments & Feedback')
+            ->assertSeeText('Download Annotated PDF')
             ->assertSee('Proposal For Panel Review.pdf');
 
         $this->actingAs($this->panelist)
@@ -263,6 +269,15 @@ class DefenseDashboardIntegrationTest extends TestCase
             'notifiable_type' => User::class,
             'notifiable_id' => $this->student->id,
         ]);
+
+        $this->actingAs($this->panelist)
+            ->get(route('panelist.dashboard', [
+                'tab' => 'recommendations',
+                'document_id' => $document->id,
+            ]))
+            ->assertOk()
+            ->assertSee('Clarify the sampling method before the defense.')
+            ->assertSee('page_number', false);
 
         $this->actingAs($this->student)
             ->get(route('student.dashboard', ['tab' => 'revisions']))
@@ -321,5 +336,43 @@ class DefenseDashboardIntegrationTest extends TestCase
         $response->assertSee('defenseList: JSON.parse(', false);
         $response->assertSee('Group Beta');
         $response->assertSee('Innovation Lab');
+    }
+
+    public function test_individual_scheduler_receives_the_saved_committee_for_each_defense_type(): void
+    {
+        $chairperson = User::factory()->create([
+            'user_type' => UserType::Faculty,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+        $secondPanelist = User::factory()->create([
+            'user_type' => UserType::Faculty,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+        $chairperson->givePermissionTo('evaluations.create');
+        $secondPanelist->givePermissionTo('evaluations.create');
+
+        app(AssignGroupDefenseCommittee::class)->handle(
+            $this->facilitator,
+            $this->group,
+            'proposal_defense',
+            $chairperson->id,
+            [$this->panelist->id, $secondPanelist->id],
+        );
+
+        $response = $this->actingAs($this->facilitator)
+            ->get(route('facilitator.dashboard', ['tab' => 'defenses']))
+            ->assertOk();
+
+        $group = collect($response->viewData('defenseSchedulingGroups'))->firstWhere('id', $this->group->id);
+        $committee = $group['committee_assignments']['proposal_defense'];
+
+        $this->assertSame($chairperson->id, $committee['chairperson_id']);
+        $this->assertSame($this->panelist->id, $committee['member_1_id']);
+        $this->assertSame($secondPanelist->id, $committee['member_2_id']);
+        $this->assertSame('Customized group committee', $committee['source_label']);
     }
 }

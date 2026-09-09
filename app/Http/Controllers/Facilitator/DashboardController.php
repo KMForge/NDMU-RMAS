@@ -11,6 +11,7 @@ use App\Models\ResearchClassGroup;
 use App\Models\User;
 use App\Modules\Classes\Queries\GetFacilitatorClassData;
 use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
+use App\Modules\DefenseScheduling\Services\DefenseEndorsementEligibility;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\Documents\Queries\GetFacilitatorScreeningData;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
@@ -30,6 +31,7 @@ class DashboardController extends Controller
         GetFacilitatorScreeningData $screeningData,
         GetFacilitatorProgressData $progressData,
         GetDefenseScheduleCalendar $defenseCalendar,
+        DefenseEndorsementEligibility $endorsementEligibility,
         GetPendingAcademicActionsForUser $pendingActionsService,
         GetNotificationsForUser $notificationQuery,
     ): View {
@@ -70,20 +72,30 @@ class DashboardController extends Controller
             ->whereHas('researchClass', fn ($query) => $query->where('facilitator_id', $request->user()->id))
             ->with([
                 'researchClass:id,name,facilitator_id',
+                'researchClass.panelCommittees.chairperson:id,name',
+                'researchClass.panelCommittees.members.user:id,name',
                 'researchGroup.currentProject' => fn ($query) => $query->select([
                     'research_projects.id',
                     'research_projects.research_group_id',
                     'research_projects.title',
                 ]),
-                'leader:id,name',
-                'adviser:id,name',
+                'leader:id,name,department',
+                'adviser:id,name,department',
+                'panelCommittees.chairperson:id,name',
+                'panelCommittees.members.user:id,name',
                 'defenses' => fn ($query) => $query->with([
                     'activePanelAssignments.user:id,name',
                 ])->orderByDesc('id'),
             ])
             ->orderBy('name')
             ->get()
-            ->map(function (ResearchClassGroup $group): array {
+            ->map(function (ResearchClassGroup $group) use ($endorsementEligibility): array {
+                $defenseTypes = [
+                    'title_presentation',
+                    'proposal_defense',
+                    'pre_final_defense',
+                    'final_defense',
+                ];
                 $titleDefense = $group->defenses->firstWhere('defense_type', 'title_presentation');
                 $titleChairperson = $titleDefense?->activePanelAssignments->firstWhere('panel_position', 'chairperson');
                 $latestChairperson = $titleChairperson ?? $group->defenses->flatMap->activePanelAssignments->firstWhere('panel_position', 'chairperson');
@@ -98,8 +110,30 @@ class DashboardController extends Controller
                     ?: ($group->adviser?->department
                     ?: ($group->researchClass?->facilitator?->department ?: 'Computer Studies Department'));
 
+                $committeeAssignments = collect($defenseTypes)->mapWithKeys(function (string $defenseType) use ($group): array {
+                    $groupCommittee = $group->panelCommittees->firstWhere('defense_type', $defenseType);
+                    $classCommittee = $group->researchClass?->panelCommittees->firstWhere('defense_type', $defenseType);
+                    $committee = $groupCommittee ?? $classCommittee;
+                    $members = $committee?->members?->sortBy('panel_position')->values() ?? collect();
+                    $memberOne = $members->firstWhere('panel_position', 'member_1')?->user ?? $members->get(0)?->user;
+                    $memberTwo = $members->firstWhere('panel_position', 'member_2')?->user ?? $members->get(1)?->user;
+
+                    return [$defenseType => [
+                        'chairperson_id' => $committee?->chairperson_id,
+                        'chairperson_name' => $committee?->chairperson?->name,
+                        'member_1_id' => $memberOne?->id,
+                        'member_1_name' => $memberOne?->name,
+                        'member_2_id' => $memberTwo?->id,
+                        'member_2_name' => $memberTwo?->name,
+                        'source_label' => $groupCommittee !== null
+                            ? ($groupCommittee->is_custom ? 'Customized group committee' : 'Class defense committee')
+                            : ($classCommittee !== null ? 'Class defense committee' : null),
+                    ]];
+                })->all();
+
                 return [
                     'id' => $group->id,
+                    'class_id' => $group->research_class_id,
                     'name' => $group->name,
                     'department' => $groupDept,
                     'class_name' => $group->researchClass?->name,
@@ -115,6 +149,10 @@ class DashboardController extends Controller
                     'member_1_name' => $titleMember1?->user?->name,
                     'member_2_id' => $titleMember2?->user_id,
                     'member_2_name' => $titleMember2?->user?->name,
+                    'committee_assignments' => $committeeAssignments,
+                    'res033_eligibility' => collect($defenseTypes)->mapWithKeys(fn (string $defenseType): array => [
+                        $defenseType => $endorsementEligibility->isComplete($group, $defenseType),
+                    ])->all(),
                 ];
             });
         $facilitatorClasses = ResearchClass::query()

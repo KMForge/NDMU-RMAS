@@ -41,13 +41,6 @@ class DefenseEndorsementEligibility
                             });
                     });
             })
-            ->whereHas('currentVersion', function ($query) use ($aliases) {
-                $query->where(function ($payloadQuery) use ($aliases) {
-                    foreach ($aliases as $alias) {
-                        $payloadQuery->orWhere('payload->defense_type', $alias);
-                    }
-                });
-            })
             ->exists();
     }
 

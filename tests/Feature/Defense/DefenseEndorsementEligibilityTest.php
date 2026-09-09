@@ -8,6 +8,7 @@ use App\Models\OfficialFormVersion;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
+use App\Modules\DefenseScheduling\Queries\GetClassCommitteeAssignments;
 use App\Modules\DefenseScheduling\Services\DefenseEndorsementEligibility;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -91,11 +92,34 @@ class DefenseEndorsementEligibilityTest extends TestCase
         $this->assertFalse($this->eligibility->isComplete($this->group, 'final_defense'));
     }
 
+    public function test_received_endorsement_with_an_authoritative_context_does_not_require_duplicate_payload_metadata(): void
+    {
+        $endorsement = $this->createEndorsement('proposal_defense', 'received');
+        $endorsement->currentVersion->update(['payload' => []]);
+
+        $this->assertTrue($this->eligibility->isComplete($this->group, 'proposal_defense'));
+        $this->assertFalse($this->eligibility->isComplete($this->group, 'final_defense'));
+    }
+
     public function test_legacy_general_context_is_accepted_when_payload_identifies_the_stage(): void
     {
         $this->createEndorsement('final', 'received', 'general');
 
         $this->assertTrue($this->eligibility->isComplete($this->group, 'final_defense'));
+    }
+
+    public function test_scheduling_group_data_marks_incomplete_res033_as_unselectable(): void
+    {
+        $query = app(GetClassCommitteeAssignments::class);
+        $researchClass = $this->group->researchClass;
+
+        $before = $query->forClass($researchClass, 'proposal_defense')['groups']->sole();
+        $this->assertFalse($before['res033_complete']);
+
+        $this->createEndorsement('proposal_defense', 'received');
+
+        $after = $query->forClass($researchClass, 'proposal_defense')['groups']->sole();
+        $this->assertTrue($after['res033_complete']);
     }
 
     private function createEndorsement(string $payloadDefenseType, string $status, ?string $contextKey = null): OfficialFormInstance
