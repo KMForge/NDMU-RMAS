@@ -89,6 +89,14 @@ class ResearchClassManagementPhase10Test extends TestCase
             ->assertSee('Active Class Student')
             ->assertSee('STU-2026-0001')
             ->assertSee('BS Computer Science')
+            ->assertSee('Pending Form Approvals')
+            ->assertSee('Join Requests')
+            ->assertSee('Research Statistics')
+            ->assertSee('Research Reports')
+            ->assertSee('Research Repository')
+            ->assertSee('Official Forms')
+            ->assertSee('Notifications')
+            ->assertSee('Settings')
             ->assertDontSee('Pending Class Student');
     }
 
