@@ -75,7 +75,7 @@ class AdminDashboardTest extends TestCase
             ->assertSee('Administrator');
     }
 
-    public function test_admin_sidebar_shows_pending_student_approval_count(): void
+    public function test_admin_sidebar_shows_students_awaiting_email_verification(): void
     {
         $admin = User::factory()->create();
         $admin->assignRole('system-administrator');
@@ -89,7 +89,7 @@ class AdminDashboardTest extends TestCase
         $this->actingAs($admin);
 
         Livewire::test(AdminDashboard::class)
-            ->assertSeeHtml('aria-label="2 student registrations awaiting approval"');
+            ->assertSeeHtml('aria-label="2 student registrations awaiting email verification"');
     }
 
     public function test_admin_can_render_and_save_system_settings(): void
@@ -197,12 +197,13 @@ class AdminDashboardTest extends TestCase
             ->assertDontSee('Dr. Maria Santos');
     }
 
-    public function test_admin_can_approve_pending_student(): void
+    public function test_admin_sees_pending_students_as_awaiting_verification_without_approval_controls(): void
     {
         $admin = User::factory()->create();
         $admin->assignRole('system-administrator');
 
         $student = User::factory()->create([
+            'user_type' => UserType::Student,
             'status' => AccountStatus::Pending,
             'approved_at' => null,
             'student_id' => 'STU-2026-9999',
@@ -214,56 +215,12 @@ class AdminDashboardTest extends TestCase
         $this->actingAs($admin);
 
         Livewire::test(AdminDashboard::class)
-            ->call('approveStudent', $student->id)
-            ->assertSet('successMessage', "Student {$student->name} has been approved.");
+            ->assertSee($student->name)
+            ->assertSee('Waiting for student verification')
+            ->assertDontSeeHtml('wire:click="approveStudent(')
+            ->assertDontSeeHtml('wire:click="rejectStudent(');
 
-        $student->refresh();
-        $this->assertEquals(AccountStatus::Active, $student->status);
-        $this->assertNotNull($student->approved_at);
-    }
-
-    public function test_processed_student_registration_cannot_be_processed_again(): void
-    {
-        $admin = User::factory()->create();
-        $admin->assignRole('system-administrator');
-
-        $student = User::factory()->create([
-            'status' => AccountStatus::Pending,
-            'approved_at' => null,
-        ]);
-        $student->assignRole('student-researcher');
-
-        $this->actingAs($admin);
-
-        Livewire::test(AdminDashboard::class)
-            ->call('approveStudent', $student->id)
-            ->call('rejectStudent', $student->id)
-            ->assertHasErrors(['account']);
-
-        $this->assertEquals(AccountStatus::Active, $student->refresh()->status);
-    }
-
-    public function test_admin_can_reject_pending_student(): void
-    {
-        $admin = User::factory()->create();
-        $admin->assignRole('system-administrator');
-
-        $student = User::factory()->create([
-            'status' => AccountStatus::Pending,
-            'approved_at' => null,
-            'student_id' => 'STU-2026-9999',
-        ]);
-        $student->assignRole('student-researcher');
-
-        $this->actingAs($admin);
-
-        Livewire::test(AdminDashboard::class)
-            ->call('rejectStudent', $student->id)
-            ->assertSet('successMessage', "Student {$student->name} registration has been rejected.");
-
-        $student->refresh();
-        $this->assertEquals(AccountStatus::Rejected, $student->status);
-        $this->assertNull($student->approved_at);
+        $this->assertEquals(AccountStatus::Pending, $student->fresh()->status);
     }
 
     public function test_admin_can_suspend_and_reactivate_another_account(): void

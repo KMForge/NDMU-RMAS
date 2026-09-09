@@ -19,7 +19,7 @@ class RegisteredStudentController extends Controller
 
         return to_route('login')->with(
             'status',
-            'Registration submitted. Verify your institutional email, then wait for administrator approval.',
+            'Registration submitted. Verify your institutional email to activate your student account.',
         );
     }
 }

@@ -300,7 +300,7 @@
                         <div class="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 flex items-start gap-2.5 text-[11px] text-amber-900 shadow-2xs">
                             <i class="ph ph-info text-amber-600 text-sm shrink-0 mt-0.5"></i>
                             <span class="leading-snug">
-                                <strong>Account Approval:</strong> Student accounts are activated after verification by the administrator. You will receive an email once approved.
+                                <strong>Account Activation:</strong> Verify your institutional email address to activate your student account automatically. Administrator approval is not required.
                             </span>
                         </div>
 

@@ -82,7 +82,7 @@ class GetAdminDashboardData
             : 0;
 
         return [
-            ['label' => 'Student Registrations', 'count' => $pendingStudents, 'tab' => 'users', 'subtab' => 'pending-students', 'icon' => 'ph-user-plus', 'tone' => 'amber'],
+            ['label' => 'Awaiting Email Verification', 'count' => $pendingStudents, 'tab' => 'users', 'subtab' => 'pending-students', 'icon' => 'ph-envelope-simple', 'tone' => 'amber'],
             ['label' => 'Document Reviews', 'count' => $pendingDocuments, 'tab' => 'repository', 'subtab' => null, 'icon' => 'ph-file-text', 'tone' => 'purple'],
             ['label' => 'Proposal Reviews', 'count' => $pendingProposals, 'tab' => 'forms', 'subtab' => null, 'icon' => 'ph-clipboard-text', 'tone' => 'blue'],
             ['label' => 'Class Join Requests', 'count' => $pendingJoinRequests, 'tab' => 'users', 'subtab' => 'all-users', 'icon' => 'ph-users-three', 'tone' => 'emerald'],

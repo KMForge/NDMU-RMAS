@@ -236,26 +236,6 @@ class AdminDashboard extends Component
         $this->clearDashboardCache();
     }
 
-    public function approveStudent(int $userId, ManageUserAccount $manageUserAccount): void
-    {
-        $user = User::query()->findOrFail($userId);
-        Gate::authorize('changeStatus', $user);
-        $manageUserAccount->approveStudent($user, $this->administrator());
-
-        $this->clearDashboardCache();
-        $this->successMessage = "Student {$user->name} has been approved.";
-    }
-
-    public function rejectStudent(int $userId, ManageUserAccount $manageUserAccount): void
-    {
-        $user = User::query()->findOrFail($userId);
-        Gate::authorize('changeStatus', $user);
-        $manageUserAccount->rejectStudent($user, $this->administrator());
-
-        $this->clearDashboardCache();
-        $this->successMessage = "Student {$user->name} registration has been rejected.";
-    }
-
     public function activateUser(int $userId, ManageUserAccount $manageUserAccount): void
     {
         $user = User::query()->findOrFail($userId);

@@ -14,32 +14,6 @@ class ManageUserAccount
 {
     public function __construct(private readonly AuditLogWriter $auditLogs) {}
 
-    public function approveStudent(User $student, User $actor): User
-    {
-        if ($student->user_type !== UserType::Student && ! $student->hasRole('student-researcher')) {
-            throw ValidationException::withMessages([
-                'account' => 'Only student researcher accounts can be approved here.',
-            ]);
-        }
-
-        $this->ensurePendingStudent($student);
-
-        return $this->changeStatus($student, $actor, AccountStatus::Active, 'user.approved');
-    }
-
-    public function rejectStudent(User $student, User $actor): User
-    {
-        if ($student->user_type !== UserType::Student && ! $student->hasRole('student-researcher')) {
-            throw ValidationException::withMessages([
-                'account' => 'Only student researcher accounts can be rejected here.',
-            ]);
-        }
-
-        $this->ensurePendingStudent($student);
-
-        return $this->changeStatus($student, $actor, AccountStatus::Rejected, 'user.rejected');
-    }
-
     public function activate(User $user, User $actor): User
     {
         return $this->changeStatus($user, $actor, AccountStatus::Active, 'user.activated');
@@ -103,15 +77,6 @@ class ManageUserAccount
 
             return $user->refresh();
         });
-    }
-
-    private function ensurePendingStudent(User $student): void
-    {
-        if ($student->status !== AccountStatus::Pending) {
-            throw ValidationException::withMessages([
-                'account' => 'This student registration has already been processed.',
-            ]);
-        }
     }
 
     /**

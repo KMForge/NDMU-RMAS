@@ -122,7 +122,7 @@
                         <span>User Management</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <x-sidebar-count-badge :count="$sidebarBadges['users'] ?? 0" label="student registrations awaiting approval" />
+                        <x-sidebar-count-badge :count="$sidebarBadges['users'] ?? 0" label="student registrations awaiting email verification" />
                         <span x-show="['users', 'assign-roles'].includes(activeTab)" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                     </div>
                 </button>
@@ -318,7 +318,7 @@
         <!-- Dynamic Content Body -->
         <main class="flex-grow px-10 py-8 w-full">
             <x-portal-feature-banner class="mb-8" :sections="[
-                'users' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'User Management', 'description' => 'Manage accounts, approve registrations, and assign reusable roles.', 'icon' => 'ph-users-three'],
+                'users' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'User Management', 'description' => 'Manage accounts, monitor institutional email verification, and assign reusable roles.', 'icon' => 'ph-users-three'],
                 'research' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Research Management', 'description' => 'Oversee research records, assignments, and approval activity.', 'icon' => 'ph-book-open'],
                 'defenses' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Defense Scheduling', 'description' => 'Coordinate defense requests, schedules, rooms, and panels.', 'icon' => 'ph-calendar-check'],
                 'repository' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Research Repository', 'description' => 'Administer secure research records and document access.', 'icon' => 'ph-folder-open'],
@@ -851,11 +851,11 @@
                             </div>
                         </div>
 
-                        <!-- Card 2: Pending Approval -->
+                        <!-- Card 2: Awaiting Email Verification -->
                         <div class="group bg-white rounded-3xl p-6 shadow-2xs hover:shadow-lg border border-slate-200/80 hover:border-amber-300 transition-all duration-300 relative overflow-hidden flex items-center justify-between">
                             <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-yellow-400 opacity-70 group-hover:opacity-100 transition-opacity"></div>
                             <div class="space-y-1">
-                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Pending Approval</span>
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Awaiting Verification</span>
                                 <span class="text-3xl font-black text-slate-900 font-heading tracking-tight">{{ $pendingApprovalCount }}</span>
                                 <span class="text-[10px] font-bold text-amber-600 block">Awaiting verification</span>
                             </div>
@@ -918,7 +918,7 @@
                                     :class="userManagementTab === 'pending-students' ? 'border-[#0e5c3a] text-[#0e5c3a]' : 'border-transparent text-slate-500 hover:text-slate-900'"
                                     class="pb-4 border-b-2 text-xs sm:text-sm font-black flex items-center gap-2 transition-all duration-200 focus:outline-none -mb-px cursor-pointer">
                                     <i class="ph ph-clock text-base"></i>
-                                    <span>Pending Students</span>
+                                    <span>Awaiting Verification</span>
                                     <span
                                         :class="userManagementTab === 'pending-students' ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-700 border border-amber-200'"
                                         class="px-2.5 py-0.5 rounded-full text-[10px] font-black transition-all duration-200"
@@ -1079,7 +1079,7 @@
                                                 wire:click="setUserTypeFilter('pending')"
                                                 class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer {{ $selectedUserType === 'pending' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700 hover:bg-amber-100' }}"
                                             >
-                                                Pending Approvals ({{ $pendingApprovalCount }})
+                                                Awaiting Email Verification ({{ $pendingApprovalCount }})
                                             </button>
                                         </div>
 
@@ -1353,31 +1353,15 @@
                                                 </div>
                                             </div>
 
-                                            <!-- Approval Buttons -->
-                                            <div class="flex items-center gap-3 flex-shrink-0 self-end md:self-center">
-                                                <button 
-                                                    wire:click="approveStudent({{ $student->id }})"
-                                                    wire:loading.attr="disabled"
-                                                    wire:target="approveStudent({{ $student->id }})"
-                                                    class="px-5 py-3 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-md shadow-emerald-700/10 hover:shadow-lg transition-all duration-300"
-                                                >
-                                                    <i class="ph ph-check-circle text-base"></i> Approve
-                                                </button>
-                                                <button 
-                                                    wire:click="rejectStudent({{ $student->id }})"
-                                                    wire:confirm="Reject this student registration?"
-                                                    wire:loading.attr="disabled"
-                                                    wire:target="rejectStudent({{ $student->id }})"
-                                                    class="px-5 py-3 border border-red-200 hover:border-red-300 text-red-600 bg-white hover:bg-red-50 text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm transition-all duration-300"
-                                                >
-                                                    <i class="ph ph-x-circle text-base"></i> Reject
-                                                </button>
+                                            <div class="flex items-center gap-2 flex-shrink-0 self-end md:self-center px-4 py-2.5 rounded-2xl border border-amber-200 bg-white text-xs font-bold text-amber-700">
+                                                <i class="ph ph-envelope-simple text-base"></i>
+                                                Waiting for student verification
                                             </div>
                                         </div>
                                     @empty
                                         <div class="py-16 text-center text-gray-400 font-light">
                                             <i class="ph ph-users-three text-5xl mb-3 text-gray-300 block"></i>
-                                            No pending student registrations at the moment.
+                                            No student registrations are awaiting email verification.
                                         </div>
                                     @endforelse
                             </div>
@@ -1853,7 +1837,7 @@
                                     <div class="flex items-center justify-between p-4 bg-gray-50/60 hover:bg-gray-50 border border-gray-150 rounded-2xl transition-all duration-200">
                                         <div class="space-y-0.5 pr-4">
                                             <h5 class="text-xs font-bold text-gray-800">User Management</h5>
-                                            <p class="text-[10px] text-gray-400 font-light">Manage staff and student accounts, approve registrations</p>
+                                            <p class="text-[10px] text-gray-400 font-light">Manage accounts and monitor student email verification</p>
                                         </div>
                                         <button 
                                             type="button" 

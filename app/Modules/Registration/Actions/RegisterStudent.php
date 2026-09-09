@@ -58,7 +58,7 @@ class RegisterStudent
             $this->auditLogs->write(
                 actor: null,
                 event: 'user.registered',
-                description: 'A student registration was submitted.',
+                description: 'A student registration was submitted and is awaiting institutional email verification.',
                 requestContext: $requestContext ?? AuditRequestContext::none(),
                 auditable: $student,
                 subjectName: $student->name,

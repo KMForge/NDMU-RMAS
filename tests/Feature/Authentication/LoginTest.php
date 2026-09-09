@@ -90,6 +90,30 @@ class LoginTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_verified_student_registered_before_auto_activation_can_log_in(): void
+    {
+        $student = User::factory()->create([
+            'email' => 'legacy.verified.student@ndmu.edu.ph',
+            'password' => 'TestOnly!2345',
+            'user_type' => UserType::Student,
+            'status' => AccountStatus::Pending,
+            'approved_at' => null,
+        ]);
+        $student->assignRole('student');
+
+        $this->postJson(route('login.store'), [
+            'email' => $student->email,
+            'password' => 'TestOnly!2345',
+        ])->assertOk()
+            ->assertJsonPath('redirect_url', route('student.dashboard'));
+
+        $student->refresh();
+
+        $this->assertSame(AccountStatus::Active, $student->status);
+        $this->assertNotNull($student->approved_at);
+        $this->assertAuthenticatedAs($student);
+    }
+
     public function test_active_faculty_without_an_assigned_role_opens_access_pending(): void
     {
         $faculty = User::factory()->create([

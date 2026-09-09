@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Modules\AuditLogs\Services\AuditLogWriter;
 use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Authorization\Services\ResolveUserDashboard;
+use App\Modules\Registration\Actions\ActivateVerifiedStudent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,8 +18,12 @@ use Illuminate\Validation\ValidationException;
 
 class AuthenticatedSessionController extends Controller
 {
-    public function store(LoginRequest $request, ResolveUserDashboard $dashboard, AuditLogWriter $auditLogs): JsonResponse|RedirectResponse
-    {
+    public function store(
+        LoginRequest $request,
+        ResolveUserDashboard $dashboard,
+        AuditLogWriter $auditLogs,
+        ActivateVerifiedStudent $activateVerifiedStudent,
+    ): JsonResponse|RedirectResponse {
         $credentials = $request->safe()->only(['email', 'password']);
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
@@ -39,6 +44,11 @@ class AuthenticatedSessionController extends Controller
 
         /** @var User $user */
         $user = $request->user();
+
+        $user = $activateVerifiedStudent->handle(
+            $user,
+            AuditRequestContext::fromRequest($request),
+        );
 
         $route = $dashboard->routeFor($user);
 

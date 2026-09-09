@@ -49,7 +49,7 @@ class StudentRegistrationTest extends TestCase
         Notification::assertSentTo($student, SendNDMUEmailVerification::class);
     }
 
-    public function test_signed_verification_link_verifies_pending_student_email(): void
+    public function test_signed_verification_link_verifies_and_activates_pending_student(): void
     {
         $student = User::factory()->unverified()->pendingApproval()->create([
             'user_type' => UserType::Student,
@@ -65,8 +65,35 @@ class StudentRegistrationTest extends TestCase
         $this->get($url)
             ->assertRedirect(route('login'));
 
-        $this->assertTrue($student->fresh()->hasVerifiedEmail());
-        $this->assertSame(AccountStatus::Pending, $student->fresh()->status);
+        $student->refresh();
+
+        $this->assertTrue($student->hasVerifiedEmail());
+        $this->assertSame(AccountStatus::Active, $student->status);
+        $this->assertNotNull($student->approved_at);
+    }
+
+    public function test_verification_does_not_reactivate_a_rejected_student(): void
+    {
+        $student = User::factory()->unverified()->create([
+            'user_type' => UserType::Student,
+            'status' => AccountStatus::Rejected,
+            'approved_at' => null,
+            'email' => 'rejected.student@ndmu.edu.ph',
+        ]);
+        $student->assignRole('student');
+
+        $url = URL::temporarySignedRoute('verification.verify', now()->addMinutes(60), [
+            'id' => $student->getKey(),
+            'hash' => sha1($student->getEmailForVerification()),
+        ]);
+
+        $this->get($url)->assertRedirect(route('login'));
+
+        $student->refresh();
+
+        $this->assertTrue($student->hasVerifiedEmail());
+        $this->assertSame(AccountStatus::Rejected, $student->status);
+        $this->assertNull($student->approved_at);
     }
 
     public function test_registration_rejects_non_institutional_email_and_unknown_program(): void
