@@ -92,6 +92,13 @@ class SubmitOfficialFormVersion
                 );
             }
 
+            if ($formCode === 'RES-036') {
+                $validatedPayload = $this->prepareRes036Payload(
+                    $currentVersion?->source_snapshot,
+                    $validatedPayload,
+                );
+            }
+
             $isInitialDraft = $currentVersion !== null
                 && (int) $currentVersion->version_number === 1
                 && $lockedInstance->status === 'draft'
@@ -232,14 +239,9 @@ class SubmitOfficialFormVersion
         $detailedPaper = isset($payload['res_036_paper_scores'])
             ? $rubric->validatePaperScores($payload['res_036_paper_scores'])
             : null;
-        $paperRatings = $payload['res_036_paper_ratings'] ?? [];
-        $q = $detailedPaper ? null : (isset($paperRatings[0]) && is_numeric($paperRatings[0]) ? (float) $paperRatings[0] : 0.0);
-        $o = $detailedPaper ? null : (isset($paperRatings[1]) && is_numeric($paperRatings[1]) ? (float) $paperRatings[1] : 0.0);
-        $r = $detailedPaper ? null : (isset($paperRatings[2]) && is_numeric($paperRatings[2]) ? (float) $paperRatings[2] : 0.0);
-        $paperTotal = $detailedPaper['total'] ?? round($q + $o + $r, 2);
-
-        $comments = $payload['res_036_paper_comments'] ?? [];
-        $generalComments = is_array($comments) ? implode("\n\n", array_filter(array_map('trim', $comments))) : (string) $comments;
+        if ($detailedPaper === null) {
+            throw new InvalidArgumentException('RES-036 requires the complete research paper rubric.');
+        }
 
         $evaluation = DefenseEvaluation::query()->updateOrCreate(
             [
@@ -249,13 +251,13 @@ class SubmitOfficialFormVersion
             [
                 'round_panelist_id' => $roundPanelist->id,
                 'status' => 'submitted',
-                'research_quality_score' => $q,
-                'originality_score' => $o,
-                'relevance_score' => $r,
-                'paper_criterion_scores' => $detailedPaper['scores'] ?? null,
-                'rubric_version' => $detailedPaper ? Res036Rubric::VERSION : null,
-                'research_paper_total' => $paperTotal,
-                'general_comments' => $generalComments,
+                'research_quality_score' => null,
+                'originality_score' => null,
+                'relevance_score' => null,
+                'paper_criterion_scores' => $detailedPaper['scores'],
+                'rubric_version' => Res036Rubric::VERSION,
+                'research_paper_total' => $detailedPaper['total'],
+                'general_comments' => null,
                 'submitted_at' => now(),
             ]
         );
@@ -316,6 +318,46 @@ class SubmitOfficialFormVersion
         } elseif ($round->status === 'open') {
             $round->update(['status' => 'in_progress']);
         }
+    }
+
+    /**
+     * Keep the frozen presenter identities server-managed while accepting only
+     * the panelist's score entries from the browser.
+     *
+     * @param  array<string, mixed>|null  $sourceSnapshot
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function prepareRes036Payload(?array $sourceSnapshot, array $payload): array
+    {
+        if (! isset($payload['res_036_paper_scores']) || ! is_array($payload['res_036_paper_scores'])) {
+            throw new InvalidArgumentException('RES-036 requires the complete research paper rubric.');
+        }
+
+        $frozenPresenters = array_values($sourceSnapshot['presenters'] ?? []);
+        $submittedPresenters = array_values($payload['res_036_presenters'] ?? []);
+
+        if ($frozenPresenters === [] || count($submittedPresenters) !== count($frozenPresenters)) {
+            throw new InvalidArgumentException('RES-036 scores must exactly match the frozen presenter roster.');
+        }
+
+        $presenters = [];
+        foreach ($frozenPresenters as $index => $presenter) {
+            $scores = $submittedPresenters[$index]['scores'] ?? null;
+            if (! is_array($scores)) {
+                throw new InvalidArgumentException('RES-036 requires complete scores for every frozen presenter.');
+            }
+
+            $presenters[$index + 1] = [
+                'student_id' => $presenter['student_id'],
+                'name' => $presenter['name'],
+                'scores' => $scores,
+            ];
+        }
+
+        $payload['res_036_presenters'] = $presenters;
+
+        return $payload;
     }
 
     /**
@@ -384,12 +426,10 @@ class SubmitOfficialFormVersion
 
     private function applyPanelistEvaluationSignature(User $actor, OfficialFormInstance $instance, OfficialFormVersion $version): void
     {
-        if (UserSignature::query()->where('user_id', $actor->id)->exists()) {
-            try {
-                app(ApplyOfficialFormSignature::class)->handle($actor, $instance->id, $version->id, 'evaluate');
-            } catch (\Throwable) {
-                // If already signed or cannot apply, fail-soft without breaking submission
-            }
+        if (! UserSignature::query()->where('user_id', $actor->id)->exists()) {
+            throw new InvalidArgumentException('No digital signature registered. Please register a digital signature in Settings.');
         }
+
+        app(ApplyOfficialFormSignature::class)->handle($actor, $instance->id, $version->id, 'evaluate');
     }
 }

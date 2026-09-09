@@ -20,6 +20,8 @@ use App\Modules\Evaluations\Actions\SaveDefenseEvaluationDraft;
 use App\Modules\Evaluations\Actions\SubmitDefenseEvaluation;
 use App\Modules\Evaluations\Services\Res036Rubric;
 use App\Modules\OfficialForms\Actions\ApplyOfficialFormSignature;
+use App\Modules\OfficialForms\Actions\CreateOfficialFormInstance;
+use App\Modules\OfficialForms\Actions\SubmitOfficialFormVersion;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -306,6 +308,58 @@ class DefenseEvaluationTest extends TestCase
         $this->assertEquals(100, $evaluation->research_paper_total);
         $this->assertSame($presentationScores, $evaluation->studentScores->first()->presentation_criterion_scores);
         $this->assertEquals(100, $evaluation->studentScores->first()->presentation_total);
+    }
+
+    public function test_panelist_can_sign_and_submit_the_visible_res036_rubric_without_legacy_totals(): void
+    {
+        (new OpenDefenseEvaluationRound)->handle($this->facilitator, $this->defense, $this->panelist1->id);
+
+        $instance = (new CreateOfficialFormInstance)->handle(
+            $this->panelist1,
+            'RES-036',
+            $this->defense->research_class_group_id,
+            sourceType: DefenseSchedule::class,
+            sourceId: $this->defense->current_schedule_id,
+        );
+
+        UserSignature::create([
+            'user_id' => $this->panelist1->id,
+            'storage_disk' => 'local',
+            'storage_path' => 'signatures/panelist-1.png',
+            'original_filename' => 'panelist-1.png',
+            'content_sha256' => hash('sha256', 'panelist-signature'),
+            'file_size' => strlen('panelist-signature'),
+            'mime_type' => 'image/png',
+            'registered_at' => now(),
+        ]);
+        Storage::disk('local')->put('signatures/panelist-1.png', 'panelist-signature');
+
+        $initialPayload = $instance->currentVersion->payload;
+        $presenters = [];
+        foreach (array_keys($initialPayload['res_036_presenters']) as $index) {
+            $presenters[$index] = ['scores' => Res036Rubric::PRESENTATION_MAXIMUMS];
+        }
+
+        $submittedVersion = (new SubmitOfficialFormVersion)->handle($this->panelist1, $instance, [
+            'res_036_defense_type' => $initialPayload['res_036_defense_type'],
+            'res_036_date' => $initialPayload['res_036_date'],
+            'res_036_time' => $initialPayload['res_036_time'],
+            'res_036_venue' => $initialPayload['res_036_venue'],
+            'res_036_research_title' => $initialPayload['res_036_research_title'],
+            'res_036_paper_scores' => Res036Rubric::PAPER_MAXIMUMS,
+            'res_036_presenters' => $presenters,
+            'res_036_panelist_printed_name' => $initialPayload['res_036_panelist_printed_name'],
+            'res_036_signed_at' => $initialPayload['res_036_signed_at'],
+        ]);
+
+        $this->assertSame('submitted', $instance->fresh()->status);
+        $this->assertArrayNotHasKey('res_036_paper_total', $submittedVersion->payload);
+        $this->assertSame($this->student1->name, $submittedVersion->payload['res_036_presenters'][1]['name']);
+        $this->assertEquals(100, $instance->fresh()->defenseEvaluation->research_paper_total);
+        $this->assertTrue($submittedVersion->signatures()
+            ->where('signer_user_id', $this->panelist1->id)
+            ->where('academic_action', 'evaluate')
+            ->exists());
     }
 
     public function test_signature_on_res037_finalizes_round_and_facilitator_can_release(): void

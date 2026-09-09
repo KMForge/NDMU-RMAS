@@ -70,6 +70,50 @@ class OfficialFormSignatureTest extends TestCase
         Storage::disk('local')->assertExists($sigRecord->signature_storage_path);
     }
 
+    public function test_res033_is_endorsed_and_received_with_one_signature_action_when_roles_share_a_user(): void
+    {
+        $adviserCoordinator = User::factory()->create([
+            'user_type' => UserType::Faculty,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+        $adviserCoordinator->assignRole('thesis-adviser', 'program-coordinator');
+
+        $group = $this->createGroup(adviser: $adviserCoordinator);
+        $instance = app(CreateOfficialFormInstance::class)->handle(
+            $adviserCoordinator,
+            'RES-033',
+            $group->id,
+            null,
+            'proposal_defense',
+            payload: ['defense_type' => 'proposal_defense'],
+        );
+        $this->enrollSignature($adviserCoordinator);
+
+        app(ApplyOfficialFormSignature::class)->handle(
+            $adviserCoordinator,
+            $instance->id,
+            $instance->current_version_id,
+            'endorse',
+        );
+
+        $this->assertSame('received', $instance->fresh()->status);
+        $this->assertDatabaseHas('official_form_signatures', [
+            'official_form_instance_id' => $instance->id,
+            'signer_user_id' => $adviserCoordinator->id,
+            'actor_type' => 'adviser',
+            'academic_action' => 'endorse',
+        ]);
+        $this->assertDatabaseHas('official_form_signatures', [
+            'official_form_instance_id' => $instance->id,
+            'signer_user_id' => $adviserCoordinator->id,
+            'actor_type' => 'program_head',
+            'academic_action' => 'receive',
+        ]);
+        $this->assertDatabaseCount('official_form_signatures', 2);
+    }
+
     public function test_missing_enrolled_signature_blocks_signed_action(): void
     {
         [$adviser, $instance] = $this->createFormInstanceForAdviser('RES-040');

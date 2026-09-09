@@ -208,8 +208,13 @@ class ApplyOfficialFormSignature
                     ],
                 ]);
 
-                if (strtoupper($lockedInstance->definition->code) === 'RES-026') {
+                $formCode = strtoupper($lockedInstance->definition->code);
+
+                if ($formCode === 'RES-026') {
                     $this->advanceRes026AfterSignature($lockedInstance, $signatureRecord, $actor);
+                }
+
+                if (in_array($formCode, ['RES-026', 'RES-033'], true)) {
                     $this->applyDualSignaturesIfEligible($actor, $lockedInstance, $currentVersion, $academicAction, $specimen, $specimenBytes, $request, $disk);
                 }
 
@@ -265,21 +270,29 @@ class ApplyOfficialFormSignature
     ): void {
         $code = strtoupper($instance->definition->code);
 
-        if ($code === 'RES-026') {
-            $potentialActions = [
+        $potentialActions = match ($code) {
+            'RES-026' => [
                 'sign_chairperson' => 'title_panel_chairperson',
                 'sign_member_1' => 'title_panel_member_1',
                 'sign_member_2' => 'title_panel_member_2',
                 'endorse' => 'program_coordinator',
-            ];
+            ],
+            'RES-033' => $primaryAction === 'endorse'
+                ? ['receive' => 'program_head']
+                : [],
+            default => [],
+        };
 
+        if ($potentialActions !== []) {
             foreach ($potentialActions as $action => $actorType) {
                 if ($action === $primaryAction) {
                     continue;
                 }
 
                 $qualifies = false;
-                if ($action === 'endorse') {
+                if ($code === 'RES-033') {
+                    $qualifies = $this->authorization->canPerformAction($actor, $instance, $action);
+                } elseif ($action === 'endorse') {
                     $class = $instance->researchClass ?? $instance->group?->researchClass;
                     $qualifies = app(InstitutionalActorResolver::class)->isProgramCoordinator($actor, $class, $instance->group)
                         || ($class !== null && ResearchClassActorAssignment::query()->where('research_class_id', $class->id)->where('user_id', $actor->id)->whereIn('actor_type', ['program_coordinator', 'program_head'])->where('status', 'active')->exists());
@@ -310,6 +323,18 @@ class ApplyOfficialFormSignature
 
                 if ($alreadySigned) {
                     continue;
+                }
+
+                if ($code === 'RES-033') {
+                    $transition = $this->authorization->transitionFor($instance, $action);
+                    if ($transition === null) {
+                        throw new InvalidArgumentException("No valid workflow transition defined for action '{$action}' on form {$instance->definition->code}.");
+                    }
+
+                    if ($instance->status !== $transition['to']) {
+                        app(ApproveOfficialForm::class)->handle($actor, $instance, [], $transition['to'], $action);
+                        $instance->refresh();
+                    }
                 }
 
                 $snapshotUuid = (string) Str::uuid();
@@ -370,7 +395,9 @@ class ApplyOfficialFormSignature
                     ],
                 ]);
 
-                $this->advanceRes026AfterSignature($instance, $dualSig, $actor);
+                if ($code === 'RES-026') {
+                    $this->advanceRes026AfterSignature($instance, $dualSig, $actor);
+                }
             }
         }
     }

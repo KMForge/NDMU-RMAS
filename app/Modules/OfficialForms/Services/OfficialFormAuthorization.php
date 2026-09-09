@@ -125,7 +125,7 @@ class OfficialFormAuthorization
         ],
         'res-033' => [
             'endorse' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'endorsed'],
-            'receive' => ['from' => ['draft', 'submitted', 'endorsed', 'in_progress'], 'to' => 'received'],
+            'receive' => ['from' => ['endorsed'], 'to' => 'received'],
         ],
         'res-034' => [
             'fill' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'completed'],
