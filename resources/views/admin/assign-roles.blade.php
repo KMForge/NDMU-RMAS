@@ -18,7 +18,7 @@
                     <div class="min-w-0">
                         <div class="flex items-center gap-2">
                             <span class="inline-flex items-center gap-1.5 rounded-lg bg-amber-400/20 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#f4c542] border border-[#f4c542]/30">
-                                <i class="ph ph-shield-check text-xs"></i> Access Control & Role Management
+                                <i class="ph ph-shield-check text-xs"></i> Access Control & Role Management &bull; Assign Roles
                             </span>
                         </div>
                         <h1 class="mt-2 font-heading text-2xl sm:text-3xl font-extrabold tracking-tight">

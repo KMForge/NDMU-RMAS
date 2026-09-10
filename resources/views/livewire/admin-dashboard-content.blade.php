@@ -1424,22 +1424,70 @@
                                             @error('email') <span class="text-xs font-bold text-red-500">{{ $message }}</span> @enderror
                                         </div>
 
-                                        <!-- College (NDMU-RMAS is scoped to CEAC) -->
+                                        <!-- College Scope -->
                                         <div class="space-y-1.5">
-                                            <label for="new_department" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">College</label>
+                                            <label for="college_scope_display" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">College Scope</label>
                                             <div class="relative">
                                                 <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 pointer-events-none">
-                                                    <i class="ph ph-briefcase text-lg"></i>
+                                                    <i class="ph ph-buildings text-lg"></i>
                                                 </span>
                                                 <input
                                                     type="text"
-                                                    id="new_department"
+                                                    id="college_scope_display"
                                                     value="{{ config('academic.college.name') }}"
                                                     readonly
                                                     aria-readonly="true"
-                                                    class="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-600 focus:outline-none"
+                                                    class="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-500 font-medium focus:outline-none cursor-default"
                                                 >
                                             </div>
+                                        </div>
+
+                                        <!-- Department & College Dean Option -->
+                                        <div class="space-y-2 p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80">
+                                            <div class="flex items-center justify-between gap-2">
+                                                <label for="new_department" class="text-xs font-bold text-gray-700 uppercase tracking-wider block">
+                                                    Department <span class="text-emerald-700">*</span>
+                                                </label>
+                                                <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        id="toggle_college_dean"
+                                                        wire:model.live="isCollegeDean" 
+                                                        class="w-4 h-4 text-[#0e5c3a] border-gray-300 rounded focus:ring-[#0e5c3a]/20 cursor-pointer"
+                                                    >
+                                                    <span class="text-xs font-semibold text-slate-700">College Dean (College Level)</span>
+                                                </label>
+                                            </div>
+
+                                            @if ($isCollegeDean)
+                                                <div class="p-3 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center gap-2.5 text-xs text-indigo-900 leading-relaxed">
+                                                    <i class="ph ph-seal-check text-base text-indigo-600 shrink-0"></i>
+                                                    <div>
+                                                        <strong>College Dean:</strong> Registered at the College level with college-wide oversight across all departments.
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <div class="relative">
+                                                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 pointer-events-none">
+                                                        <i class="ph ph-briefcase text-lg"></i>
+                                                    </span>
+                                                    <select
+                                                        id="new_department"
+                                                        wire:model="department"
+                                                        class="w-full pl-11 pr-10 py-3.5 bg-white border @error('department') border-red-300 focus:border-red-500 focus:ring-red-500/5 @else border-gray-200 focus:border-[#0e5c3a] focus:ring-[#0e5c3a]/5 @enderror rounded-2xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-4 transition-all duration-300 cursor-pointer appearance-none"
+                                                    >
+                                                        <option value="">-- Select Academic Department --</option>
+                                                        @foreach ($this->departmentOptions() as $deptCode => $deptLabel)
+                                                            <option value="{{ $deptCode }}">{{ $deptLabel }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    <span class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 pointer-events-none">
+                                                        <i class="ph ph-caret-down text-base"></i>
+                                                    </span>
+                                                </div>
+                                                <p class="text-[11px] text-gray-500">Choose the academic department this faculty member belongs to, or check College Dean if college-level.</p>
+                                                @error('department') <span class="text-xs font-bold text-red-500 block mt-1">{{ $message }}</span> @enderror
+                                            @endif
                                         </div>
 
                                         <!-- Temporary Password -->

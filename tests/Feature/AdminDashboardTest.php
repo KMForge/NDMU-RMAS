@@ -376,7 +376,80 @@ class AdminDashboardTest extends TestCase
                 'name' => 'required',
                 'email' => 'email',
                 'password',
+                'department' => 'required',
             ]);
+    }
+
+    public function test_create_faculty_account_with_department_selection(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->set('name', 'Engr. Jose Montero')
+            ->set('email', 'j.montero@ndmu.edu.ph')
+            ->set('department', 'CSD')
+            ->set('password', 'SecurePassword123!')
+            ->call('createStaffAccount')
+            ->assertHasNoErrors();
+
+        $newUser = User::where('email', 'j.montero@ndmu.edu.ph')->first();
+        $this->assertNotNull($newUser);
+        $this->assertEquals('Engr. Jose Montero', $newUser->name);
+        $this->assertEquals('Computer Studies Department', $newUser->department);
+        $this->assertEquals(AccountStatus::Active, $newUser->status);
+        $this->assertSame('faculty', $newUser->user_type->value);
+    }
+
+    public function test_create_faculty_account_as_college_dean(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->set('name', 'Dr. Lourdes Castillo')
+            ->set('email', 'dean.castillo@ndmu.edu.ph')
+            ->set('isCollegeDean', true)
+            ->set('password', 'SecurePassword123!')
+            ->call('createStaffAccount')
+            ->assertHasNoErrors();
+
+        $newUser = User::where('email', 'dean.castillo@ndmu.edu.ph')->first();
+        $this->assertNotNull($newUser);
+        $this->assertEquals('Dr. Lourdes Castillo', $newUser->name);
+        $this->assertEquals(config('academic.college.name'), $newUser->department);
+        $this->assertEquals(AccountStatus::Active, $newUser->status);
+    }
+
+    public function test_create_faculty_account_requires_department_unless_college_dean(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+
+        $this->actingAs($admin);
+
+        // Attempting to create without department and without isCollegeDean should fail validation
+        Livewire::test(AdminDashboard::class)
+            ->set('name', 'Prof. Alan Turing')
+            ->set('email', 'a.turing@ndmu.edu.ph')
+            ->set('password', 'SecurePassword123!')
+            ->set('department', '')
+            ->set('isCollegeDean', false)
+            ->call('createStaffAccount')
+            ->assertHasErrors(['department' => 'required']);
+
+        // Marking as College Dean bypasses department requirement
+        Livewire::test(AdminDashboard::class)
+            ->set('name', 'Prof. Alan Turing')
+            ->set('email', 'a.turing@ndmu.edu.ph')
+            ->set('password', 'SecurePassword123!')
+            ->set('isCollegeDean', true)
+            ->call('createStaffAccount')
+            ->assertHasNoErrors();
     }
 
     public function test_invalid_role_filter_is_discarded(): void

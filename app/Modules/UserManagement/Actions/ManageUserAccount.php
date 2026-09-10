@@ -4,10 +4,12 @@ namespace App\Modules\UserManagement\Actions;
 
 use App\Enums\AccountStatus;
 use App\Enums\UserType;
+use App\Models\FacultyProfile;
 use App\Models\User;
 use App\Modules\AuditLogs\Services\AuditLogWriter;
 use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class ManageUserAccount
@@ -33,7 +35,7 @@ class ManageUserAccount
     }
 
     /**
-     * @param  array{name: string, email: string, password: string, department: string}  $attributes
+     * @param  array{name: string, email: string, password: string, department: string, department_id?: int|null}  $attributes
      */
     public function createStaff(array $attributes, User $actor): User
     {
@@ -48,6 +50,18 @@ class ManageUserAccount
                 'user_type' => UserType::Faculty,
                 'department' => $attributes['department'],
             ]);
+
+            $departmentId = $attributes['department_id'] ?? null;
+            if ($departmentId !== null && Schema::hasTable('faculty_profiles')) {
+                FacultyProfile::query()->updateOrCreate(
+                    ['user_id' => $user->id],
+                    [
+                        'department_id' => $departmentId,
+                        'employee_number' => 'EMP-'.str_pad((string) $user->id, 5, '0', STR_PAD_LEFT),
+                        'specialization' => $attributes['department'],
+                    ],
+                );
+            }
 
             $this->audit($actor, $user, 'user.created', null, [
                 'status' => AccountStatus::Active->value,

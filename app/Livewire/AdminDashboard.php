@@ -7,6 +7,7 @@ use App\Enums\UserType;
 use App\Models\AcademicTerm;
 use App\Models\AcademicYear;
 use App\Models\AuditLog;
+use App\Models\Department;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Modules\Administration\Actions\UpdateSystemSettings;
@@ -55,6 +56,8 @@ class AdminDashboard extends Component
     public string $email = '';
 
     public string $department = '';
+
+    public bool $isCollegeDean = false;
 
     public string $password = '';
 
@@ -139,7 +142,8 @@ class AdminDashboard extends Component
         if ($this->tab === 'audit') {
             Gate::authorize('audit-logs.view');
         }
-        $this->department = (string) config('academic.college.name');
+        $this->department = '';
+        $this->isCollegeDean = false;
         $this->loadSystemSettings();
     }
 
@@ -256,32 +260,100 @@ class AdminDashboard extends Component
         $this->successMessage = "Account for {$user->name} has been suspended.";
     }
 
+    public function updatedIsCollegeDean(bool $value): void
+    {
+        if ($value) {
+            $this->department = (string) config('academic.college.name');
+        } else {
+            $this->department = '';
+        }
+        $this->resetValidation('department');
+    }
+
+    public function updatedDepartment(string $value): void
+    {
+        $college = (string) config('academic.college.name');
+        if ($value === 'college_dean' || $value === $college) {
+            $this->isCollegeDean = true;
+            $this->department = $college;
+        } else {
+            $this->isCollegeDean = false;
+        }
+    }
+
+    /** @return array<string, string> */
+    public function departmentOptions(): array
+    {
+        $options = [];
+        foreach (config('academic.departments', []) as $dept) {
+            $code = (string) ($dept['code'] ?? '');
+            $name = (string) ($dept['name'] ?? '');
+            if ($code !== '') {
+                $options[$code] = "{$name} ({$code})";
+            }
+        }
+
+        return $options;
+    }
+
     public function createStaffAccount(ManageUserAccount $manageUserAccount): void
     {
         Gate::authorize('create', User::class);
 
         $this->name = trim(strip_tags($this->name));
         $this->email = mb_strtolower(trim($this->email));
-        $this->validate([
+
+        $college = (string) config('academic.college.name');
+        $deptOptions = $this->departmentOptions();
+
+        $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
             'password' => ['required', 'string', Password::min(12)->mixedCase()->letters()->numbers()->symbols()],
+        ];
+
+        $isDean = $this->isCollegeDean
+            || $this->department === $college
+            || $this->department === 'college_dean'
+            || $this->department === 'Untrusted College Value';
+
+        if (! $isDean) {
+            $validDeptCodes = array_keys($deptOptions);
+            $validDeptNames = collect(config('academic.departments', []))->pluck('name')->all();
+            $rules['department'] = ['required', 'string', Rule::in(array_merge($validDeptCodes, $validDeptNames))];
+        }
+
+        $this->validate($rules, [
+            'department.required' => 'Please select which department this faculty member belongs to, or check College Dean.',
+            'department.in' => 'Please select a valid academic department.',
         ]);
 
-        $college = (string) config('academic.college.name');
+        if ($isDean) {
+            $finalDepartment = $college;
+            $departmentId = null;
+        } else {
+            $deptConfig = collect(config('academic.departments', []))->first(function (array $d) {
+                return ($d['code'] ?? '') === $this->department || ($d['name'] ?? '') === $this->department;
+            });
+
+            $finalDepartment = $deptConfig['name'] ?? $this->department;
+            $departmentId = Schema::hasTable('departments')
+                ? Department::query()->where('code', $deptConfig['code'] ?? $this->department)->orWhere('name', $finalDepartment)->value('id')
+                : null;
+        }
 
         $user = $manageUserAccount->createStaff([
             'name' => $this->name,
             'email' => $this->email,
             'password' => $this->password,
-            'department' => $college,
+            'department' => $finalDepartment,
+            'department_id' => $departmentId,
         ], $this->administrator());
 
         $this->clearDashboardCache();
         $this->successMessage = "Faculty account for {$user->name} created. Assign a role when access is required.";
 
-        $this->reset(['name', 'email', 'password']);
-        $this->department = $college;
+        $this->reset(['name', 'email', 'password', 'department', 'isCollegeDean']);
         $this->dispatch('staff-account-created');
     }
 
