@@ -6,8 +6,9 @@
 @endphp
 <div x-show="activeOfficialForm === 'RES-048'" x-cloak><x-student-official-form code="RES-Form-048" title="Self and Peer Evaluation" guidebook-page="134">
     <fieldset><legend class="font-bold">Type of Evaluation Phase:</legend>
-        <div class="mt-2 flex gap-6">
+        <div class="mt-2 flex flex-wrap gap-6">
             <label><input type="radio" name="payload[evaluation_phase]" value="proposal" @checked(($payload['evaluation_phase'] ?? '') === 'proposal')> Research Proposal Phase (Research-I)</label>
+            <label><input type="radio" name="payload[evaluation_phase]" value="pre_final" @checked(($payload['evaluation_phase'] ?? '') === 'pre_final')> Pre-Final Phase</label>
             <label><input type="radio" name="payload[evaluation_phase]" value="final" @checked(($payload['evaluation_phase'] ?? '') === 'final')> Final Phase (Research-II)</label>
         </div>
     </fieldset>

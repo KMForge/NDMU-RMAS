@@ -26,8 +26,8 @@ class PanelistOfficialFormsTest extends TestCase
         $response = $this->actingAs($panelist)
             ->get(route('panelist.dashboard', ['tab' => 'forms', 'form' => 'RES-036']))
             ->assertOk()
-            ->assertSee("activeTab: 'forms'", false)
-            ->assertSee("activeOfficialForm = 'RES-036'", false);
+            ->assertSee("activeTab === 'forms'", false)
+            ->assertSee("activeOfficialForm === 'RES-036'", false);
 
         foreach (array_keys(config('official-forms.panelist')) as $code) {
             $response->assertSee($code);
@@ -38,7 +38,7 @@ class PanelistOfficialFormsTest extends TestCase
             ->assertDontSee('Phase 3: Consultation and Endorsement')
             ->assertDontSee('Phase 7: Editing, Reproduction, and Completion')
             ->assertSee('Phase 2: Adviser and Panelist Assignment')
-            ->assertSee('Phase 4: Proposal / Final Defense')
+            ->assertSee('Phase 4: Proposal / Pre-Final / Final Defense')
             ->assertSee('Phase 5: Revisions')
             ->assertSee('Phase 6: Instrument Validation and Data Gathering');
     }

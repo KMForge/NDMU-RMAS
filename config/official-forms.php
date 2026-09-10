@@ -5,7 +5,7 @@ return [
         'phase-1' => 'Phase 1: Title Approval',
         'phase-2' => 'Phase 2: Adviser and Panelist Assignment',
         'phase-3' => 'Phase 3: Consultation and Endorsement',
-        'phase-4' => 'Phase 4: Proposal / Final Defense',
+        'phase-4' => 'Phase 4: Proposal / Pre-Final / Final Defense',
         'phase-5' => 'Phase 5: Revisions',
         'phase-6' => 'Phase 6: Instrument Validation and Data Gathering',
         'phase-7' => 'Phase 7: Editing, Reproduction, and Completion',
@@ -37,10 +37,10 @@ return [
             'purpose' => 'Student records consultations with other consultants.',
         ],
         'RES-034' => [
-            'title' => 'Research Proposal/Final Oral Defense Pre-Conference',
+            'title' => 'Research Proposal/Pre-Final/Final Oral Defense Pre-Conference',
             'phase' => 'phase-4',
             'file' => 'res-034.pdf',
-            'purpose' => 'Student attends their own proposal or final oral defense pre-conference.',
+            'purpose' => 'Student attends their own proposal, pre-final, or final oral defense pre-conference.',
         ],
         'RES-039' => [
             'title' => 'Research Revision Chart',
@@ -98,12 +98,12 @@ return [
             'purpose' => 'Adviser co-signs consultations with other consultants.',
         ],
         'RES-033' => [
-            'title' => 'Endorsement for Research Proposal/Final Oral Defense',
+            'title' => 'Endorsement for Research Proposal/Pre-Final/Final Oral Defense',
             'phase' => 'phase-3',
             'purpose' => 'Adviser issues the endorsement for defense.',
         ],
         'RES-034' => [
-            'title' => 'Research Proposal/Final Oral Defense Pre-Conference',
+            'title' => 'Research Proposal/Pre-Final/Final Oral Defense Pre-Conference',
             'phase' => 'phase-4',
             'shared_with' => 'student',
             'purpose' => 'Adviser chairs the pre-conference session.',
@@ -150,7 +150,7 @@ return [
             'purpose' => 'Panelist receives the formal invitation to serve.',
         ],
         'RES-034' => [
-            'title' => 'Research Proposal/Final Oral Defense Pre-Conference',
+            'title' => 'Research Proposal/Pre-Final/Final Oral Defense Pre-Conference',
             'phase' => 'phase-4',
             'shared_with' => 'student',
             'purpose' => 'Panelist attends the pre-conference as a panel member.',

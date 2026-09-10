@@ -5,12 +5,15 @@
     $schedule = $instance?->source instanceof \App\Models\DefenseSchedule ? $instance->source : null;
     $snapshot = $instance?->currentVersion?->source_snapshot ?? [];
     $defense = $schedule?->defense;
-    $currentDefenseType = in_array($snapshot['defense_type'] ?? $defense?->defense_type, ['proposal_defense', 'title_proposal', 'proposal']) ? 'proposal' : 'final';
+    $defenseTypeRaw = $snapshot['defense_type'] ?? $defense?->defense_type ?? $payload['res_036_defense_type'] ?? '';
+    $currentDefenseType = in_array($defenseTypeRaw, ['proposal_defense', 'title_proposal', 'proposal'], true)
+        ? 'proposal'
+        : (in_array($defenseTypeRaw, ['pre_final_defense', 'pre_final', 'pre-final'], true) ? 'pre_final' : 'final');
     $currentDate = isset($snapshot['starts_at']) ? \Carbon\CarbonImmutable::parse($snapshot['starts_at'])->format('Y-m-d') : ($schedule?->starts_at?->format('Y-m-d') ?? now()->format('Y-m-d'));
     $currentTime = isset($snapshot['starts_at']) ? \Carbon\CarbonImmutable::parse($snapshot['starts_at'])->format('H:i') : ($schedule?->starts_at?->format('H:i') ?? '');
     $currentVenue = $snapshot['room_name'] ?? $snapshot['room_code'] ?? $schedule?->room?->name ?? $schedule?->room?->code ?? '';
     $currentResearchTitle = $snapshot['research_title'] ?? $group?->researchGroup?->currentProject?->title ?? '';
-    $panelistName = auth()->user()->name;
+    $panelistName = auth()->user()?->name ?? 'Panel Member';
     $signedAt = now()->format('Y-m-d');
     $programCode = $snapshot['program_code'] ?? $instance?->defenseEvaluation?->round?->program_code ?? app(Res036Rubric::class)->resolveProgramCode($group);
     $discipline = $programCode === 'BSIT' ? 'information technology' : ($programCode === 'BSCS' ? 'computer science' : 'computing');
@@ -64,6 +67,10 @@
             <label class="inline-flex items-center gap-2 cursor-pointer">
                 <input type="radio" name="payload[res_036_defense_type]" value="proposal" {{ $currentDefenseType === 'proposal' ? 'checked' : '' }}>
                 <span>Research Proposal Defense</span>
+            </label>
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="payload[res_036_defense_type]" value="pre_final" {{ $currentDefenseType === 'pre_final' ? 'checked' : '' }}>
+                <span>Research Pre-Final Defense</span>
             </label>
             <label class="inline-flex items-center gap-2 cursor-pointer">
                 <input type="radio" name="payload[res_036_defense_type]" value="final" {{ $currentDefenseType === 'final' ? 'checked' : '' }}>

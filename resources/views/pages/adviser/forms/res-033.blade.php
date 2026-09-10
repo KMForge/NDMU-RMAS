@@ -35,7 +35,7 @@
     };
 @endphp
 <div x-show="activeOfficialForm === 'RES-033'" x-cloak>
-    <x-student-official-form code="RES-Form-033" title="Endorsement for Research Proposal / Final Oral Defense" guidebook-page="113">
+    <x-student-official-form code="RES-Form-033" title="Endorsement for Research Proposal / Pre-Final / Final Oral Defense" guidebook-page="113">
         <label class="ml-auto flex w-fit items-center gap-2">Date: <input type="date" name="payload[date]" value="{{ $payload['date'] ?? now()->format('Y-m-d') }}"></label>
         <p>Dear <input type="text" value="{{ $programCoordinatorName }}" class="w-72 font-bold" readonly>,</p>
         <p>This is to endorse the research paper of the following student researchers:</p>

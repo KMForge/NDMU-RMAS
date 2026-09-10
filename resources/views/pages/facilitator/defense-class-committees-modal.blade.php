@@ -89,6 +89,7 @@
                     >
                         <option value="title_presentation">Title Presentation</option>
                         <option value="proposal_defense">Proposal Defense</option>
+                        <option value="pre_final_defense">Pre-Final Defense</option>
                         <option value="final_defense">Final Defense</option>
                     </select>
                 </div>

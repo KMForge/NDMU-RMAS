@@ -5,7 +5,10 @@
     $defense = $schedule?->defense ?? $round?->defense;
     $group = $instance?->group ?? $round?->group ?? $defense?->group;
 
-    $currentDefenseType = $payload['res_037_defense_type'] ?? (in_array($defense?->defense_type, ['proposal_defense', 'title_proposal', 'proposal']) ? 'proposal' : 'final');
+    $defenseTypeRaw = $payload['res_037_defense_type'] ?? $defense?->defense_type ?? '';
+    $currentDefenseType = in_array($defenseTypeRaw, ['proposal_defense', 'title_proposal', 'proposal'], true)
+        ? 'proposal'
+        : (in_array($defenseTypeRaw, ['pre_final_defense', 'pre_final', 'pre-final'], true) ? 'pre_final' : 'final');
     $currentDate = $payload['res_037_date'] ?? $schedule?->starts_at?->format('Y-m-d') ?? now()->format('Y-m-d');
     $currentTime = $payload['res_037_time'] ?? $schedule?->starts_at?->format('H:i') ?? '';
     $currentVenue = $payload['res_037_venue'] ?? $schedule?->room?->name ?? $schedule?->room?->code ?? '';
@@ -51,7 +54,7 @@
         }
     }
 
-    $signerName = $payload['res_037_panelist_printed_name'] ?? ($round?->summary_signer_user_id ? \App\Models\User::find($round->summary_signer_user_id)?->name : auth()->user()->name);
+    $signerName = $payload['res_037_panelist_printed_name'] ?? ($round?->summary_signer_user_id ? \App\Models\User::find($round->summary_signer_user_id)?->name : auth()->user()?->name ?? 'Panel Member');
     $submittedAt = $payload['res_037_submitted_at'] ?? now()->format('Y-m-d');
 @endphp
 
@@ -62,6 +65,10 @@
             <label class="inline-flex items-center gap-2 cursor-pointer">
                 <input type="radio" name="payload[res_037_defense_type]" value="proposal" {{ $currentDefenseType === 'proposal' ? 'checked' : '' }}>
                 <span>Research Proposal Defense</span>
+            </label>
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="payload[res_037_defense_type]" value="pre_final" {{ $currentDefenseType === 'pre_final' ? 'checked' : '' }}>
+                <span>Research Pre-Final Defense</span>
             </label>
             <label class="inline-flex items-center gap-2 cursor-pointer">
                 <input type="radio" name="payload[res_037_defense_type]" value="final" {{ $currentDefenseType === 'final' ? 'checked' : '' }}>

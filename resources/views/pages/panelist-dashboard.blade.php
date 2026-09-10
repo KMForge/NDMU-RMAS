@@ -1976,6 +1976,7 @@ document.addEventListener('alpine:init', () => {
                     >
                         <option value="all">All Defense Types</option>
                         <option value="proposal defense">Proposal Defense</option>
+                        <option value="pre-final defense">Pre-Final Defense</option>
                         <option value="final defense">Final Defense</option>
                     </select>
 

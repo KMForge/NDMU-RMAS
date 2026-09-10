@@ -15,7 +15,7 @@
     $adviserName = $group?->adviser?->name ?? 'N/A';
 @endphp
 <div x-show="activeOfficialForm === 'RES-034'" x-cloak>
-    <x-student-official-form code="RES-Form-034" title="Research Proposal / Final Oral Defense Pre-Conference" guidebook-page="114">
+    <x-student-official-form code="RES-Form-034" title="Research Proposal / Pre-Final / Final Oral Defense Pre-Conference" guidebook-page="114">
         <div class="grid gap-4 md:grid-cols-2">
             <label>Name & Course of Student/s:
                 <textarea class="mt-1 min-h-20 w-full font-bold" readonly>{{ $joinedResearchers }}</textarea>
@@ -29,8 +29,9 @@
         <label class="block font-bold">Research Title:<input value="{{ $currentResearchTitle }}" class="w-full font-bold" readonly></label>
         <fieldset>
             <legend class="font-bold">Type of Defense:</legend>
-            <div class="mt-2 flex gap-6">
+            <div class="mt-2 flex flex-wrap gap-6">
                 <label><input type="radio" name="payload[defense_type]" value="proposal" @checked(($payload['defense_type'] ?? 'proposal') === 'proposal')> Research Proposal Defense</label>
+                <label><input type="radio" name="payload[defense_type]" value="pre_final" @checked(($payload['defense_type'] ?? '') === 'pre_final' || ($payload['defense_type'] ?? '') === 'pre_final_defense')> Research Pre-Final Defense</label>
                 <label><input type="radio" name="payload[defense_type]" value="final" @checked(($payload['defense_type'] ?? '') === 'final')> Research Final Oral Defense</label>
             </div>
         </fieldset>

@@ -17,7 +17,7 @@
     $comments = array_values($payload['comments'] ?? array_fill(0, 32, ''));
 @endphp
 <div x-show="activeOfficialForm === 'RES-035'" x-cloak>
-    <x-student-official-form code="RES-Form 035" title="Research Proposal / Final Oral Defense Proceedings" guidebook-page="">
+    <x-student-official-form code="RES-Form 035" title="Research Proposal / Pre-Final / Final Oral Defense Proceedings" guidebook-page="">
         <div class="grid gap-4 md:grid-cols-2">
             <fieldset>
                 <legend class="mb-2 font-bold">Name & Course of Student/s:</legend>
@@ -38,6 +38,7 @@
         <fieldset class="flex flex-wrap gap-6">
             <legend class="mb-2 font-bold">Type of Defense:</legend>
             <label><input type="radio" name="payload[defense_type]" value="proposal" @checked(($payload['defense_type'] ?? 'proposal') === 'proposal')> Research Proposal Defense</label>
+            <label><input type="radio" name="payload[defense_type]" value="pre_final" @checked(($payload['defense_type'] ?? '') === 'pre_final' || ($payload['defense_type'] ?? '') === 'pre_final_defense')> Research Pre-Final Defense</label>
             <label><input type="radio" name="payload[defense_type]" value="final" @checked(($payload['defense_type'] ?? '') === 'final')> Research Final Oral Defense</label>
         </fieldset>
         <h3 class="font-bold italic">Comments / Corrections / Suggestions:</h3>

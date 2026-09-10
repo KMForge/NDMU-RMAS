@@ -77,6 +77,10 @@
         || (isset($payload['defense_stage']) && in_array($payload['defense_stage'], ['proposal', 'proposal_defense'], true))
         || (isset($payload['recommendation']) && $payload['recommendation'] === 'proposal');
 
+    $isPreFinalDefense = ! empty($payload['defense_stage_pre_final'])
+        || (isset($payload['defense_stage']) && in_array($payload['defense_stage'], ['pre_final', 'pre_final_defense'], true))
+        || (isset($payload['recommendation']) && $payload['recommendation'] === 'pre_final');
+
     $isFinalDefense = ! empty($payload['defense_stage_final'])
         || (isset($payload['defense_stage']) && in_array($payload['defense_stage'], ['final', 'final_oral_defense', 'final_defense'], true))
         || (isset($payload['recommendation']) && $payload['recommendation'] === 'final');
@@ -506,6 +510,16 @@
                         class="h-4 w-4 rounded border-gray-400 text-[#0e5c3a] focus:ring-[#0e5c3a]"
                     >
                     <span>Research Proposal Defense</span>
+                </label>
+                <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                        type="checkbox"
+                        name="payload[defense_stage_pre_final]"
+                        value="1"
+                        {{ $isPreFinalDefense ? 'checked' : '' }}
+                        class="h-4 w-4 rounded border-gray-400 text-[#0e5c3a] focus:ring-[#0e5c3a]"
+                    >
+                    <span>Research Pre-Final Defense</span>
                 </label>
                 <label class="inline-flex items-center gap-2 cursor-pointer select-none">
                     <input

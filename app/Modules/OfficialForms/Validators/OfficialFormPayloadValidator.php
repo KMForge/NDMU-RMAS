@@ -63,7 +63,23 @@ class OfficialFormPayloadValidator
             'res_037_panelist_printed_name' => 'string',
         ],
         'RES-038' => ['date' => 'string', 'day' => 'string', 'month_year' => 'string'],
-        'RES-039' => ['revisions' => 'array', 'recommendation' => 'string', 'date' => 'string'],
+        'RES-039' => [
+            'revisions' => 'array',
+            'recommendation' => 'string',
+            'date' => 'string',
+            'defense_stage' => 'string',
+            'defense_stage_proposal' => 'string',
+            'defense_stage_pre_final' => 'string',
+            'defense_stage_final' => 'string',
+            'date_reviewed' => 'string',
+            'panel_chair' => 'string',
+            'panel_members' => 'array',
+            'research_title' => 'string',
+            'research_title_line2' => 'string',
+            'researchers' => 'array',
+            'course' => 'string',
+            'adviser' => 'string',
+        ],
         'RES-040' => ['date' => 'string'],
         'RES-041' => ['date' => 'string', 'subject_number' => 'string', 'descriptive_title' => 'string', 'entries' => 'array'],
         'RES-042' => ['date' => 'string', 'descriptive_title' => 'string', 'course' => 'string'],
@@ -193,8 +209,8 @@ class OfficialFormPayloadValidator
         }
 
         if ($code === 'RES-035') {
-            if (isset($payload['defense_type']) && ! in_array($payload['defense_type'], ['proposal', 'final'], true)) {
-                throw new InvalidArgumentException('RES-035 defense type must be proposal or final.');
+            if (isset($payload['defense_type']) && ! in_array($payload['defense_type'], ['proposal', 'pre_final', 'pre_final_defense', 'final'], true)) {
+                throw new InvalidArgumentException('RES-035 defense type must be proposal, pre_final, or final.');
             }
             if (isset($payload['decision']) && $payload['decision'] !== '' && ! in_array($payload['decision'], ['passed', 'passed_with_revisions', 'failed'], true)) {
                 throw new InvalidArgumentException('RES-035 decision is invalid.');
@@ -239,8 +255,8 @@ class OfficialFormPayloadValidator
         if ($code === 'RES-048') {
             if (isset($payload['evaluation_phase'])
                 && $payload['evaluation_phase'] !== ''
-                && ! in_array($payload['evaluation_phase'], ['proposal', 'final'], true)) {
-                throw new InvalidArgumentException('RES-048 evaluation phase must be proposal or final.');
+                && ! in_array($payload['evaluation_phase'], ['proposal', 'pre_final', 'final'], true)) {
+                throw new InvalidArgumentException('RES-048 evaluation phase must be proposal, pre_final, or final.');
             }
 
             $ratings = $payload['ratings'] ?? [];

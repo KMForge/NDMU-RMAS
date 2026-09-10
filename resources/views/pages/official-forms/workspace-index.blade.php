@@ -449,6 +449,7 @@
                                             <option value="final_defense">Final Defense</option>
                                         @else
                                             <option value="proposal_defense">Proposal Defense</option>
+                                            <option value="pre_final_defense">Pre-Final Defense</option>
                                             <option value="final_defense">Final Defense</option>
                                         @endif
                                     </select>
