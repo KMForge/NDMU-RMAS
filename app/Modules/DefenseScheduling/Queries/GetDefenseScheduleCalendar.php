@@ -139,7 +139,11 @@ class GetDefenseScheduleCalendar
                 'panelists' => $panelists,
                 'reason' => $schedule->reason,
                 'can_manage' => $isFacilitator && $user->can('defenses.manage'),
-                'can_initiate_res036' => $isPanelist && $schedule->status === 'current' && $defense?->status === 'scheduled' && $user->hasPermissionTo('forms.res-036.evaluate'),
+                'has_open_round' => $round !== null && in_array($round->status, ['open', 'in_progress'], true),
+                'can_initiate_res036' => $isPanelist
+                    && (($round !== null && in_array($round->status, ['open', 'in_progress'], true)) || ($schedule->status === 'current' && in_array($defense?->status, ['scheduled', 'in_progress'], true)))
+                    && ($round?->evaluations?->where('panelist_user_id', $user->id)->where('status', 'submitted')->isEmpty() ?? true)
+                    && $user->hasPermissionTo('forms.res-036.evaluate'),
                 'evaluation_round' => $round ? [
                     'id' => $round->id,
                     'status' => $round->status,

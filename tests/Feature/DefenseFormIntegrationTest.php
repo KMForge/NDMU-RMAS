@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Enums\AccountStatus;
 use App\Enums\UserType;
+use App\Models\DefenseEvaluationRound;
+use App\Models\DefenseEvaluationRoundPanelist;
 use App\Models\DefenseRoom;
 use App\Models\DefenseSchedule;
 use App\Models\OfficialFormInstance;
@@ -393,5 +395,37 @@ class DefenseFormIntegrationTest extends TestCase
 
         $otherPanelistPending = $pendingService->execute($this->nonPanelist);
         $this->assertFalse($otherPanelistPending->contains('instance_id', $instance->id));
+    }
+
+    public function test_open_defense_evaluation_round_appears_in_pending_actions_for_assigned_panelist(): void
+    {
+        $defense = $this->schedule->defense;
+        $assignment = $defense->activePanelAssignments->first();
+
+        $round = DefenseEvaluationRound::query()->create([
+            'defense_id' => $defense->id,
+            'defense_schedule_id' => $this->schedule->id,
+            'research_class_group_id' => $this->group->id,
+            'program_code' => 'BSCS',
+            'status' => 'open',
+            'summary_signer_user_id' => $this->panelist->id,
+            'opened_by' => $this->facilitator->id,
+            'opened_at' => now(),
+        ]);
+
+        DefenseEvaluationRoundPanelist::query()->create([
+            'defense_evaluation_round_id' => $round->id,
+            'defense_panel_assignment_id' => $assignment->id,
+            'panelist_user_id' => $this->panelist->id,
+            'position' => 1,
+        ]);
+
+        $pendingService = app(GetPendingAcademicActionsForUser::class);
+        $panelistPending = $pendingService->execute($this->panelist);
+
+        $evalAction = $panelistPending->firstWhere('id', "defense-round-{$round->id}-evaluate");
+        $this->assertNotNull($evalAction);
+        $this->assertSame('res-036', $evalAction['form_code']);
+        $this->assertStringContainsString('Evaluate', $evalAction['action_label']);
     }
 }

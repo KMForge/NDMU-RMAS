@@ -127,7 +127,7 @@ class GetEvaluationRoundData
     {
         $query = DefenseEvaluationRound::query()
             ->with([
-                'defense.group',
+                'defense.group.adviser',
                 'defenseSchedule.room',
                 'roundPanelists.panelist',
                 'roundStudents.student',
@@ -146,14 +146,37 @@ class GetEvaluationRoundData
         return [
             'rounds' => $rounds->map(function ($round) use ($panelist) {
                 $eval = $round->evaluations->first();
+                $defenseType = $round->defense?->defense_type;
+                $defenseTypeLabel = match ($defenseType) {
+                    'title_presentation' => 'Title Proposal',
+                    'proposal_defense' => 'Proposal Defense',
+                    'pre_final_defense' => 'Pre-Final Defense',
+                    'final_defense' => 'Final Oral Defense',
+                    default => 'Research Defense',
+                };
+                $schedule = $round->defenseSchedule;
+                $canEvaluate = in_array($round->status, ['open', 'in_progress'], true)
+                    && ($eval === null || $eval->status !== 'submitted');
 
                 return [
                     'id' => $round->id,
                     'defense_id' => $round->defense_id,
-                    'defense_type' => $round->defense->defense_type,
+                    'defense_schedule_id' => $round->defense_schedule_id,
+                    'defense_type' => $defenseType,
+                    'defense_type_label' => $defenseTypeLabel,
                     'group_name' => $round->defense->group?->name,
                     'research_title' => $round->defense->group?->title ?? $round->defense->group?->name,
+                    'adviser_name' => $round->defense?->group?->adviser?->name ?? 'Not assigned',
+                    'venue' => ($schedule?->room?->name ?? 'Room').(! empty($schedule?->room?->code) ? " ({$schedule->room->code})" : ''),
+                    'formatted_date' => $schedule?->starts_at?->format('M d, Y'),
+                    'formatted_time' => $schedule?->starts_at ? ($schedule->starts_at->format('h:i A').' - '.$schedule->ends_at?->format('h:i A')) : '',
                     'status' => $round->status,
+                    'can_evaluate' => $canEvaluate,
+                    'res036_url' => $round->defense_schedule_id ? route('official-forms.workspace.store-from-source', [
+                        'definition' => 'res-036',
+                        'sourceKind' => 'defense-schedule',
+                        'source' => $round->defense_schedule_id,
+                    ]) : null,
                     'opened_at' => $round->opened_at?->toIso8601String(),
                     'is_designated_signer' => (int) $round->summary_signer_user_id === (int) $panelist->id,
                     'evaluation' => $eval ? [

@@ -17,6 +17,8 @@
     $rawDefenses = $assignedDefenses ?? collect();
     $formattedDefenses = collect($rawDefenses)->map(function ($s) {
         $panelList = is_array($s['panelists'] ?? null) ? array_column($s['panelists'], 'name') : [];
+        $hasOpenRound = ! empty($s['evaluation_round']) && in_array($s['evaluation_round']['status'] ?? '', ['open', 'in_progress'], true);
+
         return [
             'id' => $s['id'] ?? 0,
             'student' => $s['group_name'] ?? 'Research Group',
@@ -29,7 +31,8 @@
             'status' => ucfirst($s['schedule_status'] ?? 'Scheduled'),
             'leftBorder' => ($s['schedule_status'] ?? '') === 'current' ? 'border-l-4 border-l-[#10b981]' : 'border-l-4 border-l-slate-300',
             'statusClass' => ($s['schedule_status'] ?? '') === 'current' ? 'bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold px-2.5 py-0.5 rounded-full text-[10px]' : 'bg-slate-100 border border-slate-200 text-slate-700 font-bold px-2.5 py-0.5 rounded-full text-[10px]',
-            'can_initiate_res036' => (bool) ($s['can_initiate_res036'] ?? false),
+            'has_open_round' => $hasOpenRound,
+            'can_initiate_res036' => (bool) ($s['can_initiate_res036'] ?? false) || $hasOpenRound,
             'res036_url' => $s['res036_url'] ?? '#',
         ];
     })->values()->toArray();
@@ -271,6 +274,28 @@ document.addEventListener('alpine:init', () => {
                 return true;
             });
         },
+        finalSearchQuery: '',
+        finalStatusFilter: 'all',
+        finalPapers: config.finalPapers || [],
+        filteredFinalPapers() {
+            return this.finalPapers.filter(p => {
+                if (this.finalStatusFilter !== 'all' && p.status.toLowerCase() !== this.finalStatusFilter.toLowerCase()) return false;
+                if (this.finalSearchQuery.trim() !== '') {
+                    const q = this.finalSearchQuery.toLowerCase();
+                    return p.title.toLowerCase().includes(q) || String(p.id).toLowerCase().includes(q) || p.filename.toLowerCase().includes(q);
+                }
+                return true;
+            });
+        },
+        finalEvaluationRounds() {
+            return (this.evaluationRounds || []).filter(r => ['pre_final_defense', 'final_defense'].includes(r.defense_type));
+        },
+        proposalEvaluationRounds() {
+            return (this.evaluationRounds || []).filter(r => ['title_presentation', 'proposal_defense'].includes(r.defense_type));
+        },
+        pendingFinalCount() {
+            return this.finalEvaluationRounds().filter(r => ['open', 'in_progress'].includes(r.status) && r.evaluation?.status !== 'submitted').length;
+        },
         assignedPapers: config.assignedPapers || [],
         filteredAssignedPapers() {
             return this.assignedPapers.filter(p => {
@@ -374,6 +399,7 @@ document.addEventListener('alpine:init', () => {
         selectedReviewPaper: @js($selectedReviewPaper ?? null),
         assignedPapers: @js($assignedPapers ?? []),
         proposalPapers: @js($proposalPapers ?? []),
+        finalPapers: @js($finalPapers ?? []),
         defenses: @js(! empty($formattedDefenses) ? $formattedDefenses : [])
     })"
 >
@@ -490,10 +516,10 @@ document.addEventListener('alpine:init', () => {
                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-clipboard-text text-lg transition-transform group-hover:scale-110"></i>
-                        <span>Final Defense Evaluation</span>
+                        <span>Pre-Final & Final Eval</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <x-sidebar-count-badge :count="$sidebarBadges['final-eval'] ?? 0" label="final defense evaluations requiring attention" />
+                        <x-sidebar-count-badge :count="$sidebarBadges['final-eval'] ?? 0" label="pre-final and final defense evaluations requiring attention" />
                         <span x-show="activeTab === 'final-eval'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                     </div>
                 </button>
@@ -694,7 +720,7 @@ document.addEventListener('alpine:init', () => {
             <x-portal-feature-banner class="mb-8" :sections="[
                 'assigned-papers' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Assigned Papers', 'description' => 'Access the research papers assigned to you for review.', 'icon' => 'ph-files'],
                 'proposal-eval' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Proposal Evaluation', 'description' => 'Evaluate assigned proposal defenses using the approved criteria.', 'icon' => 'ph-clipboard-text'],
-                'final-eval' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Final Evaluation', 'description' => 'Record final-defense scores and evidence-based feedback.', 'icon' => 'ph-medal'],
+                'final-eval' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Pre-Final & Final Evaluation', 'description' => 'Record pre-final and final defense scores and evidence-based feedback.', 'icon' => 'ph-medal'],
 'recommendations' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Recommendations', 'description' => 'Review and manage recommendations issued to research groups.', 'icon' => 'ph-lightbulb'],
                 'schedule' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Defense Schedule', 'description' => 'View your assigned defense dates, venues, and research groups.', 'icon' => 'ph-calendar-check'],
                 'repository' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Research Repository', 'description' => 'Securely access research documents assigned to your panel.', 'icon' => 'ph-folder-open'],
@@ -968,10 +994,16 @@ document.addEventListener('alpine:init', () => {
                                                 <span class="flex items-center gap-1"><i class="ph ph-map-pin text-xs"></i><span x-text="def.venue"></span></span>
                                             </div>
                                         </div>
-                                        <button @click="selectedDefense = def"
-                                            class="shrink-0 px-3 py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-[10px] font-bold rounded-xl shadow-xs transition cursor-pointer">
-                                            View
-                                        </button>
+                                        <div class="flex items-center gap-2 shrink-0">
+                                            <a x-show="def.can_initiate_res036" :href="def.res036_url"
+                                                class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1">
+                                                <i class="ph ph-pencil-simple"></i> Evaluate
+                                            </a>
+                                            <button @click="selectedDefense = def"
+                                                class="px-3 py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-[10px] font-bold rounded-xl shadow-xs transition cursor-pointer">
+                                                View
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </template>
@@ -1014,7 +1046,7 @@ document.addEventListener('alpine:init', () => {
                                             <div class="flex items-center gap-3">
                                                 <div class="w-8 h-8 rounded-xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center text-sm shrink-0"><i class="ph ph-medal"></i></div>
                                                 <div>
-                                                    <p class="text-xs font-bold text-slate-800">Final Defense Evaluations</p>
+                                                    <p class="text-xs font-bold text-slate-800">Pre-Final & Final Evaluations</p>
                                                     <p class="text-[10px] text-slate-500">{{ $finalPending }} pending</p>
                                                 </div>
                                             </div>
@@ -1272,6 +1304,23 @@ document.addEventListener('alpine:init', () => {
                     <p class="text-xs text-gray-455 mt-1">Manage research proposals and approvals</p>
                 </div>
 
+                <!-- Helpful Notification Banner if Pre-Final/Final rounds are pending -->
+                <div x-show="pendingFinalCount() > 0" class="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-lg shrink-0">
+                            <i class="ph ph-bell-ringing"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-purple-900">Pre-Final / Final Defense Evaluation Ready</h4>
+                            <p class="text-[11px] text-purple-700">You have <span class="font-bold" x-text="pendingFinalCount()">1</span> active evaluation round waiting for scoring in Pre-Final & Final Evaluation.</p>
+                        </div>
+                    </div>
+                    <button type="button" @click="activeTab = 'final-eval'" class="shrink-0 px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                        <span>Go to Pre-Final / Final Evaluation</span>
+                        <i class="ph ph-arrow-right"></i>
+                    </button>
+                </div>
+
                 <!-- Stats Cards Row (4 Columns) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Approved -->
@@ -1390,134 +1439,208 @@ document.addEventListener('alpine:init', () => {
             <!-- TAB: Final Defense Evaluation -->
             <div x-show="activeTab === 'final-eval'" x-cloak class="space-y-8 animate-fade-in">
                 <!-- Title Block -->
-                <div>
-                    <h1 class="text-2xl font-bold font-heading text-gray-800">Evaluation & Grading</h1>
-                    <p class="text-xs text-gray-455 mt-1">Research defense evaluation and scoring system</p>
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold font-heading text-gray-800">Pre-Final & Final Defense Evaluation</h1>
+                        <p class="text-xs text-gray-455 mt-1">Evaluate assigned pre-final and final oral defenses using official rubric criteria.</p>
+                    </div>
                 </div>
 
-                <!-- Big Solid Green Card -->
-                <div class="bg-[#10b981] rounded-2xl p-6 md:p-8 text-white shadow-md flex flex-col md:flex-row md:items-center md:justify-between gap-6 relative overflow-hidden">
-                    <div class="space-y-1 z-10">
-                        <span class="text-xs text-white/80 font-bold tracking-wider uppercase block">Overall Research Score</span>
-                        <span class="text-5xl font-black block tracking-tight">90.0%</span>
-                        <div class="flex items-center gap-1.5 text-amber-300 font-bold text-xs pt-2">
-                            <span>★</span>
-                            <span>Excellent Performance</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-4 z-10 md:text-right">
-                        <span class="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center text-4xl text-white">
-                            <i class="ph ph-award"></i>
-                        </span>
+                <!-- Stats Cards Row (4 Columns) -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- Evaluated -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
                         <div>
-                            <span class="text-sm font-extrabold block">Proposal Defense</span>
-                            <span class="text-[10px] text-white/80 font-medium block mt-0.5">May 10, 2026</span>
+                            <span class="w-11 h-11 rounded-xl bg-emerald-50/80 text-[#0e5c3a] border border-emerald-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-check-circle"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Evaluated</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="finalEvaluationRounds().filter(r => r.evaluation && r.evaluation.status === 'submitted').length">0</span>
                         </div>
+                        <span class="text-emerald-600 text-xl font-bold">
+                            <i class="ph ph-check-fat"></i>
+                        </span>
+                    </div>
+
+                    <!-- Awaiting Evaluation -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
+                        <div>
+                            <span class="w-11 h-11 rounded-xl bg-amber-50/80 text-amber-700 border border-amber-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-clock"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Awaiting Evaluation</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="finalEvaluationRounds().filter(r => ['open', 'in_progress'].includes(r.status) && (!r.evaluation || r.evaluation.status !== 'submitted')).length">0</span>
+                        </div>
+                        <span class="text-amber-500 text-xl font-bold">
+                            <i class="ph ph-hourglass"></i>
+                        </span>
+                    </div>
+
+                    <!-- In Progress -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
+                        <div>
+                            <span class="w-11 h-11 rounded-xl bg-blue-50/80 text-blue-700 border border-blue-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-arrows-clockwise"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Rounds Open</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="finalEvaluationRounds().filter(r => ['open', 'in_progress'].includes(r.status)).length">0</span>
+                        </div>
+                        <span class="text-blue-500 text-xl font-bold">
+                            <i class="ph ph-activity"></i>
+                        </span>
+                    </div>
+
+                    <!-- Total Defenses -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
+                        <div>
+                            <span class="w-11 h-11 rounded-xl bg-purple-50/80 text-purple-700 border border-purple-100/60 flex items-center justify-center text-xl mb-3 shadow-2xs">
+                                <i class="ph ph-medal"></i>
+                            </span>
+                            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Total Defenses</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="finalEvaluationRounds().length || finalPapers.length">0</span>
+                        </div>
+                        <span class="text-purple-500 text-xl font-bold">
+                            <i class="ph ph-files"></i>
+                        </span>
                     </div>
                 </div>
 
-                <!-- Scoring Breakdown & Panel Comments (2 Columns grid) -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Left: Scoring Breakdown -->
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-6">
-                        <h2 class="text-sm font-bold text-gray-855 font-heading">Scoring Breakdown</h2>
+                <!-- Main Defense Evaluations Card -->
+                <div class="bg-white rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 p-6 space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <h2 class="text-sm font-bold text-slate-900 font-heading tracking-wide">Defense Evaluations</h2>
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <i class="ph ph-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                                <input
+                                    type="text"
+                                    x-model="finalSearchQuery"
+                                    placeholder="Search research title..."
+                                    class="pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-slate-50/50 focus:bg-white focus:border-blue-500 focus:outline-none transition w-48 sm:w-64"
+                                >
+                            </div>
+                        </div>
+                    </div>
 
-                        <div class="space-y-5">
-                            <template x-for="item in evaluationBreakdown" :key="item.label">
-                                <div class="space-y-2">
-                                    <div class="flex justify-between items-center text-xs">
-                                        <span class="font-bold text-gray-750" x-text="item.label">Research Originality</span>
-                                        <span class="font-extrabold text-[#0e5c3a]" x-text="`${item.score}/${item.max}`">23/25</span>
+                    <!-- Dynamic Evaluation Rounds List -->
+                    <div class="space-y-4">
+                        <template x-for="r in finalEvaluationRounds().filter(rnd => {
+                            if (!finalSearchQuery.trim()) return true;
+                            const q = finalSearchQuery.toLowerCase();
+                            return (rnd.research_title || '').toLowerCase().includes(q) || (rnd.group_name || '').toLowerCase().includes(q);
+                        })" :key="r.id">
+                            <div class="bg-white border border-slate-200/80 rounded-xl p-6 space-y-4 shadow-2xs hover:shadow-xs transition-all">
+                                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                    <div class="space-y-1">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200" x-text="r.defense_type_label || 'Pre-Final Defense'">Pre-Final Defense</span>
+                                            <span class="text-xs text-slate-400">•</span>
+                                            <span class="text-xs font-semibold text-slate-600" x-text="r.group_name">Research Group</span>
+                                        </div>
+                                        <h3 class="font-extrabold text-sm text-slate-900 leading-snug" x-text="r.research_title">Research Title</h3>
                                     </div>
-                                    <div class="w-full h-2 bg-gray-50 rounded-full overflow-hidden border border-gray-100/50">
-                                        <div class="h-full bg-emerald-500 rounded-full" :style="`width: ${item.percent};`"></div>
+                                    <div class="shrink-0">
+                                        <span x-show="r.evaluation && r.evaluation.status === 'submitted'" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                                            <i class="ph ph-check-circle"></i> Evaluated
+                                        </span>
+                                        <span x-show="['open', 'in_progress'].includes(r.status) && (!r.evaluation || r.evaluation.status !== 'submitted')" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1.5 animate-pulse">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Evaluation In Progress
+                                        </span>
+                                        <span x-show="!['open', 'in_progress'].includes(r.status) && (!r.evaluation || r.evaluation.status !== 'submitted')" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200" x-text="r.status">
+                                            Scheduled
+                                        </span>
                                     </div>
                                 </div>
-                            </template>
-                        </div>
 
-                        <div class="flex justify-between items-center pt-4 border-t border-gray-50">
-                            <span class="text-sm font-extrabold text-gray-800">Total Score</span>
-                            <span class="text-xl font-black text-[#0e5c3a]">90/100</span>
-                        </div>
-                    </div>
+                                <div class="border-t border-slate-100 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                                    <div>
+                                        <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Research Adviser</span>
+                                        <span class="text-xs text-slate-800 font-bold block mt-1" x-text="r.adviser_name || 'Not assigned'">Adviser Name</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Schedule & Venue</span>
+                                        <span class="text-xs text-slate-800 font-bold block mt-1" x-text="`${r.formatted_date || 'Date TBD'} • ${r.venue || 'Room'}`">Schedule Details</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Panel Role</span>
+                                        <span class="text-xs text-slate-800 font-bold block mt-1" x-text="r.is_designated_signer ? 'Summary Signer (RES-037)' : 'Defense Panelist'">Defense Panelist</span>
+                                    </div>
+                                </div>
 
-                    <!-- Right: Panel Comments -->
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-6">
-                        <h2 class="text-sm font-bold text-gray-855 font-heading">Panel Comments</h2>
+                                <div x-show="r.students && r.students.length > 0" class="pt-2">
+                                    <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider mb-1.5">Student Researchers</span>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        <template x-for="s in r.students" :key="s.user_id">
+                                            <span class="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-semibold rounded-lg" x-text="s.name">Student Name</span>
+                                        </template>
+                                    </div>
+                                </div>
 
-                        <div class="space-y-4">
-                            <template x-for="c in evaluationComments" :key="c.name">
-                                <div :class="c.borderClass" class="rounded-2xl p-4 border space-y-3">
-                                    <div class="flex justify-between items-start gap-2">
-                                        <div>
-                                            <h3 class="font-extrabold text-xs text-gray-800" x-text="c.name">Dr. Maria Santos</h3>
-                                            <span class="text-[10px] text-gray-400 font-semibold block mt-0.5" x-text="c.title">Panel Chair</span>
+                                <div class="flex items-center gap-3 pt-3 border-t border-slate-100">
+                                    <a x-show="r.can_evaluate" :href="r.res036_url" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5">
+                                        <i class="ph ph-pencil-simple text-sm"></i>
+                                        <span>Open Evaluation Sheet (RES-036)</span>
+                                    </a>
+                                    <span x-show="r.evaluation && r.evaluation.status === 'submitted'" class="px-4 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-xl flex items-center gap-1.5">
+                                        <i class="ph ph-check-circle"></i>
+                                        <span>Your Evaluation Has Been Submitted</span>
+                                    </span>
+                                    <p x-show="!r.can_evaluate && (!r.evaluation || r.evaluation.status !== 'submitted')" class="text-[11px] font-semibold text-amber-700 flex items-center gap-1">
+                                        <i class="ph ph-info"></i>
+                                        <span>Formal scoring opens when the facilitator starts the evaluation round.</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Fallback to Final Papers if no evaluation rounds exist yet -->
+                        <template x-if="finalEvaluationRounds().length === 0">
+                            <div class="space-y-4">
+                                <template x-for="p in filteredFinalPapers()" :key="p.id">
+                                    <div class="bg-white border border-slate-200/80 rounded-xl p-6 space-y-4 shadow-2xs hover:shadow-xs transition-all">
+                                        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                            <div>
+                                                <h3 class="font-extrabold text-sm text-slate-900 leading-snug" x-text="p.title">Paper Title</h3>
+                                                <p class="text-[10px] text-slate-500 font-semibold mt-1.5" x-text="p.filename">Paper filename</p>
+                                                <p class="text-[10px] text-slate-500 font-semibold mt-0.5" x-text="`Submitted: ${p.submitted}`">Submitted Date</p>
+                                            </div>
+                                            <span :class="p.statusClass" class="shrink-0 text-[10px] font-black" x-text="p.status">Pending Defense</span>
                                         </div>
-                                        <div class="flex items-center gap-0.5 text-amber-400 text-xs">
-                                            <template x-for="i in Array.from({length: c.rating})">
-                                                <span>★</span>
-                                            </template>
-                                            <template x-for="i in Array.from({length: 5 - c.rating})">
-                                                <span class="text-gray-200">★</span>
-                                            </template>
+                                        <div class="border-t border-slate-100 pt-4 grid grid-cols-2 gap-4 text-xs">
+                                            <div>
+                                                <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Research Adviser</span>
+                                                <span class="text-xs text-slate-800 font-bold block mt-1" x-text="p.adviser">Adviser Name</span>
+                                            </div>
+                                            <div>
+                                                <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Defense Stage</span>
+                                                <span class="text-xs text-slate-800 font-bold block mt-1" x-text="p.defenseType">Pre-Final Defense</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-3 pt-2">
+                                            <a :href="p.viewUrl" target="_blank" rel="noopener" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer">
+                                                View Manuscript
+                                            </a>
+                                            <a :href="p.downloadUrl" class="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer">
+                                                Download <span x-text="p.fileType"></span>
+                                            </a>
+                                            <a x-show="p.status !== 'Pending Defense'" :href="p.evaluationUrl" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer">
+                                                Open Evaluation
+                                            </a>
                                         </div>
                                     </div>
-                                    <p class="text-xs text-gray-600 leading-relaxed font-medium" x-text="c.comment">Comment text</p>
-                                </div>
-                            </template>
-                        </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <!-- Empty state if neither has data -->
+                        <template x-if="finalEvaluationRounds().length === 0 && filteredFinalPapers().length === 0">
+                            <div class="bg-gray-50 rounded-2xl p-10 text-center text-xs text-gray-400 font-semibold border border-gray-100 space-y-2">
+                                <i class="ph ph-clipboard-text text-3xl text-gray-300"></i>
+                                <p class="text-sm font-bold text-gray-600">No Pre-Final or Final Defenses Assigned</p>
+                                <p class="text-xs text-gray-400">Assigned pre-final and final defense evaluation rounds will appear here once scheduled by the facilitator.</p>
+                            </div>
+                        </template>
                     </div>
-                </div>
-
-                <!-- Panel Recommendations (Full Width below) -->
-                <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 space-y-6">
-                    <h2 class="text-sm font-bold text-gray-850 font-heading">Panel Recommendations</h2>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Strengths -->
-                        <div class="bg-emerald-50/10 border-l-4 border-l-emerald-500 border border-emerald-100/50 rounded-2xl p-5 space-y-3">
-                            <h3 class="text-xs font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
-                                <i class="ph ph-trend-up"></i> Strengths
-                            </h3>
-                            <ul class="space-y-2 text-xs text-gray-650 font-medium">
-                                <li class="flex items-start gap-2"><span class="text-emerald-600">✓</span> Clear research objectives and methodology</li>
-                                <li class="flex items-start gap-2"><span class="text-emerald-600">✓</span> Comprehensive data collection and analysis</li>
-                                <li class="flex items-start gap-2"><span class="text-emerald-600">✓</span> Well-structured presentation</li>
-                                <li class="flex items-start gap-2"><span class="text-emerald-600">✓</span> Strong defense of research findings</li>
-                            </ul>
-                        </div>
-
-                        <!-- Areas for Improvement -->
-                        <div class="bg-amber-50/10 border-l-4 border-l-amber-500 border border-amber-100/50 rounded-2xl p-5 space-y-3">
-                            <h3 class="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
-                                <i class="ph ph-warning-circle"></i> Areas for Improvement
-                            </h3>
-                            <ul class="space-y-2 text-xs text-gray-650 font-medium">
-                                <li class="flex items-start gap-2"><span class="text-amber-600">•</span> Expand literature review with recent studies</li>
-                                <li class="flex items-start gap-2"><span class="text-amber-600">•</span> Include more diverse data samples</li>
-                                <li class="flex items-start gap-2"><span class="text-amber-600">•</span> Strengthen theoretical framework</li>
-                                <li class="flex items-start gap-2"><span class="text-amber-600">•</span> Add more visual data representations</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- Final Recommendation Card -->
-                    <div class="pt-6 border-t border-gray-50">
-                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Final Recommendation</span>
-                        <span class="text-sm font-extrabold text-emerald-600 block mt-1">PASSED - Proceed to Final Defense</span>
-                        <p class="text-xs text-gray-500 font-medium mt-1">The panel recommends addressing the minor revisions before the final defense.</p>
-                    </div>
-                </div>
-
-                <!-- Footer Action Buttons -->
-                <div class="flex items-center gap-3">
-                    <button @click="alert('Downloading Evaluation Report...')" class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md transition-colors cursor-pointer">
-                        Download Evaluation Report
-                    </button>
-                    <button @click="alert('Printing Certificate...')" class="px-5 py-3 bg-white border border-gray-250 hover:bg-gray-50 text-gray-707 text-xs font-bold rounded-xl transition-colors cursor-pointer">
-                        Print Certificate
-                    </button>
                 </div>
             </div>
 
@@ -2317,9 +2440,10 @@ document.addEventListener('alpine:init', () => {
                 <button @click="selectedDefense = null" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors cursor-pointer">
                     Close
                 </button>
-                <button @click="alert('Loading evaluation sheet... (Mock)'); selectedDefense = null" class="px-4 py-2 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-md transition-colors cursor-pointer">
-                    Evaluate Defense
-                </button>
+                <a x-show="selectedDefense?.can_initiate_res036" :href="selectedDefense?.res036_url" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition-colors cursor-pointer flex items-center gap-1.5">
+                    <i class="ph ph-clipboard-text"></i>
+                    <span>Evaluate Defense (RES-036)</span>
+                </a>
             </div>
         </div>
     </div>

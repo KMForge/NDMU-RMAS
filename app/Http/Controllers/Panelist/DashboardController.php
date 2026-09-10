@@ -32,6 +32,9 @@ class DashboardController extends Controller
         $proposalPapers = $assignedPapers
             ->whereIn('defenseType', ['Title Proposal', 'Proposal Defense'])
             ->values();
+        $finalPapers = $assignedPapers
+            ->whereIn('defenseType', ['Pre-Final Defense', 'Final Defense', 'Final Oral Defense'])
+            ->values();
         $selectedReviewPaper = $assignedPapers->firstWhere(
             'id',
             $request->integer('document_id'),
@@ -69,6 +72,7 @@ class DashboardController extends Controller
             'evaluationRounds' => $evaluationRounds->all(),
             'assignedPapers' => $assignedPapers->all(),
             'proposalPapers' => $proposalPapers->all(),
+            'finalPapers' => $finalPapers->all(),
             'selectedReviewPaper' => $selectedReviewPaper,
             'sidebarBadges' => [
                 'assigned-papers' => $assignedPapers

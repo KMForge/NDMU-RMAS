@@ -184,7 +184,7 @@ class OfficialFormAuthorization
         }
 
         $defense = $schedule->defense;
-        if (! $defense || $defense->status !== 'scheduled' || (int) $defense->current_schedule_id !== (int) $schedule->id) {
+        if (! $defense || ! in_array($defense->status, ['scheduled', 'in_progress'], true) || (int) $defense->current_schedule_id !== (int) $schedule->id) {
             return false;
         }
 

@@ -2,6 +2,7 @@
 
 namespace App\Modules\OfficialForms\Services;
 
+use App\Models\DefenseEvaluationRound;
 use App\Models\OfficialFormInstance;
 use App\Models\User;
 use App\Modules\ResearchProgress\Services\ResearchJourneyService;
@@ -129,6 +130,75 @@ class GetPendingAcademicActionsForUser
                     'created_at' => $instance->updated_at ? $instance->updated_at->diffForHumans() : 'Recently',
                 ]);
             }
+        }
+
+        // Active defense evaluation rounds where the user is an assigned panelist and has not yet submitted
+        $openRounds = DefenseEvaluationRound::query()
+            ->whereIn('status', ['open', 'in_progress'])
+            ->whereHas('roundPanelists', fn ($q) => $q->where('panelist_user_id', $user->id))
+            ->with([
+                'defense.group.researchClass',
+                'defenseSchedule.room',
+                'evaluations' => fn ($q) => $q->where('panelist_user_id', $user->id),
+            ])
+            ->get();
+
+        foreach ($openRounds as $round) {
+            $hasSubmitted = $round->evaluations->contains(fn ($e): bool => $e->status === 'submitted');
+            if ($hasSubmitted) {
+                continue;
+            }
+
+            // If user already has an in-progress draft RES-036 instance for this schedule, that instance is handled above
+            $hasExistingDraft = $visibleInstances->contains(
+                fn (OfficialFormInstance $inst): bool => strtolower($inst->definition?->code ?? '') === 'res-036'
+                    && (int) $inst->initiated_by === (int) $user->id
+                    && (int) $inst->source_id === (int) $round->defense_schedule_id
+            );
+            if ($hasExistingDraft) {
+                continue;
+            }
+
+            $defense = $round->defense;
+            $group = $defense?->group;
+            $defenseTypeLabel = match ($defense?->defense_type) {
+                'title_presentation' => 'Title Proposal',
+                'proposal_defense' => 'Proposal Defense',
+                'pre_final_defense' => 'Pre-Final Defense',
+                'final_defense' => 'Final Oral Defense',
+                default => 'Research Defense',
+            };
+
+            $stageNum = match ($defense?->defense_type) {
+                'title_presentation' => 2,
+                'proposal_defense' => 3,
+                'pre_final_defense' => 5,
+                'final_defense' => 6,
+                default => 5,
+            };
+
+            $actions->push([
+                'id' => "defense-round-{$round->id}-evaluate",
+                'form_code' => 'res-036',
+                'form_title' => 'Defense Evaluation Sheet (RES-036)',
+                'instance_id' => null,
+                'group_id' => $round->research_class_group_id,
+                'group_name' => $group ? $group->name : 'Unassigned Group',
+                'class_name' => $group && $group->researchClass ? $group->researchClass->name : 'N/A',
+                'stage' => $stageNum,
+                'stage_name' => $defenseTypeLabel,
+                'academic_actor_type' => 'panelist',
+                'actor_type_label' => 'Panel Member',
+                'action' => 'evaluate',
+                'action_label' => "Evaluate {$defenseTypeLabel} (RES-036)",
+                'status' => 'Evaluation In Progress',
+                'route' => route('official-forms.workspace.store-from-source', [
+                    'definition' => 'res-036',
+                    'sourceKind' => 'defense-schedule',
+                    'source' => $round->defense_schedule_id,
+                ]),
+                'created_at' => $round->opened_at ? $round->opened_at->diffForHumans() : 'Recently',
+            ]);
         }
 
         return $actions->values();
