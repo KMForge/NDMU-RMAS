@@ -4,6 +4,7 @@ namespace Tests\Feature\ReportsAnalytics;
 
 use App\Enums\UserType;
 use App\Models\ResearchClass;
+use App\Models\ResearchClassGroup;
 use App\Models\User;
 use App\Modules\ReportsAnalytics\Exports\CsvReportExporter;
 use App\Modules\ReportsAnalytics\ReportCatalog;
@@ -29,6 +30,9 @@ class ReportsAnalyticsTest extends TestCase
             'dashboards.facilitator.view',
             'reports.view',
             'reports.export',
+            'forms.res-036.evaluate',
+            'evaluations.create',
+            'classes.serve-as-adviser',
         ] as $permission) {
             Permission::findOrCreate($permission);
         }
@@ -130,6 +134,40 @@ class ReportsAnalyticsTest extends TestCase
             ->assertSee('Detailed reports and exports')
             ->assertSee('Research by Stage and Status')
             ->assertSee('Evaluation Release Status');
+    }
+
+    public function test_facilitator_statistics_uses_live_scoped_metrics_instead_of_sample_values(): void
+    {
+        $facilitator = $this->user(UserType::Faculty, ['dashboards.facilitator.view', 'reports.view']);
+        $student = $this->user(UserType::Student);
+        $researchClass = new ResearchClass([
+            'facilitator_id' => $facilitator->id,
+            'creation_token' => (string) Str::uuid(),
+            'name' => 'Live Statistics Class',
+        ]);
+        $researchClass->setJoinCode('STATS001');
+        $researchClass->save();
+        ResearchClassGroup::query()->forceCreate([
+            'research_class_id' => $researchClass->id,
+            'leader_student_id' => $student->id,
+            'creation_token' => (string) Str::uuid(),
+            'name' => 'Live Metrics Group',
+            'created_by' => $student->id,
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($facilitator)
+            ->get(route('facilitator.dashboard', ['tab' => 'statistics']))
+            ->assertOk()
+            ->assertViewHas('statistics', fn (array $statistics): bool => $statistics['kpis']['total'] === 1)
+            ->assertSee('Live Research Analytics')
+            ->assertSee('Live Statistics Class')
+            ->assertSee('Current Lifecycle Stage')
+            ->assertSee('Operational Workload')
+            ->assertSee('Attention Needed')
+            ->assertSee('Open Detailed Reports')
+            ->assertDontSee('+12% from last year')
+            ->assertDontSee('8.5');
     }
 
     public function test_csv_formula_prefixes_are_neutralized(): void

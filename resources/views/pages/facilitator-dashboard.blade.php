@@ -1103,83 +1103,6 @@
         this.showScheduleModal = true;
     },
 
-    statisticsYear: '2025-2026',
-    exportingReport: false,
-    statisticsData: {
-        '2025-2026': {
-            totalResearch: 174,
-            totalResearchSub: '+12% from last year',
-            completed: 126,
-            completedSub: '72% completion rate',
-            inProgress: 48,
-            inProgressSub: '28% ongoing',
-            avgDuration: 8.5,
-            avgDurationSub: 'months',
-            programs: [
-                { name: 'Computer Science', count: 45, max: 50, color: 'bg-emerald-600' },
-                { name: 'Engineering', count: 38, max: 50, color: 'bg-blue-600' },
-                { name: 'Education', count: 32, max: 50, color: 'bg-purple-600' },
-                { name: 'Business', count: 28, max: 50, color: 'bg-amber-500' }
-            ],
-            monthly: [
-                { month: 'Jan', height: '35%' },
-                { month: 'Feb', height: '55%' },
-                { month: 'Mar', height: '45%' },
-                { month: 'Apr', height: '65%' },
-                { month: 'May', height: '75%' },
-                { month: 'Jun', height: '60%' },
-                { month: 'Jul', height: '80%' },
-                { month: 'Aug', height: '72%' },
-                { month: 'Sep', height: '78%' },
-                { month: 'Oct', height: '68%' },
-                { month: 'Nov', height: '62%' },
-                { month: 'Dec', height: '58%' }
-            ]
-        },
-        '2024-2025': {
-            totalResearch: 155,
-            totalResearchSub: '+8% from previous year',
-            completed: 110,
-            completedSub: '70.9% completion rate',
-            inProgress: 45,
-            inProgressSub: '29.1% ongoing',
-            avgDuration: 8.8,
-            avgDurationSub: 'months',
-            programs: [
-                { name: 'Computer Science', count: 40, max: 50, color: 'bg-emerald-600' },
-                { name: 'Engineering', count: 35, max: 50, color: 'bg-blue-600' },
-                { name: 'Education', count: 30, max: 50, color: 'bg-purple-600' },
-                { name: 'Business', count: 25, max: 50, color: 'bg-amber-500' }
-            ],
-            monthly: [
-                { month: 'Jan', height: '30%' },
-                { month: 'Feb', height: '48%' },
-                { month: 'Mar', height: '40%' },
-                { month: 'Apr', height: '60%' },
-                { month: 'May', height: '70%' },
-                { month: 'Jun', height: '55%' },
-                { month: 'Jul', height: '75%' },
-                { month: 'Aug', height: '68%' },
-                { month: 'Sep', height: '72%' },
-                { month: 'Oct', height: '64%' },
-                { month: 'Nov', height: '58%' },
-                { month: 'Dec', height: '54%' }
-            ]
-        }
-    },
-
-    get activeStats() {
-        return this.statisticsData[this.statisticsYear];
-    },
-
-    exportReport() {
-        this.exportingReport = true;
-        setTimeout(() => {
-            this.exportingReport = false;
-            alert(`Report for Academic Year ${this.statisticsYear} has been successfully exported as PDF/Excel!`);
-        }, 1500);
-    },
-
     reportsApprovedCount: 8,
     reportsRevisionsCount: 5,
     reportsCommentsCount: 12,
@@ -1488,9 +1411,8 @@
                 </button>
 
                 <!-- Research Statistics -->
-                <button 
-                    type="button" 
-                    @click="activeTab = 'statistics'"
+                <a
+                    href="{{ route('facilitator.dashboard', ['tab' => 'statistics']) }}"
                     :class="activeTab === 'statistics' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
                     class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
@@ -1498,7 +1420,7 @@
                         <span>Research Statistics</span>
                     </div>
                     <span x-show="activeTab === 'statistics'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
-                </button>
+                </a>
 
                 <!-- Research Reports -->
                 <a
@@ -3166,155 +3088,12 @@
                 </div>
             </div>
 
-            <!-- TAB: Research Statistics (Analytics & Reports) -->
-            <div x-show="activeTab === 'statistics'" x-cloak class="space-y-8 animate-fade-in">
-                <!-- Breadcrumbs & Header -->
-                <div class="flex flex-col gap-2">
-                    <div class="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                        <span>Dashboard</span>
-                        <span>/</span>
-                        <span class="text-[#0e5c3a]">Research Statistics</span>
-                    </div>
-                    
-                    <div class="flex justify-between items-center flex-wrap gap-4">
-                        <div>
-                            <h1 class="text-2xl font-bold font-heading text-gray-800">Analytics & Reports</h1>
-                            <p class="text-xs text-gray-455 mt-1">Research statistics and performance metrics</p>
-                        </div>
-                        
-                        <div class="flex items-center gap-3">
-                            <!-- Academic Year dropdown -->
-                            <select 
-                                x-model="statisticsYear"
-                                class="bg-white border border-gray-250 text-gray-700 text-xs px-3.5 py-2.5 rounded-xl outline-none focus:border-[#0e5c3a] cursor-pointer"
-                            >
-                                <option value="2025-2026">AY 2025-2026</option>
-                                <option value="2024-2025">AY 2024-2025</option>
-                            </select>
-
-                            <!-- Export Report Button -->
-                            <button 
-                                type="button"
-                                @click="exportReport()"
-                                :disabled="exportingReport"
-                                class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#0a4a2e] disabled:bg-gray-400 text-white text-xs font-bold rounded-xl shadow-md shadow-[#0e5c3a]/10 hover:shadow-lg flex items-center gap-2 cursor-pointer transition-all duration-200"
-                            >
-                                <template x-if="exportingReport">
-                                    <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                                </template>
-                                <template x-if="!exportingReport">
-                                    <i class="ph ph-export text-base font-bold"></i>
-                                </template>
-                                <span x-text="exportingReport ? 'Exporting...' : 'Export Report'">Export Report</span>
-                            </button>
-                        </div>
-                    </div>
+            @if ($statistics !== null)
+                <!-- TAB: Research Statistics -->
+                <div x-show="activeTab === 'statistics'" x-cloak class="animate-fade-in">
+                    <x-research-statistics.facilitator-dashboard :statistics="$statistics" />
                 </div>
-
-                <!-- Stats Widgets Cards Row (4 Columns matching screenshots) -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <!-- Total Research -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
-                        <div>
-                            <span class="text-[10px] text-gray-450 font-bold uppercase tracking-wider block">Total Research</span>
-                            <span class="text-3xl font-extrabold text-gray-850 mt-1 block leading-none" x-text="activeStats.totalResearch">174</span>
-                            <span class="text-[10px] text-emerald-600 font-extrabold block mt-2" x-text="activeStats.totalResearchSub">+12% from last year</span>
-                        </div>
-                        <span class="w-12 h-12 rounded-2xl bg-emerald-50/70 text-emerald-600 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-chart-bar"></i>
-                        </span>
-                    </div>
-
-                    <!-- Completed -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
-                        <div>
-                            <span class="text-[10px] text-gray-455 font-bold uppercase tracking-wider block">Completed</span>
-                            <span class="text-3xl font-extrabold text-gray-850 mt-1 block leading-none" x-text="activeStats.completed">126</span>
-                            <span class="text-[10px] text-blue-600 font-extrabold block mt-2" x-text="activeStats.completedSub">72% completion rate</span>
-                        </div>
-                        <span class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-trend-up"></i>
-                        </span>
-                    </div>
-
-                    <!-- In Progress -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
-                        <div>
-                            <span class="text-[10px] text-gray-455 font-bold uppercase tracking-wider block">In Progress</span>
-                            <span class="text-3xl font-extrabold text-gray-850 mt-1 block leading-none" x-text="activeStats.inProgress">48</span>
-                            <span class="text-[10px] text-amber-500 font-extrabold block mt-2" x-text="activeStats.inProgressSub">28% ongoing</span>
-                        </div>
-                        <span class="w-12 h-12 rounded-2xl bg-amber-50/70 text-amber-500 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-chart-pie-slice"></i>
-                        </span>
-                    </div>
-
-                    <!-- Avg Duration -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
-                        <div>
-                            <span class="text-[10px] text-gray-455 font-bold uppercase tracking-wider block">Avg Duration</span>
-                            <span class="text-3xl font-extrabold text-gray-850 mt-1 block leading-none" x-text="activeStats.avgDuration">8.5</span>
-                            <span class="text-[10px] text-purple-600 font-extrabold block mt-2" x-text="activeStats.avgDurationSub">months</span>
-                        </div>
-                        <span class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-2xl flex-shrink-0">
-                            <i class="ph ph-chart-line-up"></i>
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Two Column Visual Charts Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- Left: Research by Program -->
-                    <div class="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl shadow-slate-200/30 p-6 md:p-8 space-y-6">
-                        <h3 class="font-bold text-gray-850 text-base">Research by Program</h3>
-                        
-                        <div class="space-y-5">
-                            <template x-for="prog in activeStats.programs" :key="prog.name">
-                                <div class="space-y-2">
-                                    <div class="flex justify-between items-center text-xs">
-                                        <span class="text-gray-500 font-bold" x-text="prog.name">Program Name</span>
-                                        <span class="text-gray-800 font-extrabold" x-text="prog.count">Count</span>
-                                    </div>
-                                    <!-- Progress indicator bar -->
-                                    <div class="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                                        <div class="h-full rounded-full transition-all duration-500"
-                                             :class="prog.color"
-                                             :style="`width: ${(prog.count / prog.max) * 100}%`"
-                                        ></div>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-
-                    <!-- Right: Monthly Submissions Vertical Chart -->
-                    <div class="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl shadow-slate-200/30 p-6 md:p-8 space-y-6 flex flex-col justify-between">
-                        <h3 class="font-bold text-gray-850 text-base">Monthly Submissions</h3>
-                        
-                        <!-- Dynamic CSS bar chart -->
-                        <div class="h-48 flex items-end justify-between gap-2.5 px-2">
-                            <template x-for="item in activeStats.monthly" :key="item.month">
-                                <div class="flex-1 flex flex-col items-center gap-2 group h-full justify-end">
-                                    <!-- Popover counts on hover -->
-                                    <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-[8px] font-bold py-1 px-1.5 rounded-md -translate-y-1 block absolute pointer-events-none select-none z-10"
-                                         x-text="item.height"
-                                    ></div>
-                                    <!-- Vertical Bar -->
-                                    <div class="w-full bg-[#0e5c3a]/80 hover:bg-[#0e5c3a] rounded-t-md transition-all duration-500"
-                                         :style="`height: ${item.height}`"
-                                    ></div>
-                                </div>
-                            </template>
-                        </div>
-
-                        <!-- Labels row -->
-                        <div class="flex justify-between items-center text-[10px] text-gray-400 font-bold uppercase tracking-wider px-2 pt-2 border-t border-gray-50">
-                            <span>Jan</span>
-                            <span>Dec</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            @endif
 
             <!-- TAB: Research Reports (Document Screening / Review) -->
             <div x-show="activeTab === 'reports'" x-cloak class="space-y-8 animate-fade-in">

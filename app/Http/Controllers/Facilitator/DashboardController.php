@@ -18,6 +18,7 @@ use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
 use App\Modules\Notifications\Queries\GetNotificationsForUser;
 use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use App\Modules\ResearchProgress\Queries\GetFacilitatorProgressData;
+use App\Modules\ResearchStatistics\Queries\GetFacilitatorStatisticsData;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -34,6 +35,7 @@ class DashboardController extends Controller
         DefenseEndorsementEligibility $endorsementEligibility,
         GetPendingAcademicActionsForUser $pendingActionsService,
         GetNotificationsForUser $notificationQuery,
+        GetFacilitatorStatisticsData $statisticsData,
     ): View {
         $repository = $request->query('tab') === 'repository'
             ? $repositoryData->for($request->user(), $request->query())
@@ -58,6 +60,9 @@ class DashboardController extends Controller
                 'userUnreadCount' => $request->user()->unreadNotifications()->count(),
                 'notificationFilter' => 'all',
             ];
+        $statistics = $request->query('tab') === 'statistics'
+            ? $statisticsData->for($request->user(), $request->query())
+            : ['statistics' => null];
 
         $defenses = $defenseCalendar->execute($request->user());
         $allDefenseRooms = DefenseRoom::query()
@@ -219,6 +224,7 @@ class DashboardController extends Controller
             ...$repository,
             ...$progress,
             ...$notificationsData,
+            ...$statistics,
         ]);
     }
 }
