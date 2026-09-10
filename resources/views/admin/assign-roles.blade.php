@@ -1,4 +1,4 @@
-<section x-show="activeTab === 'assign-roles'" x-cloak class="space-y-6 animate-fade-in">
+<section x-show="activeTab === 'assign-roles'" x-cloak class="min-w-0 space-y-6 animate-fade-in">
     @if ($roleAssignmentUser)
         @php
             $addedRoles = array_values(array_diff($assignedRoles, $originalAssignedRoles));
@@ -15,7 +15,7 @@
             <div class="relative overflow-hidden bg-gradient-to-br from-[#0e5c3a] to-[#08452b] px-6 py-7 text-white md:px-8">
                 <div class="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full border-[35px] border-white/5"></div>
                 <div class="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-                    <div>
+                    <div class="min-w-0">
                         <div class="flex items-center gap-2">
                             <span class="inline-flex items-center gap-1.5 rounded-lg bg-amber-400/20 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#f4c542] border border-[#f4c542]/30">
                                 <i class="ph ph-shield-check text-xs"></i> Access Control & Role Management
@@ -37,7 +37,7 @@
                         </p>
                         
                         <div class="mt-3.5 flex flex-wrap items-center gap-2.5 text-xs text-white/90">
-                            <span class="font-mono text-emerald-200 bg-black/20 px-2.5 py-0.5 rounded-lg border border-white/10">{{ $roleAssignmentUser->email }}</span>
+                            <span class="max-w-full break-all font-mono text-emerald-200 bg-black/20 px-2.5 py-0.5 rounded-lg border border-white/10">{{ $roleAssignmentUser->email }}</span>
                             <span class="rounded-lg bg-white/15 px-2.5 py-0.5 font-bold uppercase tracking-wider text-white">{{ \Illuminate\Support\Str::headline($assignedUserType) }}</span>
                             @if ($roleAssignmentUser->department)
                                 <span class="rounded-lg bg-[#f4c542]/20 text-[#f4c542] px-2.5 py-0.5 font-bold border border-[#f4c542]/30">{{ $roleAssignmentUser->department }}</span>
@@ -84,7 +84,7 @@
             @endif
         </div>
 
-        <form wire:submit="saveUserRoles" class="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm space-y-0">
+        <form wire:submit="saveUserRoles" class="min-w-0 overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm space-y-0">
             
             <!-- Real-Time Pending Changes Delta Card -->
             <div class="border-b border-gray-100 bg-slate-50/90 p-5 md:px-8 space-y-3">
@@ -205,12 +205,12 @@
                     <i class="ph ph-lock-key text-slate-400"></i>
                     All changes take effect immediately upon submission and are recorded in the audit trail.
                 </p>
-                <div class="flex items-center gap-3">
+                <div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
                     <button 
                         type="button" 
                         wire:click="closeRoleAssignment" 
                         wire:loading.attr="disabled" 
-                        class="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-xs font-bold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60 cursor-pointer"
+                        class="w-full rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-xs font-bold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60 cursor-pointer sm:w-auto"
                     >
                         Cancel
                     </button>
@@ -219,7 +219,7 @@
                         wire:loading.attr="disabled" 
                         wire:target="saveUserRoles" 
                         wire:confirm="Are you sure you want to apply these role changes for {{ $roleAssignmentUser->name }}?"
-                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#073823] to-[#0e5c3a] px-6 py-2.5 text-xs font-black text-white shadow-md transition hover:brightness-110 disabled:cursor-wait disabled:opacity-60 cursor-pointer"
+                        class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#073823] to-[#0e5c3a] px-6 py-2.5 text-xs font-black text-white shadow-md transition hover:brightness-110 disabled:cursor-wait disabled:opacity-60 cursor-pointer sm:w-auto"
                     >
                         <i class="ph ph-floppy-disk"></i>
                         <span wire:loading.remove wire:target="saveUserRoles">Confirm & Save Roles</span>

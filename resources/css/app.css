@@ -256,6 +256,50 @@ canvas {
     display: none;
 }
 
+[data-portal-shell],
+[data-portal-content],
+[data-portal-content] > main,
+[data-portal-content] main[data-portal-main] {
+    min-width: 0;
+    max-width: 100%;
+}
+
+[data-responsive-table-container],
+.responsive-data-table {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+}
+
+.responsive-data-table:focus-visible {
+    outline: 3px solid rgb(238 188 63 / 0.55);
+    outline-offset: 3px;
+}
+
+.responsive-data-table::-webkit-scrollbar {
+    height: 0.7rem;
+}
+
+.responsive-data-table::-webkit-scrollbar-track {
+    border-radius: 9999px;
+    background: #e2e8f0;
+}
+
+.responsive-data-table::-webkit-scrollbar-thumb {
+    border: 2px solid #e2e8f0;
+    border-radius: 9999px;
+    background: #0e5c3a;
+}
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+    [data-portal-content] > main,
+    [data-portal-content] main[data-portal-main] {
+        padding: 1.5rem !important;
+    }
+}
+
 @media (max-width: 1023px) {
     body.portal-navigation-ready .portal-mobile-controls {
         display: block;
@@ -356,6 +400,7 @@ canvas {
         max-width: 100%;
         overflow-x: auto !important;
         overscroll-behavior-inline: contain;
+        scrollbar-gutter: stable;
         -webkit-overflow-scrolling: touch;
     }
 

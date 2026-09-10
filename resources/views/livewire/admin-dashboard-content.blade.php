@@ -806,16 +806,16 @@
             </div>
 
             <!-- TAB 2: USER MANAGEMENT VIEW -->
-            <div x-show="activeTab === 'users'" x-cloak class="space-y-8 animate-fade-in">
+            <div x-show="activeTab === 'users'" x-cloak class="min-w-0 space-y-8 animate-fade-in">
                     <!-- Section Action Header -->
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-2xs relative overflow-hidden">
                         <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
-                        <div class="flex items-center gap-4">
+                        <div class="flex min-w-0 items-center gap-4">
                             <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#073823] to-[#0e5c3a] text-[#eebc3f] flex items-center justify-center text-2xl shadow-xs shrink-0">
                                 <i class="ph ph-users-three"></i>
                             </div>
-                            <div>
-                                <h2 class="text-xl sm:text-2xl font-black font-heading text-slate-900 flex items-center gap-2">
+                            <div class="min-w-0">
+                                <h2 class="text-xl sm:text-2xl font-black font-heading text-slate-900 flex flex-wrap items-center gap-2">
                                     <span>User Accounts & Provisioning</span>
                                     <span class="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-[10px] font-black uppercase text-[#0e5c3a]">
                                         {{ $totalUsersCount }} Total
@@ -824,11 +824,11 @@
                                 <p class="text-xs text-slate-500 font-medium mt-0.5">Oversee registered accounts, approve student registrations, edit user details, and provision staff accounts.</p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-3">
+                        <div class="flex w-full items-center gap-3 md:w-auto">
                             <button
                                 type="button"
                                 @click="userManagementTab = 'create-user'"
-                                class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#073823] text-white text-xs font-black rounded-xl flex items-center gap-2 shadow-md transition-all cursor-pointer"
+                                class="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0e5c3a] px-5 py-2.5 text-xs font-black text-white shadow-md transition-all hover:bg-[#073823] cursor-pointer sm:w-auto"
                             >
                                 <i class="ph ph-user-plus text-base"></i>
                                 <span>Add Staff Account</span>
@@ -837,7 +837,7 @@
                     </div>
 
                     <!-- Row of 4 statistics cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
                         <!-- Card 1: Total Users -->
                         <div class="group bg-white rounded-3xl p-6 shadow-2xs hover:shadow-lg border border-slate-200/80 hover:border-emerald-300 transition-all duration-300 relative overflow-hidden flex items-center justify-between">
                             <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-400 opacity-70 group-hover:opacity-100 transition-opacity"></div>
@@ -892,15 +892,15 @@
                     </div>
 
                         <!-- Inner Navigation Tabs Container -->
-                        <div class="bg-white rounded-3xl shadow-2xs border border-slate-200/80 overflow-hidden relative">
+                        <div class="min-w-0 bg-white rounded-3xl shadow-2xs border border-slate-200/80 overflow-hidden relative">
                             <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
-                            <div class="flex flex-wrap border-b border-slate-100 px-6 sm:px-8 pt-6 bg-white gap-3 sm:gap-6">
+                            <div class="flex flex-nowrap overflow-x-auto border-b border-slate-100 px-4 sm:px-8 pt-6 bg-white gap-5 sm:gap-6" aria-label="User management sections">
                                 <!-- All Users Tab Button -->
                                 <button 
                                     type="button"
                                     @click="userManagementTab = 'all-users'"
                                     :class="userManagementTab === 'all-users' ? 'border-[#0e5c3a] text-[#0e5c3a]' : 'border-transparent text-slate-500 hover:text-slate-900'"
-                                    class="pb-4 border-b-2 text-xs sm:text-sm font-black flex items-center gap-2 transition-all duration-200 focus:outline-none -mb-px cursor-pointer">
+                                    class="shrink-0 pb-4 border-b-2 text-xs sm:text-sm font-black flex items-center gap-2 transition-all duration-200 focus:outline-none -mb-px cursor-pointer">
                                     <i class="ph ph-users text-base"></i>
                                     <span>All Users</span>
                                     <span
@@ -916,7 +916,7 @@
                                     type="button"
                                     @click="userManagementTab = 'pending-students'"
                                     :class="userManagementTab === 'pending-students' ? 'border-[#0e5c3a] text-[#0e5c3a]' : 'border-transparent text-slate-500 hover:text-slate-900'"
-                                    class="pb-4 border-b-2 text-xs sm:text-sm font-black flex items-center gap-2 transition-all duration-200 focus:outline-none -mb-px cursor-pointer">
+                                    class="shrink-0 pb-4 border-b-2 text-xs sm:text-sm font-black flex items-center gap-2 transition-all duration-200 focus:outline-none -mb-px cursor-pointer">
                                     <i class="ph ph-clock text-base"></i>
                                     <span>Awaiting Verification</span>
                                     <span
@@ -932,19 +932,19 @@
                                     type="button"
                                     @click="userManagementTab = 'create-user'"
                                     :class="userManagementTab === 'create-user' ? 'border-[#0e5c3a] text-[#0e5c3a]' : 'border-transparent text-slate-500 hover:text-slate-900'"
-                                    class="pb-4 border-b-2 text-xs sm:text-sm font-black flex items-center gap-2 transition-all duration-200 focus:outline-none -mb-px cursor-pointer">
+                                    class="shrink-0 pb-4 border-b-2 text-xs sm:text-sm font-black flex items-center gap-2 transition-all duration-200 focus:outline-none -mb-px cursor-pointer">
                                     <i class="ph ph-user-plus text-base"></i>
                                     <span>Create User</span>
                                 </button>
                             </div>
 
                         <!-- SUB-TAB CONTENT PANEL -->
-                        <div class="p-6">
+                        <div class="min-w-0 p-4 sm:p-6">
                             <!-- All Users Panel -->
-                            <div x-show="userManagementTab === 'all-users'" x-cloak class="space-y-6">
+                            <div x-show="userManagementTab === 'all-users'" x-cloak class="min-w-0 space-y-6">
 
                                     <!-- Department Overview Stat Cards -->
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
                                         @foreach ($departmentStats as $dKey => $dStat)
                                             @php
                                                 $isSelected = ($selectedDepartment === $dKey);
@@ -1084,7 +1084,7 @@
                                         </div>
 
                                         <!-- Search & Role Dropdown -->
-                                        <div class="flex items-center gap-3 w-full lg:w-auto justify-end">
+                                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto lg:justify-end">
                                             <!-- Search input -->
                                             <div class="relative w-full sm:w-64">
                                                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 pointer-events-none">
@@ -1101,7 +1101,7 @@
                                             <!-- Role Filter -->
                                             <select 
                                                 wire:model.live="selectedRole"
-                                                class="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#0e5c3a] focus:ring-2 focus:ring-[#0e5c3a]/10 transition-all pr-8"
+                                                class="w-full sm:w-auto px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#0e5c3a] focus:ring-2 focus:ring-[#0e5c3a]/10 transition-all pr-8"
                                             >
                                                 <option value="">All Roles</option>
                                                 <option value="__without_roles__">Without Roles</option>
@@ -1125,8 +1125,12 @@
                                     </div>
 
                                     <!-- Table Container -->
-                                    <div id="user-management-table" class="overflow-x-auto rounded-2xl border border-gray-100 shadow-xs">
-                                        <table class="w-full border-collapse text-left text-sm text-gray-500">
+                                    <div class="space-y-2">
+                                        <p class="text-[11px] font-semibold text-slate-500 lg:hidden">
+                                            Swipe sideways inside the table to see every field and account action.
+                                        </p>
+                                    <div id="user-management-table" data-responsive-table-container tabindex="0" aria-label="User accounts table. Scroll horizontally for all columns." class="responsive-data-table max-w-full overflow-x-auto rounded-2xl border border-gray-100 shadow-xs">
+                                        <table data-responsive-table class="min-w-[1120px] w-full border-collapse text-left text-sm text-gray-500">
                                             <thead class="bg-gradient-to-r from-[#0e5c3a] to-[#0a4a2e] text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
                                                 <tr>
                                                     <th scope="col" class="px-6 py-4">Name & ID</th>
@@ -1135,7 +1139,7 @@
                                                     <th scope="col" class="px-6 py-4">Department & Program</th>
                                                     <th scope="col" class="px-6 py-4">Role(s)</th>
                                                     <th scope="col" class="px-6 py-4">Status</th>
-                                                    <th scope="col" class="px-6 py-4">Actions</th>
+                                                    <th scope="col" class="sticky right-0 z-20 bg-[#0a4a2e] px-6 py-4 shadow-[-8px_0_14px_-12px_rgba(15,23,42,0.8)]">Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody class="divide-y divide-gray-100 bg-white">
@@ -1244,7 +1248,7 @@
                                                         </td>
 
                                                         <!-- Actions -->
-                                                        <td class="min-w-[240px] px-6 py-4 whitespace-nowrap">
+                                                        <td class="sticky right-0 z-10 min-w-[240px] whitespace-nowrap bg-white px-6 py-4 shadow-[-8px_0_14px_-12px_rgba(15,23,42,0.35)] group-hover:bg-emerald-50">
                                                             @if (auth()->id() === $user->id)
                                                                 <span class="text-xs font-bold text-gray-400">Current account</span>
                                                             @else
@@ -1308,6 +1312,7 @@
                                                 @endforelse
                                             </tbody>
                                         </table>
+                                    </div>
                                     </div>
 
                                     <!-- Pagination Links -->
@@ -1531,7 +1536,7 @@
                 </div>
 
                 <!-- Main Container -->
-                <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-6 space-y-6">
+                <div class="min-w-0 bg-white rounded-[2rem] shadow-sm border border-gray-100 p-4 sm:p-6 space-y-6">
                     <!-- Search & Filter Controls -->
                     <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
                         <!-- Search input -->
@@ -1548,11 +1553,11 @@
                         </div>
 
                         <!-- Filter and Refresh Controls -->
-                        <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto md:justify-end">
                             <!-- Role Filter -->
                             <select 
                                 x-model="permissionsRole"
-                                class="px-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300 appearance-none pr-10 relative"
+                                class="w-full sm:w-auto px-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all duration-300 appearance-none pr-10 relative"
                             >
                                 <option value="">All Roles</option>
                                 <option value="Research Facilitator">Research Facilitator</option>
@@ -1579,8 +1584,12 @@
                     </div>
 
                     <!-- Table of Users -->
-                    <div class="overflow-x-auto rounded-2xl border border-gray-100">
-                        <table class="w-full border-collapse text-left text-sm text-gray-500">
+                    <div class="space-y-2">
+                        <p class="text-[11px] font-semibold text-slate-500 lg:hidden">
+                            Swipe sideways inside the table to reach permission controls.
+                        </p>
+                    <div data-responsive-table-container tabindex="0" aria-label="Staff permissions table. Scroll horizontally for all columns." class="responsive-data-table max-w-full overflow-x-auto rounded-2xl border border-gray-100">
+                        <table data-responsive-table class="min-w-[900px] w-full border-collapse text-left text-sm text-gray-500">
                             <thead class="bg-gradient-to-r from-[#0e5c3a] to-[#0a4a2e] text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
                                 <tr>
                                     <th scope="col" class="px-6 py-4">User</th>
@@ -1588,12 +1597,12 @@
                                     <th scope="col" class="px-6 py-4">Role</th>
                                     <th scope="col" class="px-6 py-4">Department</th>
                                     <th scope="col" class="px-6 py-4 text-center">Active Permissions</th>
-                                    <th scope="col" class="px-6 py-4 text-center">Manage</th>
+                                    <th scope="col" class="sticky right-0 z-20 bg-[#0a4a2e] px-6 py-4 text-center shadow-[-8px_0_14px_-12px_rgba(15,23,42,0.8)]">Manage</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 bg-white">
                                 <template x-for="user in staffList.filter(u => (permissionsSearch === '' || u.name.toLowerCase().includes(permissionsSearch.toLowerCase()) || u.email.toLowerCase().includes(permissionsSearch.toLowerCase())) && (permissionsRole === '' || u.role === permissionsRole))" :key="user.id">
-                                    <tr class="hover:bg-gray-50/50 transition-colors duration-200">
+                                    <tr class="group hover:bg-gray-50/50 transition-colors duration-200">
                                         <!-- User (avatar + name + label) -->
                                         <td class="px-6 py-4">
                                             <div class="flex items-center gap-3">
@@ -1630,7 +1639,7 @@
                                         </td>
 
                                         <!-- Configure Button -->
-                                        <td class="px-6 py-4 text-center">
+                                        <td class="sticky right-0 z-10 bg-white px-6 py-4 text-center shadow-[-8px_0_14px_-12px_rgba(15,23,42,0.35)] group-hover:bg-gray-50">
                                             <button 
                                                 type="button"
                                                 @click="
@@ -1647,6 +1656,7 @@
                                 </template>
                             </tbody>
                         </table>
+                    </div>
                     </div>
                 </div>
 
