@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             AcademicStructureSeeder::class,
             AllUsersSeeder::class,
             CsdDryRunStudentSeeder::class,
+            CsdFacultyUserSeeder::class,
             ResearchProgressSeeder::class,
         ]);
 

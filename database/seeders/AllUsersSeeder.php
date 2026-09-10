@@ -49,11 +49,11 @@ class AllUsersSeeder extends Seeder
         // Students
         ['role' => 'Student (active 1 - leader)', 'email' => 'student.active1@ndmu.edu.ph', 'password' => 'Password!12345'],
         ['role' => 'Student (active 2)', 'email' => 'student.active2@ndmu.edu.ph', 'password' => 'Password!12345'],
-        ['role' => 'Student (active 3)', 'email' => 'student.active3@ndmu.edu.ph', 'password' => 'Password!12345'],
-        ['role' => 'Student - Vince Marc Sabado', 'email' => 'vince.sabado@ndmu.edu.ph', 'password' => 'Password!12345'],
-        ['role' => 'Student - Aliah Chavy Sabado', 'email' => 'aliah.sabado@ndmu.edu.ph', 'password' => 'Password!12345'],
-        ['role' => 'Student - Merch Jay Dollaga', 'email' => 'merch.dollaga@ndmu.edu.ph', 'password' => 'Password!12345'],
-        ['role' => 'Student - Brenda Balala', 'email' => 'brenda.balala@ndmu.edu.ph', 'password' => 'Password!12345'],
+        // CSD Faculty
+        ['role' => 'CSD Facilitator - Vince Marc B. Sabado', 'email' => 'vm.sabado@ndmu.edu.ph', 'password' => 'Password!12345'],
+        ['role' => 'CSD Adviser / Panelist - Aliah Chavy B. Sabado', 'email' => 'ac.sabado@ndmu.edu.ph', 'password' => 'Password!12345'],
+        ['role' => 'CSD Adviser / Panelist - Brenda M. Balala', 'email' => 'b.balala@ndmu.edu.ph', 'password' => 'Password!12345'],
+        ['role' => 'CSD Adviser / Panelist - Merch Jay P. Dollaga', 'email' => 'mj.dollaga@ndmu.edu.ph', 'password' => 'Password!12345'],
     ];
 
     public function run(): void
@@ -71,7 +71,7 @@ class AllUsersSeeder extends Seeder
         $this->seedStaffAccounts();
         $this->seedPendingStudentAccounts();
         $this->seedActiveStudentAccounts();
-        $this->seedCustomStudentAccounts();
+        $this->call(CsdFacultyUserSeeder::class);
         $this->seedTestStudentAccount();
 
         $this->command?->info('All local user accounts were seeded successfully with departmental affiliations.');
@@ -495,71 +495,6 @@ class AllUsersSeeder extends Seeder
                     'year_level' => 3,
                 ],
             );
-        }
-    }
-
-    private function seedCustomStudentAccounts(): void
-    {
-        $customStudents = [
-            [
-                'name' => 'Vince Marc Sabado',
-                'email' => 'vince.sabado@ndmu.edu.ph',
-                'student_id' => 'STU-2026-0101',
-                'program' => 'BSIT',
-                'year_level' => '3rd',
-            ],
-            [
-                'name' => 'Aliah Chavy Sabado',
-                'email' => 'aliah.sabado@ndmu.edu.ph',
-                'student_id' => 'STU-2026-0102',
-                'program' => 'BSIT',
-                'year_level' => '3rd',
-            ],
-            [
-                'name' => 'Merch Jay Dollaga',
-                'email' => 'merch.dollaga@ndmu.edu.ph',
-                'student_id' => 'STU-2026-0103',
-                'program' => 'BSIT',
-                'year_level' => '3rd',
-            ],
-            [
-                'name' => 'Brenda Balala',
-                'email' => 'brenda.balala@ndmu.edu.ph',
-                'student_id' => 'STU-2026-0104',
-                'program' => 'BSIT',
-                'year_level' => '3rd',
-            ],
-        ];
-
-        foreach ($customStudents as $data) {
-            $user = User::query()->updateOrCreate(
-                ['email' => $data['email']],
-                [
-                    'name' => $data['name'],
-                    'student_id' => $data['student_id'],
-                    'program' => $this->programLabel($data['program']),
-                    'year_level' => $data['year_level'],
-                    'password' => Hash::make($this->passwordFor($data['email'])),
-                    'status' => AccountStatus::Active,
-                    'approved_at' => now(),
-                    'email_verified_at' => now(),
-                    'user_type' => UserType::Student,
-                ],
-            );
-
-            $user->syncRoles('student');
-
-            $prog = Program::query()->where('code', $data['program'])->first();
-            if ($prog) {
-                StudentProfile::query()->updateOrCreate(
-                    ['user_id' => $user->id],
-                    [
-                        'program_id' => $prog->id,
-                        'student_number' => $data['student_id'],
-                        'year_level' => 3,
-                    ],
-                );
-            }
         }
     }
 
