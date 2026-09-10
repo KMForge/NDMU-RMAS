@@ -225,16 +225,18 @@
         <section class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-slate-900 shadow-sm">
             @php
                 $isRes036 = strtoupper($instance->definition->code) === 'RES-036';
+                $isRes036Owner = ! $isRes036 || (int) $instance->initiated_by === (int) auth()->id();
                 $hasRes036EvaluationSignature = $isRes036 && $instance->currentVersion?->signatures->contains(
-                    fn ($signature): bool => (int) $signature->signer_user_id === (int) auth()->id()
-                        && $signature->academic_action === 'evaluate',
+                    fn ($signature): bool => $signature->academic_action === 'evaluate',
                 );
             @endphp
             @can('updateDraft', $instance)
+                @if ($isRes036Owner)
                 <button type="submit" form="official-form-editor" class="rounded-xl bg-[#1e684c] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#17533d] transition-colors">Save New Draft Version</button>
+                @endif
             @endcan
             @can('submit', $instance)
-                @if (in_array($instance->status, ['draft', 'returned_for_correction'], true) || ($isRes036 && in_array($instance->status, ['submitted', 'in_progress'], true) && ! $hasRes036EvaluationSignature))
+                @if ($isRes036Owner && (in_array($instance->status, ['draft', 'returned_for_correction'], true) || ($isRes036 && in_array($instance->status, ['submitted', 'in_progress'], true) && ! $hasRes036EvaluationSignature)))
                 <button type="submit" form="official-form-editor" formaction="{{ route('official-forms.workspace.submit', $instance) }}" formmethod="POST" class="rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-blue-700 transition-colors shadow-sm">
                     {{ $isRes036 ? 'Sign & Submit Evaluation' : 'Submit' }}
                 </button>

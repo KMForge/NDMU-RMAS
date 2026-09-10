@@ -250,6 +250,10 @@ class OfficialFormAuthorization
     public function canSubmit(User $user, OfficialFormInstance $instance): bool
     {
         $code = strtolower($instance->definition->code);
+        if ($code === 'res-036' && $instance->initiated_by !== null && (int) $instance->initiated_by !== (int) $user->id) {
+            return false;
+        }
+
         $allowedPermissions = self::FORM_ACTION_PERMISSIONS[$code]['fill'] ?? null;
 
         $hasRequiredPermission = $code === 'res-026'
@@ -314,6 +318,10 @@ class OfficialFormAuthorization
         }
 
         $code = strtolower($instance->definition->code);
+        if ($code === 'res-036' && $instance->initiated_by !== null && (int) $instance->initiated_by !== (int) $user->id) {
+            return false;
+        }
+
         if ($code === 'res-026' && $user->user_type !== UserType::Faculty) {
             return false;
         }
@@ -429,6 +437,9 @@ class OfficialFormAuthorization
         if (in_array($requiredActorType, ['panelist', 'panel_chair'], true)) {
             if ($instance->source_type === DefenseEvaluationRound::class && $instance->source) {
                 return (int) $instance->source->summary_signer_user_id === (int) $user->id;
+            }
+            if (strtolower($instance->definition->code) === 'res-036') {
+                return (int) $instance->initiated_by === (int) $user->id;
             }
         }
 

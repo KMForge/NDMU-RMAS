@@ -14,8 +14,10 @@ use App\Models\OfficialFormDefinition;
 use App\Models\OfficialFormInstance;
 use App\Models\OfficialFormVersion;
 use App\Models\User;
+use App\Models\UserSignature;
 use App\Modules\Evaluations\Services\EvaluationAuthorization;
 use App\Modules\Evaluations\Services\Res036Rubric;
+use App\Modules\OfficialForms\Actions\ApplyOfficialFormSignature;
 use App\Notifications\AcademicWorkflowNotification;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -283,6 +285,26 @@ class SubmitDefenseEvaluation
         ]);
 
         $instance->update(['current_version_id' => $version->id]);
+
+        OfficialFormActorAssignment::query()->firstOrCreate(
+            [
+                'official_form_instance_id' => $instance->id,
+                'user_id' => $panelist->id,
+                'actor_type' => 'panelist',
+            ],
+            [
+                'status' => 'active',
+                'assigned_at' => now(),
+            ]
+        );
+
+        if (UserSignature::query()->where('user_id', $panelist->id)->exists()) {
+            try {
+                app(ApplyOfficialFormSignature::class)->handle($panelist, $instance->id, $version->id, 'evaluate');
+            } catch (\Throwable) {
+                // If signature application fails, preserve submitted evaluation record
+            }
+        }
     }
 
     public function generateSummaryAndRes037(DefenseEvaluationRound $round): void

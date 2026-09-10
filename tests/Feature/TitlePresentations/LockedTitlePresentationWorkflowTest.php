@@ -314,10 +314,9 @@ class LockedTitlePresentationWorkflowTest extends TestCase
         app(CompleteTitlePresentation::class)->handle($this->facilitator, $presentation);
         $presentation = app(RecordApprovedTitle::class)->handle($this->facilitator, $presentation->fresh(), 2);
 
-        // A Faculty user may carry both responsibilities. The exact panel position
-        // is signed first; the class-scoped Program Coordinator action follows only
-        // after every panel signature has been recorded.
-        $coordinator = $memberTwo;
+        // Keep the coordinator separate here so this test isolates the complete
+        // panel-to-coordinator-to-dean finalization path.
+        $coordinator = $this->eligibleUser(UserType::Faculty, ['forms.res-026.approve']);
         $coordinator->givePermissionTo('forms.res-026.approve');
         $dean = $this->eligibleUser(UserType::Faculty, ['dashboards.dean.view']);
         $dean->assignRole('dean');
@@ -334,7 +333,7 @@ class LockedTitlePresentationWorkflowTest extends TestCase
             ]);
         }
 
-        foreach ([$chair, $memberOne, $memberTwo, $dean] as $signer) {
+        foreach ([$chair, $memberOne, $memberTwo, $coordinator, $dean] as $signer) {
             $this->enrollSignature($signer);
         }
 
@@ -375,7 +374,8 @@ class LockedTitlePresentationWorkflowTest extends TestCase
             ])
             ->assertRedirect();
         $this->assertSame('awaiting_program_coordinator', $presentation->fresh()->status);
-        $this->get(route('official-forms.workspace.show', $instance))
+        $this->actingAs($coordinator)
+            ->get(route('official-forms.workspace.show', $instance))
             ->assertOk()
             ->assertDontSee('Sign as Panel Member 2')
             ->assertSee('Sign &amp; Endorse', false);

@@ -341,6 +341,18 @@ class OfficialFormBackendTest extends TestCase
         $this->assertNull($first->source_id);
     }
 
+    public function test_res031_accepts_legacy_res026_presentations_saved_as_approved(): void
+    {
+        $adviser = User::factory()->create(['user_type' => 'faculty']);
+        $group = $this->createGroup(adviser: $adviser);
+        $res026 = $this->finalizeTitleApproval($group);
+        $res026->titlePresentation()->update(['status' => 'approved']);
+
+        $instance = (new CreateOfficialFormInstance)->handle($adviser, 'RES-031', $group->id);
+
+        $this->assertSame('RES-031', $instance->definition->code);
+    }
+
     public function test_student_cannot_initiate_res031_after_final_title_approval(): void
     {
         $adviser = User::factory()->create(['user_type' => 'faculty']);

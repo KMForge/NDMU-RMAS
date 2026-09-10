@@ -444,7 +444,6 @@ class ApplyOfficialFormSignature
         } elseif ($signature->academic_action === 'approve') {
             $this->finalizeCanonicalTitle($presentation, $actor);
             $instance->update(['status' => 'approved']);
-            $presentation->update(['status' => 'approved']);
             $event = 'RES026_DEAN_ACTION';
         } else {
             return;

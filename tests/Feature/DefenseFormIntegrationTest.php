@@ -15,6 +15,7 @@ use App\Modules\DefenseScheduling\Actions\RescheduleDefense;
 use App\Modules\DefenseScheduling\Actions\ScheduleDefense;
 use App\Modules\OfficialForms\Actions\CreateOfficialFormInstance;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
+use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use App\Modules\OfficialForms\Services\OfficialFormSignatureHasher;
 use App\Modules\OfficialForms\Validators\OfficialFormPayloadValidator;
 use App\Policies\OfficialFormInstancePolicy;
@@ -49,6 +50,7 @@ class DefenseFormIntegrationTest extends TestCase
 
         Permission::firstOrCreate(['name' => 'defenses.manage', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'forms.res-036.evaluate', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'forms.res-036.view', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'evaluations.create', 'guard_name' => 'web']);
 
         $this->facilitator = User::factory()->create([
@@ -336,5 +338,60 @@ class DefenseFormIntegrationTest extends TestCase
 
         $hashTampered = $hasher->hashVersion($version);
         $this->assertNotEquals($hashWithSnapshot, $hashTampered);
+    }
+
+    public function test_panelist_b_cannot_view_or_submit_panelist_a_res036_evaluation(): void
+    {
+        $createAction = app(CreateOfficialFormInstance::class);
+
+        $instance = $createAction->handle(
+            $this->panelist,
+            'RES-036',
+            $this->group->id,
+            null,
+            'general',
+            DefenseSchedule::class,
+            $this->schedule->id
+        );
+
+        $policy = app(OfficialFormInstancePolicy::class);
+
+        // Panelist A (author) can view and submit
+        $this->assertTrue($policy->view($this->panelist, $instance));
+        $this->assertTrue($policy->submit($this->panelist, $instance));
+        $this->assertTrue($policy->evaluate($this->panelist, $instance));
+
+        // Panelist B (non-author panelist) CANNOT view, submit, or evaluate
+        $this->assertFalse($policy->view($this->nonPanelist, $instance));
+        $this->assertFalse($policy->submit($this->nonPanelist, $instance));
+        $this->assertFalse($policy->evaluate($this->nonPanelist, $instance));
+
+        // Facilitator can view for supervision, but CANNOT submit or evaluate on panelist's behalf
+        $this->assertTrue($policy->view($this->facilitator, $instance));
+        $this->assertFalse($policy->submit($this->facilitator, $instance));
+        $this->assertFalse($policy->evaluate($this->facilitator, $instance));
+    }
+
+    public function test_res036_not_in_pending_actions_for_other_panelist(): void
+    {
+        $createAction = app(CreateOfficialFormInstance::class);
+
+        $instance = $createAction->handle(
+            $this->panelist,
+            'RES-036',
+            $this->group->id,
+            null,
+            'general',
+            DefenseSchedule::class,
+            $this->schedule->id
+        );
+
+        $pendingService = app(GetPendingAcademicActionsForUser::class);
+
+        $panelistPending = $pendingService->execute($this->panelist);
+        $this->assertTrue($panelistPending->contains('instance_id', $instance->id));
+
+        $otherPanelistPending = $pendingService->execute($this->nonPanelist);
+        $this->assertFalse($otherPanelistPending->contains('instance_id', $instance->id));
     }
 }

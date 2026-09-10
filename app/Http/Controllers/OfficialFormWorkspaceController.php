@@ -68,7 +68,7 @@ class OfficialFormWorkspaceController extends Controller
             'res031UnlockedGroupIds' => OfficialFormInstance::query()
                 ->where('status', 'approved')
                 ->whereHas('definition', fn ($query) => $query->where('code', 'RES-026'))
-                ->whereHas('titlePresentation', fn ($query) => $query->where('status', 'finalized'))
+                ->whereHas('titlePresentation', fn ($query) => $query->whereIn('status', ['finalized', 'approved']))
                 ->pluck('research_class_group_id'),
         ]);
     }
@@ -301,6 +301,14 @@ class OfficialFormWorkspaceController extends Controller
             return back()->withErrors(['official_form' => $exception->getMessage()])->withInput();
         }
 
+        $code = strtoupper((string) ($instance->definition?->code ?? ''));
+        if ($code === 'RES-036' && $request->user()->hasRole('panelist')) {
+            $groupName = $instance->group?->name ?? 'Research Group';
+
+            return to_route('panelist.dashboard')
+                ->with('official_form_success', "Defense evaluation for {$groupName} submitted and digitally signed successfully.");
+        }
+
         return back()->with('official_form_success', 'The form was submitted for its verified next action.');
     }
 
@@ -425,6 +433,10 @@ class OfficialFormWorkspaceController extends Controller
         return $this->visibleInstances($request)
             ->filter(function (OfficialFormInstance $instance) use ($user, $authorization): bool {
                 $code = strtoupper((string) ($instance->definition?->code ?? ''));
+
+                if ($code === 'RES-036' && (int) $instance->initiated_by !== (int) $user->id) {
+                    return false;
+                }
 
                 // Facilitator pending action on submitted RES-026 (Title presentation scheduling / panel / verdict)
                 if ($code === 'RES-026' && in_array($instance->status, ['submitted', 'in_review'], true)) {

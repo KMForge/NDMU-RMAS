@@ -340,7 +340,7 @@ class OfficialResearchWorkflowRegistry
                     'label' => 'Submit Defense Evaluation',
                     'permission' => 'forms.res-036.evaluate',
                     'actor_type' => 'panelist',
-                    'from_states' => ['draft', 'submitted', 'in_progress'],
+                    'from_states' => ['draft', 'in_progress', 'returned_for_correction'],
                     'to_state' => 'submitted',
                     'signature_required' => true,
                 ],

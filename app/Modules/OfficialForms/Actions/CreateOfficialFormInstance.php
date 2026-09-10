@@ -306,7 +306,7 @@ class CreateOfficialFormInstance
             ->where('research_class_group_id', $group->id)
             ->where('status', 'approved')
             ->whereHas('definition', fn ($query) => $query->where('code', 'RES-026'))
-            ->whereHas('titlePresentation', fn ($query) => $query->where('status', 'finalized'))
+            ->whereHas('titlePresentation', fn ($query) => $query->whereIn('status', ['finalized', 'approved']))
             ->exists();
 
         if (! $hasFinalizedTitleApproval) {

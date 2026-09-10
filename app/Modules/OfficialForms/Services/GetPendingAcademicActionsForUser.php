@@ -89,6 +89,10 @@ class GetPendingAcademicActionsForUser
                 $requiredActorType = $actionSpec['actor_type'];
                 $fromStates = $actionSpec['from_states'];
 
+                if ($code === 'res-036' && (int) $instance->initiated_by !== (int) $user->id) {
+                    continue;
+                }
+
                 if (! in_array($instance->status, $fromStates, true)) {
                     continue;
                 }
