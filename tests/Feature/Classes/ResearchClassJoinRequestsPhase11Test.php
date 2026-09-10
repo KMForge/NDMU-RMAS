@@ -229,6 +229,101 @@ class ResearchClassJoinRequestsPhase11Test extends TestCase
             ->assertSee('Enrolled');
     }
 
+    public function test_facilitator_can_bulk_approve_selected_pending_join_requests(): void
+    {
+        $facilitator = $this->userWithRole('research-facilitator');
+        $researchClass = $this->createClass($facilitator, 'BULK0001', 'Bulk Approval Class');
+        $students = collect(range(1, 3))->map(fn () => $this->userWithRole('student'));
+        $requests = $students->map(fn (User $student) => $this->enroll($researchClass, $student, 'pending'));
+        $requestIds = $requests->pluck('id')->all();
+
+        $this->actingAs($facilitator)
+            ->patchJson(route('facilitator.classes.join-requests.bulk-approve'), [
+                'join_request_ids' => $requestIds,
+            ])
+            ->assertOk()
+            ->assertJsonPath('approved_count', 3)
+            ->assertJsonPath('join_request_ids', $requestIds);
+
+        $this->assertSame(
+            ['active'],
+            ResearchClassEnrollment::query()->whereKey($requestIds)->pluck('status')->unique()->values()->all(),
+        );
+        $this->assertSame(3, $students->sum(fn (User $student): int => $student->notifications()->where('data->event_key', 'class.join-request.approved')->count()));
+        $this->assertDatabaseCount('audit_logs', 3);
+    }
+
+    public function test_bulk_approval_is_atomic_when_class_capacity_is_insufficient(): void
+    {
+        $facilitator = $this->userWithRole('research-facilitator');
+        $researchClass = $this->createClass($facilitator, 'BULK0002', 'Nearly Full Class');
+        $researchClass->update(['max_students' => 2]);
+        $this->enroll($researchClass, $this->userWithRole('student'), 'active');
+        $requests = collect(range(1, 2))->map(
+            fn () => $this->enroll($researchClass, $this->userWithRole('student'), 'pending'),
+        );
+        $requestIds = $requests->pluck('id')->all();
+
+        $this->actingAs($facilitator)
+            ->patchJson(route('facilitator.classes.join-requests.bulk-approve'), [
+                'join_request_ids' => $requestIds,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Nearly Full Class only has 1 available seat. Reduce the selection and try again.');
+
+        $this->assertSame(
+            ['pending'],
+            ResearchClassEnrollment::query()->whereKey($requestIds)->pluck('status')->unique()->values()->all(),
+        );
+    }
+
+    public function test_bulk_approval_rejects_foreign_facilitator_requests_without_partial_updates(): void
+    {
+        $facilitator = $this->userWithRole('research-facilitator');
+        $otherFacilitator = $this->userWithRole('research-facilitator');
+        $ownedClass = $this->createClass($facilitator, 'BULK0003', 'Owned Class');
+        $foreignClass = $this->createClass($otherFacilitator, 'BULK0004', 'Foreign Class');
+        $ownedRequest = $this->enroll($ownedClass, $this->userWithRole('student'), 'pending');
+        $foreignRequest = $this->enroll($foreignClass, $this->userWithRole('student'), 'pending');
+
+        $this->actingAs($facilitator)
+            ->patchJson(route('facilitator.classes.join-requests.bulk-approve'), [
+                'join_request_ids' => [$ownedRequest->id, $foreignRequest->id],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'One or more selected join requests do not belong to your classes.');
+
+        $this->assertSame('pending', $ownedRequest->fresh()->status);
+        $this->assertSame('pending', $foreignRequest->fresh()->status);
+    }
+
+    public function test_bulk_approval_requires_at_least_one_distinct_request(): void
+    {
+        $facilitator = $this->userWithRole('research-facilitator');
+
+        $this->actingAs($facilitator)
+            ->patchJson(route('facilitator.classes.join-requests.bulk-approve'), [
+                'join_request_ids' => [],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('join_request_ids');
+    }
+
+    public function test_join_request_page_displays_bulk_selection_controls(): void
+    {
+        $facilitator = $this->userWithRole('research-facilitator');
+        $researchClass = $this->createClass($facilitator, 'BULK0005');
+        $joinRequest = $this->enroll($researchClass, $this->userWithRole('student'), 'pending');
+
+        $this->actingAs($facilitator)
+            ->get(route('facilitator.dashboard', ['tab' => 'join-requests']))
+            ->assertOk()
+            ->assertSee('Select all pending requests shown (1)')
+            ->assertSee('Approve Selected')
+            ->assertSee('join_request_ids[]', false)
+            ->assertSee((string) $joinRequest->id);
+    }
+
     private function userWithRole(string $role): User
     {
         $user = User::factory()->create();

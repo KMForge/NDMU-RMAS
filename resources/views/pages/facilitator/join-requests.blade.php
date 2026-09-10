@@ -1,4 +1,25 @@
-<section class="space-y-8">
+@php
+    $visiblePendingRequestIds = $classJoinRequests
+        ->where('status', 'pending')
+        ->pluck('id')
+        ->map(fn ($id) => (int) $id)
+        ->values();
+@endphp
+
+<section
+    class="space-y-8"
+    x-data="{
+        selectedJoinRequests: [],
+        visiblePendingRequestIds: @js($visiblePendingRequestIds),
+        get allVisibleSelected() {
+            return this.visiblePendingRequestIds.length > 0
+                && this.visiblePendingRequestIds.every(id => this.selectedJoinRequests.includes(id));
+        },
+        toggleAllVisible() {
+            this.selectedJoinRequests = this.allVisibleSelected ? [] : [...this.visiblePendingRequestIds];
+        }
+    }"
+>
     <!-- Header Row -->
     <div>
         <div class="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">
@@ -85,6 +106,41 @@
 
     <!-- Requests List -->
     <div class="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
+        @if ($visiblePendingRequestIds->isNotEmpty())
+            <div class="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <label class="inline-flex cursor-pointer items-center gap-2.5 text-xs font-bold text-slate-700">
+                    <input
+                        type="checkbox"
+                        :checked="allVisibleSelected"
+                        @change="toggleAllVisible()"
+                        class="h-4 w-4 rounded border-slate-300 text-[#0e5c3a] focus:ring-[#0e5c3a]"
+                    >
+                    <span>Select all pending requests shown ({{ $visiblePendingRequestIds->count() }})</span>
+                </label>
+
+                <form
+                    method="POST"
+                    action="{{ route('facilitator.classes.join-requests.bulk-approve') }}"
+                    onsubmit="return confirm(`Approve ${this.querySelectorAll('input[name=\"join_request_ids[]\"]').length} selected join request(s)?`);"
+                >
+                    @csrf
+                    @method('PATCH')
+                    <template x-for="requestId in selectedJoinRequests" :key="requestId">
+                        <input type="hidden" name="join_request_ids[]" :value="requestId">
+                    </template>
+                    <button
+                        type="submit"
+                        :disabled="selectedJoinRequests.length === 0"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0e5c3a] px-5 py-2.5 text-xs font-black text-white shadow-sm transition-colors hover:bg-[#073823] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+                    >
+                        <i class="ph ph-checks text-base"></i>
+                        <span>Approve Selected</span>
+                        <span x-show="selectedJoinRequests.length > 0" x-text="`(${selectedJoinRequests.length})`"></span>
+                    </button>
+                </form>
+            </div>
+        @endif
+
         @forelse ($classJoinRequests as $joinRequest)
             @php($student = $joinRequest->student)
             <article class="flex flex-col gap-4 border-b border-slate-100 p-5 sm:p-6 last:border-b-0 lg:flex-row lg:items-center lg:justify-between hover:bg-slate-50/60 transition-colors">
@@ -120,6 +176,15 @@
 
                     @if ($joinRequest->status === 'pending')
                         <div class="flex items-center gap-2">
+                            <label class="inline-flex cursor-pointer items-center rounded-xl border border-slate-200 bg-white p-2" title="Select {{ $student?->name ?? 'student' }} for bulk approval">
+                                <input
+                                    type="checkbox"
+                                    value="{{ $joinRequest->id }}"
+                                    x-model.number="selectedJoinRequests"
+                                    class="h-4 w-4 rounded border-slate-300 text-[#0e5c3a] focus:ring-[#0e5c3a]"
+                                    aria-label="Select {{ $student?->name ?? 'student' }} for bulk approval"
+                                >
+                            </label>
                             <form method="POST" action="{{ route('facilitator.classes.join-requests.reject', [$joinRequest->researchClass, $joinRequest]) }}" onsubmit="return confirm('Reject this student join request?')">
                                 @csrf @method('PATCH')
                                 <button

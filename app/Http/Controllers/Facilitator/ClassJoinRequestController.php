@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Facilitator;
 use App\Http\Controllers\Controller;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
+use App\Modules\Classes\Actions\BulkApproveResearchClassJoinRequests;
 use App\Modules\Classes\Actions\ReviewResearchClassJoinRequest;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
@@ -15,6 +16,37 @@ use Illuminate\Support\Facades\Gate;
 
 class ClassJoinRequestController extends Controller
 {
+    public function bulkApprove(
+        Request $request,
+        BulkApproveResearchClassJoinRequests $approve,
+    ): JsonResponse|RedirectResponse {
+        $validated = $request->validate([
+            'join_request_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'join_request_ids.*' => ['required', 'integer', 'distinct', 'min:1'],
+        ]);
+
+        try {
+            $enrollments = $approve->handle($request->user(), $validated['join_request_ids']);
+        } catch (DuplicateClassOperation $exception) {
+            return $this->errorResponse($request, $exception->getMessage(), 409);
+        } catch (ClassOperationException $exception) {
+            return $this->errorResponse($request, $exception->getMessage(), 422);
+        }
+
+        $message = $enrollments->count().' join '.str('request')->plural($enrollments->count()).' approved successfully.';
+
+        if (! $request->expectsJson()) {
+            return to_route('facilitator.dashboard', ['tab' => 'join-requests'])
+                ->with('join_request_success', $message);
+        }
+
+        return response()->json([
+            'message' => $message,
+            'approved_count' => $enrollments->count(),
+            'join_request_ids' => $enrollments->modelKeys(),
+        ]);
+    }
+
     public function approve(
         Request $request,
         ResearchClass $researchClass,

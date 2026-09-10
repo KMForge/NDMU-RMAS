@@ -73,6 +73,9 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
     Route::post('/classes', [ResearchClassController::class, 'store'])
         ->middleware(['permission:classes.create', 'throttle:class-creation'])
         ->name('classes.store');
+    Route::patch('/join-requests/bulk-approve', [ClassJoinRequestController::class, 'bulkApprove'])
+        ->middleware(['permission:classes.manage-join-requests', 'throttle:class-join-decisions'])
+        ->name('classes.join-requests.bulk-approve');
     Route::get('/classes/{researchClass}', [ResearchClassController::class, 'show'])
         ->middleware('permission:classes.view-own')
         ->whereNumber('researchClass')
