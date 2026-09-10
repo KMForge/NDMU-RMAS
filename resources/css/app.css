@@ -246,6 +246,12 @@ body {
     overflow-x: hidden;
 }
 
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 img,
 video,
 canvas {
@@ -262,6 +268,18 @@ canvas {
 [data-portal-content] main[data-portal-main] {
     min-width: 0;
     max-width: 100%;
+}
+
+[data-portal-content] > *,
+[data-portal-main] > *,
+.flex-1.pl-72,
+.flex-grow.pl-72 {
+    min-width: 0;
+}
+
+[data-portal-content] :where(p, h1, h2, h3, h4, h5, h6, dd, dt, li),
+[data-portal-shell] :where(button, a, label) {
+    overflow-wrap: anywhere;
 }
 
 [data-responsive-table-container],
@@ -297,6 +315,20 @@ canvas {
     [data-portal-content] > main,
     [data-portal-content] main[data-portal-main] {
         padding: 1.5rem !important;
+    }
+
+    [data-portal-primary-search] {
+        display: none !important;
+    }
+
+    [data-portal-header] {
+        justify-content: flex-end !important;
+    }
+
+    [data-portal-shell] [class~='lg:grid-cols-4'],
+    [data-portal-shell] [class~='lg:grid-cols-5'],
+    [data-portal-shell] [class~='lg:grid-cols-6'] {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
 }
 
@@ -359,7 +391,8 @@ canvas {
         overflow: hidden;
     }
 
-    [data-portal-sidebar] {
+    [data-portal-sidebar],
+    aside.fixed.inset-y-0.left-0.w-72 {
         z-index: 70 !important;
         width: min(18rem, 86vw) !important;
         max-width: 86vw;
@@ -368,11 +401,15 @@ canvas {
         will-change: transform;
     }
 
-    [data-portal-sidebar].is-open {
+    [data-portal-sidebar].is-open,
+    aside.fixed.inset-y-0.left-0.w-72.is-open {
         transform: translateX(0);
     }
 
-    [data-portal-content] {
+    [data-portal-content],
+    .flex-1.pl-72,
+    .flex-grow.pl-72,
+    main.pl-72 {
         width: 100% !important;
         min-width: 0 !important;
         padding-left: 0 !important;
@@ -384,6 +421,7 @@ canvas {
         height: auto !important;
         gap: 0.75rem;
         padding: 0.75rem 1rem 0.75rem 4.5rem !important;
+        justify-content: flex-end !important;
     }
 
     [data-portal-header] > * {
@@ -412,6 +450,18 @@ canvas {
     [data-portal-shell] dialog,
     [data-portal-shell] [role='dialog'] {
         max-width: 100vw;
+    }
+
+    [data-portal-shell] .grid-cols-4,
+    [data-portal-shell] .grid-cols-5,
+    [data-portal-shell] .grid-cols-6,
+    [data-portal-shell] [class~='md:grid-cols-4'],
+    [data-portal-shell] [class~='md:grid-cols-5'],
+    [data-portal-shell] [class~='md:grid-cols-6'],
+    [data-portal-shell] [class~='lg:grid-cols-4'],
+    [data-portal-shell] [class~='lg:grid-cols-5'],
+    [data-portal-shell] [class~='lg:grid-cols-6'] {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
 }
 
@@ -461,6 +511,28 @@ canvas {
     [data-portal-header] > .flex:last-child > span.text-xs {
         display: none;
     }
+
+    [data-portal-shell] .grid-cols-4,
+    [data-portal-shell] .grid-cols-5,
+    [data-portal-shell] .grid-cols-6,
+    [data-portal-shell] [class~='sm:grid-cols-4'],
+    [data-portal-shell] [class~='md:grid-cols-4'],
+    [data-portal-shell] [class~='md:grid-cols-5'],
+    [data-portal-shell] [class~='md:grid-cols-6'],
+    [data-portal-shell] [class~='lg:grid-cols-4'],
+    [data-portal-shell] [class~='lg:grid-cols-5'],
+    [data-portal-shell] [class~='lg:grid-cols-6'] {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .official-form-viewport {
+        padding: 0.75rem 0.5rem 1rem;
+    }
+
+    body > main.mx-auto {
+        padding-right: 0.875rem !important;
+        padding-left: 0.875rem !important;
+    }
 }
 
 @media (max-width: 479px) {
@@ -482,5 +554,11 @@ canvas {
     .portal-sidebar-overlay,
     .portal-sidebar-toggle {
         transition: none !important;
+    }
+}
+
+@media print {
+    [data-responsive-table-container] {
+        overflow: visible !important;
     }
 }

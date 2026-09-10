@@ -12,16 +12,16 @@
 </head>
 <body class="official-form-workspace min-h-screen bg-[#eef2f0] text-slate-900">
     <header class="border-b border-slate-200 bg-white shadow-sm">
-        <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-            <div>
+        <div class="mx-auto flex max-w-7xl flex-col items-stretch gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div class="min-w-0">
                 <p class="text-[10px] font-black uppercase tracking-[.2em] text-amber-500">Authoritative Official Form</p>
                 <h1 class="text-xl font-black text-[#164b38]">{{ $instance->definition->code }} · {{ $instance->definition->title }}</h1>
             </div>
-            <a href="{{ route('official-forms.workspace.index') }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm hover:border-[#2b7659] hover:text-[#164b38]">Back to Forms</a>
+            <a href="{{ route('official-forms.workspace.index') }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-center text-xs font-bold text-slate-700 shadow-sm hover:border-[#2b7659] hover:text-[#164b38] sm:shrink-0">Back to Forms</a>
         </div>
     </header>
 
-    <main class="mx-auto max-w-7xl space-y-5 px-6 py-6" x-data="{ activeOfficialForm: @js($instance->definition->code), activeTab: 'forms' }">
+    <main class="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 sm:py-6" x-data="{ activeOfficialForm: @js($instance->definition->code), activeTab: 'forms' }">
         @if (session('official_form_success'))
             <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('official_form_success') }}</div>
         @endif

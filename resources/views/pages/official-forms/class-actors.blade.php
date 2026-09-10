@@ -8,17 +8,17 @@
 </head>
 <body class="min-h-screen bg-[#f4f7f6] text-gray-900">
     <header class="border-b border-gray-200 bg-white">
-        <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-            <div>
+        <div class="mx-auto flex max-w-6xl flex-col items-stretch gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
+            <div class="min-w-0">
                 <p class="text-[10px] font-black uppercase tracking-[.2em] text-amber-500">Official Forms Context</p>
                 <h1 class="text-2xl font-black text-[#0e5c3a]">{{ $researchClass->name }}</h1>
                 <p class="text-xs text-gray-500">Institutional actor assignments</p>
             </div>
-            <a href="{{ route('official-forms.workspace.index') }}" class="rounded-xl border border-gray-200 px-4 py-2 text-xs font-bold">Back to Forms</a>
+            <a href="{{ route('official-forms.workspace.index') }}" class="rounded-xl border border-gray-200 px-4 py-2 text-center text-xs font-bold sm:shrink-0">Back to Forms</a>
         </div>
     </header>
 
-    <main class="mx-auto max-w-6xl space-y-5 px-6 py-8">
+    <main class="mx-auto max-w-6xl space-y-5 px-4 py-6 sm:px-6 sm:py-8">
         @if (session('class_actor_success'))
             <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('class_actor_success') }}</div>
         @endif

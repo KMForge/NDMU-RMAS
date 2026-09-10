@@ -12,8 +12,8 @@
         <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md">
             <!-- Header Banner -->
             <div class="border-b border-emerald-900/20 bg-emerald-950 px-6 py-6 text-white">
-                <div class="flex items-center justify-between">
-                    <div>
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="min-w-0">
                         <span class="text-xs font-bold uppercase tracking-wider text-emerald-300">Notre Dame of Marbel University</span>
                         <h1 class="text-xl font-extrabold tracking-tight">Official Document Digital Verification</h1>
                     </div>

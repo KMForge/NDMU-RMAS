@@ -16,16 +16,16 @@
 }">
     <!-- Top Navigation Header -->
     <header class="sticky top-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur-md shadow-xs">
-        <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-            <div class="flex items-center gap-3">
+        <div class="mx-auto flex max-w-7xl flex-col items-stretch gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div class="flex min-w-0 items-center gap-3">
                 <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" class="h-10 w-auto object-contain">
-                <div>
+                <div class="min-w-0">
                     <p class="text-[10px] font-black uppercase tracking-[.22em] text-amber-500">NDMU Research Management</p>
                     <h1 class="text-xl sm:text-2xl font-black font-heading text-[#0e5c3a]">Official Forms Archive & Workspace</h1>
                 </div>
             </div>
-            <div class="flex items-center gap-3">
-                <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition shadow-2xs">
+            <div class="flex items-center gap-3 sm:shrink-0">
+                <a href="{{ route('dashboard') }}" class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition shadow-2xs sm:w-auto">
                     <i class="ph ph-arrow-left font-bold text-sm"></i>
                     <span>Back to Dashboard</span>
                 </a>
@@ -33,7 +33,7 @@
         </div>
     </header>
 
-    <main class="mx-auto max-w-7xl space-y-8 px-6 py-8">
+    <main class="mx-auto max-w-7xl space-y-8 px-4 py-6 sm:px-6 sm:py-8">
         @if (session('official_form_success'))
             <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-800 shadow-2xs flex items-center gap-3">
                 <i class="ph ph-check-circle text-emerald-600 text-lg"></i>

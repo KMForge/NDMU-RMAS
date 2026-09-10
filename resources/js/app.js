@@ -777,6 +777,33 @@ const responsivePortalState = {
     lastFocusedElement: null,
 };
 
+function markResponsiveTables(root = document) {
+    const tables = root instanceof HTMLTableElement
+        ? [root]
+        : Array.from(root.querySelectorAll?.('table') ?? []);
+
+    tables.forEach((table) => {
+        if (!(table instanceof HTMLTableElement) || table.closest('[data-responsive-table-ignore]')) {
+            return;
+        }
+
+        table.dataset.responsiveTable = '';
+
+        const container = table.parentElement;
+        if (!(container instanceof HTMLElement)) {
+            return;
+        }
+
+        container.dataset.responsiveTableContainer = '';
+        if (!container.hasAttribute('tabindex')) {
+            container.tabIndex = 0;
+        }
+        if (!container.hasAttribute('aria-label')) {
+            container.setAttribute('aria-label', 'Scrollable data table');
+        }
+    });
+}
+
 function setResponsivePortalOpen(open) {
     const { sidebar, content, toggle, controls } = responsivePortalState;
 
@@ -811,6 +838,8 @@ function setResponsivePortalOpen(open) {
 }
 
 function initializeResponsivePortal(root = document) {
+    markResponsiveTables(root);
+
     const sidebar = root.querySelector('aside.fixed.inset-y-0.left-0.w-72');
     const controls = document.querySelector('[data-portal-mobile-controls]');
     const toggle = controls?.querySelector('[data-portal-sidebar-toggle]');
@@ -879,17 +908,6 @@ function initializeResponsivePortal(root = document) {
         main.dataset.portalMain = '';
     }
 
-    content.querySelectorAll('table').forEach((table) => {
-        if (!(table instanceof HTMLTableElement)) {
-            return;
-        }
-
-        table.dataset.responsiveTable = '';
-        if (table.parentElement) {
-            table.parentElement.dataset.responsiveTableContainer = '';
-        }
-    });
-
     if (controls.dataset.portalControlsReady === 'true') {
         return;
     }
@@ -916,6 +934,21 @@ function initializeResponsivePortal(root = document) {
         }
     }, { passive: true });
 }
+
+const responsiveContentObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+            if (node instanceof HTMLElement) {
+                markResponsiveTables(node);
+            }
+        });
+    });
+});
+
+responsiveContentObserver.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+});
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
