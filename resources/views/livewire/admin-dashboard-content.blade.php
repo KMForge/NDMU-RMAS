@@ -4,9 +4,10 @@
 @endphp
 <div
     class="min-h-screen flex font-sans bg-[#f4f7f6]"
+    data-portal-shell
     x-data="{
-    activeTab: $wire.entangle('tab').live,
-    userManagementTab: $wire.entangle('userManagementTab').live,
+    activeTab: $wire.entangle('tab'),
+    userManagementTab: $wire.entangle('userManagementTab'),
     showPassword: false,
     selectedDefense: null,
     permissionsSearch: '',
@@ -44,6 +45,10 @@
     adviserOptions: @js($adviserOptions),
     panelistOptions: @js($panelistOptions)
 }"
+    x-init="
+        $watch('activeTab', () => $nextTick(() => window.dispatchEvent(new CustomEvent('portal:layout-changed'))));
+        $watch('userManagementTab', () => $nextTick(() => window.dispatchEvent(new CustomEvent('portal:layout-changed'))));
+    "
     @staff-account-created.window="activeTab = 'users'; userManagementTab = 'all-users'"
     x-on:role-editor-opened.window="activeTab = 'permissions'; $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))"
     x-on:role-editor-closed.window="activeTab = 'permissions'; $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))"
@@ -52,7 +57,7 @@
 >
     <style>[x-cloak] { display: none !important; }</style>
     <!-- Left Sidebar: Navigation -->
-    <aside class="fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-[#09472d] via-[#0e5c3a] to-[#073622] text-white flex flex-col justify-between z-20 border-r border-emerald-800/40 shadow-2xl overflow-y-auto">
+    <aside id="admin-primary-navigation" data-portal-sidebar class="fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-[#09472d] via-[#0e5c3a] to-[#073622] text-white flex flex-col justify-between z-20 border-r border-emerald-800/40 shadow-2xl overflow-y-auto">
         <div class="flex-shrink-0">
             <!-- Brand Logo Header -->
             <div class="p-6 pb-4 flex items-center gap-3.5">
@@ -279,11 +284,11 @@
     </aside>
 
     <!-- Main Content Area -->
-    <div class="flex-1 pl-72 flex flex-col min-h-screen">
+    <div data-portal-content class="flex-1 pl-72 flex flex-col min-h-screen">
         <!-- Top Header Navbar -->
-        <header class="h-20 bg-white/85 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between sticky top-0 z-40 flex-shrink-0 transition-all">
+        <header data-portal-header class="h-20 bg-white/85 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between sticky top-0 z-40 flex-shrink-0 transition-all">
             <!-- Search bar -->
-            <div class="relative w-96">
+            <div data-portal-primary-search class="relative w-96">
                 <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 pointer-events-none">
                     <i class="ph ph-magnifying-glass text-base"></i>
                 </span>
@@ -316,7 +321,7 @@
         </header>
 
         <!-- Dynamic Content Body -->
-        <main class="flex-grow px-10 py-8 w-full">
+        <main data-portal-main class="flex-grow px-10 py-8 w-full">
             <x-portal-feature-banner class="mb-8" :sections="[
                 'users' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'User Management', 'description' => 'Manage accounts, monitor institutional email verification, and assign reusable roles.', 'icon' => 'ph-users-three'],
                 'research' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Research Management', 'description' => 'Oversee research records, assignments, and approval activity.', 'icon' => 'ph-book-open'],
@@ -1139,7 +1144,7 @@
                                                     <th scope="col" class="px-6 py-4">Department & Program</th>
                                                     <th scope="col" class="px-6 py-4">Role(s)</th>
                                                     <th scope="col" class="px-6 py-4">Status</th>
-                                                    <th scope="col" class="sticky right-0 z-20 bg-[#0a4a2e] px-6 py-4 shadow-[-8px_0_14px_-12px_rgba(15,23,42,0.8)]">Actions</th>
+                                                    <th scope="col" class="px-6 py-4">Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody class="divide-y divide-gray-100 bg-white">
@@ -1248,7 +1253,7 @@
                                                         </td>
 
                                                         <!-- Actions -->
-                                                        <td class="sticky right-0 z-10 min-w-[240px] whitespace-nowrap bg-white px-6 py-4 shadow-[-8px_0_14px_-12px_rgba(15,23,42,0.35)] group-hover:bg-emerald-50">
+                                                        <td class="min-w-[240px] whitespace-nowrap px-6 py-4">
                                                             @if (auth()->id() === $user->id)
                                                                 <span class="text-xs font-bold text-gray-400">Current account</span>
                                                             @else
@@ -1597,7 +1602,7 @@
                                     <th scope="col" class="px-6 py-4">Role</th>
                                     <th scope="col" class="px-6 py-4">Department</th>
                                     <th scope="col" class="px-6 py-4 text-center">Active Permissions</th>
-                                    <th scope="col" class="sticky right-0 z-20 bg-[#0a4a2e] px-6 py-4 text-center shadow-[-8px_0_14px_-12px_rgba(15,23,42,0.8)]">Manage</th>
+                                    <th scope="col" class="px-6 py-4 text-center">Manage</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 bg-white">
@@ -1639,7 +1644,7 @@
                                         </td>
 
                                         <!-- Configure Button -->
-                                        <td class="sticky right-0 z-10 bg-white px-6 py-4 text-center shadow-[-8px_0_14px_-12px_rgba(15,23,42,0.35)] group-hover:bg-gray-50">
+                                        <td class="px-6 py-4 text-center">
                                             <button 
                                                 type="button"
                                                 @click="

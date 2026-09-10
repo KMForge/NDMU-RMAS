@@ -74,6 +74,8 @@ class AdminDashboardTest extends TestCase
             ->assertSee('User Management')
             ->assertSeeHtml('aria-label="User accounts table. Scroll horizontally for all columns."')
             ->assertSeeHtml('data-responsive-table-container')
+            ->assertSeeHtml('data-portal-content')
+            ->assertDontSeeHtml('sticky right-0')
             ->assertSee('Security Overview')
             ->assertSee('System Health')
             ->assertSee('Administrator');

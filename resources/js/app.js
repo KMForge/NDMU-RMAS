@@ -935,19 +935,43 @@ function initializeResponsivePortal(root = document) {
     }, { passive: true });
 }
 
+let responsiveRefreshFrame = null;
+
 const responsiveContentObserver = new MutationObserver((mutations) => {
+    let contentChanged = false;
+
     mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
             if (node instanceof HTMLElement) {
                 markResponsiveTables(node);
+                contentChanged = true;
             }
         });
     });
+
+    if (contentChanged && responsiveRefreshFrame === null) {
+        responsiveRefreshFrame = window.requestAnimationFrame(() => {
+            responsiveRefreshFrame = null;
+            initializeResponsivePortal();
+        });
+    }
 });
 
 responsiveContentObserver.observe(document.documentElement, {
     childList: true,
     subtree: true,
+});
+
+window.addEventListener('portal:layout-changed', () => {
+    window.requestAnimationFrame(() => {
+        initializeResponsivePortal();
+
+        document.querySelectorAll('[data-responsive-table-container]').forEach((container) => {
+            if (container instanceof HTMLElement && container.offsetParent !== null) {
+                container.scrollLeft = 0;
+            }
+        });
+    });
 });
 
 if (document.readyState === 'loading') {
