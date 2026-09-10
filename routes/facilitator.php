@@ -134,6 +134,10 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
                 ->middleware(['permission:classes.manage-groups', 'throttle:class-creation'])
                 ->whereNumber('group')
                 ->name('classes.groups.disband');
+            Route::post('/groups/{group}/reset-progress', [ResearchClassGroupController::class, 'resetProgress'])
+                ->middleware(['permission:classes.manage-groups', 'throttle:class-creation'])
+                ->whereNumber('group')
+                ->name('classes.groups.reset-progress');
 
             Route::put('/groups/{group}/students/{enrollment}', [ResearchClassGroupController::class, 'assignStudent'])
                 ->middleware(['permission:classes.manage-groups', 'throttle:class-join-decisions'])

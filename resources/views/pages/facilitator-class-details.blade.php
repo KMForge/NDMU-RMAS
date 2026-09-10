@@ -235,11 +235,17 @@
                                             <h3 class="font-black font-heading text-base text-slate-900">{{ $grp->name }}</h3>
                                             <span class="text-[10px] font-bold text-slate-400">Members: {{ $members->count() }} / 4</span>
                                         </div>
-                                        <form method="POST" action="{{ route('facilitator.classes.groups.disband', [$researchClass, $grp]) }}" onsubmit="return confirm('Disband this research group? Members will return to Unassigned Students.')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-xs text-rose-600 hover:text-rose-800 font-bold transition-colors cursor-pointer">Disband</button>
-                                        </form>
+                                        <div class="flex items-center gap-3">
+                                            <form method="POST" action="{{ route('facilitator.classes.groups.reset-progress', [$researchClass, $grp]) }}" onsubmit="return confirm('Reset all progress, forms, and defense schedules for {{ $grp->name }}? This will give the group a fresh slate for a dry run.')">
+                                                @csrf
+                                                <button type="submit" class="text-xs text-amber-600 hover:text-amber-800 font-bold transition-colors cursor-pointer" title="Reset progress, forms, and defense schedules">Reset Progress</button>
+                                            </form>
+                                            <form method="POST" action="{{ route('facilitator.classes.groups.disband', [$researchClass, $grp]) }}" onsubmit="return confirm('Disband this research group? Members will return to Unassigned Students.')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="text-xs text-rose-600 hover:text-rose-800 font-bold transition-colors cursor-pointer">Disband</button>
+                                            </form>
+                                        </div>
                                     </div>
 
                                     <!-- Adviser Status -->

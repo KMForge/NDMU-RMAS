@@ -19,6 +19,7 @@ use App\Modules\Classes\Actions\RenameResearchClassGroup;
 use App\Modules\Classes\Actions\RequestAdviserForResearchClassGroup;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
+use App\Modules\ResearchProgress\Actions\ResetDryRunGroupProgress;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -290,6 +291,29 @@ class ResearchClassGroupController extends Controller
 
         return to_route('facilitator.classes.show', $researchClass)
             ->with('class_success', 'Group Leader assigned successfully.');
+    }
+
+    public function resetProgress(
+        Request $request,
+        ResearchClass $researchClass,
+        ResearchClassGroup $group,
+        ResetDryRunGroupProgress $action,
+    ): JsonResponse|RedirectResponse {
+        if ($group->research_class_id !== $researchClass->id) {
+            abort(404);
+        }
+
+        $result = $action->execute($group);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Group progress, forms, and defense schedules have been successfully reset.',
+                'result' => $result,
+            ]);
+        }
+
+        return to_route('facilitator.classes.show', $researchClass)
+            ->with('class_success', 'Group progress, forms, and defense schedules have been successfully reset.');
     }
 
     private function errorResponse(Request $request, ResearchClass $researchClass, string $message, int $status): JsonResponse|RedirectResponse

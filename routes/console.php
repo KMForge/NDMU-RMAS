@@ -1,8 +1,10 @@
 <?php
 
 use App\Enums\AccountStatus;
+use App\Models\ResearchClassGroup;
 use App\Models\User;
 use App\Modules\ResearchProgress\Actions\ReconcileWorkflowMilestones;
+use App\Modules\ResearchProgress\Actions\ResetDryRunGroupProgress;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 
@@ -47,3 +49,25 @@ Artisan::command('user:verify {email?}', function (?string $email = null) {
 
     return 0;
 })->purpose('Force mark a user or all pending users as email verified and active');
+
+Artisan::command('dryrun:reset {group_id?}', function (ResetDryRunGroupProgress $action) {
+    $groupId = $this->argument('group_id');
+    $targetGroup = null;
+    if ($groupId !== null) {
+        $targetGroup = ResearchClassGroup::find($groupId);
+        if (! $targetGroup) {
+            $this->error("Research class group not found for ID: {$groupId}");
+
+            return 1;
+        }
+    }
+
+    $result = $action->execute($targetGroup);
+
+    $this->info("Reset {$result['groups_reset']} group(s): ".implode(', ', $result['group_names']));
+    $this->line("- Defenses deleted: {$result['defenses_deleted']}");
+    $this->line("- Official forms deleted: {$result['forms_deleted']}");
+    $this->line("- Milestones reset: {$result['milestones_reset']}");
+
+    return 0;
+})->purpose('Delete progress, forms, and defense schedules for DRY RUN groups');
