@@ -102,8 +102,8 @@
         @forelse ($groups as $group)
             @php $summary = $group->progress_summary; @endphp
             <section class="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
-                <!-- Top Brand Accent Stripe -->
-                <div class="h-1.5 bg-gradient-to-r from-[#073823] via-[#eebc3f] to-[#0e5c3a]"></div>
+                <!-- Decorative card accent (intentionally distinct from progress) -->
+                <div class="h-1 bg-[#0e5c3a]"></div>
 
                 <!-- Group Header -->
                 <div class="relative z-[1] flex flex-col justify-between gap-6 border-b border-slate-100 bg-white p-6 sm:p-7 lg:flex-row lg:items-center">
@@ -173,12 +173,30 @@
                     </div>
                 </div>
 
-                <!-- Thin Milestone Progression Bar -->
-                <div class="h-2 w-full bg-slate-100">
+                <!-- Clearly labeled lifecycle progress -->
+                <div class="border-b border-slate-100 bg-slate-50 px-6 py-3 sm:px-7">
+                    <div class="mb-2 flex items-center justify-between gap-3">
+                        <span class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-slate-600">
+                            <i class="ph ph-chart-line-up text-sm text-amber-600"></i>
+                            Lifecycle progress
+                        </span>
+                        <span class="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black text-amber-800">
+                            {{ number_format($summary['progress_percentage'], 0) }}% complete
+                        </span>
+                    </div>
                     <div
-                        class="h-full bg-gradient-to-r from-[#073823] via-[#0e5c3a] to-[#eebc3f] transition-all duration-500"
-                        style="width: {{ $summary['progress_percentage'] }}%"
-                    ></div>
+                        class="h-3 w-full overflow-hidden rounded-full border border-slate-200 bg-slate-200"
+                        role="progressbar"
+                        aria-label="Research lifecycle progress"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        aria-valuenow="{{ number_format($summary['progress_percentage'], 0, '.', '') }}"
+                    >
+                        <div
+                            class="h-full rounded-full bg-amber-400 shadow-[inset_0_-1px_0_rgba(120,53,15,0.18)] transition-[width] duration-500 ease-out"
+                            style="width: {{ max(0, min(100, $summary['progress_percentage'])) }}%"
+                        ></div>
+                    </div>
                 </div>
 
                 <!-- Milestones Timeline Grid -->
