@@ -49,6 +49,8 @@ class AdminDashboardTest extends TestCase
         $response->assertOk();
         $response->assertSee('Log out of NDMU-RMAS?');
         $response->assertSee('data-confirm-logout', false);
+        $response->assertSee('data-portal-mobile-controls', false);
+        $response->assertSee('data-portal-sidebar-toggle', false);
 
         $document = new \DOMDocument;
         @$document->loadHTML($response->getContent());

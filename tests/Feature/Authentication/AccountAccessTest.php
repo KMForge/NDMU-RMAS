@@ -45,6 +45,10 @@ class AccountAccessTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('student-researcher');
 
-        $this->actingAs($user)->get(route('student.dashboard'))->assertOk();
+        $this->actingAs($user)
+            ->get(route('student.dashboard'))
+            ->assertOk()
+            ->assertSee('data-portal-mobile-controls', false)
+            ->assertSee('data-portal-sidebar-toggle', false);
     }
 }
