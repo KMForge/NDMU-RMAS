@@ -9,6 +9,7 @@ use App\Http\Controllers\OfficialFormController;
 use App\Http\Controllers\OfficialFormSignatureController;
 use App\Http\Controllers\OfficialFormVerificationController;
 use App\Http\Controllers\OfficialFormWorkspaceController;
+use App\Http\Controllers\ProfilePhotoController;
 use App\Http\Controllers\UserSignatureController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Route;
@@ -66,6 +67,21 @@ Route::middleware(['auth', 'verified', 'active'])
         Route::get('/{researchClass}', [ResearchClassFormActorController::class, 'index'])->whereNumber('researchClass')->name('index');
         Route::post('/{researchClass}', [ResearchClassFormActorController::class, 'store'])->whereNumber('researchClass')->middleware('throttle:class-creation')->name('store');
         Route::delete('/{researchClass}/{assignment}', [ResearchClassFormActorController::class, 'destroy'])->whereNumber(['researchClass', 'assignment'])->middleware('throttle:class-creation')->name('destroy');
+    });
+
+Route::middleware(['auth', 'verified', 'active'])
+    ->prefix('settings/profile-photo')
+    ->name('profile-photo.')
+    ->group(function (): void {
+        Route::get('/', [ProfilePhotoController::class, 'show'])
+            ->middleware('throttle:120,1')
+            ->name('show');
+        Route::put('/', [ProfilePhotoController::class, 'store'])
+            ->middleware('throttle:10,1')
+            ->name('store');
+        Route::delete('/', [ProfilePhotoController::class, 'destroy'])
+            ->middleware('throttle:10,1')
+            ->name('destroy');
     });
 
 Route::middleware(['auth', 'verified', 'active'])

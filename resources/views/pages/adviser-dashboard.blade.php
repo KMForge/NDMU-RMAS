@@ -115,7 +115,7 @@
             <div class="px-5 py-3">
                 <div class="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.06] border border-white/10 shadow-inner backdrop-blur-xs hover:bg-white/[0.09] transition-all">
                     <div class="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-[#eebc3f] to-[#ffd76f] text-[#09472d] font-black flex items-center justify-center text-lg flex-shrink-0 shadow-md">
-                        {{ Illuminate\Support\Str::upper(Illuminate\Support\Str::substr($adviser->name, 0, 1)) }}
+                        <x-current-user-avatar :user="$adviser" rounded="rounded-xl" />
                         <span class="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
                             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                             <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-[#09472d]"></span>
@@ -426,7 +426,7 @@
                 <x-notification-dropdown />
                 <div class="flex items-center gap-2.5 pl-2 border-l border-slate-200">
                     <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white font-bold flex items-center justify-center text-xs shadow-2xs">
-                        {{ Illuminate\Support\Str::upper(Illuminate\Support\Str::substr($adviser->name, 0, 1)) }}
+                        <x-current-user-avatar :user="$adviser" />
                     </div>
                     <span class="text-xs font-bold text-slate-800">{{ $adviser->name }}</span>
                 </div>

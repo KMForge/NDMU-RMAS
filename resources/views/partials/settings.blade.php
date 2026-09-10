@@ -9,6 +9,9 @@
     $portalType = $portalType ?? ($userRole . ' Portal');
     $accessLevel = $accessLevel ?? ($userRole . ' Access');
     $avatarInitials = strtoupper(substr(trim($userName), 0, 1));
+    $profilePhotoUrl = $settingsUser?->profile_photo_path
+        ? route('profile-photo.show', ['v' => $settingsUser->profile_photo_updated_at?->timestamp])
+        : null;
 
     $canManageDigitalSignature = $settingsUser
         && Illuminate\Support\Facades\Gate::allows('create', App\Models\UserSignature::class);
@@ -32,7 +35,13 @@
     emailAddress: '{{ $emailAddress ?? '' }}',
     phoneNumber: '+63 912 345 6789',
     homeAddress: 'Koronadal City, South Cotabato',
-    username: '{{ strtolower(str_replace(' ', '.', $userName)) }}'
+    username: '{{ strtolower(str_replace(' ', '.', $userName)) }}',
+    profilePhotoPreview: @js($profilePhotoUrl),
+    previewProfilePhoto(event) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        this.profilePhotoPreview = URL.createObjectURL(file);
+    }
 }">
     <!-- Profile Banner Summary -->
     <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#042416] p-7 sm:p-8 text-white shadow-xl border border-emerald-800/40">
@@ -40,7 +49,10 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
             <div class="flex items-center gap-5">
                 <div class="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#eebc3f] to-[#ffd76f] text-2xl font-black text-[#073823] shadow-lg border-2 border-white/20">
-                    <span>{{ $avatarInitials }}</span>
+                    <template x-if="profilePhotoPreview">
+                        <img :src="profilePhotoPreview" alt="Your profile photo" class="h-full w-full rounded-2xl object-cover">
+                    </template>
+                    <span x-show="!profilePhotoPreview">{{ $avatarInitials }}</span>
                     <span class="absolute -bottom-1 -right-1 flex h-4 w-4">
                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                         <span class="relative inline-flex rounded-full h-4 w-4 bg-emerald-400 border-2 border-[#073823]"></span>
@@ -81,6 +93,55 @@
                     <h3 class="font-black text-slate-900 text-sm font-heading flex items-center gap-2">
                         <span>Profile Information</span>
                     </h3>
+                </div>
+
+                @if (session('profile_photo_success'))
+                    <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-800" role="status">
+                        {{ session('profile_photo_success') }}
+                    </div>
+                @endif
+
+                @error('profile_photo')
+                    <div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-bold text-rose-800" role="alert">
+                        {{ $message }}
+                    </div>
+                @enderror
+
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+                        <div class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-tr from-[#eebc3f] to-[#ffd76f] text-xl font-black text-[#073823]">
+                            <template x-if="profilePhotoPreview">
+                                <img :src="profilePhotoPreview" alt="Profile photo preview" class="h-full w-full object-cover">
+                            </template>
+                            <span x-show="!profilePhotoPreview">{{ $avatarInitials }}</span>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-black text-slate-900">Profile Photo</p>
+                            <p class="mt-1 text-[10px] font-medium leading-relaxed text-slate-500">JPEG, PNG, or WebP. Maximum 2 MB. A square photo works best.</p>
+                            <form method="POST" action="{{ route('profile-photo.store') }}" enctype="multipart/form-data" class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                                @csrf
+                                @method('PUT')
+                                <input
+                                    type="file"
+                                    name="profile_photo"
+                                    accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                                    required
+                                    @change="previewProfilePhoto($event)"
+                                    class="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] text-slate-600 file:mr-2 file:rounded-lg file:border-0 file:bg-[#0e5c3a] file:px-2.5 file:py-1.5 file:text-[10px] file:font-bold file:text-white hover:file:bg-[#073823]"
+                                >
+                                <button type="submit" class="rounded-xl bg-[#0e5c3a] px-4 py-2.5 text-[10px] font-black text-white shadow-sm transition-colors hover:bg-[#073823]">
+                                    {{ $profilePhotoUrl ? 'Change Photo' : 'Upload Photo' }}
+                                </button>
+                            </form>
+                            @if ($profilePhotoUrl)
+                                <form method="POST" action="{{ route('profile-photo.destroy') }}" class="mt-2" onsubmit="return confirm('Remove your profile photo?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-[10px] font-bold text-rose-600 hover:text-rose-700">Remove photo</button>
+                                </form>
+                            @endif
+                        </div>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -277,4 +338,3 @@
         </div>
     </div>
 </div>
-

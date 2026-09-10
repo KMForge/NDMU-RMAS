@@ -16,7 +16,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'status', 'approved_at', 'user_type', 'student_id', 'program', 'year_level', 'department'])]
+#[Fillable(['name', 'email', 'password', 'status', 'approved_at', 'user_type', 'student_id', 'program', 'year_level', 'department', 'profile_photo_disk', 'profile_photo_path', 'profile_photo_mime_type', 'profile_photo_size', 'profile_photo_updated_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -73,6 +73,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'approved_at' => 'datetime',
+            'profile_photo_updated_at' => 'datetime',
             'password' => 'hashed',
             'status' => AccountStatus::class,
             'user_type' => UserType::class,
