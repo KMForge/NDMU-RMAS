@@ -8,7 +8,6 @@ use App\Models\Program;
 use App\Models\StudentProfile;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use LogicException;
 use Spatie\Permission\Models\Role;
@@ -35,6 +34,21 @@ class CsdDryRunStudentSeeder extends Seeder
             'name' => 'CSD Dry Run Student 3',
             'email' => 'csd.dryrun3@ndmu.edu.ph',
             'student_id' => 'STU-CSD-2026-003',
+        ],
+        [
+            'name' => 'CSD Dry Run Student 4',
+            'email' => 'csd.dryrun4@ndmu.edu.ph',
+            'student_id' => 'STU-CSD-2026-004',
+        ],
+        [
+            'name' => 'CSD Dry Run Student 5',
+            'email' => 'csd.dryrun5@ndmu.edu.ph',
+            'student_id' => 'STU-CSD-2026-005',
+        ],
+        [
+            'name' => 'CSD Dry Run Student 6',
+            'email' => 'csd.dryrun6@ndmu.edu.ph',
+            'student_id' => 'STU-CSD-2026-006',
         ],
     ];
 
@@ -64,37 +78,35 @@ class CsdDryRunStudentSeeder extends Seeder
         $programLabel = collect(config('academic.programs'))
             ->firstWhere('code', 'BSIT')['label'] ?? $program->name;
 
-        DB::transaction(function () use ($departmentName, $program, $programLabel, $studentRole): void {
-            foreach (self::STUDENTS as $account) {
-                $student = User::query()->updateOrCreate(
-                    ['email' => $account['email']],
-                    [
-                        'name' => $account['name'],
-                        'student_id' => $account['student_id'],
-                        'program' => $programLabel,
-                        'year_level' => '4th',
-                        'department' => $departmentName,
-                        'password' => Hash::make(self::PASSWORD),
-                        'status' => AccountStatus::Active,
-                        'approved_at' => now(),
-                        'email_verified_at' => now(),
-                        'user_type' => UserType::Student,
-                    ],
-                );
+        foreach (self::STUDENTS as $account) {
+            $student = User::query()->updateOrCreate(
+                ['email' => $account['email']],
+                [
+                    'name' => $account['name'],
+                    'student_id' => $account['student_id'],
+                    'program' => $programLabel,
+                    'year_level' => '4th',
+                    'department' => $departmentName,
+                    'password' => Hash::make(self::PASSWORD),
+                    'status' => AccountStatus::Active,
+                    'approved_at' => now(),
+                    'email_verified_at' => now(),
+                    'user_type' => UserType::Student,
+                ],
+            );
 
-                $student->syncRoles($studentRole);
+            $student->syncRoles($studentRole);
 
-                StudentProfile::query()->updateOrCreate(
-                    ['user_id' => $student->getKey()],
-                    [
-                        'program_id' => $program->getKey(),
-                        'student_number' => $account['student_id'],
-                        'year_level' => 4,
-                    ],
-                );
-            }
-        });
+            StudentProfile::query()->updateOrCreate(
+                ['user_id' => $student->getKey()],
+                [
+                    'program_id' => $program->getKey(),
+                    'student_number' => $account['student_id'],
+                    'year_level' => 4,
+                ],
+            );
+        }
 
-        $this->command?->info('Three active CSD dry-run student accounts were seeded.');
+        $this->command?->info(sprintf('%d active CSD dry-run student accounts were seeded.', count(self::STUDENTS)));
     }
 }

@@ -16,7 +16,7 @@ class CsdDryRunStudentSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_it_seeds_three_active_verified_csd_students_idempotently(): void
+    public function test_it_seeds_active_verified_csd_students_idempotently(): void
     {
         $this->seed([
             RolePermissionSeeder::class,
@@ -30,11 +30,14 @@ class CsdDryRunStudentSeederTest extends TestCase
                 'csd.dryrun1@ndmu.edu.ph',
                 'csd.dryrun2@ndmu.edu.ph',
                 'csd.dryrun3@ndmu.edu.ph',
+                'csd.dryrun4@ndmu.edu.ph',
+                'csd.dryrun5@ndmu.edu.ph',
+                'csd.dryrun6@ndmu.edu.ph',
             ])
             ->with('studentProfile.program.department')
             ->get();
 
-        $this->assertCount(3, $students);
+        $this->assertCount(6, $students);
 
         foreach ($students as $student) {
             $this->assertSame(UserType::Student, $student->user_type);
