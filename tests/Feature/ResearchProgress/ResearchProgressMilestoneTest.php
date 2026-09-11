@@ -5,6 +5,7 @@ namespace Tests\Feature\ResearchProgress;
 use App\Enums\DocumentStage;
 use App\Enums\DocumentStatus;
 use App\Enums\ResearchMilestoneStatus;
+use App\Models\Defense;
 use App\Models\Document;
 use App\Models\MilestoneDefinition;
 use App\Models\Program;
@@ -18,6 +19,7 @@ use App\Models\ResearchGroupMilestoneEvent;
 use App\Models\StudentProfile;
 use App\Models\User;
 use App\Modules\Classes\Actions\CreateResearchClassGroup;
+use App\Modules\Research\Queries\GetStudentDashboardData;
 use App\Modules\ResearchProgress\Actions\SyncResearchMilestoneDefinitions;
 use App\Modules\ResearchProgress\Queries\GetFacilitatorProgressData;
 use App\Modules\ResearchProgress\Queries\GetResearchGroupProgress;
@@ -268,6 +270,43 @@ class ResearchProgressMilestoneTest extends TestCase
         $this->assertSame(10, $preFinalDefense->definition->sequence);
         $this->assertSame(11, $finalDefense->definition->sequence);
         $this->assertTrue($preFinalDefense->definition->sequence < $finalDefense->definition->sequence);
+    }
+
+    public function test_final_defense_progress_is_monotonic_and_consistent_in_both_student_trackers(): void
+    {
+        $this->milestones();
+
+        $defense = Defense::query()->create([
+            'research_class_group_id' => $this->group->getKey(),
+            'defense_type' => 'final_defense',
+            'status' => 'scheduled',
+            'created_by' => $this->facilitator->getKey(),
+        ]);
+
+        $journey = app(ResearchJourneyService::class)->getJourneyForGroup($this->group->fresh(), $this->student);
+        $dashboard = app(GetStudentDashboardData::class)->for($this->student, activeTab: 'progress');
+        $displayMilestones = $dashboard['researchMilestones']->keyBy('sequence');
+
+        foreach (range(1, 10) as $stageNumber) {
+            $this->assertTrue($journey['stages'][$stageNumber]['is_completed']);
+            $this->assertSame('completed', $displayMilestones[$stageNumber]->status);
+        }
+
+        $this->assertSame(11, $journey['current_stage']);
+        $this->assertFalse($journey['stages'][11]['is_completed']);
+        $this->assertSame('in_progress', $displayMilestones[11]->status);
+        $this->assertSame($journey['percentage'], $dashboard['dashboardOverview']['progress_percentage']);
+        $this->assertSame(10, $dashboard['dashboardOverview']['completed_milestones']);
+
+        $defense->update(['status' => 'completed', 'completed_at' => now(), 'completed_by' => $this->facilitator->getKey()]);
+
+        $completedJourney = app(ResearchJourneyService::class)->getJourneyForGroup($this->group->fresh(), $this->student);
+        $completedDashboard = app(GetStudentDashboardData::class)->for($this->student, activeTab: 'progress');
+
+        $this->assertTrue($completedJourney['stages'][11]['is_completed']);
+        $this->assertSame(12, $completedJourney['current_stage']);
+        $this->assertSame('completed', $completedDashboard['researchMilestones']->keyBy('sequence')[11]->status);
+        $this->assertSame(11, $completedDashboard['dashboardOverview']['completed_milestones']);
     }
 
     public function test_proposal_revision_and_whole_paper_revision_are_independent_milestones(): void

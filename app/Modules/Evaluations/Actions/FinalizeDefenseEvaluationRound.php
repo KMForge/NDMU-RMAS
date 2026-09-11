@@ -6,16 +6,22 @@ use App\Models\AuditLog;
 use App\Models\DefenseEvaluationRound;
 use App\Models\OfficialFormInstance;
 use App\Models\OfficialFormSignature;
+use App\Modules\ResearchProgress\Actions\SynchronizeWorkflowMilestone;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class FinalizeDefenseEvaluationRound
 {
+    public function __construct(private readonly SynchronizeWorkflowMilestone $synchronizeMilestone) {}
+
     public function handle(DefenseEvaluationRound $round): DefenseEvaluationRound
     {
         return DB::transaction(function () use ($round) {
             /** @var DefenseEvaluationRound $lockedRound */
-            $lockedRound = DefenseEvaluationRound::query()->lockForUpdate()->with('summary')->findOrFail($round->id);
+            $lockedRound = DefenseEvaluationRound::query()
+                ->lockForUpdate()
+                ->with(['summary', 'defense.group', 'summarySigner'])
+                ->findOrFail($round->id);
 
             if ($lockedRound->status === 'finalized' || $lockedRound->status === 'released') {
                 return $lockedRound; // Idempotent
@@ -72,6 +78,24 @@ class FinalizeDefenseEvaluationRound
             }
             if ($lockedRound->defenseSchedule) {
                 $lockedRound->defenseSchedule->update(['status' => 'completed']);
+            }
+
+            $milestoneCode = match ($lockedRound->defense?->defense_type) {
+                'proposal_defense', 'proposal' => 'research-proposal-defense',
+                'pre_final_defense', 'pre_final' => 'research-pre-final-defense',
+                'final_defense', 'final_oral_defense', 'final' => 'research-final-oral-defense',
+                default => null,
+            };
+
+            if ($milestoneCode !== null && $lockedRound->defense?->group !== null && $lockedRound->summarySigner !== null) {
+                $this->synchronizeMilestone->complete(
+                    $lockedRound->defense->group,
+                    $milestoneCode,
+                    $lockedRound->summarySigner,
+                    'evaluation_round',
+                    $lockedRound->getKey(),
+                    "Finalized defense evaluation summary ({$milestoneCode}).",
+                );
             }
 
             AuditLog::query()->create([

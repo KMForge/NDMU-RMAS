@@ -98,7 +98,7 @@ class DashboardController extends Controller
             ->all();
 
         $activeGroup = $data['activeGroup'] ?? null;
-        $journey = $activeGroup ? $journeyService->getJourneyForGroup($activeGroup, $request->user()) : null;
+        $journey = $data['journey'] ?? ($activeGroup ? $journeyService->getJourneyForGroup($activeGroup, $request->user()) : null);
         if ($journey !== null) {
             $data['dashboardOverview']['progress_percentage'] = $journey['percentage'];
         }

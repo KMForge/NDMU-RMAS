@@ -58,14 +58,27 @@ class ResetDryRunGroupProgress
                         ->pluck('id');
 
                     if ($roundIds->isNotEmpty()) {
+                        $evaluationIds = Schema::hasTable('defense_evaluations')
+                            ? DB::table('defense_evaluations')->whereIn('defense_evaluation_round_id', $roundIds)->pluck('id')
+                            : collect();
+                        $summaryIds = Schema::hasTable('defense_evaluation_summaries')
+                            ? DB::table('defense_evaluation_summaries')->whereIn('defense_evaluation_round_id', $roundIds)->pluck('id')
+                            : collect();
+
                         if (Schema::hasTable('defense_evaluation_student_scores')) {
-                            DB::table('defense_evaluation_student_scores')->whereIn('round_id', $roundIds)->delete();
+                            DB::table('defense_evaluation_student_scores')->whereIn('defense_evaluation_id', $evaluationIds)->delete();
                         }
                         if (Schema::hasTable('defense_evaluation_student_summaries')) {
-                            DB::table('defense_evaluation_student_summaries')->whereIn('round_id', $roundIds)->delete();
+                            DB::table('defense_evaluation_student_summaries')->whereIn('defense_evaluation_summary_id', $summaryIds)->delete();
                         }
                         if (Schema::hasTable('defense_evaluation_summaries')) {
-                            DB::table('defense_evaluation_summaries')->whereIn('round_id', $roundIds)->delete();
+                            DB::table('defense_evaluation_summaries')->whereIn('id', $summaryIds)->delete();
+                        }
+                        if (Schema::hasTable('official_form_instances')
+                            && Schema::hasColumn('official_form_instances', 'defense_evaluation_id')) {
+                            DB::table('official_form_instances')
+                                ->whereIn('defense_evaluation_id', $evaluationIds)
+                                ->update(['defense_evaluation_id' => null]);
                         }
                         if (Schema::hasTable('defense_evaluations')) {
                             DB::table('defense_evaluations')->whereIn('defense_evaluation_round_id', $roundIds)->delete();
@@ -136,6 +149,9 @@ class ResetDryRunGroupProgress
                             if (Schema::hasTable('official_form_signatures')) {
                                 DB::table('official_form_signatures')->whereIn('official_form_instance_id', $formInstanceIds)->delete();
                             }
+                            if (Schema::hasTable('official_form_actor_assignments')) {
+                                DB::table('official_form_actor_assignments')->whereIn('official_form_instance_id', $formInstanceIds)->delete();
+                            }
                             DB::table('official_form_versions')->whereIn('id', $versionIds)->delete();
                         }
                         $deletedForms = DB::table('official_form_instances')->whereIn('id', $formInstanceIds)->delete();
@@ -178,6 +194,9 @@ class ResetDryRunGroupProgress
                 if (Schema::hasTable('documents')) {
                     $docIds = DB::table('documents')->where('research_class_group_id', $groupId)->pluck('id');
                     if ($docIds->isNotEmpty()) {
+                        if (Schema::hasTable('document_access_audits')) {
+                            DB::table('document_access_audits')->whereIn('document_id', $docIds)->delete();
+                        }
                         if (Schema::hasTable('document_review_comments')) {
                             DB::table('document_review_comments')->whereIn('document_id', $docIds)->delete();
                         }

@@ -7,6 +7,7 @@ use App\Models\DocumentReviewComment;
 use App\Models\User;
 use App\Modules\Documents\Support\DocumentGroupAccess;
 use App\Modules\ResearchProgress\Queries\GetResearchGroupProgress;
+use App\Modules\ResearchProgress\Services\ResearchJourneyService;
 use App\Support\CachesDatabaseSchema;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -21,6 +22,7 @@ class GetStudentDashboardData
     public function __construct(
         private readonly DocumentGroupAccess $documentGroupAccess,
         private readonly GetResearchGroupProgress $groupProgress,
+        private readonly ResearchJourneyService $journeyService,
     ) {}
 
     /**
@@ -41,6 +43,7 @@ class GetStudentDashboardData
         $proposals = $empty;
         $progress = $empty;
         $milestones = $empty;
+        $journey = null;
         $consultations = $empty;
         $consultationRequests = $empty;
         $revisions = $empty;
@@ -166,28 +169,44 @@ class GetStudentDashboardData
 
         if (($isDashboard || $activeTab === 'progress') && $activeGroup !== null) {
             $progressSummary = $this->groupProgress->for($activeGroup);
+            $journey = $this->journeyService->getJourneyForGroup($activeGroup, $user);
             $optionalMilestoneCodes = collect(config('research-progress.milestones', []))
                 ->filter(fn (array $definition): bool => (bool) ($definition['optional'] ?? false))
                 ->pluck('code');
-            $milestones = $progressSummary['milestones']->map(fn ($milestone): object => (object) [
-                'id' => $milestone->getKey(),
-                'code' => $milestone->definition->code,
-                'name' => $milestone->definition->name,
-                'description' => $milestone->definition->description,
-                'sequence' => $milestone->definition->sequence,
-                'weight' => (float) $milestone->definition->weight,
-                'status' => $milestone->status->value,
-                'due_at' => $milestone->due_at,
-                'started_at' => $milestone->started_at,
-                'completed_at' => $milestone->completed_at,
-                'remarks' => $milestone->remarks,
-                'feedback' => $milestone->remarks,
-                'not_applicable_reason' => $milestone->not_applicable_reason,
-                'is_overdue' => $milestone->isOverdue(),
-                'is_optional' => $optionalMilestoneCodes->contains($milestone->definition->code),
-                'evidences' => $milestone->evidences,
-                'events' => $milestone->events,
-            ]);
+            $milestones = $progressSummary['milestones']->map(function ($milestone) use ($journey, $optionalMilestoneCodes): object {
+                $sequence = $milestone->definition->sequence;
+                $journeyStage = $journey['stages'][$sequence] ?? null;
+                $isOptional = $optionalMilestoneCodes->contains($milestone->definition->code);
+                $displayStatus = match (true) {
+                    (bool) ($journeyStage['is_completed'] ?? false) => 'completed',
+                    ! $isOptional && $sequence === $journey['current_stage'] => 'in_progress',
+                    $isOptional && $milestone->status->value === 'pending' => 'optional',
+                    default => $milestone->status->value,
+                };
+
+                return (object) [
+                    'id' => $milestone->getKey(),
+                    'code' => $milestone->definition->code,
+                    'name' => $milestone->definition->name,
+                    'description' => $milestone->definition->description,
+                    'sequence' => $sequence,
+                    'weight' => (float) $milestone->definition->weight,
+                    'status' => $displayStatus,
+                    'persisted_status' => $milestone->status->value,
+                    'due_at' => $milestone->due_at,
+                    'started_at' => $milestone->started_at,
+                    'completed_at' => $milestone->completed_at,
+                    'remarks' => $milestone->remarks,
+                    'feedback' => $milestone->remarks,
+                    'not_applicable_reason' => $milestone->not_applicable_reason,
+                    'is_overdue' => $displayStatus !== 'completed' && $milestone->isOverdue(),
+                    'is_optional' => $isOptional,
+                    'is_inferred_complete' => (bool) ($journeyStage['is_inferred_complete'] ?? false),
+                    'is_auto_completed' => (bool) ($journeyStage['is_auto_completed'] ?? false),
+                    'evidences' => $milestone->evidences,
+                    'events' => $milestone->events,
+                ];
+            });
         }
         $groupDocumentQuery = $activeGroup === null
             ? null
@@ -281,6 +300,7 @@ class GetStudentDashboardData
             'proposals' => $proposals,
             'progressUpdates' => $progress,
             'researchMilestones' => $milestones,
+            'journey' => $journey,
             'consultations' => $consultations,
             'consultationRequests' => $consultationRequests,
             'revisions' => $revisions,

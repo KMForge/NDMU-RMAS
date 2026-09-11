@@ -5,6 +5,7 @@ namespace App\Modules\ResearchProgress\Services;
 use App\Enums\DocumentStage;
 use App\Enums\DocumentStatus;
 use App\Enums\ResearchMilestoneStatus;
+use App\Models\Defense;
 use App\Models\DefenseEvaluationRound;
 use App\Models\DefenseSchedule;
 use App\Models\Document;
@@ -12,6 +13,7 @@ use App\Models\OfficialFormInstance;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchGroupMilestone;
 use App\Models\User;
+use App\Modules\OfficialForms\Services\OfficialResearchWorkflowRegistry;
 use Illuminate\Support\Collection;
 
 class ResearchJourneyService
@@ -25,12 +27,12 @@ class ResearchJourneyService
     public function getJourneyForGroup(ResearchClassGroup $group, ?User $user = null): array
     {
         $group->loadMissing([
-            'members.student.studentProfile.program', 'adviser', 'researchClass',
+            'members.student.studentProfile.program', 'adviser', 'researchClass', 'defenses',
         ]);
 
         $automaticStageNumbers = $this->automaticStageNumbersFor($group);
 
-        $instances = OfficialFormInstance::query()
+        $instanceRecords = OfficialFormInstance::query()
             ->where(function ($q) use ($group) {
                 $q->where('research_class_group_id', $group->id);
                 if ($group->research_class_id) {
@@ -41,8 +43,11 @@ class ResearchJourneyService
                 }
             })
             ->with(['definition', 'actorAssignments.user', 'titlePresentation.defense.currentSchedule.room', 'titlePresentation.defense.activePanelAssignments.user'])
-            ->get()
-            ->keyBy(fn ($i) => strtolower($i->definition->code));
+            ->get();
+        $instanceGroups = $instanceRecords
+            ->groupBy(fn (OfficialFormInstance $instance): string => strtolower($instance->definition->code));
+        $instances = $instanceGroups
+            ->map(fn (Collection $forms): OfficialFormInstance => $forms->sortByDesc('id')->first());
 
         $milestones = ResearchGroupMilestone::query()
             ->where('research_class_group_id', $group->id)
@@ -63,23 +68,29 @@ class ResearchJourneyService
         $pendingReqs = [];
         $hasCurrentStage = false;
         $previousStagesCompleted = true;
+        $furthestReachedStage = $this->furthestReachedStage($group, $instanceRecords);
 
         $stageCount = count(config('research-progress.milestones', []));
 
         for ($stageNum = 1; $stageNum <= $stageCount; $stageNum++) {
-            $stageDetails = $this->evaluateStage($stageNum, $group, $instances, $milestones);
+            $stageDetails = $this->evaluateStage($stageNum, $group, $instances, $instanceGroups, $milestones);
             $stageDetails['is_optional'] = (bool) ($this->getStageConfig($stageNum)['optional'] ?? false);
             $stageDetails['is_auto_completed'] = in_array($stageNum, $automaticStageNumbers, true);
+            $stageDetails['is_inferred_complete'] = ! $stageDetails['is_optional']
+                && $stageNum < $furthestReachedStage;
             $stageDetails['is_completed'] = $stageDetails['is_auto_completed']
+                || $stageDetails['is_inferred_complete']
                 || ($previousStagesCompleted && $stageDetails['is_completed']);
 
-            if ($stageDetails['is_auto_completed']) {
+            if ($stageDetails['is_auto_completed'] || $stageDetails['is_inferred_complete']) {
                 $stageDetails['waiting_on'] = null;
                 $stageDetails['next_action'] = null;
                 $stageDetails['blockers'] = [];
                 $stageDetails['pending_requirements'] = [];
                 $stageDetails['completed_requirements'] = [
-                    $stageDetails['name'].' is automatically completed for the BSIT curriculum.',
+                    $stageDetails['is_auto_completed']
+                        ? $stageDetails['name'].' is automatically completed for the BSIT curriculum.'
+                        : $stageDetails['name'].' is complete because the group has reached a later verified workflow stage.',
                 ];
             }
 
@@ -132,6 +143,7 @@ class ResearchJourneyService
 
     /**
      * @param  Collection<string, OfficialFormInstance>  $instances
+     * @param  Collection<string, Collection<int, OfficialFormInstance>>  $instanceGroups
      * @param  Collection<string, ResearchGroupMilestone>  $milestones
      * @return array<string, mixed>
      */
@@ -139,6 +151,7 @@ class ResearchJourneyService
         int $stageNum,
         ResearchClassGroup $group,
         $instances,
+        $instanceGroups,
         $milestones
     ): array {
         if ($stageNum === 1) {
@@ -162,31 +175,20 @@ class ResearchJourneyService
         $name = $stageConfig['name'];
 
         $formCode = $stageConfig['primary_form'];
-        $instance = $instances->get($formCode);
+        $instance = $formCode === 'res-037'
+            ? $this->defenseFormForStage($instanceGroups->get($formCode, collect()), $stageNum)
+            : $instances->get($formCode);
         $milestone = $milestones->get($code);
 
         $isMilestoneCompleted = $milestone !== null && $milestone->status === ResearchMilestoneStatus::Completed;
 
-        $isFormMatchingStage = true;
-        if ($formCode === 'res-037' && $instance !== null) {
-            $schedule = $instance->source instanceof DefenseSchedule ? $instance->source : ($instance->source instanceof DefenseEvaluationRound ? $instance->source->defenseSchedule : null);
-            $defenseType = $schedule?->defense?->defense_type ?? $instance->source?->defense?->defense_type ?? '';
-            $expectedDefenseTypes = match ($stageNum) {
-                3 => ['proposal_defense', 'proposal', ''],
-                10 => ['pre_final_defense'],
-                11 => ['final_defense', 'final_oral_defense'],
-                default => [],
-            };
-            $isFormMatchingStage = in_array($defenseType, $expectedDefenseTypes, true);
-        }
+        $isFormCompleted = $instance !== null && in_array($instance->status, ['approved', 'completed', 'signed'], true);
+        $defense = $this->defenseForStage($group, $stageNum);
+        $isDefenseCompleted = $defense !== null && in_array($defense->status, ['completed', 'finalized', 'released'], true);
 
-        if (! $isFormMatchingStage) {
-            $instance = null;
-        }
-
-        $isFormCompleted = $isFormMatchingStage && $instance !== null && in_array($instance->status, ['approved', 'completed', 'signed'], true);
-
-        $isCompleted = $isMilestoneCompleted || ($isFormCompleted && $stageConfig['form_completes_stage']);
+        $isCompleted = $isMilestoneCompleted
+            || $isDefenseCompleted
+            || ($isFormCompleted && $stageConfig['form_completes_stage']);
 
         $completedReqs = [];
         $pendingReqs = [];
@@ -217,6 +219,13 @@ class ResearchJourneyService
                 'action_type' => 'form',
                 'actor_type' => 'student_researcher',
             ];
+        }
+
+        if ($isDefenseCompleted) {
+            $completedReqs[] = $name.' defense workflow is completed';
+            $pendingReqs = [];
+            $waitingOn = null;
+            $nextAction = null;
         }
 
         return [
@@ -600,6 +609,126 @@ class ResearchJourneyService
             'pending_requirements' => $pending,
             'blockers' => [],
         ];
+    }
+
+    /** @param Collection<int, OfficialFormInstance> $instances */
+    private function defenseFormForStage(Collection $instances, int $stageNum): ?OfficialFormInstance
+    {
+        $expectedTypes = $this->defenseTypesForStage($stageNum);
+        if ($expectedTypes === []) {
+            return null;
+        }
+
+        $matching = $instances
+            ->filter(fn (OfficialFormInstance $instance): bool => in_array(
+                $this->defenseTypeForForm($instance),
+                $expectedTypes,
+                true,
+            ))
+            ->sortByDesc('id');
+
+        if ($matching->isNotEmpty()) {
+            return $matching->first();
+        }
+
+        // Older proposal-defense forms may not have a typed source. Do not use
+        // that fallback for later defenses because it would mislabel RES-037.
+        return $stageNum === 3
+            ? $instances->filter(fn (OfficialFormInstance $instance): bool => $this->defenseTypeForForm($instance) === null)
+                ->sortByDesc('id')
+                ->first()
+            : null;
+    }
+
+    private function defenseForStage(ResearchClassGroup $group, int $stageNum): ?Defense
+    {
+        $expectedTypes = $this->defenseTypesForStage($stageNum);
+        if ($expectedTypes === []) {
+            return null;
+        }
+
+        return $group->defenses
+            ->filter(fn (Defense $defense): bool => in_array($defense->defense_type, $expectedTypes, true))
+            ->sortByDesc('id')
+            ->first();
+    }
+
+    /** @return list<string> */
+    private function defenseTypesForStage(int $stageNum): array
+    {
+        return match ($stageNum) {
+            3 => ['proposal_defense', 'proposal'],
+            10 => ['pre_final_defense', 'pre_final'],
+            11 => ['final_defense', 'final_oral_defense', 'final'],
+            default => [],
+        };
+    }
+
+    private function defenseTypeForForm(OfficialFormInstance $instance): ?string
+    {
+        $source = $instance->source;
+
+        return match (true) {
+            $source instanceof DefenseEvaluationRound => $source->defense?->defense_type,
+            $source instanceof DefenseSchedule => $source->defense?->defense_type,
+            default => null,
+        };
+    }
+
+    /** @param Collection<int, OfficialFormInstance> $instances */
+    private function furthestReachedStage(ResearchClassGroup $group, Collection $instances): int
+    {
+        $furthestStage = 1;
+
+        foreach ($instances as $instance) {
+            if (in_array($instance->status, ['cancelled', 'superseded'], true)) {
+                continue;
+            }
+
+            $form = OfficialResearchWorkflowRegistry::FORMS[strtolower($instance->definition->code)] ?? null;
+            if ($form !== null) {
+                $furthestStage = max($furthestStage, (int) $form['stage']);
+            }
+        }
+
+        foreach ($group->defenses as $defense) {
+            if ($defense->status === 'cancelled') {
+                continue;
+            }
+
+            $stage = match ($defense->defense_type) {
+                'proposal_defense', 'proposal' => 3,
+                'pre_final_defense', 'pre_final' => 10,
+                'final_defense', 'final_oral_defense', 'final' => 11,
+                default => 1,
+            };
+            $furthestStage = max($furthestStage, $stage);
+        }
+
+        $documentStage = Document::query()
+            ->where('research_class_group_id', $group->id)
+            ->where('is_current', true)
+            ->whereIn('status', [
+                DocumentStatus::Submitted->value,
+                DocumentStatus::UnderReview->value,
+                DocumentStatus::ApprovedForPresentation->value,
+                DocumentStatus::Accepted->value,
+            ])
+            ->pluck('document_stage')
+            ->map(function (DocumentStage|string|null $stage): int {
+                $stageValue = $stage instanceof DocumentStage ? $stage->value : $stage;
+
+                return match ($stageValue) {
+                    DocumentStage::ProposalDefense->value => 2,
+                    DocumentStage::PreFinalDefense->value => 10,
+                    DocumentStage::FinalDefense->value => 11,
+                    DocumentStage::FinalManuscript->value => 14,
+                    default => 1,
+                };
+            })
+            ->max();
+
+        return max($furthestStage, (int) ($documentStage ?? 1));
     }
 
     private function determineWaitingOnActor(string $formCode, string $status): string
