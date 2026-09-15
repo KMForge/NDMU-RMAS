@@ -751,7 +751,7 @@ document.addEventListener('alpine:init', () => {
                                 <span class="text-emerald-200 text-xs font-semibold tracking-wide">Research Panelist Portal</span>
                             </div>
                             <h1 class="text-2xl md:text-3xl font-black font-heading text-white tracking-tight drop-shadow-xs">
-                                Welcome back, {{ $panelist->name }}!
+                                Welcome back, {{ $panelist->displayFirstName() }}!
                             </h1>
                             <p class="text-xs md:text-sm text-emerald-100/85 max-w-2xl leading-relaxed">
                                 Review assigned research papers, evaluate defense presentations, and score candidate presentations

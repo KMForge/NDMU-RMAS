@@ -497,7 +497,7 @@
                                 <span class="text-emerald-200 text-xs font-semibold tracking-wide">Research Advising Portal</span>
                             </div>
                             <h1 class="text-2xl md:text-3xl font-black font-heading text-white tracking-tight drop-shadow-xs">
-                                Welcome back, {{ $adviser->name }}!
+                                Welcome back, {{ $adviser->displayFirstName() }}!
                             </h1>
                             <p class="text-xs md:text-sm text-emerald-100/85 max-w-2xl leading-relaxed">
                                 Manage advisee research groups, review submitted manuscript drafts, and facilitate academic consultations

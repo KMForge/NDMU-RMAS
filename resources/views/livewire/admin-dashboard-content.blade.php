@@ -369,7 +369,7 @@
                                 <span class="text-emerald-200 text-xs font-semibold tracking-wide">System Administration Portal</span>
                             </div>
                             <h1 class="text-2xl md:text-3xl font-black font-heading text-white tracking-tight drop-shadow-xs">
-                                Welcome back, {{ auth()->user()->name }}!
+                                Welcome back, {{ auth()->user()->displayFirstName() }}!
                             </h1>
                             <p class="text-xs md:text-sm text-emerald-100/85 max-w-2xl leading-relaxed">
                                 System infrastructure management, user account provisioning, role security enforcement, and real-time audit surveillance

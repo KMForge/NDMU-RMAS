@@ -13,7 +13,7 @@
     $nextConsultation = $dashboardOverview['next_consultation'];
     $nextDefense = $dashboardOverview['next_defense'];
     $nextAction = $dashboardOverview['action_items']->first();
-    $firstName = \Illuminate\Support\Str::before($student->name, ' ');
+    $firstName = $student->displayFirstName();
     $allowedTabs = ['dashboard', 'classes', 'research', 'proposal', 'progress', 'consultation', 'revisions', 'defense', 'evaluations', 'repository', 'forms', 'notifications', 'settings'];
     $initialTab = $activeDashboardTab ?? (in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard');
     $showConsultationModal = request()->boolean('book') || $errors->hasAny(['consultation', 'request_token', 'preferred_at', 'consultation_mode', 'agenda']);

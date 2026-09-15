@@ -9,6 +9,7 @@ use App\Http\Controllers\OfficialFormController;
 use App\Http\Controllers\OfficialFormSignatureController;
 use App\Http\Controllers\OfficialFormVerificationController;
 use App\Http\Controllers\OfficialFormWorkspaceController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProfilePhotoController;
 use App\Http\Controllers\UserSignatureController;
 use App\Http\Controllers\WorkspaceController;
@@ -30,6 +31,11 @@ Route::post('/workspace/{workspace}', WorkspaceController::class)
     ->middleware(['auth', 'verified', 'active', 'throttle:30,1'])
     ->whereIn('workspace', ['admin', 'facilitator', 'dean', 'adviser', 'panelist', 'student'])
     ->name('workspace.switch');
+
+Route::post('/onboarding/{workspace}/complete', OnboardingController::class)
+    ->middleware(['auth', 'verified', 'active', 'throttle:20,1'])
+    ->whereIn('workspace', ['admin', 'facilitator', 'dean', 'adviser', 'panelist', 'student'])
+    ->name('onboarding.complete');
 
 Route::middleware(['auth', 'verified', 'active', 'throttle:120,1'])
     ->prefix('notifications')
