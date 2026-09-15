@@ -129,7 +129,21 @@ class ApplyOfficialFormSignature
                         throw new InvalidArgumentException("No valid workflow transition defined for action '{$academicAction}' on form {$lockedInstance->definition->code}.");
                     }
                     if ($lockedInstance->status !== $transition['to']) {
-                        app(ApproveOfficialForm::class)->handle($actor, $lockedInstance, [], $transition['to'], $academicAction);
+                        app(ApproveOfficialForm::class)->handle(
+                            $actor,
+                            $lockedInstance,
+                            ['reviewer_remarks' => $request?->string('reviewer_remarks')->toString()],
+                            $transition['to'],
+                            $academicAction,
+                        );
+                        if (strtoupper($lockedInstance->definition->code) === 'RES-030' && in_array($academicAction, ['approve', 'reject'], true)) {
+                            app(DecideAdviserChangeRequest::class)->handle(
+                                $actor,
+                                $lockedInstance,
+                                $transition['to'],
+                                $request?->string('reviewer_remarks')->toString(),
+                            );
+                        }
                     }
                 }
                 $lockedInstance->refresh();

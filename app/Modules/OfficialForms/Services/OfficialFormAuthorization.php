@@ -34,7 +34,7 @@ class OfficialFormAuthorization
         'res-027' => ['fill' => ['forms.res-027.respond'], 'respond' => ['forms.res-027.respond']],
         'res-028' => ['fill' => ['forms.res-028.respond'], 'respond' => ['forms.res-028.respond']],
         'res-029' => ['fill' => ['forms.res-029.respond'], 'respond' => ['forms.res-029.respond']],
-        'res-030' => ['fill' => ['forms.res-030.submit'], 'note' => ['forms.res-030.approve'], 'approve' => ['forms.res-030.approve']],
+        'res-030' => ['fill' => ['forms.res-030.submit'], 'approve' => ['forms.res-030.approve'], 'reject' => ['forms.res-030.approve']],
         'res-031' => ['fill' => ['forms.res-031.sign'], 'sign' => ['forms.res-031.sign']],
         'res-032' => ['fill' => ['forms.res-032.fill'], 'sign' => ['forms.res-032.fill']],
         'res-033' => ['fill' => ['forms.res-033.endorse'], 'endorse' => ['forms.res-033.endorse'], 'receive' => ['forms.res-033.endorse']],
@@ -69,7 +69,7 @@ class OfficialFormAuthorization
         'res-027' => ['respond' => 'adviser'],
         'res-028' => ['respond' => 'panelist'],
         'res-029' => ['respond' => 'language_editor'],
-        'res-030' => ['approve' => 'dean', 'note' => 'program_head'],
+        'res-030' => ['approve' => 'authorized_reviewer', 'reject' => 'authorized_reviewer'],
         'res-031' => ['fill' => 'adviser', 'sign' => 'adviser'],
         'res-032' => ['sign' => 'specialist'],
         'res-033' => ['endorse' => 'adviser', 'receive' => 'program_head'],
@@ -114,8 +114,8 @@ class OfficialFormAuthorization
             'respond' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'approved'],
         ],
         'res-030' => [
-            'note' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'noted'],
-            'approve' => ['from' => ['draft', 'submitted', 'noted', 'in_progress'], 'to' => 'approved'],
+            'approve' => ['from' => ['submitted'], 'to' => 'approved'],
+            'reject' => ['from' => ['submitted'], 'to' => 'rejected'],
         ],
         'res-031' => [
             'sign' => ['from' => ['draft', 'submitted', 'in_progress'], 'to' => 'signed'],
@@ -216,6 +216,10 @@ class OfficialFormAuthorization
         }
 
         if ($definition->ownership_scope === 'research_group' && $group !== null) {
+            if ($code === 'res-030') {
+                return $hasPerm && $group->isLeader($user);
+            }
+
             $requiredActorType = self::FORM_ACTION_ACTOR_TYPES[$code]['fill'] ?? null;
 
             if ($requiredActorType === 'adviser') {
@@ -250,6 +254,9 @@ class OfficialFormAuthorization
     public function canSubmit(User $user, OfficialFormInstance $instance): bool
     {
         $code = strtolower($instance->definition->code);
+        if ($code === 'res-030' && ($instance->group === null || ! $instance->group->isLeader($user))) {
+            return false;
+        }
         if ($code === 'res-036' && $instance->initiated_by !== null && (int) $instance->initiated_by !== (int) $user->id) {
             return false;
         }
@@ -384,6 +391,31 @@ class OfficialFormAuthorization
 
     private function checkSpecificActorTypeContext(User $user, OfficialFormInstance $instance, string $requiredActorType): bool
     {
+        if ($requiredActorType === 'authorized_reviewer') {
+            if (! $user->can('users.manage') && ! $user->hasPermissionTo('forms.res-030.approve')) {
+                return false;
+            }
+
+            if ($this->isSystemAdmin($user)) {
+                return true;
+            }
+
+            $class = $instance->researchClass ?? $instance->group?->researchClass;
+            if ($class === null) {
+                return false;
+            }
+
+            return (int) $class->facilitator_id === (int) $user->id
+                || $this->institutionalActors->isProgramCoordinator($user, $class, $instance->group)
+                || $this->institutionalActors->isDean($user)
+                || ResearchClassActorAssignment::query()
+                    ->where('research_class_id', $class->id)
+                    ->where('user_id', $user->id)
+                    ->whereIn('actor_type', ['program_coordinator', 'program_head', 'dean'])
+                    ->where('status', 'active')
+                    ->exists();
+        }
+
         $titlePanelPosition = match ($requiredActorType) {
             'title_panel_chairperson' => 'chairperson',
             'title_panel_member_1' => 'member_1',

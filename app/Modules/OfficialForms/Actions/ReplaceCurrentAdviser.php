@@ -2,12 +2,9 @@
 
 namespace App\Modules\OfficialForms\Actions;
 
-use App\Models\AuditLog;
 use App\Models\OfficialFormInstance;
-use App\Models\ResearchClassGroup;
-use App\Models\ResearchClassGroupAdviserHistory;
+use App\Models\ResearchGroupAdviserChangeRequest;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class ReplaceCurrentAdviser
@@ -19,41 +16,14 @@ class ReplaceCurrentAdviser
             throw new InvalidArgumentException("ReplaceCurrentAdviser requires RES-030 instance, given {$code}.");
         }
 
-        DB::transaction(function () use ($instance, $incomingAdviser, $authorizedBy) {
-            /** @var ResearchClassGroup $group */
-            $group = ResearchClassGroup::query()->lockForUpdate()->findOrFail($instance->research_class_group_id);
+        $changeRequest = ResearchGroupAdviserChangeRequest::query()
+            ->where('official_form_instance_id', $instance->id)
+            ->where('status', 'submitted')
+            ->first();
+        if ($changeRequest === null || (int) $changeRequest->requested_adviser_id !== (int) $incomingAdviser->id) {
+            throw new InvalidArgumentException('The incoming adviser does not match a submitted RES-030 adviser change request.');
+        }
 
-            $oldAdviserId = $group->adviser_id;
-
-            // End active adviser history
-            ResearchClassGroupAdviserHistory::query()
-                ->where('research_class_group_id', $group->id)
-                ->whereNull('ended_at')
-                ->update([
-                    'ended_at' => now(),
-                    'ended_by' => $authorizedBy->id,
-                ]);
-
-            // Set new adviser on group
-            $group->update(['adviser_id' => $incomingAdviser->id]);
-
-            // Create new active adviser history entry
-            ResearchClassGroupAdviserHistory::query()->create([
-                'research_class_group_id' => $group->id,
-                'adviser_id' => $incomingAdviser->id,
-                'assigned_by' => $authorizedBy->id,
-                'assigned_at' => now(),
-            ]);
-
-            AuditLog::query()->create([
-                'user_id' => $authorizedBy->id,
-                'actor_name' => $authorizedBy->name,
-                'actor_email' => $authorizedBy->email,
-                'event' => 'adviser.replaced_via_res030',
-                'auditable_type' => ResearchClassGroup::class,
-                'auditable_id' => $group->id,
-                'description' => "Replaced adviser for research group #{$group->id} (Old: #{$oldAdviserId}, New: #{$incomingAdviser->id}) via RES-030 approval by {$authorizedBy->name}.",
-            ]);
-        });
+        app(DecideAdviserChangeRequest::class)->handle($authorizedBy, $instance, 'approved');
     }
 }

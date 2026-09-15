@@ -14,6 +14,7 @@ use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupMember;
+use App\Models\ResearchGroupAdviserChangeRequest;
 use App\Models\RevisionRequest;
 use App\Models\TitlePresentation;
 use App\Models\User;
@@ -25,6 +26,7 @@ use App\Modules\OfficialForms\Actions\CreateOfficialFormInstance;
 use App\Modules\OfficialForms\Actions\DeactivateOfficialFormActor;
 use App\Modules\OfficialForms\Actions\DeactivateResearchClassFormActor;
 use App\Modules\OfficialForms\Actions\SaveOfficialFormDraft;
+use App\Modules\OfficialForms\Actions\SubmitAdviserChangeRequest;
 use App\Modules\OfficialForms\Actions\SubmitOfficialFormVersion;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
 use App\Modules\OfficialForms\Actions\TransitionOfficialForm;
@@ -1406,16 +1408,15 @@ class OfficialFormBackendTest extends TestCase
         $this->assertSame('completed', $certified->status);
     }
 
-    public function test_res_030_adviser_and_panelist_replacement_preserves_history_and_locks_group(): void
+    public function test_res_030_keeps_adviser_while_pending_then_approved_request_preserves_group_records(): void
     {
         $oldAdviser = User::factory()->create(['user_type' => 'faculty', 'status' => 'active', 'approved_at' => now(), 'email_verified_at' => now()]);
         $newAdviser = User::factory()->create(['user_type' => 'faculty', 'status' => 'active', 'approved_at' => now(), 'email_verified_at' => now()]);
-        $dean = User::factory()->create(['user_type' => 'faculty', 'status' => 'active', 'approved_at' => now(), 'email_verified_at' => now()]);
-        $dean->givePermissionTo('forms.res-030.approve', 'forms.res-047.approve', 'dashboards.dean.view');
-
         $group = $this->createGroup(adviser: $oldAdviser);
         $group->leader->givePermissionTo('forms.res-030.submit');
-        (new AssignResearchClassFormActor)->handle($group->creator, $group->researchClass, $dean, 'dean');
+        $group->creator->givePermissionTo('forms.res-030.approve');
+        $newAdviser->givePermissionTo('classes.serve-as-adviser');
+        $documentIds = $group->documents()->pluck('id')->all();
 
         $res030 = (new CreateOfficialFormInstance)->handle(
             $group->leader,
@@ -1427,17 +1428,29 @@ class OfficialFormBackendTest extends TestCase
                 'research_title' => 'Title',
                 'personnel_type' => ['Change of Research Adviser'],
                 'current_names' => [$oldAdviser->name],
-                'proposed_replacement' => $newAdviser->name,
+                'requested_adviser_id' => $newAdviser->id,
                 'reasons' => 'Schedule conflict',
+                'supporting_explanation' => 'The current schedule cannot be reconciled.',
+                'group_leader_confirmed' => true,
             ]
         );
 
+        app(SubmitAdviserChangeRequest::class)->handle($group->leader, $res030, $res030->currentVersion->payload);
+
+        $this->assertSame($oldAdviser->id, $group->fresh()->adviser_id);
+        $this->assertDatabaseHas('research_group_adviser_change_requests', [
+            'official_form_instance_id' => $res030->id,
+            'previous_adviser_id' => $oldAdviser->id,
+            'requested_adviser_id' => $newAdviser->id,
+            'status' => 'submitted',
+        ]);
+
         $transitioned = (new TransitionOfficialForm)->handle(
-            $dean,
+            $group->creator,
             $res030,
             'approve',
             'approved',
-            ['proposed_adviser_id' => $newAdviser->id]
+            ['reviewer_remarks' => 'Approved after eligibility verification.']
         );
 
         $this->assertSame('approved', $transitioned->status);
@@ -1446,7 +1459,62 @@ class OfficialFormBackendTest extends TestCase
         $this->assertDatabaseHas('research_class_group_adviser_histories', [
             'research_class_group_id' => $group->id,
             'adviser_id' => $newAdviser->id,
-            'assigned_by' => $dean->id,
+            'assigned_by' => $group->creator->id,
+        ]);
+        $this->assertSame($documentIds, $group->documents()->pluck('id')->all());
+        $this->assertDatabaseHas('research_group_adviser_change_requests', [
+            'official_form_instance_id' => $res030->id,
+            'status' => 'approved',
+            'reviewed_by' => $group->creator->id,
+            'reviewer_remarks' => 'Approved after eligibility verification.',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'adviser.change-request.approved',
+            'auditable_type' => ResearchGroupAdviserChangeRequest::class,
+        ]);
+    }
+
+    public function test_rejected_res_030_keeps_the_current_adviser_and_records_reviewer_remarks(): void
+    {
+        $oldAdviser = User::factory()->create(['user_type' => 'faculty']);
+        $newAdviser = User::factory()->create(['user_type' => 'faculty']);
+        $newAdviser->givePermissionTo('classes.serve-as-adviser');
+        $group = $this->createGroup(adviser: $oldAdviser);
+        $group->leader->givePermissionTo('forms.res-030.submit');
+        $group->creator->givePermissionTo('forms.res-030.approve');
+
+        $payload = [
+            'date' => '2026-09-14',
+            'degree_program' => 'BSIT',
+            'research_title' => 'Existing Research Title',
+            'personnel_type' => ['Change of Research Adviser'],
+            'current_names' => [$oldAdviser->name],
+            'requested_adviser_id' => $newAdviser->id,
+            'reasons' => 'Requested workload realignment.',
+            'supporting_explanation' => null,
+            'group_leader_confirmed' => true,
+        ];
+        $res030 = (new CreateOfficialFormInstance)->handle($group->leader, 'RES-030', $group->id, payload: $payload);
+        app(SubmitAdviserChangeRequest::class)->handle($group->leader, $res030, $payload);
+
+        (new TransitionOfficialForm)->handle(
+            $group->creator,
+            $res030,
+            'reject',
+            'rejected',
+            ['reviewer_remarks' => 'The proposed adviser is unavailable for this cohort.'],
+        );
+
+        $this->assertSame($oldAdviser->id, $group->fresh()->adviser_id);
+        $this->assertDatabaseHas('research_group_adviser_change_requests', [
+            'official_form_instance_id' => $res030->id,
+            'status' => 'rejected',
+            'reviewed_by' => $group->creator->id,
+            'reviewer_remarks' => 'The proposed adviser is unavailable for this cohort.',
+        ]);
+        $this->assertDatabaseMissing('research_class_group_adviser_histories', [
+            'research_class_group_id' => $group->id,
+            'adviser_id' => $newAdviser->id,
         ]);
     }
 

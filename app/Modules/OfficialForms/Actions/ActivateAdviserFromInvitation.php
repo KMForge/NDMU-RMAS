@@ -22,16 +22,16 @@ class ActivateAdviserFromInvitation
         DB::transaction(function () use ($instance, $adviser) {
             $group = ResearchClassGroup::query()->lockForUpdate()->findOrFail($instance->research_class_group_id);
 
-            // End any existing active adviser history
-            ResearchClassGroupAdviserHistory::query()
-                ->where('research_class_group_id', $group->id)
-                ->whereNull('ended_at')
-                ->update([
-                    'ended_at' => now(),
-                    'ended_by' => $adviser->id,
-                ]);
+            if (! $adviser->isActiveAndApproved() || $adviser->email_verified_at === null || ! $adviser->can('classes.serve-as-adviser')) {
+                throw new InvalidArgumentException('The invited adviser is not active and eligible to serve as an adviser.');
+            }
+            if ($group->adviser_id !== null && (int) $group->adviser_id !== (int) $adviser->id) {
+                throw new InvalidArgumentException('An active adviser can only be changed through an approved RES-030 Adviser Change Request Form.');
+            }
+            if ((int) $group->adviser_id === (int) $adviser->id) {
+                return;
+            }
 
-            // Assign new adviser to group
             $group->update(['adviser_id' => $adviser->id]);
 
             // Create new active adviser history record

@@ -77,4 +77,9 @@ class OfficialFormInstance extends Model
     {
         return $this->hasOne(TitlePresentation::class, 'official_form_instance_id');
     }
+
+    public function adviserChangeRequest(): HasOne
+    {
+        return $this->hasOne(ResearchGroupAdviserChangeRequest::class);
+    }
 }

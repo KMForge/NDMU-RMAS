@@ -168,6 +168,11 @@ class OfficialFormInstancePolicy
         return $this->authorization->canPerformAction($user, $instance, 'approve');
     }
 
+    public function reject(User $user, OfficialFormInstance $instance): bool
+    {
+        return $this->authorization->canPerformAction($user, $instance, 'reject');
+    }
+
     public function receive(User $user, OfficialFormInstance $instance): bool
     {
         return $this->authorization->canPerformAction($user, $instance, 'receive');

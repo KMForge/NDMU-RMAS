@@ -48,6 +48,12 @@ class AssignAdviserToResearchClassGroup
                 }
 
                 $previousAdviserId = $lockedGroup->adviser_id;
+                if ($previousAdviserId !== null && (int) $previousAdviserId !== (int) $adviser->getKey()) {
+                    throw new ClassOperationException('An active adviser can only be changed through an approved RES-030 Adviser Change Request Form.');
+                }
+                if ((int) $previousAdviserId === (int) $adviser->getKey()) {
+                    return $lockedGroup;
+                }
                 $lockedGroup->update(['adviser_id' => $adviser->getKey()]);
 
                 $this->notifications->send(

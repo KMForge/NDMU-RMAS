@@ -18,7 +18,6 @@ class TransitionOfficialForm
         private readonly CertifyOfficialForm $certifyAction = new CertifyOfficialForm,
         private readonly ActivateAdviserFromInvitation $activateAdviserAction = new ActivateAdviserFromInvitation,
         private readonly ConfirmLanguageEditorAssignment $confirmEditorAction = new ConfirmLanguageEditorAssignment,
-        private readonly ReplaceCurrentAdviser $replaceAdviserAction = new ReplaceCurrentAdviser,
         private readonly ReplaceDefensePanelist $replacePanelistAction = new ReplaceDefensePanelist,
         private readonly NotifyNextRequiredOfficialForms $nextFormNotifications = new NotifyNextRequiredOfficialForms,
     ) {
@@ -61,13 +60,8 @@ class TransitionOfficialForm
                 $this->activateAdviserAction->handle($updatedInstance, $actor);
             } elseif ($code === 'RES-029' && ($action === 'conforme' || $action === 'respond' || $targetStatus === 'conformed' || $targetStatus === 'approved')) {
                 $this->confirmEditorAction->handle($updatedInstance, $actor);
-            } elseif ($code === 'RES-030' && ($action === 'approve' || $targetStatus === 'approved')) {
-                $proposedAdviserId = $metadata['proposed_adviser_id'] ?? $metadata['incoming_adviser_id'] ?? null;
-                if ($proposedAdviserId) {
-                    $incomingAdviser = User::query()->findOrFail((int) $proposedAdviserId);
-                    $this->replaceAdviserAction->handle($updatedInstance, $incomingAdviser, $actor);
-                }
-
+            } elseif ($code === 'RES-030' && in_array($action, ['approve', 'reject'], true)) {
+                app(DecideAdviserChangeRequest::class)->handle($actor, $updatedInstance, $targetStatus, $metadata['reviewer_remarks'] ?? null);
                 $outgoingPanelistId = $metadata['outgoing_panelist_id'] ?? null;
                 $incomingPanelistId = $metadata['incoming_panelist_id'] ?? null;
                 if ($outgoingPanelistId && $incomingPanelistId) {

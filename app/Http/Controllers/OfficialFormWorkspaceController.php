@@ -27,7 +27,9 @@ use App\Modules\OfficialForms\Actions\AssignOfficialFormActor;
 use App\Modules\OfficialForms\Actions\CertifyOfficialForm;
 use App\Modules\OfficialForms\Actions\CreateOfficialFormInstance;
 use App\Modules\OfficialForms\Actions\DeactivateOfficialFormActor;
+use App\Modules\OfficialForms\Actions\DecideAdviserChangeRequest;
 use App\Modules\OfficialForms\Actions\SaveOfficialFormDraft;
+use App\Modules\OfficialForms\Actions\SubmitAdviserChangeRequest;
 use App\Modules\OfficialForms\Actions\SubmitOfficialFormVersion;
 use App\Modules\OfficialForms\Services\InstitutionalActorResolver;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
@@ -35,11 +37,14 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use InvalidArgumentException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OfficialFormWorkspaceController extends Controller
 {
@@ -82,6 +87,7 @@ class OfficialFormWorkspaceController extends Controller
             'group.leader', 'group.adviser', 'group.researchClass.officialFormActorAssignments.user',
             'researchClass.officialFormActorAssignments.user', 'actorAssignments.user', 'source',
             'titlePresentation.defense.currentSchedule.room', 'titlePresentation.defense.activePanelAssignments.user',
+            'adviserChangeRequest.previousAdviser', 'adviserChangeRequest.requestedAdviser', 'adviserChangeRequest.requester', 'adviserChangeRequest.reviewer',
         ]);
 
         $canManageActors = Gate::forUser($request->user())->allows('assignActor', $instance);
@@ -131,8 +137,19 @@ class OfficialFormWorkspaceController extends Controller
             'autoResolvedActors' => $autoResolvedActors,
             'isOwningFacilitator' => $isOwningFacilitator,
             'titlePanelCandidates' => $titlePanelCandidates,
+            'adviserCandidates' => strtoupper($instance->definition->code) === 'RES-030'
+                ? User::query()
+                    ->where('user_type', UserType::Faculty)
+                    ->where('status', AccountStatus::Active)
+                    ->whereNotNull('approved_at')
+                    ->whereNotNull('email_verified_at')
+                    ->permission('classes.serve-as-adviser')
+                    ->when($instance->group?->adviser_id, fn ($query, $adviserId) => $query->whereKeyNot($adviserId))
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'email'])
+                : collect(),
             'defenseRooms' => $isOwningFacilitator ? DefenseRoom::query()->where('is_active', true)->orderBy('name')->get() : collect(),
-            'availableActions' => collect(['sign_chairperson', 'sign_member_1', 'sign_member_2', 'endorse', 'receive', 'approve', 'certify', 'validate', 'review', 'sign'])
+            'availableActions' => collect(['sign_chairperson', 'sign_member_1', 'sign_member_2', 'endorse', 'receive', 'approve', 'reject', 'certify', 'validate', 'review', 'sign'])
                 ->filter(function (string $action) use ($request, $instance): bool {
                     $transition = app(OfficialFormAuthorization::class)->transitionFor($instance, $action);
 
@@ -274,7 +291,7 @@ class OfficialFormWorkspaceController extends Controller
         SaveOfficialFormDraft $save,
     ): RedirectResponse {
         $this->authorize('updateDraft', $instance);
-        $this->rejectUnexpectedInput($request, ['payload']);
+        $this->rejectUnexpectedInput($request, strtoupper((string) $instance->definition?->code) === 'RES-030' ? ['payload', 'supporting_document'] : ['payload']);
         $payload = $request->validate(['payload' => ['present', 'array']])['payload'];
 
         try {
@@ -290,13 +307,25 @@ class OfficialFormWorkspaceController extends Controller
         Request $request,
         OfficialFormInstance $instance,
         SubmitOfficialFormVersion $submit,
+        SubmitAdviserChangeRequest $submitAdviserChange,
     ): RedirectResponse {
         $this->authorize('submit', $instance);
-        $this->rejectUnexpectedInput($request, ['payload']);
-        $payload = $request->validate(['payload' => ['present', 'array']])['payload'];
+        $isAdviserChange = strtoupper((string) $instance->definition?->code) === 'RES-030';
+        $this->rejectUnexpectedInput($request, $isAdviserChange ? ['payload', 'supporting_document'] : ['payload']);
+        $validated = $request->validate([
+            'payload' => ['present', 'array'],
+            'supporting_document' => $isAdviserChange
+                ? ['nullable', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:10240']
+                : ['prohibited'],
+        ]);
+        $payload = $validated['payload'];
 
         try {
-            $submit->handle($request->user(), $instance, $payload, 'submitted');
+            if ($isAdviserChange) {
+                $submitAdviserChange->handle($request->user(), $instance, $payload, $request->file('supporting_document'));
+            } else {
+                $submit->handle($request->user(), $instance, $payload, 'submitted');
+            }
         } catch (InvalidArgumentException $exception) {
             return back()->withErrors(['official_form' => $exception->getMessage()])->withInput();
         }
@@ -319,14 +348,20 @@ class OfficialFormWorkspaceController extends Controller
         ApproveOfficialForm $approve,
         CertifyOfficialForm $certify,
         ApplyOfficialFormSignature $applySignature,
+        DecideAdviserChangeRequest $decideAdviserChange,
     ): RedirectResponse {
-        abort_unless(in_array($action, ['endorse', 'receive', 'approve', 'certify', 'validate'], true), 404);
-        $this->rejectUnexpectedInput($request, ['payload']);
+        abort_unless(in_array($action, ['endorse', 'receive', 'approve', 'reject', 'certify', 'validate'], true), 404);
+        $this->rejectUnexpectedInput($request, ['payload', 'reviewer_remarks']);
+        $request->validate([
+            'payload' => ['sometimes', 'array'],
+            'reviewer_remarks' => ['nullable', 'string', 'max:5000'],
+        ]);
         $this->authorize($action, $instance);
 
         try {
             $user = $request->user();
-            $hasSignatureSpecimen = UserSignature::query()->where('user_id', $user->id)->exists();
+            $hasSignatureSpecimen = $user->isEligibleForSignatureEnrollment()
+                && UserSignature::query()->where('user_id', $user->id)->exists();
 
             if ($hasSignatureSpecimen && $instance->currentVersion) {
                 $applySignature->handle(
@@ -343,9 +378,19 @@ class OfficialFormWorkspaceController extends Controller
                     $target = match ($action) {
                         'endorse' => 'endorsed',
                         'receive', 'approve' => 'approved',
+                        'reject' => 'rejected',
                         'validate' => 'completed',
                     };
-                    $approve->handle($user, $instance, [], $target, $action);
+                    $recordDecision = function () use ($approve, $decideAdviserChange, $user, $instance, $target, $action, $request): void {
+                        $remarks = $request->string('reviewer_remarks')->toString();
+                        $approve->handle($user, $instance, ['reviewer_remarks' => $remarks], $target, $action);
+                        $decideAdviserChange->handle($user, $instance, $target, $remarks);
+                    };
+                    if (strtoupper((string) $instance->definition?->code) === 'RES-030' && in_array($action, ['approve', 'reject'], true)) {
+                        DB::transaction($recordDecision);
+                    } else {
+                        $approve->handle($user, $instance, [], $target, $action);
+                    }
                 }
             }
         } catch (InvalidArgumentException $exception) {
@@ -361,9 +406,10 @@ class OfficialFormWorkspaceController extends Controller
         string $action,
         ApplyOfficialFormSignature $applySignature,
     ): RedirectResponse {
-        $this->rejectUnexpectedInput($request, ['expected_version_id']);
+        $this->rejectUnexpectedInput($request, ['expected_version_id', 'reviewer_remarks']);
         $validated = $request->validate([
             'expected_version_id' => ['required', 'integer', 'min:1'],
+            'reviewer_remarks' => ['nullable', 'string', 'max:5000'],
         ]);
 
         try {
@@ -379,6 +425,29 @@ class OfficialFormWorkspaceController extends Controller
         }
 
         return back()->with('official_form_success', 'Digital signature attestation recorded.');
+    }
+
+    public function adviserChangeSupportingDocument(Request $request, OfficialFormInstance $instance): StreamedResponse
+    {
+        $this->authorize('view', $instance);
+        abort_unless(strtoupper((string) $instance->definition?->code) === 'RES-030', 404);
+        $changeRequest = $instance->adviserChangeRequest;
+        abort_if($changeRequest === null || $changeRequest->supporting_document_path === null, 404);
+
+        $disk = Storage::disk($changeRequest->supporting_document_disk ?? 'local');
+        abort_unless($disk->exists($changeRequest->supporting_document_path), 404);
+        if ($changeRequest->supporting_document_sha256 !== null) {
+            abort_unless(
+                hash_equals($changeRequest->supporting_document_sha256, hash('sha256', $disk->get($changeRequest->supporting_document_path))),
+                409,
+                'Supporting document integrity verification failed.',
+            );
+        }
+
+        return $disk->download(
+            $changeRequest->supporting_document_path,
+            $changeRequest->supporting_document_original_name ?? 'adviser-change-supporting-document',
+        );
     }
 
     public function assignActor(
@@ -457,6 +526,7 @@ class OfficialFormWorkspaceController extends Controller
                     'endorse',
                     'receive',
                     'approve',
+                    'reject',
                     'certify',
                     'validate',
                 ])

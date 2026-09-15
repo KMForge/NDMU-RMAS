@@ -125,7 +125,7 @@ Route::middleware(['auth', 'verified', 'active'])
         Route::post('/instances/{instance}/submit', [OfficialFormWorkspaceController::class, 'submit'])
             ->whereNumber('instance')->middleware('throttle:30,1')->name('submit');
         Route::post('/instances/{instance}/actions/{action}', [OfficialFormWorkspaceController::class, 'action'])
-            ->whereNumber('instance')->whereIn('action', ['endorse', 'receive', 'approve', 'certify', 'validate'])
+            ->whereNumber('instance')->whereIn('action', ['endorse', 'receive', 'approve', 'reject', 'certify', 'validate'])
             ->middleware('throttle:30,1')->name('action');
         Route::post('/instances/{instance}/actions/{action}/sign', [OfficialFormWorkspaceController::class, 'signAction'])
             ->whereNumber('instance')->whereIn('action', [
@@ -133,6 +133,7 @@ Route::middleware(['auth', 'verified', 'active'])
                 'endorse',
                 'receive',
                 'approve',
+                'reject',
                 'certify',
                 'validate',
                 'sign_authorship',
@@ -141,6 +142,8 @@ Route::middleware(['auth', 'verified', 'active'])
                 'sign_member_2',
             ])
             ->middleware('throttle:30,1')->name('sign-action');
+        Route::get('/instances/{instance}/adviser-change-supporting-document', [OfficialFormWorkspaceController::class, 'adviserChangeSupportingDocument'])
+            ->name('adviser-change-supporting-document');
         Route::get('/signatures/{signature}/image', [OfficialFormSignatureController::class, 'image'])
             ->whereNumber('signature')->middleware('throttle:120,1')->name('signature-image');
         Route::post('/instances/{instance}/actors', [OfficialFormWorkspaceController::class, 'assignActor'])

@@ -29,7 +29,7 @@ class OfficialFormPayloadValidator
         'RES-027' => ['date' => 'string', 'course' => 'string', 'research_title' => 'string'],
         'RES-028' => ['date' => 'string', 'panel_role' => 'string', 'defense' => 'string', 'course' => 'string', 'defense_date' => 'string', 'time' => 'string', 'venue' => 'string', 'research_title' => 'string'],
         'RES-029' => ['date' => 'string', 'course' => 'string', 'research_title' => 'string'],
-        'RES-030' => ['date' => 'string', 'degree_program' => 'string', 'research_title' => 'string', 'personnel_type' => 'array', 'current_names' => 'array', 'proposed_replacement' => 'string', 'reasons' => 'string'],
+        'RES-030' => ['date' => 'string', 'degree_program' => 'string', 'research_title' => 'string', 'personnel_type' => 'array', 'current_names' => 'array', 'proposed_replacement' => 'string', 'requested_adviser_id' => 'integer', 'reasons' => 'string', 'supporting_explanation' => 'nullable|string', 'group_leader_confirmed' => 'boolean'],
         'RES-031' => [],
         'RES-032' => ['date' => 'string', 'consultant_types' => 'array', 'specific_concerns' => 'string', 'recommendations' => 'string', 'follow_up_date' => 'string'],
         'RES-033' => ['date' => 'string', 'defense_type' => 'string', 'defense_date' => 'string', 'time' => 'string'],
@@ -120,6 +120,8 @@ class OfficialFormPayloadValidator
         foreach ($payload as $key => $value) {
             $validated[$key] = match ($schema[$key]) {
                 'string' => $this->cleanString($value, $code, $key),
+                'nullable|string' => $value === null || trim((string) $value) === '' ? null : $this->cleanString($value, $code, $key),
+                'integer' => $this->cleanInteger($value, $code, $key),
                 'array' => $this->cleanArray($value, $code, $key),
                 'boolean' => $this->cleanBoolean($value, $code, $key),
                 default => throw new InvalidArgumentException("Unsupported validator type for {$code}.{$key}."),
@@ -143,6 +145,16 @@ class OfficialFormPayloadValidator
         }
 
         return $value;
+    }
+
+    private function cleanInteger(mixed $value, string $code, string $key): int
+    {
+        $integer = filter_var($value, FILTER_VALIDATE_INT);
+        if ($integer === false || $integer < 1) {
+            throw new InvalidArgumentException("Field [{$key}] for {$code} must be a positive integer.");
+        }
+
+        return $integer;
     }
 
     /** @return array<int|string, mixed> */

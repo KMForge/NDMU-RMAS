@@ -43,7 +43,7 @@ return [
             'label' => 'Program Coordinator',
             'description' => 'Coordinates program-level research activity and approvals.',
             'user_type' => 'faculty',
-            'permissions' => ['dashboards.facilitator.view', 'research.view-college', 'research.approve', 'proposal.approve', 'documents.review', 'documents.download', 'defenses.view', 'reports.view', 'reports.export', 'forms.res-026.view', 'forms.res-026.approve', 'forms.res-033.view', 'forms.res-033.endorse', 'forms.res-041.view', 'forms.res-041.receive'],
+            'permissions' => ['dashboards.facilitator.view', 'research.view-college', 'research.approve', 'proposal.approve', 'documents.review', 'documents.download', 'defenses.view', 'reports.view', 'reports.export', 'forms.res-026.view', 'forms.res-026.approve', 'forms.res-030.view', 'forms.res-030.approve', 'forms.res-033.view', 'forms.res-033.endorse', 'forms.res-041.view', 'forms.res-041.receive'],
         ],
         'thesis-adviser' => [
             'label' => 'Thesis Adviser',
@@ -67,7 +67,7 @@ return [
             'label' => 'Dean',
             'description' => 'Provides college-level research oversight, approval, and reporting.',
             'user_type' => 'faculty',
-            'permissions' => ['dashboards.dean.view', 'research.view-college', 'research.approve', 'proposal.approve', 'documents.download', 'defenses.view', 'evaluations.view-assigned', 'reports.view', 'reports.export', 'forms.res-026.view', 'forms.res-047.view', 'forms.res-047.approve'],
+            'permissions' => ['dashboards.dean.view', 'research.view-college', 'research.approve', 'proposal.approve', 'documents.download', 'defenses.view', 'evaluations.view-assigned', 'reports.view', 'reports.export', 'forms.res-026.view', 'forms.res-030.view', 'forms.res-030.approve', 'forms.res-047.view', 'forms.res-047.approve'],
         ],
         'research-instructor' => [
             'label' => 'Research Instructor',

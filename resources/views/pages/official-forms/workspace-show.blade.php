@@ -207,7 +207,7 @@
             </section>
         @endif
 
-        <form id="official-form-editor" method="POST" action="{{ route('official-forms.workspace.save', $instance) }}">
+        <form id="official-form-editor" method="POST" enctype="multipart/form-data" action="{{ route('official-forms.workspace.save', $instance) }}">
             @csrf
             @if (view()->exists($instance->definition->template_view))
                 @include($instance->definition->template_view, [
@@ -248,7 +248,29 @@
                     {{ $isRes036 && ! $hasRes036EvaluationSignature ? 'Evaluation Submitted — Signature Pending' : 'Evaluation Submitted & Signed' }}
                 </div>
             @endif
-            @foreach ($availableActions as $action)
+            @if (strtoupper($instance->definition->code) === 'RES-030' && ($availableActions->contains('approve') || $availableActions->contains('reject')))
+                @php
+                    $res030UsesSignature = auth()->user()->isEligibleForSignatureEnrollment()
+                        && \App\Models\UserSignature::query()->where('user_id', auth()->id())->exists();
+                @endphp
+                <div class="w-full rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <label class="block text-xs font-black uppercase tracking-wide text-amber-900">Reviewer remarks</label>
+                    <textarea form="res030-decision-form" name="reviewer_remarks" class="mt-2 min-h-20 w-full rounded-lg border border-amber-200 bg-white p-3 text-sm" placeholder="Add decision remarks. Remarks are required when rejecting."></textarea>
+                    <form id="res030-decision-form" method="POST" action="{{ $res030UsesSignature ? route('official-forms.workspace.sign-action', [$instance, 'approve']) : route('official-forms.workspace.action', [$instance, 'approve']) }}" class="mt-3 flex flex-wrap gap-3">
+                        @csrf
+                        @if ($res030UsesSignature)
+                            <input type="hidden" name="expected_version_id" value="{{ $instance->current_version_id }}">
+                        @endif
+                        @if ($availableActions->contains('approve'))
+                            <button type="submit" class="rounded-xl bg-emerald-700 px-5 py-2.5 text-xs font-bold text-white">{{ $res030UsesSignature ? 'Sign & Approve Request' : 'Approve Request' }}</button>
+                        @endif
+                        @if ($availableActions->contains('reject'))
+                            <button type="submit" formaction="{{ $res030UsesSignature ? route('official-forms.workspace.sign-action', [$instance, 'reject']) : route('official-forms.workspace.action', [$instance, 'reject']) }}" class="rounded-xl bg-red-600 px-5 py-2.5 text-xs font-bold text-white">{{ $res030UsesSignature ? 'Sign & Reject Request' : 'Reject Request' }}</button>
+                        @endif
+                    </form>
+                </div>
+            @endif
+            @foreach ($availableActions->reject(fn ($action) => strtoupper($instance->definition->code) === 'RES-030' && in_array($action, ['approve', 'reject'], true)) as $action)
                 <form method="POST" action="{{ route('official-forms.workspace.sign-action', [$instance, $action]) }}">
                     @csrf
                     <input type="hidden" name="expected_version_id" value="{{ $instance->current_version_id }}">
