@@ -22,7 +22,7 @@ class SendNDMUEmailVerification extends BaseVerifyEmail
             ->line('Thank you for registering on the Notre Dame of Marbel University Research Management and Assistance System.')
             ->line('Please click the button below to verify your institutional email address (@ndmu.edu.ph).')
             ->action('Verify Institutional Email', $verificationUrl)
-            ->line('Note: Verification is required before your student account can be activated by the administration.')
+            ->line('Verification activates your student account automatically. Administrator approval is not required.')
             ->line('If you did not create an NDMU-RMAS account, no further action is required.');
     }
 }

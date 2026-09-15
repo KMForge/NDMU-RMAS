@@ -24,6 +24,12 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Cloudflare Tunnel connects to the local Laravel origin over HTTP while
+        // preserving the visitor-facing HTTPS scheme in forwarded headers.
+        // Trust only loopback proxies so signed URLs are validated against the
+        // public HTTPS URL without accepting spoofed headers from remote peers.
+        $middleware->trustProxies(at: ['127.0.0.1', '::1']);
+
         $middleware->alias([
             'active' => EnsureAccountIsActive::class,
             'workspace.context' => TrackActiveWorkspace::class,
