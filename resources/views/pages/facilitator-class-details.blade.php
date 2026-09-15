@@ -207,7 +207,7 @@
 
             <!-- Research Groups List -->
             <section class="space-y-4">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-wrap items-center justify-between gap-2">
                     <div class="flex items-center gap-2.5">
                         <span class="w-2 h-6 rounded-full bg-[#0e5c3a]"></span>
                         <h2 class="text-lg sm:text-xl font-black font-heading text-slate-900">Research Groups</h2>
@@ -222,20 +222,20 @@
                         <p class="text-slate-400">Click <strong>Create Research Group</strong> to organize your enrolled students.</p>
                     </div>
                 @else
-                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <div class="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-2">
                         @foreach ($groupsCollection as $grp)
                             @php
                                 $members = $grp->members;
                                 $pendingReq = $grp->adviserRequests->first();
                             @endphp
-                            <div class="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm space-y-4 flex flex-col justify-between">
-                                <div>
-                                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                                        <div>
+                            <div class="min-w-0 rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm space-y-4 flex flex-col justify-between sm:p-6">
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-3">
+                                        <div class="min-w-0">
                                             <h3 class="font-black font-heading text-base text-slate-900">{{ $grp->name }}</h3>
                                             <span class="text-[10px] font-bold text-slate-400">Members: {{ $members->count() }} / 4</span>
                                         </div>
-                                        <div class="flex items-center gap-3">
+                                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
                                             <form method="POST" action="{{ route('facilitator.classes.groups.reset-progress', [$researchClass, $grp]) }}" onsubmit="return confirm('Reset all progress, forms, and defense schedules for {{ $grp->name }}? This will give the group a fresh slate for a dry run.')">
                                                 @csrf
                                                 <button type="submit" class="text-xs text-amber-600 hover:text-amber-800 font-bold transition-colors cursor-pointer" title="Reset progress, forms, and defense schedules">Reset Progress</button>
@@ -252,16 +252,12 @@
                                     <div class="mt-3.5 rounded-2xl bg-slate-50 p-4 border border-slate-200/80 space-y-2">
                                         <p class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Assigned Adviser</p>
                                         @if ($grp->adviser)
-                                            <div class="flex items-center justify-between">
-                                                <div>
-                                                    <p class="text-xs font-black text-slate-900">{{ $grp->adviser->name }}</p>
-                                                    <p class="text-[10px] text-slate-500">{{ $grp->adviser->email }}</p>
+                                            <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                                <div class="min-w-0">
+                                                    <p class="break-words text-xs font-black text-slate-900">{{ $grp->adviser->name }}</p>
+                                                    <p class="break-all text-[10px] text-slate-500">{{ $grp->adviser->email }}</p>
                                                 </div>
-                                                <form method="POST" action="{{ route('facilitator.classes.groups.adviser.remove', [$researchClass, $grp]) }}" onsubmit="return confirm('Remove adviser from group?')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="text-xs text-rose-600 hover:underline font-bold">Remove</button>
-                                                </form>
+                                                <span class="text-left text-[10px] font-semibold leading-4 text-amber-700 sm:max-w-44 sm:text-right">Change requires a group-leader RES-030 request and authorized approval.</span>
                                             </div>
                                         @elseif ($pendingReq)
                                             <div class="flex items-center justify-between">
@@ -276,15 +272,15 @@
                                                 </form>
                                             </div>
                                         @else
-                                            <form method="POST" action="{{ route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $grp]) }}" class="flex items-center gap-2">
+                                            <form method="POST" action="{{ route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $grp]) }}" class="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                                                 @csrf
-                                                <select name="adviser_id" required class="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs focus:border-[#0e5c3a] focus:outline-none">
+                                                <select name="adviser_id" required class="block min-w-0 w-full max-w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs focus:border-[#0e5c3a] focus:outline-none">
                                                     <option value="">Select Adviser...</option>
                                                     @foreach ($adviserOptions as $adv)
                                                         <option value="{{ $adv->id }}">{{ $adv->name }} ({{ $adv->department ?? 'Faculty' }})</option>
                                                     @endforeach
                                                 </select>
-                                                <button type="submit" class="rounded-xl bg-[#0e5c3a] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#073823] transition-colors cursor-pointer">
+                                                <button type="submit" class="w-full shrink-0 whitespace-nowrap rounded-xl bg-[#0e5c3a] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#073823] transition-colors cursor-pointer sm:w-auto">
                                                     Request
                                                 </button>
                                             </form>
