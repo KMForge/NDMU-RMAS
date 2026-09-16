@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $instance->definition->code }} | NDMU-RMAS</title>
+    <x-favicon />
     <style>
         [x-cloak] { display: none !important; }
     </style>

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? config('app.name') }} - Authentication</title>
+    <x-favicon />
 
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])

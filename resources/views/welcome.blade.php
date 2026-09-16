@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Notre Dame of Marbel University Research Management and Archiving System (NDMU-RMAS). Centralizing university research proposals, reviews, defenses, and institutional archiving.">
     <title>NDMU-RMAS - Notre Dame of Marbel University Research Management System</title>
+    <x-favicon />
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,6 +24,38 @@
             box-shadow: 0 10px 30px -10px rgba(7, 56, 35, 0.15);
             border-bottom: 1px solid rgba(7, 56, 35, 0.12);
         }
+
+        @keyframes floatCard {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(0.35deg); }
+        }
+        @keyframes floatBadge1 {
+            0%, 100% { transform: translateY(0px) translateX(0px); }
+            50% { transform: translateY(-7px) translateX(3px); }
+        }
+        @keyframes floatBadge2 {
+            0%, 100% { transform: translateY(0px) translateX(0px); }
+            50% { transform: translateY(6px) translateX(-3px); }
+        }
+        @keyframes pulseHalo {
+            0%, 100% { opacity: 0.45; transform: scale(0.98); }
+            50% { opacity: 0.8; transform: scale(1.04); }
+        }
+        @keyframes shimmerBar {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        @keyframes radarRipple {
+            0% { transform: scale(0.9); opacity: 0.8; }
+            70% { transform: scale(1.8); opacity: 0; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        .animate-card-float { animation: floatCard 7s ease-in-out infinite; }
+        .animate-badge-float-1 { animation: floatBadge1 5.5s ease-in-out infinite; }
+        .animate-badge-float-2 { animation: floatBadge2 6.5s ease-in-out infinite; }
+        .animate-pulse-halo { animation: pulseHalo 4.5s ease-in-out infinite; }
+        .animate-shimmer-bar { background-size: 200% 100%; animation: shimmerBar 3.5s linear infinite; }
+        .animate-radar-ripple { animation: radarRipple 2.2s cubic-bezier(0, 0.2, 0.8, 1) infinite; }
     </style>
 </head>
 <body class="m-0 overflow-x-hidden bg-[#073823] text-white antialiased selection:bg-[#eebc3f] selection:text-[#073823]">
@@ -30,9 +63,9 @@
 <!-- Global Sticky University Header -->
 <header data-site-header class="site-header sticky top-0 z-50 bg-white border-b border-slate-200/80 transition-all duration-300">
     <div class="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <!-- University Brand Logo -->
+        <!-- System Brand Logo -->
         <a href="{{ route('home') }}" class="group flex items-center gap-3.5 transition-transform duration-200 hover:scale-[1.01]" aria-label="NDMU Research Management System">
-            <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" width="48" height="48" class="h-11 w-11 sm:h-12 sm:w-12 shrink-0 object-contain transition-transform duration-300 group-hover:scale-105 drop-shadow-xs">
+            <x-ndmu-n-logo size="md" :showGlow="false" />
             <div class="flex flex-col leading-none border-l-2 border-[#eebc3f] pl-3">
                 <div class="flex items-center gap-2">
                     <span class="font-heading font-black text-lg sm:text-xl text-[#073823] tracking-tight">NDMU</span>
@@ -167,93 +200,198 @@
             </div>
 
             <!-- Right Interactive Live Record Showcase Card -->
-            <div class="relative lg:col-span-5 lg:justify-self-end w-full max-w-[480px]">
-                <div class="relative rounded-3xl border border-emerald-600/30 bg-white p-6 sm:p-7 text-slate-800 shadow-2xl shadow-black/40 overflow-hidden">
-                    <!-- Card Top Accent Stripe -->
-                    <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#073823] via-[#eebc3f] to-[#073823]"></div>
+            <div class="relative lg:col-span-5 lg:justify-self-end w-full max-w-[500px]">
+                <!-- Ambient Multi-Color Animated Halo Glow Behind Card -->
+                <div class="animate-pulse-halo pointer-events-none absolute -inset-5 rounded-[2.5rem] bg-gradient-to-tr from-emerald-500/30 via-[#eebc3f]/25 to-teal-400/25 blur-3xl"></div>
 
-                    <!-- Header Row -->
+                <!-- Floating Satellite Badge 1: Top-Right (Panel Evaluation Scheduled) -->
+                <div class="animate-badge-float-1 absolute -top-5 -right-3 sm:-right-5 z-20 flex items-center gap-3 rounded-2xl border border-white/20 bg-[#073823]/95 backdrop-blur-xl px-3.5 py-2.5 shadow-2xl shadow-black/50 text-white">
+                    <div class="flex -space-x-2 overflow-hidden shrink-0">
+                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#eebc3f] text-[9px] font-black text-[#073823] ring-2 ring-[#073823]">JD</span>
+                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-black text-white ring-2 ring-[#073823]">MB</span>
+                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-teal-400 text-[9px] font-black text-[#073823] ring-2 ring-[#073823]">RC</span>
+                    </div>
+                    <div class="leading-tight">
+                        <div class="flex items-center gap-1.5">
+                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                            <span class="text-[9px] font-black tracking-wider text-emerald-300 uppercase">3 Panelists</span>
+                        </div>
+                        <p class="text-[11px] font-bold text-white">Oral Defense Ready</p>
+                    </div>
+                </div>
+
+                <!-- Floating Satellite Badge 2: Bottom-Left (Official Endorsement) -->
+                <div class="animate-badge-float-2 absolute -bottom-4 -left-3 sm:-left-5 z-20 flex items-center gap-2.5 rounded-2xl border border-emerald-500/20 bg-white/95 backdrop-blur-xl px-3.5 py-2 shadow-2xl shadow-black/30 text-slate-800">
+                    <span class="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-[#eebc3f] to-[#d4a027] text-[#073823] text-sm font-bold shadow-2xs shrink-0">
+                        <i class="ph ph-shield-check"></i>
+                    </span>
+                    <div class="leading-tight">
+                        <p class="text-[9px] font-black uppercase tracking-wider text-slate-400">RES-033 Endorsement</p>
+                        <p class="text-[11px] font-black text-[#073823]">Faculty Signed &amp; Approved</p>
+                    </div>
+                </div>
+
+                <!-- Main Floating Showcase Card Container -->
+                <div class="animate-card-float relative rounded-[2rem] border border-white/70 bg-white/95 backdrop-blur-md p-6 sm:p-7 text-slate-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden transition-all hover:shadow-[0_30px_70px_-15px_rgba(0,0,0,0.6)] group">
+                    <!-- Shimmering Top Accent Line -->
+                    <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#073823] via-[#eebc3f] via-[#0e5c3a] to-[#073823] animate-shimmer-bar"></div>
+                    <!-- Subtle Golden Ambient Radial Sheen in Top-Right Corner -->
+                    <div class="pointer-events-none absolute -top-16 -right-16 h-36 w-36 rounded-full bg-[#eebc3f]/15 blur-2xl"></div>
+
+                    <!-- Card Header Row -->
                     <div class="flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                        <div class="flex items-center gap-2.5">
-                            <x-ndmu-n-logo size="sm" :showGlow="false" />
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <x-ndmu-n-logo size="sm" :showGlow="false" />
+                                <span class="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5">
+                                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#0e5c3a] ring-2 ring-white"></span>
+                                </span>
+                            </div>
                             <div>
-                                <p class="text-[9px] font-black uppercase tracking-widest text-[#073823]">Active Manuscript</p>
-                                <p class="font-mono text-xs font-bold text-slate-900">RES-2026-00417</p>
+                                <div class="flex items-center gap-1.5">
+                                    <p class="text-[9px] font-black uppercase tracking-widest text-[#073823]">Active Manuscript</p>
+                                    <span class="inline-flex items-center text-[9px] text-[#0e5c3a]">
+                                        <i class="ph ph-check-circle-fill"></i>
+                                    </span>
+                                </div>
+                                <p class="font-mono text-xs font-bold tracking-tight text-slate-900 flex items-center gap-1 mt-0.5">
+                                    <span>RES-2026-00417</span>
+                                    <span class="rounded bg-slate-100 px-1 py-0.5 text-[8px] font-mono font-bold text-slate-500 uppercase">v2.1</span>
+                                </p>
                             </div>
                         </div>
-                        <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-black tracking-wider text-[#073823] shadow-2xs">
-                            <span class="h-1.5 w-1.5 rounded-full bg-[#073823] animate-pulse"></span>
-                            UNDER REVIEW
+
+                        <!-- Live Status Pill with Radar Ripple -->
+                        <span class="inline-flex items-center gap-2 rounded-full border border-emerald-200/80 bg-emerald-50/90 px-3 py-1 text-[10px] font-black tracking-wider text-[#073823] shadow-2xs shrink-0">
+                            <span class="relative flex h-2 w-2">
+                                <span class="absolute inline-flex h-full w-full animate-radar-ripple rounded-full bg-emerald-500"></span>
+                                <span class="relative inline-flex h-2 w-2 rounded-full bg-[#0e5c3a]"></span>
+                            </span>
+                            <span>UNDER REVIEW</span>
                         </span>
                     </div>
 
                     <!-- Research Title & Details -->
-                    <div class="py-5 space-y-4">
+                    <div class="py-4 space-y-3.5">
+                        <!-- Category Tags -->
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-emerald-50 border border-emerald-200/60 text-[#073823] font-black text-[9px] uppercase tracking-wider">
+                                <i class="ph ph-graduation-cap"></i>
+                                <span>Capstone Research</span>
+                            </span>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 border border-amber-200/60 text-amber-900 font-black text-[9px] uppercase tracking-wider">
+                                <span>BSIT Program</span>
+                            </span>
+                        </div>
+
+                        <!-- Research Title -->
                         <div>
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Research Topic</span>
-                            <h3 class="mt-1 text-base sm:text-lg font-black leading-snug text-slate-900">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Canonical Research Topic</span>
+                            <h3 class="mt-1 text-base sm:text-lg font-black leading-snug text-slate-900 group-hover:text-[#073823] transition-colors">
                                 Development of a University Research Management &amp; Archiving Monolith
                             </h3>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-3.5 border border-slate-200/80">
-                            <div>
-                                <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Lead Researcher</span>
-                                <p class="mt-0.5 text-xs font-bold text-slate-800">Capstone Group 1</p>
+                        <!-- Enhanced Metadata 2-Column Grid -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100/60 p-3 border border-slate-200/70 hover:border-emerald-300/60 transition-colors">
+                                <div class="flex items-center gap-1.5 text-slate-400 text-[9px] font-bold uppercase tracking-wider">
+                                    <i class="ph ph-users-three text-xs text-[#0e5c3a]"></i>
+                                    <span>Lead Researcher</span>
+                                </div>
+                                <p class="mt-1 text-xs font-bold text-slate-900 truncate">Capstone Group 1</p>
+                                <span class="text-[10px] font-medium text-slate-500 block">3 Student Co-Authors</span>
                             </div>
-                            <div>
-                                <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Department</span>
-                                <p class="mt-0.5 text-xs font-bold text-slate-800">College of Engineering</p>
+
+                            <div class="rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100/60 p-3 border border-slate-200/70 hover:border-emerald-300/60 transition-colors">
+                                <div class="flex items-center gap-1.5 text-slate-400 text-[9px] font-bold uppercase tracking-wider">
+                                    <i class="ph ph-buildings text-xs text-[#0e5c3a]"></i>
+                                    <span>Department &amp; Adviser</span>
+                                </div>
+                                <p class="mt-1 text-xs font-bold text-slate-900 truncate">College of Engineering</p>
+                                <span class="text-[10px] font-medium text-slate-500 block truncate">Adv: Engr. M. Dollaga</span>
                             </div>
+                        </div>
+
+                        <!-- Live Scheduled Defense Information Bar -->
+                        <div class="flex items-center justify-between gap-3 rounded-2xl bg-[#073823]/[0.03] border border-[#073823]/10 px-3.5 py-2.5">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <span class="flex h-7 w-7 items-center justify-center rounded-xl bg-[#073823] text-[#eebc3f] text-xs font-bold shadow-2xs shrink-0">
+                                    <i class="ph ph-calendar-check"></i>
+                                </span>
+                                <div class="min-w-0">
+                                    <p class="text-[9px] font-black uppercase tracking-wider text-slate-400">Oral Defense Session</p>
+                                    <p class="text-xs font-bold text-slate-800 truncate">Conference Room A · 10:00 AM – 12:00 PM</p>
+                                </div>
+                            </div>
+                            <span class="rounded-full bg-[#eebc3f]/20 border border-[#eebc3f]/60 px-2 py-0.5 text-[9px] font-black uppercase text-[#073823] shrink-0">
+                                Scheduled
+                            </span>
                         </div>
                     </div>
 
-                    <!-- Live 5-Stage Stepper strictly in Emerald and Gold -->
-                    <div class="border-t border-slate-100 pt-4 space-y-2">
-                        <div class="flex items-center justify-between text-[10px] font-bold text-slate-500 mb-1">
-                            <span>Stage 3 of 5</span>
-                            <span class="text-[#073823] font-black">Proposal Defense Scheduled</span>
+                    <!-- Live 5-Stage Stepper with Vibrant Dual Track & Active Radar Ripple -->
+                    <div class="border-t border-slate-100 pt-4 space-y-2.5">
+                        <div class="flex items-center justify-between text-[10px] font-bold text-slate-500">
+                            <span class="flex items-center gap-1.5">
+                                <span class="h-1.5 w-1.5 rounded-full bg-[#0e5c3a]"></span>
+                                <span>Milestone 3 of 5</span>
+                            </span>
+                            <span class="inline-flex items-center gap-1 font-black text-[#073823]">
+                                <i class="ph ph-broadcast text-xs text-emerald-600 animate-pulse"></i>
+                                <span>Proposal Defense Scheduled</span>
+                            </span>
                         </div>
 
-                        <div class="relative flex justify-between items-center before:absolute before:left-[10%] before:right-[10%] before:top-3.5 before:h-1 before:bg-slate-200">
+                        <!-- Stepper with dual-progress track -->
+                        <div class="relative flex justify-between items-center py-1">
+                            <!-- Background Completed Track (Stages 1 to 3) -->
+                            <div class="absolute left-[10%] w-[45%] top-4 h-1 bg-gradient-to-r from-[#073823] via-[#0e5c3a] to-[#eebc3f] rounded-full z-0"></div>
+                            <!-- Background Remaining Track (Stages 3 to 5) -->
+                            <div class="absolute right-[10%] w-[45%] top-4 h-1 bg-slate-200 rounded-full z-0"></div>
+
                             <!-- Stage 1 -->
-                            <div class="relative z-10 flex flex-col items-center">
-                                <span class="w-7 h-7 rounded-full bg-[#073823] text-white flex items-center justify-center text-xs shadow-sm">
+                            <div class="relative z-10 flex flex-col items-center group/node">
+                                <span class="w-8 h-8 rounded-full bg-[#073823] text-[#eebc3f] flex items-center justify-center text-xs shadow-md shadow-emerald-950/20 ring-2 ring-white transition-transform duration-200 group-hover/node:scale-110">
                                     <i class="ph ph-check-bold"></i>
                                 </span>
-                                <span class="text-[8px] font-bold text-slate-600 mt-1">Proposal</span>
+                                <span class="text-[8px] font-bold text-slate-700 mt-1.5">Proposal</span>
                             </div>
 
                             <!-- Stage 2 -->
-                            <div class="relative z-10 flex flex-col items-center">
-                                <span class="w-7 h-7 rounded-full bg-[#073823] text-white flex items-center justify-center text-xs shadow-sm">
+                            <div class="relative z-10 flex flex-col items-center group/node">
+                                <span class="w-8 h-8 rounded-full bg-[#073823] text-[#eebc3f] flex items-center justify-center text-xs shadow-md shadow-emerald-950/20 ring-2 ring-white transition-transform duration-200 group-hover/node:scale-110">
                                     <i class="ph ph-check-bold"></i>
                                 </span>
-                                <span class="text-[8px] font-bold text-slate-600 mt-1">Review</span>
+                                <span class="text-[8px] font-bold text-slate-700 mt-1.5">Review</span>
                             </div>
 
-                            <!-- Stage 3: Current -->
+                            <!-- Stage 3: Current with glowing ripple ring -->
                             <div class="relative z-10 flex flex-col items-center">
-                                <span class="w-7 h-7 rounded-full bg-[#eebc3f] text-[#073823] flex items-center justify-center text-xs ring-4 ring-amber-400/30 shadow-md font-black animate-pulse">
-                                    <i class="ph ph-presentation"></i>
-                                </span>
-                                <span class="text-[8px] font-black text-[#073823] mt-1">Defense</span>
+                                <div class="relative flex items-center justify-center">
+                                    <span class="absolute h-10 w-10 rounded-full bg-[#eebc3f] opacity-40 animate-ping"></span>
+                                    <span class="relative w-8 h-8 rounded-full bg-gradient-to-br from-[#eebc3f] to-[#f4c542] text-[#073823] flex items-center justify-center text-xs ring-4 ring-amber-400/40 shadow-lg shadow-amber-500/30 font-black">
+                                        <i class="ph ph-presentation font-bold"></i>
+                                    </span>
+                                </div>
+                                <span class="text-[8px] font-black text-[#073823] mt-1.5">Defense</span>
                             </div>
 
                             <!-- Stage 4 -->
-                            <div class="relative z-10 flex flex-col items-center">
-                                <span class="w-7 h-7 rounded-full bg-slate-100 border border-slate-300 text-slate-400 flex items-center justify-center text-xs">
+                            <div class="relative z-10 flex flex-col items-center group/node">
+                                <span class="w-8 h-8 rounded-full bg-white border-2 border-slate-300 text-slate-400 flex items-center justify-center text-xs shadow-2xs ring-2 ring-white transition-transform duration-200 group-hover/node:scale-110">
                                     <i class="ph ph-seal-check"></i>
                                 </span>
-                                <span class="text-[8px] font-medium text-slate-400 mt-1">Revision</span>
+                                <span class="text-[8px] font-medium text-slate-400 mt-1.5">Revision</span>
                             </div>
 
                             <!-- Stage 5 -->
-                            <div class="relative z-10 flex flex-col items-center">
-                                <span class="w-7 h-7 rounded-full bg-slate-100 border border-slate-300 text-slate-400 flex items-center justify-center text-xs">
+                            <div class="relative z-10 flex flex-col items-center group/node">
+                                <span class="w-8 h-8 rounded-full bg-white border-2 border-slate-300 text-slate-400 flex items-center justify-center text-xs shadow-2xs ring-2 ring-white transition-transform duration-200 group-hover/node:scale-110">
                                     <i class="ph ph-archive"></i>
                                 </span>
-                                <span class="text-[8px] font-medium text-slate-400 mt-1">Archiving</span>
+                                <span class="text-[8px] font-medium text-slate-400 mt-1.5">Archiving</span>
                             </div>
                         </div>
                     </div>
@@ -345,22 +483,9 @@
     </section>
 </main>
 
-<!-- Global University Footer -->
-<footer class="border-t border-emerald-700/30 bg-[#073823] px-6 py-12 text-white/80">
-    <div class="mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between gap-6">
-        <div class="flex items-center gap-3.5">
-            <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" class="h-12 w-auto object-contain">
-            <div class="flex flex-col leading-none border-l border-white/20 pl-3">
-                <span class="font-heading font-black text-lg text-white">Notre Dame of Marbel University</span>
-                <span class="text-[10px] font-bold text-[#eebc3f] tracking-wider uppercase mt-0.5">Research Management &amp; Archiving System</span>
-            </div>
-        </div>
-
-        <div class="text-center md:text-right space-y-1 text-xs text-white/70">
-            <p class="font-bold text-white/90">Marist Brothers of the Schools &bull; Academic Excellence</p>
-            <p>&copy; {{ now()->year }} Notre Dame of Marbel University. All rights reserved.</p>
-        </div>
-    </div>
+<!-- Landing Page Footer -->
+<footer class="bg-[#073823] px-5 py-1 text-center text-xs text-white">
+    <p>&copy; {{ now()->year }} Notre Dame of Marbel University. All rights reserved.</p>
 </footer>
 
 <script>

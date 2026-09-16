@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow, noarchive">
+    <x-favicon />
     <title>Official Form Verification — NDMU-RMAS</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
