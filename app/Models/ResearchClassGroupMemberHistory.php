@@ -19,6 +19,11 @@ class ResearchClassGroupMemberHistory extends Model
         return $this->belongsTo(User::class, 'student_id');
     }
 
+    public function enrollment(): BelongsTo
+    {
+        return $this->belongsTo(ResearchClassEnrollment::class, 'research_class_enrollment_id');
+    }
+
     protected function casts(): array
     {
         return ['joined_at' => 'immutable_datetime', 'archived_at' => 'immutable_datetime'];

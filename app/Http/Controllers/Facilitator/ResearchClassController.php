@@ -73,6 +73,32 @@ class ResearchClassController extends Controller
             ->latest()
             ->get();
 
+        $activeMemberStudentIds = $activeGroups
+            ->flatMap(fn (ResearchClassGroup $group) => $group->members->pluck('student_id'))
+            ->unique();
+
+        $disbandedGroups = ResearchClassGroup::query()
+            ->where('research_class_id', $researchClass->getKey())
+            ->where('status', 'disbanded')
+            ->with([
+                'memberHistories' => fn ($query) => $query
+                    ->whereHas('enrollment', fn ($enrollmentQuery) => $enrollmentQuery->where('status', 'active'))
+                    ->whereHas('student', fn ($studentQuery) => $studentQuery
+                        ->where('status', AccountStatus::Active)
+                        ->whereNotNull('approved_at'))
+                    ->with('student:id,name,email,student_id,program,year_level'),
+            ])
+            ->latest('disbanded_at')
+            ->get()
+            ->each(function (ResearchClassGroup $group) use ($activeMemberStudentIds): void {
+                $group->setRelation(
+                    'memberHistories',
+                    $group->memberHistories->reject(
+                        fn ($history) => $activeMemberStudentIds->contains($history->student_id),
+                    )->values(),
+                );
+            });
+
         $groupedEnrollmentIds = ResearchClassGroupMember::query()
             ->where('research_class_id', $researchClass->getKey())
             ->whereHas('group', fn ($query) => $query->where('status', 'active'))
@@ -137,6 +163,7 @@ class ResearchClassController extends Controller
                 'enrollments' => $enrollments,
                 'activeStudents' => $researchClass->enrollments()->where('status', 'active')->count(),
                 'groups' => $activeGroups,
+                'disbandedGroups' => $disbandedGroups,
                 'unassignedStudents' => $unassignedStudents,
                 'classAdviserOptions' => $advisers,
                 'classActorCandidates' => $classActorCandidates,

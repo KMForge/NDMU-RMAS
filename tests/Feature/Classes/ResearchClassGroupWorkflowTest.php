@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\Classes;
 
+use App\Models\MilestoneDefinition;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupAdviserHistory;
 use App\Models\ResearchClassGroupAdviserRequest;
 use App\Models\ResearchClassGroupMember;
+use App\Models\ResearchGroupMilestone;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -303,6 +305,144 @@ class ResearchClassGroupWorkflowTest extends TestCase
 
         // Student is still active class enrollment
         $this->assertEquals('active', $enrollment->fresh()->status);
+    }
+
+    public function test_a_current_member_can_continue_the_same_project_without_losing_progress(): void
+    {
+        $facilitator = $this->userWithRole('research-facilitator');
+        $firstStudent = $this->userWithRole('student-researcher');
+        $continuingStudent = $this->userWithRole('student-researcher');
+        $researchClass = $this->createClass($facilitator);
+        $group = $this->createGroup($researchClass, $facilitator, 'Original Project');
+
+        foreach ([$firstStudent, $continuingStudent] as $student) {
+            $enrollment = $this->enroll($researchClass, $student, 'active');
+            $this->actingAs($facilitator)
+                ->putJson(route('facilitator.classes.groups.students.assign', [$researchClass, $group, $enrollment]))
+                ->assertOk();
+        }
+
+        $group->update(['leader_student_id' => $firstStudent->getKey()]);
+        $definition = MilestoneDefinition::query()->firstOrCreate(
+            ['sequence' => 1],
+            ['code' => 'continuation-test', 'name' => 'Project milestone'],
+        );
+        $milestone = ResearchGroupMilestone::query()->create([
+            'research_class_group_id' => $group->getKey(),
+            'milestone_definition_id' => $definition->getKey(),
+            'status' => 'completed',
+            'completed_at' => now(),
+        ]);
+
+        $this->actingAs($facilitator)
+            ->postJson(route('facilitator.classes.groups.continue-with-member', [$researchClass, $group]), [
+                'student_id' => $continuingStudent->getKey(),
+            ])
+            ->assertOk()
+            ->assertJsonPath('group.id', $group->getKey());
+
+        $this->assertSame('active', $group->fresh()->status);
+        $this->assertSame($continuingStudent->getKey(), $group->fresh()->leader_student_id);
+        $this->assertSame($group->getKey(), $milestone->fresh()->research_class_group_id);
+        $this->assertSame('completed', $milestone->fresh()->status->value);
+        $this->assertDatabaseHas('research_class_group_members', [
+            'research_class_group_id' => $group->getKey(), 'student_id' => $continuingStudent->getKey(),
+        ]);
+        $this->assertDatabaseMissing('research_class_group_members', [
+            'research_class_group_id' => $group->getKey(), 'student_id' => $firstStudent->getKey(),
+        ]);
+        $this->assertDatabaseHas('research_class_group_member_histories', [
+            'research_class_group_id' => $group->getKey(),
+            'student_id' => $firstStudent->getKey(),
+            'archive_reason' => 'group_restructured',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'research-group.continued-by-member', 'auditable_id' => $group->getKey(),
+        ]);
+    }
+
+    public function test_a_former_member_can_restore_an_archived_project_and_keep_its_progress(): void
+    {
+        $facilitator = $this->userWithRole('research-facilitator');
+        $continuingStudent = $this->userWithRole('student-researcher');
+        $otherStudent = $this->userWithRole('student-researcher');
+        $researchClass = $this->createClass($facilitator);
+        $group = $this->createGroup($researchClass, $facilitator, 'Archived Project');
+
+        foreach ([$continuingStudent, $otherStudent] as $student) {
+            $enrollment = $this->enroll($researchClass, $student, 'active');
+            $this->actingAs($facilitator)
+                ->putJson(route('facilitator.classes.groups.students.assign', [$researchClass, $group, $enrollment]))
+                ->assertOk();
+        }
+
+        $definition = MilestoneDefinition::query()->firstOrCreate(
+            ['sequence' => 1],
+            ['code' => 'restoration-test', 'name' => 'Archived milestone'],
+        );
+        $milestone = ResearchGroupMilestone::query()->create([
+            'research_class_group_id' => $group->getKey(),
+            'milestone_definition_id' => $definition->getKey(),
+            'status' => 'completed',
+            'completed_at' => now(),
+        ]);
+
+        $this->actingAs($facilitator)
+            ->deleteJson(route('facilitator.classes.groups.disband', [$researchClass, $group]))
+            ->assertOk();
+        $this->assertSame('disbanded', $group->fresh()->status);
+
+        $this->actingAs($facilitator)
+            ->get(route('facilitator.classes.show', $researchClass))
+            ->assertOk()
+            ->assertSee('Archived Research Projects')
+            ->assertSee('Restore &amp; Continue', false);
+
+        $this->actingAs($facilitator)
+            ->postJson(route('facilitator.classes.groups.restore-with-member', [$researchClass, $group]), [
+                'student_id' => $continuingStudent->getKey(),
+            ])
+            ->assertOk()
+            ->assertJsonPath('group.id', $group->getKey());
+
+        $this->assertTrue($group->fresh()->isActive());
+        $this->assertSame($continuingStudent->getKey(), $group->fresh()->leader_student_id);
+        $this->assertNull($group->fresh()->adviser_id);
+        $this->assertSame($group->getKey(), $milestone->fresh()->research_class_group_id);
+        $this->assertDatabaseHas('research_class_group_members', [
+            'research_class_group_id' => $group->getKey(), 'student_id' => $continuingStudent->getKey(),
+        ]);
+        $this->assertDatabaseMissing('research_class_group_members', [
+            'research_class_group_id' => $group->getKey(), 'student_id' => $otherStudent->getKey(),
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'research-group.restored-for-continuation', 'auditable_id' => $group->getKey(),
+        ]);
+    }
+
+    public function test_an_unrelated_student_cannot_claim_an_archived_project(): void
+    {
+        $facilitator = $this->userWithRole('research-facilitator');
+        $formerStudent = $this->userWithRole('student-researcher');
+        $unrelatedStudent = $this->userWithRole('student-researcher');
+        $researchClass = $this->createClass($facilitator);
+        $group = $this->createGroup($researchClass, $facilitator, 'Archived Project');
+        $this->enroll($researchClass, $unrelatedStudent, 'active');
+        $enrollment = $this->enroll($researchClass, $formerStudent, 'active');
+
+        $this->actingAs($facilitator)
+            ->putJson(route('facilitator.classes.groups.students.assign', [$researchClass, $group, $enrollment]))
+            ->assertOk();
+        $this->actingAs($facilitator)
+            ->deleteJson(route('facilitator.classes.groups.disband', [$researchClass, $group]))
+            ->assertOk();
+        $this->actingAs($facilitator)
+            ->postJson(route('facilitator.classes.groups.restore-with-member', [$researchClass, $group]), [
+                'student_id' => $unrelatedStudent->getKey(),
+            ])
+            ->assertUnprocessable();
+
+        $this->assertSame('disbanded', $group->fresh()->status);
     }
 
     public function test_facilitator_cannot_manage_another_facilitators_class_groups(): void

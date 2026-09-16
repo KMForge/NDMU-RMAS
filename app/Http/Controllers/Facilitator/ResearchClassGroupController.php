@@ -12,11 +12,13 @@ use App\Modules\Classes\Actions\AssignResearchClassGroupLeader;
 use App\Modules\Classes\Actions\AssignStudentToResearchClassGroup;
 use App\Modules\Classes\Actions\BulkAssignStudentsToResearchClassGroup;
 use App\Modules\Classes\Actions\CancelResearchClassGroupAdviserRequest;
+use App\Modules\Classes\Actions\ContinueResearchClassGroupWithMember;
 use App\Modules\Classes\Actions\CreateResearchClassGroup;
 use App\Modules\Classes\Actions\DisbandResearchClassGroup;
 use App\Modules\Classes\Actions\RemoveResearchClassGroupAdviser;
 use App\Modules\Classes\Actions\RenameResearchClassGroup;
 use App\Modules\Classes\Actions\RequestAdviserForResearchClassGroup;
+use App\Modules\Classes\Actions\RestoreResearchClassGroupForContinuation;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
 use App\Modules\ResearchProgress\Actions\ResetDryRunGroupProgress;
@@ -180,7 +182,63 @@ class ResearchClassGroupController extends Controller
         }
 
         return to_route('facilitator.classes.show', $researchClass)
-            ->with('class_success', 'Group disbanded. Members returned to Unassigned Students list.');
+            ->with('class_success', 'Group archived. Its research records were preserved and members returned to the unassigned list.');
+    }
+
+    public function continueWithMember(
+        Request $request,
+        ResearchClass $researchClass,
+        ResearchClassGroup $group,
+        ContinueResearchClassGroupWithMember $action,
+    ): JsonResponse|RedirectResponse {
+        $validated = $request->validate([
+            'student_id' => ['required', 'integer', 'exists:users,id'],
+        ]);
+        $student = User::query()->findOrFail($validated['student_id']);
+
+        try {
+            $group = $action->handle($request->user(), $researchClass, $group, $student);
+        } catch (ClassOperationException $exception) {
+            return $this->errorResponse($request, $researchClass, $exception->getMessage(), 422);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Research project retained by the selected member.',
+                'group' => ['id' => $group->getKey(), 'leader_student_id' => $group->leader_student_id],
+            ]);
+        }
+
+        return to_route('facilitator.classes.show', $researchClass)
+            ->with('class_success', 'The selected member can continue the same project. All existing progress and records were retained.');
+    }
+
+    public function restoreWithMember(
+        Request $request,
+        ResearchClass $researchClass,
+        ResearchClassGroup $group,
+        RestoreResearchClassGroupForContinuation $action,
+    ): JsonResponse|RedirectResponse {
+        $validated = $request->validate([
+            'student_id' => ['required', 'integer', 'exists:users,id'],
+        ]);
+        $student = User::query()->findOrFail($validated['student_id']);
+
+        try {
+            $group = $action->handle($request->user(), $researchClass, $group, $student);
+        } catch (ClassOperationException $exception) {
+            return $this->errorResponse($request, $researchClass, $exception->getMessage(), 422);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Archived research project restored for continuation.',
+                'group' => ['id' => $group->getKey(), 'leader_student_id' => $group->leader_student_id],
+            ]);
+        }
+
+        return to_route('facilitator.classes.show', $researchClass)
+            ->with('class_success', 'The archived project was restored for the selected former member with all prior records intact.');
     }
 
     public function requestAdviser(

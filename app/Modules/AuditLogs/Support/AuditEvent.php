@@ -32,6 +32,8 @@ final class AuditEvent
         'research-group.created',
         'research-group.renamed',
         'research-group.disbanded',
+        'research-group.continued-by-member',
+        'research-group.restored-for-continuation',
         'research-group.member-assigned',
         'research-group.leader-assigned',
         'adviser.assignment.created',

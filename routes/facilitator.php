@@ -134,6 +134,14 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
                 ->middleware(['permission:classes.manage-groups', 'throttle:class-creation'])
                 ->whereNumber('group')
                 ->name('classes.groups.disband');
+            Route::post('/groups/{group}/continue-with-member', [ResearchClassGroupController::class, 'continueWithMember'])
+                ->middleware(['permission:classes.manage-groups', 'throttle:class-creation'])
+                ->whereNumber('group')
+                ->name('classes.groups.continue-with-member');
+            Route::post('/groups/{group}/restore-with-member', [ResearchClassGroupController::class, 'restoreWithMember'])
+                ->middleware(['permission:classes.manage-groups', 'throttle:class-creation'])
+                ->whereNumber('group')
+                ->name('classes.groups.restore-with-member');
             Route::post('/groups/{group}/reset-progress', [ResearchClassGroupController::class, 'resetProgress'])
                 ->middleware(['permission:classes.manage-groups', 'throttle:class-creation'])
                 ->whereNumber('group')
