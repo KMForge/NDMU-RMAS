@@ -17,7 +17,7 @@ class RegisterStudent
     public function __construct(private readonly AuditLogWriter $auditLogs) {}
 
     /**
-     * @param  array{student_id: string, name: string, email: string, program: string, year_level: int, password: string}  $attributes
+     * @param  array{student_id: string, name: string, first_name?: ?string, middle_name?: ?string, last_name?: ?string, suffix?: ?string, email: string, program: string, year_level: int, password: string}  $attributes
      */
     public function handle(array $attributes, ?AuditRequestContext $requestContext = null): User
     {
@@ -41,6 +41,10 @@ class RegisterStudent
         return DB::transaction(function () use ($attributes, $studentRole, $requestContext): User {
             $student = User::query()->create([
                 'student_id' => $attributes['student_id'],
+                'first_name' => $attributes['first_name'] ?? null,
+                'middle_name' => $attributes['middle_name'] ?? null,
+                'last_name' => $attributes['last_name'] ?? null,
+                'suffix' => $attributes['suffix'] ?? null,
                 'name' => $attributes['name'],
                 'email' => $attributes['email'],
                 'program' => $attributes['program'],

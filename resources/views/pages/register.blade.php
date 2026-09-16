@@ -110,12 +110,12 @@
                     <form method="POST" action="{{ route('register.store') }}" class="space-y-3.5">
                         @csrf
 
-                        <!-- Row 1: Student ID & Full Name -->
+                        <!-- Row 1: Student ID & Institutional Email -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <!-- Student ID -->
                             <div class="space-y-1">
                                 <label for="student_id" class="text-[11px] font-bold text-slate-700 block uppercase tracking-wider">
-                                    Student ID
+                                    Student ID <span class="text-rose-500">*</span>
                                 </label>
                                 <div class="relative">
                                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-[#0e5c3a] pointer-events-none">
@@ -134,47 +134,99 @@
                                 </div>
                             </div>
 
-                            <!-- Full Name -->
+                            <!-- Institutional Email -->
                             <div class="space-y-1">
-                                <label for="full_name" class="text-[11px] font-bold text-slate-700 block uppercase tracking-wider">
-                                    Full Name
+                                <label for="email" class="text-[11px] font-bold text-slate-700 block uppercase tracking-wider">
+                                    Institutional Email <span class="text-rose-500">*</span>
                                 </label>
                                 <div class="relative">
                                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-[#0e5c3a] pointer-events-none">
-                                        <i class="ph ph-user text-base"></i>
+                                        <i class="ph ph-envelope-simple text-base"></i>
                                     </span>
                                     <input
-                                        id="full_name"
-                                        name="name"
-                                        type="text"
-                                        value="{{ old('name') }}"
-                                        autocomplete="name"
+                                        id="email"
+                                        name="email"
+                                        type="email"
+                                        value="{{ old('email') }}"
+                                        autocomplete="email"
                                         required
-                                        placeholder="Juan Dela Cruz"
+                                        placeholder="juan.delacruz@ndmu.edu.ph"
                                         class="w-full pl-9 pr-3 py-2.5 bg-slate-50/80 hover:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/12 transition-all shadow-2xs"
                                     >
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Institutional Email -->
-                        <div class="space-y-1">
-                            <label for="email" class="text-[11px] font-bold text-slate-700 block uppercase tracking-wider">
-                                Institutional Email Address
-                            </label>
-                            <div class="relative">
-                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-[#0e5c3a] pointer-events-none">
-                                    <i class="ph ph-envelope-simple text-base"></i>
-                                </span>
+                        <!-- Row 2: Name Breakdown (First, Middle, Last, Suffix) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                            <!-- First Name -->
+                            <div class="sm:col-span-4 space-y-1">
+                                <label for="first_name" class="text-[11px] font-bold text-slate-700 block uppercase tracking-wider">
+                                    First Name <span class="text-rose-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-[#0e5c3a] pointer-events-none">
+                                        <i class="ph ph-user text-base"></i>
+                                    </span>
+                                    <input
+                                        id="first_name"
+                                        name="first_name"
+                                        type="text"
+                                        value="{{ old('first_name') }}"
+                                        autocomplete="given-name"
+                                        required
+                                        placeholder="Juan"
+                                        class="w-full pl-9 pr-3 py-2.5 bg-slate-50/80 hover:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/12 transition-all shadow-2xs"
+                                    >
+                                </div>
+                            </div>
+
+                            <!-- Middle Name -->
+                            <div class="sm:col-span-3 space-y-1">
+                                <label for="middle_name" class="text-[11px] font-bold text-slate-700 block uppercase tracking-wider">
+                                    Middle Name
+                                </label>
                                 <input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    value="{{ old('email') }}"
-                                    autocomplete="email"
+                                    id="middle_name"
+                                    name="middle_name"
+                                    type="text"
+                                    value="{{ old('middle_name') }}"
+                                    autocomplete="additional-name"
+                                    placeholder="Manuel"
+                                    class="w-full px-3.5 py-2.5 bg-slate-50/80 hover:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/12 transition-all shadow-2xs"
+                                >
+                            </div>
+
+                            <!-- Last Name -->
+                            <div class="sm:col-span-3 space-y-1">
+                                <label for="last_name" class="text-[11px] font-bold text-slate-700 block uppercase tracking-wider">
+                                    Last Name <span class="text-rose-500">*</span>
+                                </label>
+                                <input
+                                    id="last_name"
+                                    name="last_name"
+                                    type="text"
+                                    value="{{ old('last_name') }}"
+                                    autocomplete="family-name"
                                     required
-                                    placeholder="juan.delacruz@ndmu.edu.ph"
-                                    class="w-full pl-9 pr-3 py-2.5 bg-slate-50/80 hover:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/12 transition-all shadow-2xs"
+                                    placeholder="Dela Cruz"
+                                    class="w-full px-3.5 py-2.5 bg-slate-50/80 hover:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/12 transition-all shadow-2xs"
+                                >
+                            </div>
+
+                            <!-- Suffix -->
+                            <div class="sm:col-span-2 space-y-1">
+                                <label for="suffix" class="text-[11px] font-bold text-slate-700 block uppercase tracking-wider">
+                                    Suffix
+                                </label>
+                                <input
+                                    id="suffix"
+                                    name="suffix"
+                                    type="text"
+                                    value="{{ old('suffix') }}"
+                                    autocomplete="honorific-suffix"
+                                    placeholder="Jr."
+                                    class="w-full px-3 py-2.5 bg-slate-50/80 hover:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-emerald-600/12 transition-all shadow-2xs"
                                 >
                             </div>
                         </div>

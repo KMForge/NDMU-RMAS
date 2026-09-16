@@ -16,7 +16,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'status', 'approved_at', 'email_verified_at', 'user_type', 'student_id', 'program', 'year_level', 'department', 'profile_photo_disk', 'profile_photo_path', 'profile_photo_mime_type', 'profile_photo_size', 'profile_photo_updated_at'])]
+#[Fillable(['name', 'first_name', 'middle_name', 'last_name', 'suffix', 'email', 'password', 'status', 'approved_at', 'email_verified_at', 'user_type', 'student_id', 'program', 'year_level', 'department', 'profile_photo_disk', 'profile_photo_path', 'profile_photo_mime_type', 'profile_photo_size', 'profile_photo_updated_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -37,7 +37,11 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function displayFirstName(): string
     {
-        $parts = preg_split('/\s+/', trim($this->name)) ?: [];
+        if (! empty($this->first_name)) {
+            return $this->first_name;
+        }
+
+        $parts = preg_split('/\s+/', trim((string) $this->name)) ?: [];
         $honorifics = ['atty', 'dr', 'engr', 'fr', 'mr', 'mrs', 'ms', 'prof', 'sr', 'sra'];
 
         while (count($parts) > 1 && in_array(mb_strtolower(rtrim($parts[0], '.')), $honorifics, true)) {

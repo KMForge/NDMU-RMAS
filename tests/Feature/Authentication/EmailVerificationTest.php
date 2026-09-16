@@ -32,11 +32,13 @@ class EmailVerificationTest extends TestCase
     {
         Notification::fake();
 
+        $program = config('academic.programs.6.label');
+
         $response = $this->post('/register', [
             'student_id' => '2026-00001',
             'name' => 'Juan Dela Cruz',
             'email' => 'juan.delacruz@ndmu.edu.ph',
-            'program' => 'Bachelor of Science in Information Technology (BS Information Technology)',
+            'program' => $program,
             'year_level' => 4,
             'password' => 'SecurePass123!@#',
             'password_confirmation' => 'SecurePass123!@#',
@@ -58,6 +60,36 @@ class EmailVerificationTest extends TestCase
                     && str_contains($mail->actionText, 'Verify Institutional Email');
             }
         );
+    }
+
+    public function test_student_registration_stores_structured_name_fields(): void
+    {
+        Notification::fake();
+        $program = config('academic.programs.6.label');
+
+        $response = $this->post('/register', [
+            'student_id' => '2026-00002',
+            'first_name' => 'Juan',
+            'middle_name' => 'Silang',
+            'last_name' => 'Dela Cruz',
+            'suffix' => 'Jr.',
+            'email' => 'juan.jr@ndmu.edu.ph',
+            'program' => $program,
+            'year_level' => 4,
+            'password' => 'SecurePass123!@#',
+            'password_confirmation' => 'SecurePass123!@#',
+        ]);
+
+        $response->assertRedirect('/login');
+
+        $user = User::query()->where('email', 'juan.jr@ndmu.edu.ph')->first();
+        $this->assertNotNull($user);
+        $this->assertSame('Juan', $user->first_name);
+        $this->assertSame('Silang', $user->middle_name);
+        $this->assertSame('Dela Cruz', $user->last_name);
+        $this->assertSame('Jr.', $user->suffix);
+        $this->assertSame('Juan Silang Dela Cruz Jr.', $user->name);
+        $this->assertSame('Juan', $user->displayFirstName());
     }
 
     public function test_student_can_verify_email_using_signed_url(): void
