@@ -537,12 +537,26 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-10 pt-8 items-end">
                 <div>
                     <p class="font-bold text-xs mb-3 text-slate-800">Reviewed by:</p>
-                    <x-official-signature-field
-                        label="Research Adviser (Name & Signature)"
-                        actor-type="adviser"
-                        academic-action="sign"
-                        :instance="$officialFormInstance"
-                    />
+                    <div class="space-y-1">
+                        @php
+                            $hasAdviserSignature = $officialFormInstance?->currentVersion?->signatures?->contains(
+                                fn ($sig) => in_array($sig->actor_type, ['adviser', 'research_adviser'], true)
+                            );
+                        @endphp
+                        @if ($hasAdviserSignature)
+                            <x-official-signature-field
+                                label="Research Adviser (Name & Signature)"
+                                actor-type="adviser"
+                                academic-action="sign"
+                                :instance="$officialFormInstance"
+                            />
+                        @else
+                            <div class="border-b border-black pb-1 font-bold text-xs text-center text-slate-900 min-h-[1.5rem]">
+                                {{ $adviserName }}
+                            </div>
+                            <p class="text-[11px] text-slate-700 text-center font-medium mt-1">Research Adviser (Name & Signature)</p>
+                        @endif
+                    </div>
                 </div>
 
                 <div>

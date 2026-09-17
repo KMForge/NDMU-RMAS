@@ -46,11 +46,11 @@
         .official-form-table th, .official-form-table td { border: 1px solid #567368; padding: .45rem; vertical-align: top; }
         .official-signature-field {
             display: grid;
-            grid-template-rows: 4.5rem 1.75rem 3rem 1.5rem;
-            gap: .35rem;
+            grid-template-rows: 4rem 1.5rem 2.65rem 1.25rem;
+            gap: .25rem;
             width: 100%;
             min-width: 0;
-            min-height: 12.15rem;
+            min-height: 10.15rem;
             break-inside: avoid;
             page-break-inside: avoid;
         }
@@ -66,7 +66,7 @@
             box-sizing: border-box;
             width: 12rem;
             max-width: 100%;
-            height: 4.5rem;
+            height: 4rem;
             overflow: hidden;
             border-radius: .25rem;
             background: #fff;
@@ -88,7 +88,7 @@
             position: relative;
             box-sizing: border-box;
             display: flex;
-            height: 3rem;
+            height: 2.65rem;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -98,13 +98,13 @@
             padding: .25rem .75rem;
             font: 600 .625rem/1.2 sans-serif;
         }
-        .official-signature-status.has-verification-qr { padding-right: 3.1rem; padding-left: .4rem; }
+        .official-signature-status.has-verification-qr { padding-right: 2.8rem; padding-left: .4rem; }
         .official-signature-qr {
             position: absolute;
             top: 50%;
             right: .3rem;
-            width: 2.35rem;
-            height: 2.35rem;
+            width: 2.05rem;
+            height: 2.05rem;
             transform: translateY(-50%);
             border: 1px solid #6ee7b7;
             border-radius: .2rem;
@@ -114,26 +114,12 @@
         .official-signature-qr img { display: block; width: 100%; height: 100%; }
         .official-signature-label {
             display: flex;
-            height: 1.5rem;
+            height: 1.25rem;
             align-items: start;
             justify-content: center;
             overflow: hidden;
             font-weight: 700;
             line-height: 1.15;
-        }
-        .official-form-body .grid:has(.official-signature-field) {
-            align-items: end;
-            break-inside: avoid;
-            page-break-inside: avoid;
-        }
-        .official-form-body .grid:has(.official-signature-field) > label {
-            align-self: end;
-            min-width: 0;
-        }
-        .official-form-table tr:has(.official-signature-field),
-        .official-form-table td:has(.official-signature-field) {
-            break-inside: avoid;
-            page-break-inside: avoid;
         }
         @media print {
             @page { size: Letter portrait; margin: 0; }
