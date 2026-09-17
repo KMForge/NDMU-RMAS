@@ -207,11 +207,13 @@
                                 $persistedStatusVal = $milestone->status->value;
                                 $journeyStage = $summary['journey']['stages'][$milestone->definition->sequence] ?? null;
                                 $statusVal = $journeyStage
-                                    ? (($journeyStage['is_optional'] ?? false) && ! $journeyStage['is_completed']
+                                    ? (($journeyStage['is_not_applicable'] ?? false)
+                                        ? 'not_applicable'
+                                        : (($journeyStage['is_optional'] ?? false) && ! $journeyStage['is_completed']
                                         ? 'optional'
                                         : ($journeyStage['is_completed']
-                                        ? 'completed'
-                                        : (($summary['journey']['current_stage'] ?? null) === $milestone->definition->sequence ? 'in_progress' : 'pending')))
+                                            ? 'completed'
+                                            : (($summary['journey']['current_stage'] ?? null) === $milestone->definition->sequence ? 'in_progress' : 'pending'))))
                                     : $persistedStatusVal;
                                 $statusLabel = ($journeyStage['is_auto_completed'] ?? false)
                                     ? 'Auto-completed'

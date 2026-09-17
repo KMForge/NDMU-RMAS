@@ -75,14 +75,25 @@ class ResearchJourneyService
         for ($stageNum = 1; $stageNum <= $stageCount; $stageNum++) {
             $stageDetails = $this->evaluateStage($stageNum, $group, $instances, $instanceGroups, $milestones);
             $stageDetails['is_optional'] = (bool) ($this->getStageConfig($stageNum)['optional'] ?? false);
+            $stageDetails['is_not_applicable'] = $milestones->get($stageDetails['code'])?->status === ResearchMilestoneStatus::NotApplicable;
             $stageDetails['is_auto_completed'] = in_array($stageNum, $automaticStageNumbers, true);
             $stageDetails['is_inferred_complete'] = ! $stageDetails['is_optional']
+                && ! $stageDetails['is_not_applicable']
                 && $stageNum < $furthestReachedStage;
             $stageDetails['is_completed'] = $stageDetails['is_auto_completed']
                 || $stageDetails['is_inferred_complete']
                 || ($previousStagesCompleted && $stageDetails['is_completed']);
 
-            if ($stageDetails['is_auto_completed'] || $stageDetails['is_inferred_complete']) {
+            if ($stageDetails['is_not_applicable']) {
+                $stageDetails['is_completed'] = false;
+                $stageDetails['waiting_on'] = null;
+                $stageDetails['next_action'] = null;
+                $stageDetails['blockers'] = [];
+                $stageDetails['pending_requirements'] = [];
+                $stageDetails['completed_requirements'] = [
+                    $stageDetails['name'].' is marked not applicable for this research group.',
+                ];
+            } elseif ($stageDetails['is_auto_completed'] || $stageDetails['is_inferred_complete']) {
                 $stageDetails['waiting_on'] = null;
                 $stageDetails['next_action'] = null;
                 $stageDetails['blockers'] = [];
@@ -98,7 +109,7 @@ class ResearchJourneyService
 
             // Optional stages remain visible and recordable, but they neither count
             // toward required progress nor block the next required lifecycle stage.
-            if ($stageDetails['is_optional']) {
+            if ($stageDetails['is_optional'] || $stageDetails['is_not_applicable']) {
                 continue;
             }
 
@@ -132,6 +143,7 @@ class ResearchJourneyService
             'stage_status' => $blockers !== [] ? 'blocked' : ($percentage >= 100 ? 'completed' : 'in_progress'),
             'percentage' => $percentage,
             'required_stage_count' => $requiredStageCount,
+            'completed_stage_count' => $completedStageCount,
             'completed_requirements' => array_values(array_unique($completedReqs)),
             'pending_requirements' => array_values(array_unique($pendingReqs)),
             'blockers' => $blockers,
@@ -765,7 +777,10 @@ class ResearchJourneyService
 
     private function resolveProgramCode(ResearchClassGroup $group): ?string
     {
-        $group->loadMissing('members.student.studentProfile.program');
+        // Some dashboards preload a reduced student column set for display. Force
+        // this canonical curriculum relation to reload so progress never depends
+        // on which screen happened to hydrate the group first.
+        $group->load('members.student.studentProfile.program');
 
         $programCodes = $group->members
             ->map(function ($member): ?string {

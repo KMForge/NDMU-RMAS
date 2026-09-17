@@ -108,14 +108,14 @@ class ResearchProgressMilestoneTest extends TestCase
         $this->startAndComplete($milestones[0]);
         $summary = app(GetResearchGroupProgress::class)->for($this->group);
 
-        $expectedSinglePercentage = round((1 / 13) * 100, 2);
+        $expectedSinglePercentage = (int) round((1 / 13) * 100);
         $this->assertSame($expectedSinglePercentage, $summary['progress_percentage']);
         $this->assertSame(1, $summary['completed_count']);
 
         foreach ($milestones->skip(1) as $milestone) {
             $this->startAndComplete($milestone);
         }
-        $this->assertSame(100.0, app(GetResearchGroupProgress::class)->for($this->group)['progress_percentage']);
+        $this->assertSame(100, app(GetResearchGroupProgress::class)->for($this->group)['progress_percentage']);
     }
 
     public function test_facilitator_monitoring_uses_the_same_authoritative_journey_percentage_as_the_student_dashboard(): void
@@ -144,6 +144,57 @@ class ResearchProgressMilestoneTest extends TestCase
         $this->assertSame(4, $group->progress_summary['completed_count']);
         $this->assertSame(13, $group->progress_summary['applicable_count']);
         $this->assertSame(5, $group->progress_summary['journey']['current_stage']);
+    }
+
+    public function test_bsit_auto_completion_is_identical_across_shared_student_and_facilitator_progress(): void
+    {
+        $this->seed(AcademicStructureSeeder::class);
+        $program = Program::query()->where('code', 'BSIT')->firstOrFail();
+
+        StudentProfile::query()->updateOrCreate(
+            ['user_id' => $this->student->getKey()],
+            [
+                'program_id' => $program->getKey(),
+                'student_number' => 'BSIT-SHARED-PROGRESS-001',
+                'year_level' => '4th',
+            ],
+        );
+
+        $shared = app(GetResearchGroupProgress::class)->for($this->group->fresh(), $this->student);
+        $student = app(GetStudentDashboardData::class)->for($this->student);
+        $facilitatorGroup = app(GetFacilitatorProgressData::class)
+            ->for($this->facilitator)['progressGroups']
+            ->first();
+
+        $this->assertSame(31, $shared['progress_percentage']);
+        $this->assertSame(4, $shared['completed_count']);
+        $this->assertSame(13, $shared['applicable_count']);
+        $this->assertSame($shared['progress_percentage'], $student['dashboardOverview']['progress_percentage']);
+        $this->assertSame($shared['progress_percentage'], $facilitatorGroup->progress_summary['progress_percentage']);
+
+        foreach ([5, 7, 8, 9, 13] as $stageNumber) {
+            $this->assertTrue($facilitatorGroup->progress_summary['journey']['stages'][$stageNumber]['is_auto_completed']);
+        }
+    }
+
+    public function test_facilitator_monitoring_detects_bsit_from_the_legacy_student_program_field(): void
+    {
+        StudentProfile::query()->where('user_id', $this->student->getKey())->delete();
+        $this->student->update(['program' => 'BSIT']);
+
+        $shared = app(GetResearchGroupProgress::class)->for($this->group->fresh(), $this->student);
+        $student = app(GetStudentDashboardData::class)->for($this->student);
+        $facilitatorGroup = app(GetFacilitatorProgressData::class)
+            ->for($this->facilitator)['progressGroups']
+            ->first();
+
+        $this->assertSame(31, $shared['progress_percentage']);
+        $this->assertSame($shared['progress_percentage'], $student['dashboardOverview']['progress_percentage']);
+        $this->assertSame($shared['progress_percentage'], $facilitatorGroup->progress_summary['progress_percentage']);
+
+        foreach ([5, 7, 8, 9, 13] as $stageNumber) {
+            $this->assertTrue($facilitatorGroup->progress_summary['journey']['stages'][$stageNumber]['is_auto_completed']);
+        }
     }
 
     public function test_language_and_technical_editing_is_optional_and_does_not_block_final_submission(): void
@@ -178,7 +229,7 @@ class ResearchProgressMilestoneTest extends TestCase
         $this->assertSame(100, $journey['percentage']);
         $this->assertSame(13, $journey['required_stage_count']);
         $this->assertSame(13, $summary['applicable_count']);
-        $this->assertSame(100.0, $summary['progress_percentage']);
+        $this->assertSame(100, $summary['progress_percentage']);
     }
 
     public function test_bsit_journey_automatically_completes_program_exempt_stages(): void
@@ -330,7 +381,7 @@ class ResearchProgressMilestoneTest extends TestCase
 
         $summary = app(GetResearchGroupProgress::class)->for($this->group);
         $this->assertSame(12, $summary['applicable_count']);
-        $this->assertSame(0.0, $summary['progress_percentage']);
+        $this->assertSame(0, $summary['progress_percentage']);
     }
 
     public function test_not_applicable_milestone_can_be_re_enabled_with_audited_reason(): void
@@ -363,7 +414,7 @@ class ResearchProgressMilestoneTest extends TestCase
         ])->assertOk();
 
         $this->assertSame(ResearchMilestoneStatus::InProgress, $first->fresh()->status);
-        $this->assertSame(0.0, app(GetResearchGroupProgress::class)->for($this->group)['progress_percentage']);
+        $this->assertSame(0, app(GetResearchGroupProgress::class)->for($this->group)['progress_percentage']);
         $this->assertDatabaseHas('research_group_milestone_events', ['research_group_milestone_id' => $first->getKey(), 'event' => 'status_corrected']);
     }
 
@@ -476,7 +527,7 @@ class ResearchProgressMilestoneTest extends TestCase
             'progress_percentage' => 99,
         ])->assertOk();
 
-        $expectedSinglePercentage = round((1 / 13) * 100, 2);
+        $expectedSinglePercentage = (int) round((1 / 13) * 100);
         $this->assertSame($expectedSinglePercentage, app(GetResearchGroupProgress::class)->for($this->group)['progress_percentage']);
         Notification::assertSentTo(
             [$this->student, $this->adviser],
@@ -549,7 +600,7 @@ class ResearchProgressMilestoneTest extends TestCase
 
         $summary = app(GetResearchGroupProgress::class)->for($this->group);
         $this->assertCount(14, $summary['milestones']);
-        $this->assertSame(0.0, $summary['progress_percentage']);
+        $this->assertSame(0, $summary['progress_percentage']);
     }
 
     private function milestones()

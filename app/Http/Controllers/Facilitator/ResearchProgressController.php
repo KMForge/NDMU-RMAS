@@ -27,7 +27,7 @@ class ResearchProgressController extends Controller
     public function show(Request $request, ResearchClassGroup $group, GetResearchGroupProgress $query, ResearchProgressAccess $access): JsonResponse
     {
         abort_unless($access->canView($request->user(), $group), 403);
-        $data = $query->for($group);
+        $data = $query->for($group, $request->user());
         $first = $data['milestones']->firstOrFail();
         Gate::authorize('view', $first);
 
@@ -104,6 +104,10 @@ class ResearchProgressController extends Controller
                 'id' => $milestone->getKey(), 'name' => $milestone->definition->name,
                 'sequence' => $milestone->definition->sequence, 'weight' => (float) $milestone->definition->weight,
                 'status' => $milestone->status->value, 'due_at' => $milestone->due_at?->toAtomString(),
+                'derived_status' => data_get($data, 'journey.stages.'.$milestone->definition->sequence.'.is_completed')
+                    ? 'completed'
+                    : $milestone->status->value,
+                'is_auto_completed' => (bool) data_get($data, 'journey.stages.'.$milestone->definition->sequence.'.is_auto_completed', false),
                 'is_overdue' => $milestone->isOverdue(), 'remarks' => $milestone->remarks,
                 'evidence' => $milestone->evidences->map(fn ($evidence) => [
                     'type' => $evidence->evidence_type, 'summary' => $evidence->summary,

@@ -11,7 +11,6 @@ use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
 use App\Modules\Notifications\Queries\GetNotificationsForUser;
 use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use App\Modules\Research\Queries\GetStudentDashboardData;
-use App\Modules\ResearchProgress\Services\ResearchJourneyService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -25,7 +24,6 @@ class DashboardController extends Controller
         GetStudentConsultationData $consultationData,
         GetDefenseScheduleCalendar $defenseCalendar,
         GetEvaluationRoundData $evaluationQuery,
-        ResearchJourneyService $journeyService,
         GetPendingAcademicActionsForUser $pendingActionsService,
         GetNotificationsForUser $notificationQuery,
     ): View {
@@ -97,11 +95,7 @@ class DashboardController extends Controller
             })
             ->all();
 
-        $activeGroup = $data['activeGroup'] ?? null;
-        $journey = $data['journey'] ?? ($activeGroup ? $journeyService->getJourneyForGroup($activeGroup, $request->user()) : null);
-        if ($journey !== null) {
-            $data['dashboardOverview']['progress_percentage'] = $journey['percentage'];
-        }
+        $journey = $data['journey'] ?? null;
         $pendingAcademicActions = $pendingActionsService->execute($request->user());
 
         $data['sidebarBadges'] = [

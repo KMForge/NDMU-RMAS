@@ -2,24 +2,28 @@
 
 namespace App\Modules\ResearchProgress\Queries;
 
-use App\Enums\ResearchMilestoneStatus;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchGroupMilestone;
+use App\Models\User;
 use App\Modules\ResearchProgress\Actions\InitializeGroupMilestones;
+use App\Modules\ResearchProgress\Services\ResearchJourneyService;
 use Illuminate\Support\Collection;
 
 class GetResearchGroupProgress
 {
-    public function __construct(private readonly InitializeGroupMilestones $initialize) {}
+    public function __construct(
+        private readonly InitializeGroupMilestones $initialize,
+        private readonly ResearchJourneyService $journey,
+    ) {}
 
     /** @return array<string, mixed> */
-    public function for(ResearchClassGroup $group): array
+    public function for(ResearchClassGroup $group, ?User $actor = null): array
     {
         $milestones = $group->isActive()
             ? $this->initialize->execute($group)
             : $this->existingFor($group);
 
-        return $this->fromLoaded($group, $milestones);
+        return $this->fromLoaded($group, $milestones, $actor);
     }
 
     /**
@@ -28,34 +32,40 @@ class GetResearchGroupProgress
      * @param  Collection<int, ResearchGroupMilestone>  $milestones
      * @return array<string, mixed>
      */
-    public function fromLoaded(ResearchClassGroup $group, Collection $milestones): array
+    public function fromLoaded(ResearchClassGroup $group, Collection $milestones, ?User $actor = null): array
     {
         $milestones = $milestones->sortBy(fn (ResearchGroupMilestone $milestone): int => $milestone->definition->sequence)->values();
-        $optionalCodes = collect(config('research-progress.milestones', []))
-            ->filter(fn (array $definition): bool => (bool) ($definition['optional'] ?? false))
-            ->pluck('code');
+        $activeMilestones = $milestones->filter(fn ($milestone): bool => $milestone->definition->is_active);
 
-        $applicable = $milestones->filter(fn ($milestone): bool => $milestone->definition->is_active
-            && $milestone->status !== ResearchMilestoneStatus::NotApplicable
-            && ! $optionalCodes->contains($milestone->definition->code));
-
-        if ($applicable->contains(fn ($milestone): bool => (float) $milestone->definition->weight <= 0)) {
+        if ($activeMilestones->contains(fn ($milestone): bool => (float) $milestone->definition->weight <= 0)) {
             throw new \UnexpectedValueException('Active research milestone weights must be positive.');
         }
-        $denominator = (float) $applicable->sum(fn ($milestone): float => (float) $milestone->definition->weight);
-        $completedWeight = (float) $applicable
-            ->filter(fn ($milestone): bool => $milestone->status === ResearchMilestoneStatus::Completed)
-            ->sum(fn ($milestone): float => (float) $milestone->definition->weight);
-        $percentage = $denominator > 0 ? round(($completedWeight / $denominator) * 100, 2) : 0.0;
-        $current = $applicable->first(fn ($milestone): bool => $milestone->status !== ResearchMilestoneStatus::Completed);
+
+        // This is the single authoritative backend for every progress consumer.
+        // It includes persisted milestones plus verified forms/documents/defenses,
+        // inferred stages, optional stages, and curriculum auto-completion.
+        $journey = $this->journey->getJourneyForGroup($group, $actor);
+        $journeyStages = collect($journey['stages'] ?? []);
+        $requiredStageCount = (int) ($journey['required_stage_count'] ?? $journeyStages
+            ->reject(fn (array $stage): bool => ($stage['is_optional'] ?? false) || ($stage['is_not_applicable'] ?? false))
+            ->count());
+        $completedStageCount = (int) ($journey['completed_stage_count'] ?? $journeyStages
+            ->filter(fn (array $stage): bool => ($stage['is_completed'] ?? false)
+                && ! ($stage['is_optional'] ?? false)
+                && ! ($stage['is_not_applicable'] ?? false))
+            ->count());
+        $current = $milestones->first(
+            fn (ResearchGroupMilestone $milestone): bool => $milestone->definition->sequence === $journey['current_stage']
+        );
 
         return [
             'group' => $group->loadMissing(['researchClass:id,name,facilitator_id', 'adviser:id,name,email']),
             'milestones' => $milestones,
-            'progress_percentage' => $percentage,
-            'completed_count' => $applicable->where('status', ResearchMilestoneStatus::Completed)->count(),
-            'applicable_count' => $applicable->count(),
+            'progress_percentage' => $journey['percentage'],
+            'completed_count' => $completedStageCount,
+            'applicable_count' => $requiredStageCount,
             'current_milestone' => $current,
+            'journey' => $journey,
         ];
     }
 

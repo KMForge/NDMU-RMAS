@@ -7,7 +7,6 @@ use App\Models\DocumentReviewComment;
 use App\Models\User;
 use App\Modules\Documents\Support\DocumentGroupAccess;
 use App\Modules\ResearchProgress\Queries\GetResearchGroupProgress;
-use App\Modules\ResearchProgress\Services\ResearchJourneyService;
 use App\Support\CachesDatabaseSchema;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -22,7 +21,6 @@ class GetStudentDashboardData
     public function __construct(
         private readonly DocumentGroupAccess $documentGroupAccess,
         private readonly GetResearchGroupProgress $groupProgress,
-        private readonly ResearchJourneyService $journeyService,
     ) {}
 
     /**
@@ -167,9 +165,12 @@ class GetStudentDashboardData
             $defenses = $this->defensesFor((int) $activeGroup->id);
         }
 
-        if (($isDashboard || $activeTab === 'progress') && $activeGroup !== null) {
-            $progressSummary = $this->groupProgress->for($activeGroup);
-            $journey = $this->journeyService->getJourneyForGroup($activeGroup, $user);
+        if ($activeGroup !== null) {
+            $progressSummary = $this->groupProgress->for($activeGroup, $user);
+            $journey = $progressSummary['journey'];
+        }
+
+        if (($isDashboard || $activeTab === 'progress') && isset($progressSummary)) {
             $optionalMilestoneCodes = collect(config('research-progress.milestones', []))
                 ->filter(fn (array $definition): bool => (bool) ($definition['optional'] ?? false))
                 ->pluck('code');
@@ -274,6 +275,11 @@ class GetStudentDashboardData
             $documentCount,
             $pendingDocumentCount,
         );
+        if ($journey !== null) {
+            $dashboard['progress_percentage'] = $journey['percentage'];
+            $dashboard['completed_milestones'] = $journey['completed_stage_count'];
+            $dashboard['total_milestones'] = $journey['required_stage_count'];
+        }
         $dashboardSearchResults = $this->searchDashboardRecords(
             $searchQuery,
             $project,
