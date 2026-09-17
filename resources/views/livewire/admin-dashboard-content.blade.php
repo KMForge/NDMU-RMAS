@@ -1283,7 +1283,7 @@
                                                                         <button
                                                                             type="button"
                                                                             wire:click="suspendUser({{ $user->id }})"
-                                                                            wire:confirm="Disable this account? The user will no longer be able to sign in."
+                                                                            wire:confirm="Disable this account? The user will no longer be able to sign in. Active adviser and panel duties will be transferred automatically to eligible faculty; the action will be cancelled if no safe replacement is available."
                                                                             wire:loading.attr="disabled"
                                                                             wire:target="suspendUser({{ $user->id }})"
                                                                             class="shrink-0 px-2.5 py-1.5 rounded-xl border border-amber-200 bg-amber-50 text-xs font-bold text-amber-700 hover:bg-amber-100 disabled:opacity-50 transition-colors cursor-pointer flex items-center gap-1"

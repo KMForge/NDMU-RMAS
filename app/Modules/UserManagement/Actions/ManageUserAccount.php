@@ -14,7 +14,10 @@ use Illuminate\Validation\ValidationException;
 
 class ManageUserAccount
 {
-    public function __construct(private readonly AuditLogWriter $auditLogs) {}
+    public function __construct(
+        private readonly AuditLogWriter $auditLogs,
+        private readonly AutoReplaceUnavailableAcademicStaff $autoReplaceUnavailableStaff,
+    ) {}
 
     public function activate(User $user, User $actor): User
     {
@@ -84,6 +87,14 @@ class ManageUserAccount
                 'status' => $status,
                 'approved_at' => $status === AccountStatus::Active ? ($user->approved_at ?? now()) : null,
             ])->save();
+
+            if ($status === AccountStatus::Suspended && $user->user_type === UserType::Faculty) {
+                $this->autoReplaceUnavailableStaff->handle(
+                    unavailable: $user,
+                    actor: $actor,
+                    reason: 'Faculty account suspended or marked unavailable by an administrator.',
+                );
+            }
 
             $this->audit($actor, $user, $event, ['status' => $previousStatus], [
                 'status' => $status->value,
