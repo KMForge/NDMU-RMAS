@@ -2,6 +2,7 @@
 
 namespace App\Modules\OfficialForms\Services;
 
+use App\Models\OfficialFormSignature;
 use App\Models\OfficialFormVersion;
 use Illuminate\Support\Facades\Storage;
 
@@ -134,6 +135,30 @@ class OfficialFormVerificationService
             'signatures_evaluated' => $totalCount,
             'valid_signatures_count' => $validCount,
             'signatures' => $evaluatedSignatures,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public function evaluateSignature(OfficialFormSignature $signature): array
+    {
+        $signature->loadMissing('version.instance');
+        $versionEvaluation = $this->evaluateVerification($signature->version);
+        $signatureEvaluation = collect($versionEvaluation['signatures'] ?? [])
+            ->firstWhere('id', $signature->getKey());
+
+        return [
+            'status' => $signatureEvaluation['status'] ?? $versionEvaluation['status'],
+            'is_valid' => (bool) ($signatureEvaluation['is_valid'] ?? false),
+            'is_current_version' => (bool) $versionEvaluation['is_current'],
+            'document_status' => $versionEvaluation['status'],
+            'signer_name' => $signature->signer_name_snapshot,
+            'actor_type' => $signature->actor_type,
+            'academic_action' => $signature->academic_action,
+            'signed_at' => $signature->signed_at->toIso8601String(),
+            'signature_sha256' => $signature->signature_sha256,
+            'version_payload_sha256' => $signature->version_payload_sha256,
+            'attestation_hash' => $signature->attestation_hash,
+            'attestation_key_version' => $signature->attestation_key_version,
         ];
     }
 }

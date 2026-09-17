@@ -5,6 +5,7 @@ namespace Tests\Feature\OfficialForms;
 use App\Enums\AccountStatus;
 use App\Enums\UserType;
 use App\Models\OfficialFormSignature;
+use App\Models\OfficialFormSignatureVerification;
 use App\Models\OfficialFormVerification;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
@@ -127,6 +128,45 @@ class OfficialFormVerificationTest extends TestCase
     {
         $this->get(route('official-forms.verify', ['reference' => '00000000-0000-0000-0000-000000000000']))
             ->assertNotFound();
+    }
+
+    public function test_each_applied_signature_receives_a_public_verification_qr_reference(): void
+    {
+        [$adviser, $instance] = $this->createSignedInstance('RES-040');
+
+        $signature = OfficialFormSignature::query()
+            ->with('verification')
+            ->where('official_form_version_id', $instance->current_version_id)
+            ->sole();
+
+        $this->assertNotNull($signature->verification);
+        $verification = OfficialFormSignatureVerification::query()
+            ->where('official_form_signature_id', $signature->id)
+            ->sole();
+        $this->assertDatabaseHas('official_form_signature_verifications', [
+            'official_form_signature_id' => $signature->id,
+            'public_reference' => $verification->public_reference,
+        ]);
+
+        $this->get(route('official-forms.signature.verify', [
+            'reference' => $verification->public_reference,
+        ]))
+            ->assertOk()
+            ->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive')
+            ->assertSee('VALID DIGITAL SIGNATURE ATTESTATION')
+            ->assertSee('Digital signature verification QR code')
+            ->assertSee($adviser->name)
+            ->assertSee('RES-040')
+            ->assertSee($verification->public_reference)
+            ->assertDontSee($adviser->email)
+            ->assertDontSee('official_form_signatures/');
+    }
+
+    public function test_unknown_signature_reference_returns_safe_404(): void
+    {
+        $this->get(route('official-forms.signature.verify', [
+            'reference' => '00000000-0000-0000-0000-000000000000',
+        ]))->assertNotFound();
     }
 
     public function test_verification_reference_is_reused_for_second_signature_on_same_version(): void

@@ -162,6 +162,10 @@ Route::get('/verify/official-form/{reference}', [OfficialFormVerificationControl
     ->middleware('throttle:60,1')
     ->name('official-forms.verify');
 
+Route::get('/verify/digital-signature/{reference}', [OfficialFormVerificationController::class, 'verifySignature'])
+    ->middleware('throttle:60,1')
+    ->name('official-forms.signature.verify');
+
 require __DIR__.'/auth.php';
 require __DIR__.'/admin.php';
 require __DIR__.'/student.php';

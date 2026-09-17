@@ -8,7 +8,7 @@
     'instance' => null,
 ])
 
-<div {{ $attributes->class(['space-y-2 text-center']) }}>
+<div {{ $attributes->class(['official-signature-field text-center']) }}>
     @php
         $formInstance = $instance
             ?? ($officialFormInstance ?? null)
@@ -61,38 +61,48 @@
                     ?? $classAssignments?->firstWhere('actor_type', $effectiveActorType)?->user?->name,
             };
         }
+
+        $signatureVerification = $appliedSignature?->verification;
+        $signatureVerifyUrl = $signatureVerification
+            ? route('official-forms.signature.verify', ['reference' => $signatureVerification->public_reference])
+            : null;
+        $signatureQrDataUri = null;
+        if ($signatureVerifyUrl) {
+            try {
+                $signatureQrDataUri = app(\App\Services\OfficialFormQrCodeGenerator::class)
+                    ->generateSvgDataUri($signatureVerifyUrl);
+            } catch (\Throwable) {
+                // The visible reference and public URL remain available if QR rendering fails.
+            }
+        }
     @endphp
 
-    @if ($appliedSignature)
-        <div class="flex flex-col items-center justify-center space-y-1">
-            <div class="h-16 w-48 max-w-full overflow-hidden rounded border border-emerald-300 bg-white p-1 shadow-sm">
+    <div class="official-signature-mark" aria-hidden="{{ $appliedSignature ? 'false' : 'true' }}">
+        @if ($appliedSignature)
+            <div class="official-signature-image">
                 <img
                     src="{{ route('official-forms.workspace.signature-image', $appliedSignature) }}"
                     alt="Digital signature of {{ $appliedSignature->signer_name_snapshot }}"
                     class="h-full w-full object-contain"
                 >
             </div>
-            <div class="border-b border-[#173c30] px-2 py-0.5 font-bold text-emerald-950">
+        @else
+            <div class="official-signature-placeholder">
+                <span>Signature space</span>
+            </div>
+        @endif
+    </div>
+
+    <div class="official-signature-name">
+        @if ($appliedSignature)
+            <div class="w-full truncate border-b border-[#173c30] px-2 py-0.5 font-bold text-emerald-950">
                 {{ $appliedSignature->signer_name_snapshot }}
             </div>
-        </div>
-        <div
-            class="rounded border border-emerald-400 bg-emerald-50/80 px-3 py-1.5 text-[10px] font-semibold text-emerald-900"
-            role="status"
-            aria-label="{{ $label }} digital signature verified"
-            data-digital-signature-status="verified"
-        >
-            <span class="block font-bold">Signed & Digital Attestation Verified</span>
-            <span class="block text-[9px] font-normal text-emerald-800">
-                {{ $appliedSignature->signed_at->format('M d, Y h:i A') }}
-            </span>
-        </div>
-    @else
-        @if ($nameField && $formInstance instanceof \App\Models\OfficialFormInstance)
-            <div class="border-b border-[#173c30] px-2 py-1 font-bold">{{ $authoritativeName ?: 'Authorized actor pending assignment' }}</div>
+        @elseif ($nameField && $formInstance instanceof \App\Models\OfficialFormInstance)
+            <div class="w-full truncate border-b border-[#173c30] px-2 py-1 font-bold">{{ $authoritativeName ?: 'Authorized actor pending assignment' }}</div>
         @elseif ($nameField)
-            <label class="block text-left">
-                <span class="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[#173c30]/70">Printed name</span>
+            <label class="block w-full">
+                <span class="sr-only">Printed name</span>
                 <input
                     type="text"
                     name="{{ $nameField }}"
@@ -102,11 +112,35 @@
                 >
             </label>
         @else
-            <div class="border-b border-[#173c30] px-2 py-1 font-bold">{{ $authoritativeName ?: 'Authorized signer pending' }}</div>
+            <div class="w-full truncate border-b border-[#173c30] px-2 py-1 font-bold">{{ $authoritativeName ?: 'Authorized signer pending' }}</div>
         @endif
+    </div>
 
+    @if ($appliedSignature)
         <div
-            class="rounded border border-dashed border-[#173c30]/45 bg-white/20 px-3 py-2 text-[10px] font-semibold text-[#173c30]/65"
+            class="official-signature-status {{ $signatureQrDataUri ? 'has-verification-qr' : '' }} border-emerald-400 bg-emerald-50/80 text-emerald-900"
+            role="status"
+            aria-label="{{ $label }} digital signature verified"
+            data-digital-signature-status="verified"
+        >
+            <span class="block font-bold">Signed & Digital Attestation Verified</span>
+            <span class="block text-[9px] font-normal text-emerald-800">
+                {{ $appliedSignature->signed_at->format('M d, Y h:i A') }}
+            </span>
+            @if ($signatureVerification)
+                <span class="block font-mono text-[7px] font-normal text-emerald-700">
+                    Verify: {{ strtoupper(substr($signatureVerification->public_reference, 0, 8)) }}
+                </span>
+            @endif
+            @if ($signatureQrDataUri)
+                <span class="official-signature-qr" title="Scan to verify this digital signature">
+                    <img src="{{ $signatureQrDataUri }}" alt="QR code for {{ $label }} signature verification">
+                </span>
+            @endif
+        </div>
+    @else
+        <div
+            class="official-signature-status border-dashed border-[#173c30]/45 bg-white/20 text-[#173c30]/65"
             role="status"
             aria-label="{{ $label }} digital signature status"
             data-digital-signature-status="pending"
@@ -116,5 +150,5 @@
         </div>
     @endif
 
-    <span class="block font-bold">{{ $label }}</span>
+    <span class="official-signature-label">{{ $label }}</span>
 </div>

@@ -83,7 +83,7 @@ class OfficialFormWorkspaceController extends Controller
         $this->authorize('view', $instance);
 
         $instance->load([
-            'definition', 'currentVersion.signatures', 'versions.creator', 'group.members.student', 'group.researchGroup',
+            'definition', 'currentVersion.signatures.verification', 'versions.creator', 'group.members.student', 'group.researchGroup',
             'group.leader', 'group.adviser', 'group.researchClass.officialFormActorAssignments.user',
             'researchClass.officialFormActorAssignments.user', 'actorAssignments.user', 'source',
             'titlePresentation.defense.currentSchedule.room', 'titlePresentation.defense.activePanelAssignments.user',
@@ -552,6 +552,7 @@ class OfficialFormWorkspaceController extends Controller
             ->with([
                 'definition',
                 'currentVersion.signatures.signer',
+                'currentVersion.signatures.verification',
                 'currentVersion.creator',
                 'versions.creator',
                 'group.researchClass',

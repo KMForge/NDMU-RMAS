@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\DefenseEvaluationRound;
 use App\Models\OfficialFormInstance;
 use App\Models\OfficialFormSignature;
+use App\Models\OfficialFormSignatureVerification;
 use App\Models\OfficialFormVerification;
 use App\Models\OfficialFormVersion;
 use App\Models\ResearchClassActorAssignment;
@@ -200,6 +201,8 @@ class ApplyOfficialFormSignature
                     'user_agent' => $request?->userAgent(),
                 ]);
 
+                $signatureVerification = $this->createPublicSignatureVerification($signatureRecord);
+
                 OfficialFormVerification::query()->firstOrCreate(
                     ['official_form_version_id' => $currentVersion->id],
                     ['public_reference' => (string) Str::uuid()]
@@ -217,6 +220,7 @@ class ApplyOfficialFormSignature
                         'official_form_signature_id' => $signatureRecord->id,
                         'academic_action' => $academicAction,
                         'actor_type' => $actorType,
+                        'signature_verification_reference' => $signatureVerification->public_reference,
                         'version_payload_sha256' => $payloadHash,
                         'attestation_hash' => $attestationHash,
                     ],
@@ -394,6 +398,8 @@ class ApplyOfficialFormSignature
                     'user_agent' => $request?->userAgent(),
                 ]);
 
+                $dualSignatureVerification = $this->createPublicSignatureVerification($dualSig);
+
                 AuditLog::query()->create([
                     'user_id' => $actor->id,
                     'actor_name' => $actor->name,
@@ -406,6 +412,7 @@ class ApplyOfficialFormSignature
                         'official_form_signature_id' => $dualSig->id,
                         'academic_action' => $action,
                         'actor_type' => $actorType,
+                        'signature_verification_reference' => $dualSignatureVerification->public_reference,
                     ],
                 ]);
 
@@ -473,6 +480,14 @@ class ApplyOfficialFormSignature
             'description' => "Recorded {$signature->academic_action} digital signature on RES-026.",
             'subject_snapshot' => ['academic_actor_type' => $signature->actor_type, 'official_form_signature_id' => $signature->id],
         ]);
+    }
+
+    private function createPublicSignatureVerification(OfficialFormSignature $signature): OfficialFormSignatureVerification
+    {
+        return OfficialFormSignatureVerification::query()->firstOrCreate(
+            ['official_form_signature_id' => $signature->getKey()],
+            ['public_reference' => (string) Str::uuid()],
+        );
     }
 
     private function finalizeCanonicalTitle(TitlePresentation $presentation, User $actor): void

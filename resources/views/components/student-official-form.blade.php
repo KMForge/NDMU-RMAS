@@ -44,6 +44,97 @@
         }
         .official-form-table { width: 100%; border-collapse: collapse; }
         .official-form-table th, .official-form-table td { border: 1px solid #567368; padding: .45rem; vertical-align: top; }
+        .official-signature-field {
+            display: grid;
+            grid-template-rows: 4.5rem 1.75rem 3rem 1.5rem;
+            gap: .35rem;
+            width: 100%;
+            min-width: 0;
+            min-height: 12.15rem;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .official-signature-mark,
+        .official-signature-name {
+            display: flex;
+            min-width: 0;
+            align-items: end;
+            justify-content: center;
+        }
+        .official-signature-image,
+        .official-signature-placeholder {
+            box-sizing: border-box;
+            width: 12rem;
+            max-width: 100%;
+            height: 4.5rem;
+            overflow: hidden;
+            border-radius: .25rem;
+            background: #fff;
+            padding: .25rem;
+        }
+        .official-signature-image { border: 1px solid #6ee7b7; }
+        .official-signature-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px dashed rgba(23, 60, 48, .25);
+            color: rgba(23, 60, 48, .42);
+            font: 600 .6rem/1 sans-serif;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+        .official-signature-name > * { box-sizing: border-box; min-width: 0; }
+        .official-signature-status {
+            position: relative;
+            box-sizing: border-box;
+            display: flex;
+            height: 3rem;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-width: 1px;
+            border-radius: .25rem;
+            padding: .25rem .75rem;
+            font: 600 .625rem/1.2 sans-serif;
+        }
+        .official-signature-status.has-verification-qr { padding-right: 3.1rem; padding-left: .4rem; }
+        .official-signature-qr {
+            position: absolute;
+            top: 50%;
+            right: .3rem;
+            width: 2.35rem;
+            height: 2.35rem;
+            transform: translateY(-50%);
+            border: 1px solid #6ee7b7;
+            border-radius: .2rem;
+            background: #fff;
+            padding: .1rem;
+        }
+        .official-signature-qr img { display: block; width: 100%; height: 100%; }
+        .official-signature-label {
+            display: flex;
+            height: 1.5rem;
+            align-items: start;
+            justify-content: center;
+            overflow: hidden;
+            font-weight: 700;
+            line-height: 1.15;
+        }
+        .official-form-body .grid:has(.official-signature-field) {
+            align-items: end;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .official-form-body .grid:has(.official-signature-field) > label {
+            align-self: end;
+            min-width: 0;
+        }
+        .official-form-table tr:has(.official-signature-field),
+        .official-form-table td:has(.official-signature-field) {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
         @media print {
             @page { size: Letter portrait; margin: 0; }
             body * { visibility: hidden !important; }
@@ -55,6 +146,7 @@
             }
             .official-form-body { overflow: visible !important; }
             .official-form-actions { display: none !important; }
+            .official-signature-placeholder { color: transparent !important; }
         }
     </style>
 @endonce

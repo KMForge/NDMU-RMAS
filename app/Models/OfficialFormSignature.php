@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'official_form_instance_id',
@@ -45,6 +46,11 @@ class OfficialFormSignature extends Model
     public function specimen(): BelongsTo
     {
         return $this->belongsTo(UserSignature::class, 'user_signature_id');
+    }
+
+    public function verification(): HasOne
+    {
+        return $this->hasOne(OfficialFormSignatureVerification::class, 'official_form_signature_id');
     }
 
     protected function casts(): array
