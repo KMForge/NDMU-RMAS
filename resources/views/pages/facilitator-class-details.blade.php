@@ -292,7 +292,7 @@
                                     <div class="mt-4">
                                         <div class="flex items-center justify-between mb-2">
                                             <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Group Members</p>
-                                            @if ($members->isNotEmpty())
+                                            @if ($members->count() > 1)
                                                 <form method="POST" action="{{ route('facilitator.classes.groups.leader.assign', [$researchClass, $grp]) }}" class="flex items-center gap-1">
                                                     @csrf
                                                     @method('PUT')
@@ -313,6 +313,11 @@
                                                         @endforeach
                                                     </select>
                                                 </form>
+                                            @elseif ($members->count() === 1)
+                                                <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-emerald-700">
+                                                    <i class="ph ph-crown"></i>
+                                                    Leader assigned automatically
+                                                </span>
                                             @endif
                                         </div>
 

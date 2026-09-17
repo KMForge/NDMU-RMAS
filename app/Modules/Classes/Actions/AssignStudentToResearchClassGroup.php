@@ -14,6 +14,10 @@ use Illuminate\Support\Facades\DB;
 
 class AssignStudentToResearchClassGroup
 {
+    public function __construct(
+        private readonly SynchronizeResearchClassGroupLeadership $synchronizeLeadership,
+    ) {}
+
     public function handle(
         User $facilitator,
         ResearchClass $researchClass,
@@ -54,6 +58,8 @@ class AssignStudentToResearchClassGroup
 
                 // If student is already in this exact group, return idempotently
                 if ($existingMember !== null && $existingMember->research_class_group_id === $lockedGroup->getKey()) {
+                    $this->synchronizeLeadership->handle($lockedGroup, $facilitator);
+
                     return $existingMember;
                 }
 
@@ -76,20 +82,26 @@ class AssignStudentToResearchClassGroup
                 ];
 
                 if ($existingMember !== null) {
+                    $oldGroup = null;
                     if ($existingMember->research_class_group_id !== $lockedGroup->getKey()) {
-                        $oldGroup = ResearchClassGroup::query()->find($existingMember->research_class_group_id);
-                        if ($oldGroup !== null && $oldGroup->leader_student_id === $lockedEnrollment->student_id) {
-                            $oldGroup->leader_student_id = null;
-                            $oldGroup->save();
-                        }
+                        $oldGroup = ResearchClassGroup::query()
+                            ->lockForUpdate()
+                            ->find($existingMember->research_class_group_id);
                     }
 
                     $existingMember->update($attributes);
+                    if ($oldGroup !== null) {
+                        $this->synchronizeLeadership->handle($oldGroup, $facilitator);
+                    }
+                    $this->synchronizeLeadership->handle($lockedGroup, $facilitator);
 
                     return $existingMember->refresh();
                 }
 
-                return ResearchClassGroupMember::query()->create($attributes);
+                $member = ResearchClassGroupMember::query()->create($attributes);
+                $this->synchronizeLeadership->handle($lockedGroup, $facilitator);
+
+                return $member;
             }, 3);
         } catch (QueryException $exception) {
             report($exception);

@@ -88,19 +88,27 @@ class ResearchClassGroupController extends Controller
             return $this->errorResponse($request, $researchClass, $exception->getMessage(), 422);
         }
 
+        $targetGroup->refresh();
+        $automaticallyAssignedLeader = (int) $targetGroup->leader_student_id === (int) $member->student_id
+            && $targetGroup->members()->count() === 1;
+        $message = $automaticallyAssignedLeader
+            ? 'Student assigned to the empty group and automatically set as Group Leader.'
+            : 'Student assigned to group successfully.';
+
         if ($request->expectsJson()) {
             return response()->json([
-                'message' => 'Student assigned to group successfully.',
+                'message' => $message,
                 'membership' => [
                     'id' => $member->getKey(),
                     'group_id' => $member->research_class_group_id,
                     'student_id' => $member->student_id,
                 ],
+                'leader_student_id' => $targetGroup->leader_student_id,
             ]);
         }
 
         return to_route('facilitator.classes.show', $researchClass)
-            ->with('class_success', 'Student assigned to group successfully.');
+            ->with('class_success', $message);
     }
 
     public function bulkAssignStudents(
@@ -125,15 +133,27 @@ class ResearchClassGroupController extends Controller
             return $this->errorResponse($request, $researchClass, $exception->getMessage(), 422);
         }
 
+        $targetGroup = ResearchClassGroup::query()->findOrFail((int) $validated['group_id']);
+        $activeMemberCount = $targetGroup->members()->count();
+        $leaderAssignmentRequired = $activeMemberCount > 1 && $targetGroup->leader_student_id === null;
+        $message = count($members).' student(s) assigned to group successfully.';
+        if ($leaderAssignmentRequired) {
+            $message .= ' Select a Group Leader from the group members.';
+        } elseif ($activeMemberCount === 1 && $targetGroup->leader_student_id !== null) {
+            $message .= ' The sole student was automatically set as Group Leader.';
+        }
+
         if ($request->expectsJson()) {
             return response()->json([
-                'message' => count($members).' student(s) assigned to group successfully.',
+                'message' => $message,
                 'assigned_count' => count($members),
+                'leader_student_id' => $targetGroup->leader_student_id,
+                'leader_assignment_required' => $leaderAssignmentRequired,
             ]);
         }
 
         return to_route('facilitator.classes.show', $researchClass)
-            ->with('class_success', count($members).' student(s) assigned to group successfully.');
+            ->with('class_success', $message);
     }
 
     public function rename(

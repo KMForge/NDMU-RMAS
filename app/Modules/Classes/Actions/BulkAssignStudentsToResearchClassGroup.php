@@ -15,6 +15,10 @@ use Illuminate\Support\Facades\DB;
 
 class BulkAssignStudentsToResearchClassGroup
 {
+    public function __construct(
+        private readonly SynchronizeResearchClassGroupLeadership $synchronizeLeadership,
+    ) {}
+
     /**
      * @param  array<int, int>  $enrollmentIds
      * @return Collection<int, ResearchClassGroupMember>
@@ -79,6 +83,7 @@ class BulkAssignStudentsToResearchClassGroup
                 }
 
                 $assignedMembers = collect();
+                $sourceGroupsToSynchronize = collect();
 
                 foreach ($validEnrollments as $enrollment) {
                     $existingMember = ResearchClassGroupMember::query()
@@ -97,10 +102,11 @@ class BulkAssignStudentsToResearchClassGroup
 
                     if ($existingMember !== null) {
                         if ($existingMember->research_class_group_id !== $lockedGroup->getKey()) {
-                            $oldGroup = ResearchClassGroup::query()->find($existingMember->research_class_group_id);
-                            if ($oldGroup !== null && (int) $oldGroup->leader_student_id === (int) $enrollment->student_id) {
-                                $oldGroup->leader_student_id = null;
-                                $oldGroup->save();
+                            $oldGroup = ResearchClassGroup::query()
+                                ->lockForUpdate()
+                                ->find($existingMember->research_class_group_id);
+                            if ($oldGroup !== null) {
+                                $sourceGroupsToSynchronize->put($oldGroup->getKey(), $oldGroup);
                             }
                         }
 
@@ -111,6 +117,11 @@ class BulkAssignStudentsToResearchClassGroup
                         $assignedMembers->push($newMember);
                     }
                 }
+
+                foreach ($sourceGroupsToSynchronize as $sourceGroup) {
+                    $this->synchronizeLeadership->handle($sourceGroup, $facilitator);
+                }
+                $this->synchronizeLeadership->handle($lockedGroup, $facilitator);
 
                 return $assignedMembers;
             }, 3);

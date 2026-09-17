@@ -62,7 +62,14 @@ class ResearchClassGroupWorkflowTest extends TestCase
                 $researchClass, $group, $enrollment,
             ]))
             ->assertOk()
-            ->assertJsonPath('membership.student_id', $student->getKey());
+            ->assertJsonPath('membership.student_id', $student->getKey())
+            ->assertJsonPath('leader_student_id', $student->getKey());
+
+        $this->assertSame($student->getKey(), $group->fresh()->leader_student_id);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'research-group.leader-assigned',
+            'auditable_id' => $group->getKey(),
+        ]);
 
         $pendingStudent = $this->userWithRole('student-researcher');
         $pendingEnrollment = $this->enroll($researchClass, $pendingStudent, 'pending');
@@ -152,9 +159,34 @@ class ResearchClassGroupWorkflowTest extends TestCase
                 'enrollment_ids' => [$enrollment1->getKey(), $enrollment2->getKey(), $enrollment3->getKey()],
             ])
             ->assertOk()
-            ->assertJsonPath('assigned_count', 3);
+            ->assertJsonPath('assigned_count', 3)
+            ->assertJsonPath('leader_student_id', null)
+            ->assertJsonPath('leader_assignment_required', true);
 
         $this->assertSame(3, ResearchClassGroupMember::query()->where('research_class_group_id', $group->getKey())->count());
+        $this->assertNull($group->fresh()->leader_student_id);
+    }
+
+    public function test_adding_more_students_retains_the_automatically_assigned_sole_member_as_leader(): void
+    {
+        $facilitator = $this->userWithRole('research-facilitator');
+        $firstStudent = $this->userWithRole('student-researcher');
+        $secondStudent = $this->userWithRole('student-researcher');
+        $researchClass = $this->createClass($facilitator);
+        $group = $this->createGroup($researchClass, $facilitator, 'Capstone Group 1');
+        $firstEnrollment = $this->enroll($researchClass, $firstStudent, 'active');
+        $secondEnrollment = $this->enroll($researchClass, $secondStudent, 'active');
+
+        foreach ([$firstEnrollment, $secondEnrollment] as $enrollment) {
+            $this->actingAs($facilitator)
+                ->putJson(route('facilitator.classes.groups.students.assign', [
+                    $researchClass, $group, $enrollment,
+                ]))
+                ->assertOk();
+        }
+
+        $this->assertSame($firstStudent->getKey(), $group->fresh()->leader_student_id);
+        $this->assertSame(2, $group->members()->count());
     }
 
     public function test_facilitator_can_send_adviser_request_and_adviser_can_accept_or_decline(): void
