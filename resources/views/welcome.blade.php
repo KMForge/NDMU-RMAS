@@ -56,27 +56,81 @@
         .animate-pulse-halo { animation: pulseHalo 4.5s ease-in-out infinite; }
         .animate-shimmer-bar { background-size: 200% 100%; animation: shimmerBar 3.5s linear infinite; }
         .animate-radar-ripple { animation: radarRipple 2.2s cubic-bezier(0, 0.2, 0.8, 1) infinite; }
+
+        .landing-hero {
+            min-height: calc(100svh - 76px);
+        }
+
+        /* The hero remains stacked below Tailwind's lg breakpoint. This also
+           covers mobile browsers using "Desktop site" (usually a ~980px viewport). */
+        @media (max-width: 1023px) {
+            .landing-hero {
+                min-height: 0;
+            }
+
+            .landing-hero-content {
+                grid-template-columns: minmax(0, 1fr);
+                margin-block: 0;
+            }
+
+            .landing-hero-content > * {
+                min-width: 0;
+                max-width: 100%;
+            }
+
+            .landing-showcase {
+                width: 100%;
+            }
+
+            .landing-hero-content h1,
+            .landing-hero-content p {
+                overflow-wrap: anywhere;
+            }
+
+            .landing-showcase .animate-badge-float-1,
+            .landing-showcase .animate-badge-float-2 {
+                max-width: calc(100% - 1rem);
+            }
+
+            .landing-showcase .animate-card-float,
+            .landing-showcase .animate-badge-float-1,
+            .landing-showcase .animate-badge-float-2,
+            .landing-showcase .animate-pulse-halo {
+                animation: none;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .animate-card-float,
+            .animate-badge-float-1,
+            .animate-badge-float-2,
+            .animate-pulse-halo,
+            .animate-shimmer-bar,
+            .animate-radar-ripple {
+                animation: none;
+            }
+        }
     </style>
 </head>
 <body class="m-0 overflow-x-hidden bg-[#073823] text-white antialiased selection:bg-[#eebc3f] selection:text-[#073823]">
 
 <!-- Global Sticky University Header -->
 <header data-site-header class="site-header sticky top-0 z-50 bg-white border-b border-slate-200/80 transition-all duration-300">
-    <div class="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-2 px-3 sm:min-h-[76px] sm:px-6 lg:px-8">
         <!-- System Brand Logo -->
-        <a href="{{ route('home') }}" class="group flex items-center gap-3.5 transition-transform duration-200 hover:scale-[1.01]" aria-label="NDMU Research Management System">
+        <a href="{{ route('home') }}" class="group flex min-w-0 items-center gap-2.5 transition-transform duration-200 hover:scale-[1.01] sm:gap-3.5" aria-label="NDMU Research Management System">
             <x-ndmu-n-logo size="md" :showGlow="false" />
-            <div class="flex flex-col leading-none border-l-2 border-[#eebc3f] pl-3">
+            <div class="flex min-w-0 flex-col border-l-2 border-[#eebc3f] pl-2.5 leading-none sm:pl-3">
                 <div class="flex items-center gap-2">
-                    <span class="font-heading font-black text-lg sm:text-xl text-[#073823] tracking-tight">NDMU</span>
+                    <span class="font-heading text-base font-black tracking-tight text-[#073823] sm:text-xl">NDMU</span>
                     <span class="px-2 py-0.5 rounded-full bg-[#eebc3f]/20 border border-[#eebc3f]/50 text-[#073823] font-black text-[9px] uppercase tracking-wider hidden sm:inline-block">RMAS</span>
                 </div>
-                <span class="text-[9px] sm:text-[10px] font-black text-[#0e5c3a] tracking-[0.22em] uppercase mt-0.5">Research Management</span>
+                <span class="mt-0.5 whitespace-nowrap text-[7px] font-black uppercase tracking-[0.14em] text-[#0e5c3a] min-[390px]:text-[8px] sm:text-[10px] sm:tracking-[0.22em]">Research Management</span>
             </div>
         </a>
 
         <!-- Auth Action Buttons -->
-        <div class="flex items-center gap-3">
+        <div class="flex shrink-0 items-center gap-1 sm:gap-3">
             @auth
                 <a
                     href="{{ route('dashboard') }}"
@@ -89,7 +143,7 @@
             @if(Route::has('login'))
                 <a
                     href="{{ route('login') }}"
-                    class="px-4 py-2.5 text-xs font-black text-[#073823] hover:text-[#0e5c3a] transition duration-200"
+                    class="px-2 py-2.5 text-[11px] font-black text-[#073823] transition duration-200 hover:text-[#0e5c3a] sm:px-4 sm:text-xs"
                 >
                     Log in
                 </a>
@@ -97,7 +151,7 @@
             @if(Route::has('register'))
                 <a
                     href="{{ route('register') }}"
-                    class="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#eebc3f] to-[#f4c542] hover:brightness-105 px-4.5 py-2.5 text-xs font-black text-[#073823] shadow-md shadow-amber-950/15 transition duration-200 hover:-translate-y-0.5"
+                    class="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#eebc3f] to-[#f4c542] px-3 py-2.5 text-[11px] font-black text-[#073823] shadow-md shadow-amber-950/15 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 sm:gap-2 sm:rounded-2xl sm:px-4.5 sm:text-xs"
                 >
                     <i class="ph ph-user-plus text-sm"></i>
                     <span>Register</span>
@@ -108,8 +162,8 @@
 </header>
 
 <main class="bg-[#073823]">
-    <!-- HERO SECTION: Full Screen Viewport with Clean Down-Arrow Indicator -->
-    <section class="relative min-h-[calc(100vh-76px)] flex flex-col justify-between bg-[#073823] text-white overflow-hidden">
+    <!-- HERO SECTION: full-height on desktop, natural-height while stacked -->
+    <section class="landing-hero relative flex flex-col justify-between overflow-hidden bg-[#073823] text-white">
         <!-- Subtle Single-Tone Grid Overlay -->
         <div class="pointer-events-none absolute inset-0 opacity-10">
             <svg class="h-full w-full" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
@@ -124,12 +178,12 @@
         </div>
 
         <!-- Main Hero Container Vertically Centered -->
-        <div class="relative z-10 mx-auto my-auto w-full max-w-7xl grid items-center gap-10 px-6 py-8 sm:py-12 lg:grid-cols-12 lg:px-8">
+        <div class="landing-hero-content relative z-10 mx-auto grid w-full min-w-0 max-w-7xl grid-cols-[minmax(0,1fr)] items-center gap-8 px-4 pb-10 pt-8 sm:my-auto sm:gap-10 sm:px-6 sm:py-12 lg:grid-cols-12 lg:px-8">
             
             <!-- Left Hero Content -->
-            <div class="relative z-10 lg:col-span-7 space-y-6">
+            <div class="relative z-10 min-w-0 max-w-full space-y-4 sm:space-y-6 lg:col-span-7">
                 <!-- Eyebrow Pill -->
-                <div class="inline-flex items-center gap-2.5 rounded-full border border-[#eebc3f]/40 bg-black/25 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#eebc3f] shadow-sm">
+                <div class="inline-flex max-w-full items-center gap-2 rounded-full border border-[#eebc3f]/40 bg-black/25 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#eebc3f] shadow-sm sm:gap-2.5 sm:px-4 sm:py-2 sm:text-xs sm:tracking-[0.18em]">
                     <span class="relative flex h-2.5 w-2.5">
                         <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#eebc3f] opacity-75"></span>
                         <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#eebc3f]"></span>
@@ -138,7 +192,7 @@
                 </div>
 
                 <!-- Main Hero Headline -->
-                <h1 class="text-4xl font-black leading-[1.12] tracking-tight sm:text-5xl lg:text-[3.5rem] text-white">
+                <h1 class="max-w-full break-words text-[2rem] font-black leading-[1.12] tracking-tight text-white min-[430px]:text-4xl sm:text-5xl lg:text-[3.5rem]">
                     Manage research from 
                     <span class="text-[#eebc3f]">proposal</span> 
                     to institutional 
@@ -146,16 +200,16 @@
                 </h1>
 
                 <!-- Supporting Description -->
-                <p class="max-w-xl text-sm sm:text-base leading-relaxed text-emerald-100/90 font-medium">
+                <p class="max-w-full break-words text-[13px] font-medium leading-relaxed text-emerald-100/90 sm:max-w-xl sm:text-base">
                     A university-grade research ecosystem connecting student researchers, faculty advisers, review panelists, facilitators, and academic deans in one seamless platform.
                 </p>
 
                 <!-- Action CTA Buttons -->
-                <div class="flex flex-col gap-3.5 sm:flex-row sm:items-center pt-1">
+                <div class="flex min-w-0 flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:gap-3.5">
                     @auth
                         <a
                             href="{{ route('dashboard') }}"
-                            class="group inline-flex min-h-[52px] items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-[#eebc3f] to-[#f4c542] hover:brightness-105 px-8 text-sm font-black text-[#073823] shadow-xl shadow-black/20 transition duration-200 hover:-translate-y-0.5"
+                            class="group inline-flex min-h-12 w-full min-w-0 items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-[#eebc3f] to-[#f4c542] px-5 text-center text-xs font-black text-[#073823] shadow-xl shadow-black/20 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 sm:min-h-[52px] sm:w-auto sm:rounded-2xl sm:px-8 sm:text-sm"
                         >
                             <span>Open Your Workspace</span>
                             <i class="ph ph-arrow-right text-base font-bold transition-transform duration-200 group-hover:translate-x-1"></i>
@@ -164,7 +218,7 @@
                         @if(Route::has('login'))
                             <a
                                 href="{{ route('login') }}"
-                                class="group inline-flex min-h-[52px] items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-[#eebc3f] to-[#f4c542] hover:brightness-105 px-8 text-sm font-black text-[#073823] shadow-xl shadow-black/20 transition duration-200 hover:-translate-y-0.5"
+                                class="group inline-flex min-h-12 w-full min-w-0 items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-[#eebc3f] to-[#f4c542] px-5 text-center text-xs font-black text-[#073823] shadow-xl shadow-black/20 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 sm:min-h-[52px] sm:w-auto sm:rounded-2xl sm:px-8 sm:text-sm"
                             >
                                 <span>Sign In to Continue</span>
                                 <i class="ph ph-arrow-right text-base font-bold transition-transform duration-200 group-hover:translate-x-1"></i>
@@ -173,7 +227,7 @@
                         @if(Route::has('register'))
                             <a
                                 href="{{ route('register') }}"
-                                class="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 hover:bg-white/20 px-7 text-sm font-bold text-white transition duration-200 hover:-translate-y-0.5"
+                                class="inline-flex min-h-12 w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 text-center text-xs font-bold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 sm:min-h-[52px] sm:w-auto sm:rounded-2xl sm:px-7 sm:text-sm"
                             >
                                 <i class="ph ph-student text-base text-[#eebc3f]"></i>
                                 <span>Register Student Account</span>
@@ -183,29 +237,29 @@
                 </div>
 
                 <!-- 3 Metric Highlights Strip -->
-                <div class="grid grid-cols-3 gap-4 border-t border-white/15 pt-6 max-w-lg">
-                    <div>
+                <div class="grid w-full min-w-0 max-w-lg grid-cols-3 gap-2 overflow-hidden border-t border-white/15 pt-4 sm:gap-4 sm:pt-6">
+                    <div class="min-w-0">
                         <span class="block text-2xl sm:text-3xl font-black text-[#eebc3f]">25</span>
-                        <span class="mt-0.5 block text-[11px] font-bold uppercase tracking-wider text-emerald-100/80">Official Forms</span>
+                        <span class="mt-0.5 block text-[9px] font-bold uppercase tracking-wide text-emerald-100/80 sm:text-[11px] sm:tracking-wider">Official Forms</span>
                     </div>
-                    <div>
+                    <div class="min-w-0">
                         <span class="block text-2xl sm:text-3xl font-black text-[#eebc3f]">14</span>
-                        <span class="mt-0.5 block text-[11px] font-bold uppercase tracking-wider text-emerald-100/80">Journey Stages</span>
+                        <span class="mt-0.5 block text-[9px] font-bold uppercase tracking-wide text-emerald-100/80 sm:text-[11px] sm:tracking-wider">Journey Stages</span>
                     </div>
-                    <div>
+                    <div class="min-w-0">
                         <span class="block text-2xl sm:text-3xl font-black text-[#eebc3f]">100%</span>
-                        <span class="mt-0.5 block text-[11px] font-bold uppercase tracking-wider text-emerald-100/80">Secure Vault</span>
+                        <span class="mt-0.5 block text-[9px] font-bold uppercase tracking-wide text-emerald-100/80 sm:text-[11px] sm:tracking-wider">Secure Vault</span>
                     </div>
                 </div>
             </div>
 
             <!-- Right Interactive Live Record Showcase Card -->
-            <div class="relative lg:col-span-5 lg:justify-self-end w-full max-w-[500px]">
+            <div class="landing-showcase relative mx-auto mt-2 w-full min-w-0 max-w-[500px] px-2 sm:mt-0 sm:px-0 lg:col-span-5 lg:justify-self-end">
                 <!-- Ambient Multi-Color Animated Halo Glow Behind Card -->
                 <div class="animate-pulse-halo pointer-events-none absolute -inset-5 rounded-[2.5rem] bg-gradient-to-tr from-emerald-500/30 via-[#eebc3f]/25 to-teal-400/25 blur-3xl"></div>
 
                 <!-- Floating Satellite Badge 1: Top-Right (Panel Evaluation Scheduled) -->
-                <div class="animate-badge-float-1 absolute -top-5 -right-3 sm:-right-5 z-20 flex items-center gap-3 rounded-2xl border border-white/20 bg-[#073823]/95 backdrop-blur-xl px-3.5 py-2.5 shadow-2xl shadow-black/50 text-white">
+                <div class="animate-badge-float-1 absolute right-0 -top-4 z-20 flex max-w-[calc(100%-1rem)] items-center gap-2 rounded-xl border border-white/20 bg-[#073823]/95 px-2.5 py-2 text-white shadow-2xl shadow-black/50 backdrop-blur-xl sm:-right-5 sm:-top-5 sm:gap-3 sm:rounded-2xl sm:px-3.5 sm:py-2.5">
                     <div class="flex -space-x-2 overflow-hidden shrink-0">
                         <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#eebc3f] text-[9px] font-black text-[#073823] ring-2 ring-[#073823]">JD</span>
                         <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-black text-white ring-2 ring-[#073823]">MB</span>
@@ -221,7 +275,7 @@
                 </div>
 
                 <!-- Floating Satellite Badge 2: Bottom-Left (Official Endorsement) -->
-                <div class="animate-badge-float-2 absolute -bottom-4 -left-3 sm:-left-5 z-20 flex items-center gap-2.5 rounded-2xl border border-emerald-500/20 bg-white/95 backdrop-blur-xl px-3.5 py-2 shadow-2xl shadow-black/30 text-slate-800">
+                <div class="animate-badge-float-2 absolute -bottom-3 left-0 z-20 flex max-w-[calc(100%-1rem)] items-center gap-2 rounded-xl border border-emerald-500/20 bg-white/95 px-2.5 py-1.5 text-slate-800 shadow-2xl shadow-black/30 backdrop-blur-xl sm:-bottom-4 sm:-left-5 sm:gap-2.5 sm:rounded-2xl sm:px-3.5 sm:py-2">
                     <span class="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-[#eebc3f] to-[#d4a027] text-[#073823] text-sm font-bold shadow-2xs shrink-0">
                         <i class="ph ph-shield-check"></i>
                     </span>
@@ -232,7 +286,7 @@
                 </div>
 
                 <!-- Main Floating Showcase Card Container -->
-                <div class="animate-card-float relative rounded-[2rem] border border-white/70 bg-white/95 backdrop-blur-md p-6 sm:p-7 text-slate-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden transition-all hover:shadow-[0_30px_70px_-15px_rgba(0,0,0,0.6)] group">
+                <div class="animate-card-float group relative min-w-0 max-w-full overflow-hidden rounded-3xl border border-white/70 bg-white/95 p-4 text-slate-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5)] backdrop-blur-md transition-all hover:shadow-[0_30px_70px_-15px_rgba(0,0,0,0.6)] sm:rounded-[2rem] sm:p-7">
                     <!-- Shimmering Top Accent Line -->
                     <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#073823] via-[#eebc3f] via-[#0e5c3a] to-[#073823] animate-shimmer-bar"></div>
                     <!-- Subtle Golden Ambient Radial Sheen in Top-Right Corner -->
@@ -401,7 +455,7 @@
         </div>
 
         <!-- Scroll Down Point Arrow Indicator -->
-        <div class="relative z-10 w-full pb-6 pt-2 flex flex-col items-center justify-center">
+        <div class="relative z-10 flex w-full flex-col items-center justify-center pb-5 pt-1 sm:pb-6 sm:pt-2">
             <a
                 href="#lifecycle"
                 class="group flex flex-col items-center gap-1.5 text-xs font-bold text-emerald-200/90 hover:text-[#eebc3f] transition-all cursor-pointer select-none"
