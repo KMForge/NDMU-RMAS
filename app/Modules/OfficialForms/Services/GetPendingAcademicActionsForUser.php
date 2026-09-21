@@ -2,6 +2,7 @@
 
 namespace App\Modules\OfficialForms\Services;
 
+use App\Models\DefenseEvaluationRound;
 use App\Models\OfficialFormInstance;
 use App\Models\User;
 use App\Modules\ResearchProgress\Services\ResearchJourneyService;
@@ -130,6 +131,43 @@ class GetPendingAcademicActionsForUser
                 ]);
             }
         }
+
+        DefenseEvaluationRound::query()
+            ->with(['defense.group.researchClass'])
+            ->whereIn('status', ['open', 'in_progress'])
+            ->whereHas('roundPanelists', fn ($query) => $query->where('panelist_user_id', $user->getKey()))
+            ->whereDoesntHave('evaluations', fn ($query) => $query
+                ->where('panelist_user_id', $user->getKey())
+                ->where('status', 'submitted'))
+            ->get()
+            ->each(function (DefenseEvaluationRound $round) use ($actions): void {
+                $group = $round->group;
+                $defenseType = $round->defense?->defense_type;
+                $stage = $defenseType === 'proposal_defense' ? 3 : ($defenseType === 'pre_final_defense' ? 10 : 11);
+
+                $actions->push([
+                    'id' => "defense-round-{$round->id}-evaluate",
+                    'form_code' => 'res-036',
+                    'form_title' => 'Evaluation of Research Defense',
+                    'instance_id' => null,
+                    'group_id' => $round->research_class_group_id,
+                    'group_name' => $group?->name ?? 'Unassigned Group',
+                    'class_name' => $group?->researchClass?->name ?? 'N/A',
+                    'stage' => $stage,
+                    'stage_name' => match ($defenseType) {
+                        'proposal_defense' => 'Research Proposal Defense',
+                        'pre_final_defense' => 'Research Pre-Final Defense',
+                        default => 'Research Final/Oral Defense',
+                    },
+                    'academic_actor_type' => 'panelist',
+                    'actor_type_label' => 'Panel Member',
+                    'action' => 'evaluate',
+                    'action_label' => 'Evaluate Defense',
+                    'status' => $round->status,
+                    'route' => route('panelist.evaluations.show', $round),
+                    'created_at' => $round->updated_at?->diffForHumans() ?? 'Recently',
+                ]);
+            });
 
         return $actions->values();
     }
