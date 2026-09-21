@@ -1,12 +1,34 @@
 import './bootstrap';
-import * as docx from 'docx-preview';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
-import PdfJsWorker from 'pdfjs-dist/legacy/build/pdf.worker.mjs?worker';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
-pdfjsLib.GlobalWorkerOptions.workerPort = new PdfJsWorker();
-window.docx = docx;
-window.pdfjsLib = pdfjsLib;
+let docxLibraryPromise;
+let pdfJsLibraryPromise;
+let pdfLibraryPromise;
+
+function loadDocxLibrary() {
+    docxLibraryPromise ??= import('docx-preview');
+
+    return docxLibraryPromise;
+}
+
+function loadPdfJsLibrary() {
+    pdfJsLibraryPromise ??= Promise.all([
+        import('pdfjs-dist/legacy/build/pdf.mjs'),
+        import('pdfjs-dist/legacy/build/pdf.worker.mjs?worker'),
+    ]).then(([pdfJs, workerModule]) => {
+        pdfJs.GlobalWorkerOptions.workerPort ??= new workerModule.default();
+
+        return pdfJs;
+    });
+
+    return pdfJsLibraryPromise;
+}
+
+function loadPdfLibrary() {
+    pdfLibraryPromise ??= import('pdf-lib');
+
+    return pdfLibraryPromise;
+}
+
 window.initializeDocxViewers = initializeDocxViewers;
 window.initializePdfViewers = initializePdfViewers;
 
@@ -119,6 +141,7 @@ async function downloadAnnotatedPdf({ downloadUrl, filename, comments = [] }) {
         throw new Error(`Unable to retrieve the original manuscript (HTTP ${response.status}).`);
     }
 
+    const { PDFDocument, StandardFonts, rgb } = await loadPdfLibrary();
     const sourcePdf = await PDFDocument.load(await response.arrayBuffer());
     const annotatedPdf = await PDFDocument.create();
     const regularFont = await annotatedPdf.embedFont(StandardFonts.Helvetica);
@@ -276,14 +299,16 @@ function initializeDocxViewers(root = document) {
             return;
         }
 
-        fetch(url)
-            .then((res) => {
+        Promise.all([
+            fetch(url).then((res) => {
                 if (!res.ok) {
                     throw new Error(`HTTP error ${res.status}`);
                 }
                 return res.arrayBuffer();
-            })
-            .then((buffer) => {
+            }),
+            loadDocxLibrary(),
+        ])
+            .then(([buffer, docx]) => {
                 return docx.renderAsync(buffer, contentEl, null, {
                     className: 'docx-rendered-document',
                     inWrapper: true,
@@ -414,12 +439,14 @@ function initializePdfViewers(root = document) {
             return;
         }
 
-        fetch(url, { credentials: 'same-origin' })
-            .then((res) => {
+        Promise.all([
+            fetch(url, { credentials: 'same-origin' }).then((res) => {
                 if (!res.ok) throw new Error(`HTTP error ${res.status}`);
                 return res.arrayBuffer();
-            })
-            .then(async (buffer) => {
+            }),
+            loadPdfJsLibrary(),
+        ])
+            .then(async ([buffer, pdfjsLib]) => {
                 const loadingTask = pdfjsLib.getDocument({
                     data: new Uint8Array(buffer),
                     useSystemFonts: true,
