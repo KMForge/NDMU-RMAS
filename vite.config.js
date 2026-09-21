@@ -16,6 +16,13 @@ export default defineConfig({
         }),
         tailwindcss(),
     ],
+    build: {
+        rolldownOptions: {
+            checks: {
+                pluginTimings: false,
+            },
+        },
+    },
     server: {
         watch: {
             ignored: ['**/storage/framework/views/**'],
