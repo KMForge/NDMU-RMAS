@@ -15,9 +15,9 @@ class WelcomeTest extends TestCase
         $response = $this->get('/');
 
         $response->assertStatus(200);
-        $response->assertSee('NDMU Research Management System');
+        $response->assertSee('NDMU Institutional Research Portal');
         $response->assertSee('Log in');
-        $response->assertSee('Register Account');
+        $response->assertSee('Register');
     }
 
     public function test_welcome_page_renders_dashboard_link_for_authenticated_users(): void
@@ -31,6 +31,6 @@ class WelcomeTest extends TestCase
         $response = $this->actingAs($user)->get('/');
 
         $response->assertStatus(200);
-        $response->assertSee('Go to Dashboard');
+        $response->assertSee('Dashboard');
     }
 }

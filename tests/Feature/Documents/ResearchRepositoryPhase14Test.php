@@ -255,7 +255,7 @@ class ResearchRepositoryPhase14Test extends TestCase
         $void = $this->document($leader, $group, 'Old Proposal.pdf', DocumentStage::ProposalDefense, DocumentStatus::Pending, false, 1);
         Storage::disk('local')->put($void->storage_path, "%PDF-1.4\n%%EOF\n");
 
-        $this->actingAs($leader)->get(route('documents.view', $void))
+        $this->actingAs($leader)->get(route('documents.view', [$void, 'raw' => 1]))
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf')
             ->assertHeader('x-content-type-options', 'nosniff');
@@ -274,7 +274,7 @@ class ResearchRepositoryPhase14Test extends TestCase
         Storage::disk('local')->put($docx->storage_path, 'private-docx');
 
         $this->actingAs($leader)->get(route('documents.view', $docx))
-            ->assertOk()->assertSee('DOCX files are not rendered')->assertDontSee($docx->storage_path);
+            ->assertOk()->assertSee('Rendering DOCX Document in System')->assertDontSee($docx->storage_path);
 
         Storage::disk('local')->delete($docx->storage_path);
         $this->actingAs($leader)->get(route('documents.download', $docx))

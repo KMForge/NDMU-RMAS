@@ -509,7 +509,7 @@ class DocumentSubmissionTest extends TestCase
         $document = Document::query()->sole();
 
         $this->actingAs($owner)
-            ->get(route('documents.view', $document))
+            ->get(route('documents.view', [$document, 'raw' => 1]))
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
 

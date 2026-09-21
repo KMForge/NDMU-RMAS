@@ -12,20 +12,28 @@ class AcademicStructureSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_it_seeds_one_active_ceac_college_and_eight_active_programs(): void
+    public function test_it_seeds_one_active_ceac_college_with_its_departments_and_eight_active_programs(): void
     {
         $this->seed(AcademicStructureSeeder::class);
 
         $college = DB::table('colleges')->where('code', 'CEAC')->sole();
-        $department = DB::table('departments')->where('college_id', $college->id)->sole();
+        $departments = DB::table('departments')
+            ->where('college_id', $college->id)
+            ->where('is_active', true)
+            ->get();
         $programs = DB::table('programs')
-            ->where('department_id', $department->id)
+            ->whereIn('department_id', $departments->pluck('id'))
             ->where('is_active', true)
             ->orderBy('code')
             ->get();
 
         $this->assertSame(config('academic.college.name'), $college->name);
         $this->assertTrue((bool) $college->is_active);
+        $this->assertCount(count(config('academic.departments')), $departments);
+        $this->assertEqualsCanonicalizing(
+            collect(config('academic.departments'))->pluck('code')->all(),
+            $departments->pluck('code')->all(),
+        );
         $this->assertCount(8, $programs);
         $this->assertEqualsCanonicalizing(
             collect(config('academic.programs'))->pluck('code')->all(),
@@ -66,7 +74,7 @@ class AcademicStructureSeederTest extends TestCase
         $this->seed(AcademicStructureSeeder::class);
 
         $this->assertSame(1, DB::table('colleges')->where('is_active', true)->count());
-        $this->assertSame(1, DB::table('departments')->where('is_active', true)->count());
+        $this->assertSame(count(config('academic.departments')), DB::table('departments')->where('is_active', true)->count());
         $this->assertSame(8, DB::table('programs')->where('is_active', true)->count());
         $this->assertFalse((bool) DB::table('colleges')->where('code', 'OTHER')->value('is_active'));
         $this->assertFalse((bool) DB::table('programs')->where('code', 'OTHER-PROGRAM')->value('is_active'));

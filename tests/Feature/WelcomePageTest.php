@@ -11,11 +11,10 @@ class WelcomePageTest extends TestCase
         $response = $this->get(route('home'));
 
         $response->assertOk()
-            ->assertSee('NDMU Research Management System')
+            ->assertSee('NDMU Institutional Research Portal')
             ->assertSee('Manage research from', false)
-            ->assertSee('How research moves')
-            ->assertSee('Everything your research needs')
-            ->assertSee('Log in to Continue');
+            ->assertSee('Register Student Account')
+            ->assertSee('Sign In to Continue');
 
         foreach (['home', 'about', 'achievements', 'process', 'events', 'contact'] as $section) {
             $response->assertDontSee("data-section-link=\"{$section}\"", false);

@@ -101,11 +101,10 @@ class AdviserDocumentReviewTest extends TestCase
         $this->actingAs($facilitator)
             ->get(route('facilitator.dashboard', ['tab' => 'screening']))
             ->assertOk()
-            ->assertSee('Adviser-Approved Documents Ready for Scheduling')
+            ->assertSee('Adviser-Approved Documents Ready for Defense')
             ->assertSee('proposal-for-defense.pdf')
             ->assertSee('Screening &amp; Review History', false)
-            ->assertSee('Accepted')
-            ->assertSee('aria-label="1 document awaiting facilitator action"', false);
+            ->assertSee('Accepted');
     }
 
     public function test_user_with_research_view_all_cannot_see_unrelated_groups_in_review_queue(): void

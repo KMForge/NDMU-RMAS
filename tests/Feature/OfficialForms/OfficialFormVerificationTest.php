@@ -283,8 +283,7 @@ class OfficialFormVerificationTest extends TestCase
 
     private function enrollSignature(User $user): UserSignature
     {
-        $pngHeader = "\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\rIDATx\x9cc\xf8\xff\xff?\x03\x00\x05\xfe\x02\xfe\xa79\xfd\x05\x00\x00\x00\x00IEND\xaeB`\x82";
-        $file = UploadedFile::fake()->createWithContent('signature.png', $pngHeader);
+        $file = UploadedFile::fake()->image('signature.png', 400, 150);
 
         $this->actingAs($user)->putJson(route('signature.store'), ['signature' => $file])->assertOk();
 

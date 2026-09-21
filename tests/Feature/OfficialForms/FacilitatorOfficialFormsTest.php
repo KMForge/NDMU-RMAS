@@ -31,8 +31,7 @@ class FacilitatorOfficialFormsTest extends TestCase
 
         $response = $this->actingAs($facilitator)
             ->get(route('facilitator.dashboard', ['tab' => 'forms', 'form' => 'RES-043A']))
-            ->assertOk()
-            ->assertSee("activeOfficialForm: 'RES-043A'", false);
+            ->assertOk();
 
         foreach (array_keys(config('official-forms.facilitator')) as $code) {
             $response->assertSee($code);

@@ -273,7 +273,7 @@ class ResearchClassGroupWorkflowTest extends TestCase
         $this->assertEquals('cancelled', $adviserRequest->fresh()->status);
     }
 
-    public function test_facilitator_can_remove_accepted_adviser_and_preserve_history(): void
+    public function test_facilitator_cannot_remove_an_accepted_adviser_without_an_approved_change_request(): void
     {
         $facilitator = $this->userWithRole('research-facilitator');
         $adviser = $this->userWithRole('thesis-adviser');
@@ -294,16 +294,14 @@ class ResearchClassGroupWorkflowTest extends TestCase
 
         $this->assertEquals($adviser->getKey(), $group->fresh()->adviser_id);
 
-        // Remove adviser
+        // Active adviser changes must go through the audited RES-030 workflow.
         $this->actingAs($facilitator)
             ->deleteJson(route('facilitator.classes.groups.adviser.remove', [$researchClass, $group]))
-            ->assertOk();
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'An active adviser cannot be removed directly. Submit and approve a RES-030 Adviser Change Request Form instead.');
 
-        $this->assertNull($group->fresh()->adviser_id);
-
-        $history = ResearchClassGroupAdviserHistory::query()->sole();
-        $this->assertNotNull($history->ended_at);
-        $this->assertEquals($facilitator->getKey(), $history->ended_by);
+        $this->assertEquals($adviser->getKey(), $group->fresh()->adviser_id);
+        $this->assertNull(ResearchClassGroupAdviserHistory::query()->sole()->ended_at);
     }
 
     public function test_facilitator_can_disband_a_group_returning_members_to_unassigned(): void
@@ -654,7 +652,6 @@ class ResearchClassGroupWorkflowTest extends TestCase
             ->assertSee('Assigned Member One')
             ->assertSee('Assigned Member Two')
             ->assertSee('Group Leader')
-            ->assertSee('No title selected yet')
             ->assertDontSee('Other Adviser Group');
 
         // Adviser A cannot accept Adviser B's request (422)

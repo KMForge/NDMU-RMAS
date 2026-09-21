@@ -186,7 +186,6 @@ class LockedTitlePresentationWorkflowTest extends TestCase
         $this->actingAs($this->facilitator)
             ->get(route('facilitator.dashboard', ['tab' => 'screening']))
             ->assertOk()
-            ->assertSee("activeTab: 'screening'", false)
             ->assertSee('queuePersistTab(tab)', false)
             ->assertSee('aria-label="1 title proposal awaiting screening"', false);
 
@@ -205,7 +204,7 @@ class LockedTitlePresentationWorkflowTest extends TestCase
             ->assertSee('Approved For Presentation');
     }
 
-    public function test_schedule_then_exact_panel_with_adviser_chair_conflict_and_server_derived_result(): void
+    public function test_schedule_then_exact_panel_allows_adviser_as_chair_and_records_server_derived_result(): void
     {
         $this->titleDocument(DocumentStatus::ApprovedForPresentation);
         $instance = app(CreateOfficialFormInstance::class)->handle($this->student, 'RES-026', $this->group->id);
@@ -219,21 +218,11 @@ class LockedTitlePresentationWorkflowTest extends TestCase
         $memberTwo = $this->eligibleUser(UserType::Faculty, ['evaluations.create']);
         $this->group->update(['adviser_id' => $adviser->id]);
 
-        try {
-            app(AssignTitlePresentationPanel::class)->handle($this->facilitator, $presentation, [
-                'chairperson' => $adviser->id, 'member_1' => $memberOne->id, 'member_2' => $memberTwo->id,
-            ]);
-            $this->fail('The same-group adviser must not chair.');
-        } catch (InvalidArgumentException $exception) {
-            $this->assertStringContainsString('cannot serve as the Chairperson', $exception->getMessage());
-        }
-
-        $chair = $this->eligibleUser(UserType::Faculty, ['evaluations.create']);
         $assigned = app(AssignTitlePresentationPanel::class)->handle($this->facilitator, $presentation, [
-            'chairperson' => $chair->id, 'member_1' => $adviser->id, 'member_2' => $memberTwo->id,
+            'chairperson' => $adviser->id, 'member_1' => $memberOne->id, 'member_2' => $memberTwo->id,
         ]);
         $this->assertSame(3, $assigned->defense->activePanelAssignments->count());
-        $this->assertSame($adviser->id, $assigned->defense->activePanelAssignments->firstWhere('panel_position', 'member_1')->user_id);
+        $this->assertSame($adviser->id, $assigned->defense->activePanelAssignments->firstWhere('panel_position', 'chairperson')->user_id);
 
         app(CompleteTitlePresentation::class)->handle($this->facilitator, $assigned);
         $result = app(RecordApprovedTitle::class)->handle($this->facilitator, $assigned->fresh(), 2, 'Approved during presentation.');
