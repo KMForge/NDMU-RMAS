@@ -4,12 +4,15 @@ namespace Tests\Feature\Authentication;
 
 use App\Enums\AccountStatus;
 use App\Enums\UserType;
+use App\Models\SystemSetting;
 use App\Models\User;
+use App\Modules\SystemSettings\Services\TurnstileSettings;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Auth\SessionGuard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class LoginTest extends TestCase
@@ -195,6 +198,30 @@ class LoginTest extends TestCase
             ->assertSee('data-password-input="password"', false)
             ->assertSee('name="remember"', false)
             ->assertSee(route('password.request'), false);
+    }
+
+    public function test_login_form_renders_recoverable_turnstile_controls_when_configured(): void
+    {
+        config()->set('services.turnstile.site_key', 'test-site-key');
+
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertSee('data-ndmu-turnstile-wrapper', false)
+            ->assertSee('data-turnstile-retry', false)
+            ->assertSee('ndmuTurnstileOnload', false)
+            ->assertSee('refresh-expired', false)
+            ->assertSee('refresh-timeout', false);
+    }
+
+    public function test_login_form_hides_turnstile_when_an_administrator_disables_it(): void
+    {
+        config()->set('services.turnstile.site_key', 'test-site-key');
+        SystemSetting::query()->update(['turnstile_enabled' => false]);
+        Cache::forget(TurnstileSettings::CACHE_KEY);
+
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertDontSee('data-ndmu-turnstile-wrapper', false);
     }
 
     public function test_remember_me_issues_a_persistent_login_cookie(): void

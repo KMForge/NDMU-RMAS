@@ -129,6 +129,7 @@ class AdminDashboardTest extends TestCase
             ->set('settingsSupportEmail', 'support@ndmu.edu.ph')
             ->set('settingsStudentRegistrationEnabled', false)
             ->set('settingsEmailNotificationsEnabled', true)
+            ->set('settingsTurnstileEnabled', false)
             ->set('settingsMaintenanceNotice', '<b>Scheduled maintenance</b>')
             ->set('settingsAcademicYearId', $academicYearId)
             ->set('settingsAcademicTermId', $academicTermId)
@@ -141,6 +142,7 @@ class AdminDashboardTest extends TestCase
         $this->assertSame('NDMU Research Portal', $settings->system_name);
         $this->assertSame('support@ndmu.edu.ph', $settings->support_email);
         $this->assertFalse($settings->student_registration_enabled);
+        $this->assertFalse($settings->turnstile_enabled);
         $this->assertSame('Scheduled maintenance', $settings->maintenance_notice);
         $this->assertSame($admin->id, $settings->updated_by);
         $this->assertDatabaseHas('academic_years', ['id' => $academicYearId, 'is_current' => true]);

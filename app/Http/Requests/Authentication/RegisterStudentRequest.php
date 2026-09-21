@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Authentication;
 
+use App\Modules\SystemSettings\Services\TurnstileSettings;
 use App\Rules\TurnstileRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -32,7 +33,7 @@ class RegisterStudentRequest extends FormRequest
             'password' => ['required', 'confirmed', Password::min(12)->mixedCase()->letters()->numbers()->symbols()],
         ];
 
-        if (config('services.turnstile.site_key') && ! app()->environment('testing')) {
+        if (app(TurnstileSettings::class)->shouldValidate()) {
             $rules['cf-turnstile-response'] = ['required', new TurnstileRule];
         }
 

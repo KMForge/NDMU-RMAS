@@ -2,6 +2,7 @@
 
 namespace App\Rules;
 
+use App\Modules\SystemSettings\Services\TurnstileSettings;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Facades\Http;
@@ -16,6 +17,10 @@ class TurnstileRule implements ValidationRule
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
+        if (! app(TurnstileSettings::class)->shouldValidate()) {
+            return;
+        }
+
         $secretKey = config('services.turnstile.secret_key');
 
         // Gracefully bypass if Turnstile is not configured or in testing environment

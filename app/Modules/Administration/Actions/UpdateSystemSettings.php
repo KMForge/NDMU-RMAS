@@ -8,6 +8,7 @@ use App\Models\SystemSetting;
 use App\Models\User;
 use App\Modules\AuditLogs\Services\AuditLogWriter;
 use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
+use App\Modules\SystemSettings\Services\TurnstileSettings;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -16,7 +17,7 @@ class UpdateSystemSettings
     public function __construct(private readonly AuditLogWriter $auditLogs) {}
 
     /**
-     * @param  array{system_name: string, support_email: string, student_registration_enabled: bool, email_notifications_enabled: bool, maintenance_notice: string|null, academic_year_id: int|null, academic_term_id: int|null}  $values
+     * @param  array{system_name: string, support_email: string, student_registration_enabled: bool, email_notifications_enabled: bool, turnstile_enabled: bool, maintenance_notice: string|null, academic_year_id: int|null, academic_term_id: int|null}  $values
      */
     public function handle(User $actor, array $values): SystemSetting
     {
@@ -29,6 +30,7 @@ class UpdateSystemSettings
                 'support_email',
                 'student_registration_enabled',
                 'email_notifications_enabled',
+                'turnstile_enabled',
                 'maintenance_notice',
             ]);
 
@@ -37,6 +39,7 @@ class UpdateSystemSettings
                 'support_email' => $values['support_email'],
                 'student_registration_enabled' => $values['student_registration_enabled'],
                 'email_notifications_enabled' => $values['email_notifications_enabled'],
+                'turnstile_enabled' => $values['turnstile_enabled'],
                 'maintenance_notice' => $values['maintenance_notice'],
                 'updated_by' => $actor->getKey(),
             ]);
@@ -50,6 +53,7 @@ class UpdateSystemSettings
 
             $this->audit($actor, $settings, $oldValues, $values);
             Cache::forget('system-settings');
+            Cache::forget(TurnstileSettings::CACHE_KEY);
 
             return $settings->refresh();
         });

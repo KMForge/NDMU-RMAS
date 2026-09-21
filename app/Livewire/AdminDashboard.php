@@ -99,6 +99,8 @@ class AdminDashboard extends Component
 
     public bool $settingsEmailNotificationsEnabled = true;
 
+    public bool $settingsTurnstileEnabled = true;
+
     public string $settingsMaintenanceNotice = '';
 
     public ?int $settingsAcademicYearId = null;
@@ -552,6 +554,7 @@ class AdminDashboard extends Component
             'settingsSupportEmail' => ['required', 'email:rfc', 'max:255'],
             'settingsStudentRegistrationEnabled' => ['boolean'],
             'settingsEmailNotificationsEnabled' => ['boolean'],
+            'settingsTurnstileEnabled' => ['boolean'],
             'settingsMaintenanceNotice' => ['nullable', 'string', 'max:500'],
             'settingsAcademicYearId' => ['nullable', 'integer', Rule::exists('academic_years', 'id')],
             'settingsAcademicTermId' => [
@@ -574,6 +577,7 @@ class AdminDashboard extends Component
             'support_email' => $this->settingsSupportEmail,
             'student_registration_enabled' => $this->settingsStudentRegistrationEnabled,
             'email_notifications_enabled' => $this->settingsEmailNotificationsEnabled,
+            'turnstile_enabled' => $this->settingsTurnstileEnabled,
             'maintenance_notice' => $this->settingsMaintenanceNotice !== '' ? $this->settingsMaintenanceNotice : null,
             'academic_year_id' => $this->settingsAcademicYearId,
             'academic_term_id' => $this->settingsAcademicTermId,
@@ -1115,6 +1119,7 @@ class AdminDashboard extends Component
         $this->settingsSupportEmail = $settings->support_email;
         $this->settingsStudentRegistrationEnabled = $settings->student_registration_enabled;
         $this->settingsEmailNotificationsEnabled = $settings->email_notifications_enabled;
+        $this->settingsTurnstileEnabled = $settings->turnstile_enabled;
         $this->settingsMaintenanceNotice = $settings->maintenance_notice ?? '';
         $this->settingsAcademicYearId = AcademicYear::query()->where('is_current', true)->value('id');
         $this->settingsAcademicTermId = AcademicTerm::query()->where('is_current', true)->value('id');

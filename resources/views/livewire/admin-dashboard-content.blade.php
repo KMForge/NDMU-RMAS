@@ -3137,6 +3137,20 @@
                                 <span><span class="block text-sm font-bold text-gray-800">Email Notifications</span><span class="mt-1 block text-xs leading-5 text-gray-500">Allow workflow notifications to be delivered by email.</span></span>
                                 <input type="checkbox" wire:model="settingsEmailNotificationsEnabled" class="mt-1 h-5 w-5 rounded border-gray-300 text-[#0e5c3a] focus:ring-[#0e5c3a]">
                             </label>
+                            <label class="flex cursor-pointer items-start justify-between gap-4 rounded-2xl border border-gray-200 p-5 lg:col-span-2">
+                                <span class="pr-3">
+                                    <span class="block text-sm font-bold text-gray-800">Enable CAPTCHA (Cloudflare Turnstile)</span>
+                                    <span class="mt-1 block text-xs leading-5 text-gray-500">Require bot verification on login and student registration. You may turn this off during trusted local testing; keep it enabled when the public site is online.</span>
+                                    @if (! config('services.turnstile.site_key') || ! config('services.turnstile.secret_key'))
+                                        <span class="mt-2 block text-xs font-semibold text-amber-700">Turnstile keys are incomplete in the environment. Add both keys before enabling public protection.</span>
+                                    @endif
+                                </span>
+                                <span class="relative mt-1 inline-flex shrink-0 items-center">
+                                    <input type="checkbox" wire:model="settingsTurnstileEnabled" class="peer sr-only" aria-label="Enable Cloudflare Turnstile CAPTCHA">
+                                    <span class="h-7 w-12 rounded-full bg-gray-300 transition peer-checked:bg-[#0e5c3a] peer-focus-visible:ring-4 peer-focus-visible:ring-[#0e5c3a]/20"></span>
+                                    <span class="pointer-events-none absolute left-1 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"></span>
+                                </span>
+                            </label>
                         </div>
 
                         <div class="mt-5">
