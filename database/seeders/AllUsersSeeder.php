@@ -49,6 +49,7 @@ class AllUsersSeeder extends Seeder
         // Students
         ['role' => 'Student (active 1 - leader)', 'email' => 'student.active1@ndmu.edu.ph', 'password' => 'Password!12345'],
         ['role' => 'Student (active 2)', 'email' => 'student.active2@ndmu.edu.ph', 'password' => 'Password!12345'],
+        ['role' => 'Automated test student', 'email' => 'student.test@ndmu.edu.ph', 'password' => 'TestOnly!2345'],
         // CSD Faculty
         ['role' => 'CSD Facilitator - Vince Marc B. Sabado', 'email' => 'vm.sabado@ndmu.edu.ph', 'password' => 'Password!12345'],
         ['role' => 'CSD Adviser / Panelist - Aliah Chavy B. Sabado', 'email' => 'ac.sabado@ndmu.edu.ph', 'password' => 'Password!12345'],
