@@ -99,45 +99,6 @@ class SubmitOfficialFormVersion
                 );
             }
 
-            $isInitialDraft = $currentVersion !== null
-                && (int) $currentVersion->version_number === 1
-                && $lockedInstance->status === 'draft'
-                && $currentVersion->signatures()->count() === 0;
-
-            if ($isInitialDraft) {
-                $currentVersion->update([
-                    'payload' => $validatedPayload,
-                    'created_by' => $actor->id,
-                ]);
-
-                $lockedInstance->update(['status' => $nextStatus]);
-
-                if ($formCode === 'RES-036' && $lockedInstance->source_type === DefenseSchedule::class) {
-                    $this->syncDefenseEvaluationSubmission($actor, $lockedInstance, $validatedPayload);
-                    $this->applyPanelistEvaluationSignature($actor, $lockedInstance, $currentVersion);
-                }
-
-                AuditLog::query()->create([
-                    'user_id' => $actor->id,
-                    'actor_name' => $actor->name,
-                    'actor_email' => $actor->email,
-                    'event' => strtoupper($lockedInstance->definition->code) === 'RES-026' ? 'RES026_SUBMITTED' : 'official_form.submitted',
-                    'auditable_type' => OfficialFormInstance::class,
-                    'auditable_id' => $lockedInstance->id,
-                    'description' => "Submitted official form version v1 (status: {$nextStatus}).",
-                    'subject_snapshot' => [
-                        'actor_function' => 'form_submitter',
-                        'old_status' => $oldStatus,
-                        'new_status' => $nextStatus,
-                        'version_number' => 1,
-                    ],
-                ]);
-
-                $this->nextFormNotifications->handle($actor, $lockedInstance);
-
-                return $currentVersion;
-            }
-
             if ($currentVersion !== null && $currentVersion->payload === $validatedPayload) {
                 $lockedInstance->update(['status' => $nextStatus]);
 
