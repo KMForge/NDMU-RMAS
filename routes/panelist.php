@@ -10,8 +10,12 @@ Route::prefix('panelist')->name('panelist.')->middleware([
 ])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/evaluations/{round}', [EvaluationController::class, 'show'])->name('evaluations.show');
-    Route::post('/evaluations/{round}/draft', [EvaluationController::class, 'saveDraft'])->name('evaluations.draft');
-    Route::post('/evaluations/{round}/submit', [EvaluationController::class, 'submit'])->name('evaluations.submit');
+    Route::post('/evaluations/{round}/draft', [EvaluationController::class, 'saveDraft'])
+        ->middleware('throttle:defense-drafts')
+        ->name('evaluations.draft');
+    Route::post('/evaluations/{round}/submit', [EvaluationController::class, 'submit'])
+        ->middleware('throttle:defense-actions')
+        ->name('evaluations.submit');
     Route::post('/documents/{document}/comments', [DocumentCommentController::class, 'store'])
         ->whereNumber('document')
         ->middleware(['permission:evaluations.create', 'throttle:document-reviews'])

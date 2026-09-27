@@ -119,20 +119,20 @@ Route::middleware(['auth', 'verified', 'active'])
     ->group(function (): void {
         Route::get('/', [OfficialFormWorkspaceController::class, 'index'])->name('index');
         Route::post('/definitions/{definition}', [OfficialFormWorkspaceController::class, 'store'])
-            ->middleware('throttle:30,1')->name('store');
+            ->middleware('throttle:official-form-actions')->name('store');
         Route::match(['GET', 'POST'], '/definitions/{definition}/sources/{sourceKind}/{source}', [OfficialFormWorkspaceController::class, 'storeFromSource'])
             ->whereNumber('source')
             ->whereIn('sourceKind', ['consultation-record', 'document-review', 'revision-request', 'res-042', 'defense-schedule'])
-            ->middleware('throttle:30,1')->name('store-from-source');
+            ->middleware('throttle:official-form-actions')->name('store-from-source');
         Route::get('/instances/{instance}', [OfficialFormWorkspaceController::class, 'show'])
             ->whereNumber('instance')->name('show');
         Route::post('/instances/{instance}/draft', [OfficialFormWorkspaceController::class, 'save'])
-            ->whereNumber('instance')->middleware('throttle:60,1')->name('save');
+            ->whereNumber('instance')->middleware('throttle:defense-drafts')->name('save');
         Route::post('/instances/{instance}/submit', [OfficialFormWorkspaceController::class, 'submit'])
-            ->whereNumber('instance')->middleware('throttle:30,1')->name('submit');
+            ->whereNumber('instance')->middleware('throttle:official-form-actions')->name('submit');
         Route::post('/instances/{instance}/actions/{action}', [OfficialFormWorkspaceController::class, 'action'])
             ->whereNumber('instance')->whereIn('action', ['endorse', 'receive', 'approve', 'reject', 'certify', 'validate'])
-            ->middleware('throttle:30,1')->name('action');
+            ->middleware('throttle:official-form-actions')->name('action');
         Route::post('/instances/{instance}/actions/{action}/sign', [OfficialFormWorkspaceController::class, 'signAction'])
             ->whereNumber('instance')->whereIn('action', [
                 'sign',
@@ -147,15 +147,15 @@ Route::middleware(['auth', 'verified', 'active'])
                 'sign_member_1',
                 'sign_member_2',
             ])
-            ->middleware('throttle:30,1')->name('sign-action');
+            ->middleware('throttle:official-form-actions')->name('sign-action');
         Route::get('/instances/{instance}/adviser-change-supporting-document', [OfficialFormWorkspaceController::class, 'adviserChangeSupportingDocument'])
             ->name('adviser-change-supporting-document');
         Route::get('/signatures/{signature}/image', [OfficialFormSignatureController::class, 'image'])
             ->whereNumber('signature')->middleware('throttle:120,1')->name('signature-image');
         Route::post('/instances/{instance}/actors', [OfficialFormWorkspaceController::class, 'assignActor'])
-            ->whereNumber('instance')->middleware('throttle:30,1')->name('actors.store');
+            ->whereNumber('instance')->middleware('throttle:official-form-actions')->name('actors.store');
         Route::delete('/instances/{instance}/actors/{assignment}', [OfficialFormWorkspaceController::class, 'deactivateActor'])
-            ->whereNumber(['instance', 'assignment'])->middleware('throttle:30,1')->name('actors.destroy');
+            ->whereNumber(['instance', 'assignment'])->middleware('throttle:official-form-actions')->name('actors.destroy');
     });
 
 Route::get('/verify/official-form/{reference}', [OfficialFormVerificationController::class, 'verify'])

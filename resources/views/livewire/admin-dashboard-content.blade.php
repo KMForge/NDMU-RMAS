@@ -3151,6 +3151,18 @@
                                     <span class="pointer-events-none absolute left-1 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"></span>
                                 </span>
                             </label>
+                            <label class="flex cursor-pointer items-start justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-5 lg:col-span-2">
+                                <span class="pr-3">
+                                    <span class="block text-sm font-bold text-gray-800">Disable Defense Rate Limiting</span>
+                                    <span class="mt-1 block text-xs leading-5 text-gray-600">Temporarily disables request limits for authenticated defense, evaluation, and official-form endpoints. Login, registration, password reset, uploads, APIs, and signature enrollment remain protected.</span>
+                                    <span class="mt-2 block text-xs font-semibold text-amber-700">Enable only during an active defense and turn it off afterward. Duplicate submissions are still rejected by workflow validation.</span>
+                                </span>
+                                <span class="relative mt-1 inline-flex shrink-0 items-center">
+                                    <input type="checkbox" wire:model="settingsDefenseHighTrafficModeEnabled" class="peer sr-only" aria-label="Disable defense rate limiting">
+                                    <span class="h-7 w-12 rounded-full bg-gray-300 transition peer-checked:bg-amber-500 peer-focus-visible:ring-4 peer-focus-visible:ring-amber-500/20"></span>
+                                    <span class="pointer-events-none absolute left-1 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"></span>
+                                </span>
+                            </label>
                         </div>
 
                         <div class="mt-5">

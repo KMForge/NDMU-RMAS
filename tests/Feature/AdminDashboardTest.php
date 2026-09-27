@@ -8,9 +8,14 @@ use App\Livewire\AdminDashboard;
 use App\Models\AuditLog;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Modules\SystemSettings\Services\RateLimitSettings;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Cache\RateLimiting\Unlimited;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -130,6 +135,7 @@ class AdminDashboardTest extends TestCase
             ->set('settingsStudentRegistrationEnabled', false)
             ->set('settingsEmailNotificationsEnabled', true)
             ->set('settingsTurnstileEnabled', false)
+            ->set('settingsDefenseHighTrafficModeEnabled', true)
             ->set('settingsMaintenanceNotice', '<b>Scheduled maintenance</b>')
             ->set('settingsAcademicYearId', $academicYearId)
             ->set('settingsAcademicTermId', $academicTermId)
@@ -143,10 +149,33 @@ class AdminDashboardTest extends TestCase
         $this->assertSame('support@ndmu.edu.ph', $settings->support_email);
         $this->assertFalse($settings->student_registration_enabled);
         $this->assertFalse($settings->turnstile_enabled);
+        $this->assertTrue($settings->defense_high_traffic_mode_enabled);
         $this->assertSame('Scheduled maintenance', $settings->maintenance_notice);
         $this->assertSame($admin->id, $settings->updated_by);
         $this->assertDatabaseHas('academic_years', ['id' => $academicYearId, 'is_current' => true]);
         $this->assertDatabaseHas('academic_terms', ['id' => $academicTermId, 'is_current' => true]);
+    }
+
+    public function test_defense_limiters_are_disabled_only_when_defense_mode_is_enabled(): void
+    {
+        $settings = SystemSetting::query()->firstOrFail();
+        $request = Request::create('/defense-test', 'POST');
+
+        $normalLimit = RateLimiter::limiter('defense-actions')($request);
+
+        $this->assertSame(30, $normalLimit->maxAttempts);
+
+        $settings->update(['defense_high_traffic_mode_enabled' => true]);
+        Cache::forget(RateLimitSettings::CACHE_KEY);
+
+        foreach (['defense-actions', 'defense-drafts', 'official-form-actions', 'document-reviews'] as $limiterName) {
+            $this->assertInstanceOf(Unlimited::class, RateLimiter::limiter($limiterName)($request));
+        }
+
+        $authenticationLimit = RateLimiter::limiter('authentication')($request);
+
+        $this->assertNotInstanceOf(Unlimited::class, $authenticationLimit);
+        $this->assertSame(10, $authenticationLimit->maxAttempts);
     }
 
     public function test_admin_can_seed_academic_cycle(): void

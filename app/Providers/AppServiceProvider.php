@@ -7,6 +7,7 @@ use App\APIs\Contracts\StorageProvider;
 use App\Integrations\Supabase\SupabaseRealtimeService;
 use App\Integrations\Supabase\SupabaseStorageService;
 use App\Modules\Documents\Actions\RecordDocumentUploadAttempt;
+use App\Modules\SystemSettings\Services\RateLimitSettings;
 use App\Support\PortableSchemaBlueprint;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Schema\Blueprint;
@@ -95,9 +96,17 @@ class AppServiceProvider extends ServiceProvider
                 });
         });
 
-        RateLimiter::for('document-reviews', fn (Request $request) => Limit::perMinute(60)->by(
-            'document-review|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
-        ));
+        RateLimiter::for('document-reviews', function (Request $request): Limit {
+            $highTrafficMode = app(RateLimitSettings::class)->defenseHighTrafficModeEnabled();
+
+            if ($highTrafficMode) {
+                return Limit::none();
+            }
+
+            return Limit::perMinute(60)->by(
+                'document-review|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
+            );
+        });
 
         RateLimiter::for('signature-enrollment', fn (Request $request) => Limit::perMinute(10)->by(
             'signature-enrollment|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
@@ -131,9 +140,41 @@ class AppServiceProvider extends ServiceProvider
             'progress-action|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
         ));
 
-        RateLimiter::for('defense-actions', fn (Request $request) => Limit::perMinute(30)->by(
-            'defense-action|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
-        ));
+        RateLimiter::for('defense-actions', function (Request $request): Limit {
+            $highTrafficMode = app(RateLimitSettings::class)->defenseHighTrafficModeEnabled();
+
+            if ($highTrafficMode) {
+                return Limit::none();
+            }
+
+            return Limit::perMinute(30)->by(
+                'defense-action|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
+            );
+        });
+
+        RateLimiter::for('defense-drafts', function (Request $request): Limit {
+            $highTrafficMode = app(RateLimitSettings::class)->defenseHighTrafficModeEnabled();
+
+            if ($highTrafficMode) {
+                return Limit::none();
+            }
+
+            return Limit::perMinute(120)->by(
+                'defense-draft|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
+            );
+        });
+
+        RateLimiter::for('official-form-actions', function (Request $request): Limit {
+            $highTrafficMode = app(RateLimitSettings::class)->defenseHighTrafficModeEnabled();
+
+            if ($highTrafficMode) {
+                return Limit::none();
+            }
+
+            return Limit::perMinute(30)->by(
+                'official-form-action|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
+            );
+        });
 
         RateLimiter::for('reports', fn (Request $request) => Limit::perMinute(60)->by(
             'reports|'.($request->user()?->getAuthIdentifier() ?: $request->ip()),
