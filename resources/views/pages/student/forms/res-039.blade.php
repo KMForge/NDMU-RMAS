@@ -163,7 +163,7 @@
 @endphp
 
 <div x-show="activeOfficialForm === 'RES-039'" x-cloak>
-    <x-student-official-form code="RES Form 039" title="RESEARCH REVISION CHART" guidebook-page="123">
+    <x-student-official-form code="RES-Form-039" title="RESEARCH REVISION CHART" guidebook-page="123">
         {{-- Research Title Block --}}
         <div class="space-y-1.5 text-xs">
             <div class="flex items-end gap-2">
@@ -534,7 +534,7 @@
             </div>
 
             {{-- Reviewer & Date Sign-off Block --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-10 pt-8 items-end">
+            <div class="official-signature-row grid grid-cols-1 gap-10 pt-8 sm:grid-cols-2">
                 <div>
                     <p class="font-bold text-xs mb-3 text-slate-800">Reviewed by:</p>
                     <div class="space-y-1">

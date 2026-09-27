@@ -44,7 +44,7 @@
         <p>Therefore, the above-mentioned student researcher/s is/are highly endorsed to proceed to the data-gathering phase.</p>
         <div>
             <strong>Endorsed by Panel of Examiners:</strong>
-            <div class="mt-4 grid gap-6 text-center md:grid-cols-3">
+            <div class="official-signature-row mt-4 grid gap-6 text-center md:grid-cols-3">
                 @for ($i = 1; $i <= 3; $i++)
                     <x-official-signature-field :label="'Panelist '.$i" />
                 @endfor
@@ -54,7 +54,7 @@
             <x-official-signature-field label="Research Adviser" />
             <p class="mt-1 text-xs font-bold text-slate-800">{{ $adviserName }}</p>
         </div>
-        <div class="grid gap-8 pt-8 text-center md:grid-cols-2">
+        <div class="official-signature-row grid gap-8 pt-8 text-center md:grid-cols-2">
             <div>
                 <x-official-signature-field label="Program Coordinator" />
                 <p class="mt-1 text-xs font-bold text-slate-800">{{ $programCoordinatorName }}</p>

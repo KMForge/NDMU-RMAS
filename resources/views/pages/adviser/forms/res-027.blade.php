@@ -18,6 +18,7 @@
 
     $programCoordinator = $resolver->programCoordinatorForGroup($group) ?? $resolver->programCoordinatorForClass($class);
     $programCoordinatorName = $programCoordinator?->name ?? 'Program Coordinator';
+    $deanName = $resolver->dean()?->name ?? 'College Dean';
 @endphp
 <div x-show="activeOfficialForm === 'RES-027'" x-cloak>
     <x-student-official-form code="RES-Form-027" title="Invitation to Research Adviser" guidebook-page="102">
@@ -45,18 +46,15 @@
                 <li>Endorse the research for final oral defense.</li>
                 <li>Guide preparation of the research presentation for the final oral defense.</li>
                 <li>Document the panel members' comments, suggestions, and recommendations during the defense.</li>
+                <li>Guide the student-advisees in revising and finalizing their research based on the panel members' comments, suggestions, and recommendations.</li>
+                <li>Ensure that the student-advisees submit two hardbound copies and one soft copy of the completed research to the College Research Facilitator on or before the deadline.</li>
             </ol>
         </div>
         <p>Thank you very much.</p>
-        <div class="grid gap-8 pt-8 text-center md:grid-cols-2">
-            <div>
-                <input type="text" class="w-full text-center font-bold" value="{{ $programCoordinatorName }}" readonly>
-                <span class="block text-xs text-slate-500">Program Coordinator / College Dean</span>
-            </div>
-            <div>
-                <x-official-signature-field label="Research Adviser Conforme" />
-                <p class="mt-1 text-xs font-bold text-slate-800">{{ $adviserName }}</p>
-            </div>
+        <div class="ml-auto w-full max-w-sm space-y-4 pt-5 text-center">
+            <x-official-signature-field actor-type="program_coordinator" label="Program Coordinator (Name & Signature)" />
+            <x-official-signature-field actor-type="dean" label="Noted: Dean (Name & Signature)" />
+            <x-official-signature-field actor-type="adviser" label="Conforme: Research Adviser (Name & Signature)" />
         </div>
     </x-student-official-form>
 </div>

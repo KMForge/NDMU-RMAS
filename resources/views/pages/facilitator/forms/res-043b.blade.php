@@ -13,10 +13,13 @@
                 'Suitability of Items — Items represent the substance of the research and intended measures.',
                 'Adequateness / Coverage — The number of questions per category sufficiently covers the research.',
                 'Attainment of Purpose — The items elicit the information required by the study.',
+                'Objectivity — The items avoid ambiguity, bias, and leading statements.',
+                'Scale and Evaluation — The response scale is appropriate for the information being gathered.',
             ];
         @endphp
         @php($ratingMean = collect($payload['ratings'] ?? [])->filter(static fn (mixed $value): bool => is_numeric($value))->avg())
         <table class="official-form-table text-[10px]"><thead><tr><th>Criteria</th>@for ($rating=1; $rating<=5; $rating++)<th class="w-10">{{ $rating }}</th>@endfor</tr></thead><tbody>@foreach ($validationCriteria as $index=>$criterion)<tr><td><strong>{{ $index + 1 }}.</strong> {{ $criterion }}</td>@for ($rating=1; $rating<=5; $rating++)<td class="text-center"><input type="radio" name="payload[ratings][{{ $index }}]" value="{{ $rating }}" {{ (int) ($payload['ratings'][$index] ?? 0) === $rating ? 'checked' : '' }}></td>@endfor</tr>@endforeach<tr><th>Mean</th><td colspan="5"><input type="number" min="1" max="5" step="0.01" value="{{ $ratingMean }}" class="w-full" readonly></td></tr></tbody></table>
-        <div class="grid gap-8 pt-8 text-center md:grid-cols-2"><label>Date Validated:<input type="date" name="payload[date]" value="{{ $payload['date'] ?? '' }}" class="w-full"></label><x-official-signature-field name-field="res_043b_validator_printed_name" label="Validated by" /></div>
+        <label class="block font-bold">Comments / Suggestions:<textarea name="payload[comments]" class="mt-1 min-h-20 w-full">{{ $payload['comments'] ?? '' }}</textarea></label>
+        <div class="official-signature-row grid gap-8 pt-8 text-center md:grid-cols-2"><x-official-signature-field name-field="res_043b_validator_printed_name" label="Validated by" /><label>Date Validated:<input type="date" name="payload[date]" value="{{ $payload['date'] ?? '' }}" class="w-full"></label></div>
     </x-student-official-form>
 </div>

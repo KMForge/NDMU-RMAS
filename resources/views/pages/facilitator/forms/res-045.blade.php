@@ -36,7 +36,8 @@
             @endfor
         </div>
         <p class="leading-7">has undergone language editing. The content and the authors' intention were not altered in any way during the editing process.</p>
-        <div class="grid gap-8 pt-8 text-center md:grid-cols-2">
+        <p class="leading-7">The undersigned guarantees that the research paper meets the acceptable standard of written English and that all corrections accepted by the student-researchers have been properly incorporated.</p>
+        <div class="official-signature-row grid gap-8 pt-8 text-center md:grid-cols-2">
             <x-official-signature-field name-field="res_045_editor_printed_name" label="Language Editor" />
             <label>
                 <span>Date Edited:</span>

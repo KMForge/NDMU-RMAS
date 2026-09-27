@@ -21,26 +21,33 @@
     $isEditable = in_array($officialFormInstance?->status, ['draft', 'returned_for_correction'], true);
 @endphp
 <div x-show="activeOfficialForm === 'RES-030'" x-cloak>
-    <x-student-official-form code="RES-Form-030" title="Adviser Change Request Form" guidebook-page="105">
+    <x-student-official-form code="RES-Form-030" title="Request for Change of Research Adviser / Panelist / Language Editor" guidebook-page="105">
         <input type="hidden" name="payload[personnel_type][]" value="Change of Research Adviser">
         <input type="hidden" name="payload[current_names][]" value="{{ $group?->adviser?->name }}">
         <div class="grid gap-4 md:grid-cols-2">
             <label class="flex items-center gap-2">Date: <input type="date" name="payload[date]" value="{{ $payload['date'] ?? now()->format('Y-m-d') }}" class="w-full"></label>
             <label class="flex items-center gap-2">Degree Program: <input name="payload[degree_program]" value="{{ $programName }}" class="w-full font-semibold" readonly></label>
         </div>
-        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm">
-            <p><strong>Research group:</strong> {{ $group?->name }}</p>
-            <p><strong>Class:</strong> {{ $class?->name }}</p>
-            <p><strong>Group leader:</strong> {{ $group?->leader?->name }}</p>
-            <p><strong>Members:</strong> {{ $joinedResearchers }}</p>
-            <p><strong>Current adviser:</strong> {{ $group?->adviser?->name ?? 'No active adviser' }}</p>
-        </div>
+        <fieldset>
+            <legend class="mb-2 font-bold">Name of Student/s:</legend>
+            @for ($i = 1; $i <= 4; $i++)
+                <label class="mb-2 flex gap-2"><span>{{ $i }}.</span><input value="{{ $members->get($i - 1)?->student?->name }}" class="flex-1" readonly></label>
+            @endfor
+        </fieldset>
+        <fieldset>
+            <legend class="font-bold">Specific Request:</legend>
+            <div class="mt-2 flex flex-wrap gap-5 text-xs">
+                <label><input type="checkbox" checked disabled> Change of Research Adviser</label>
+                <label><input type="checkbox" disabled> Change of Panelist</label>
+                <label><input type="checkbox" disabled> Change of Language Editor</label>
+            </div>
+        </fieldset>
         <label class="block font-bold">Research Title:<input name="payload[research_title]" value="{{ $currentResearchTitle }}" class="w-full font-bold" readonly></label>
         <div class="grid gap-4 md:grid-cols-2">
             <label class="block font-bold">Current Adviser
                 <input value="{{ $group?->adviser?->name }}" class="mt-1 w-full" readonly>
             </label>
-            <label class="block font-bold">Requested New Adviser
+            <label class="block font-bold">Proposed Adviser
                 <select name="payload[requested_adviser_id]" class="mt-1 w-full" required @disabled(! $isEditable)>
                     <option value="">Select an active eligible adviser</option>
                     @foreach (($adviserCandidates ?? collect()) as $candidate)
@@ -53,7 +60,7 @@
                 @unless($isEditable)<input type="hidden" name="payload[requested_adviser_id]" value="{{ $requestedAdviserId }}">@endunless
             </label>
         </div>
-        <label class="block font-bold">Reason for adviser change<textarea name="payload[reasons]" class="mt-2 min-h-24 w-full" required placeholder="State the reason for requesting a new adviser...">{{ $payload['reasons'] ?? $changeRequest?->reason }}</textarea></label>
+        <label class="block font-bold">Reason(s) for replacement<textarea name="payload[reasons]" class="mt-2 min-h-24 w-full" required placeholder="State the reason for requesting a new adviser...">{{ $payload['reasons'] ?? $changeRequest?->reason }}</textarea></label>
         <label class="block font-bold">Supporting explanation <span class="font-normal text-slate-500">(when required)</span><textarea name="payload[supporting_explanation]" class="mt-2 min-h-20 w-full" placeholder="Add relevant context or explain the supporting evidence...">{{ $payload['supporting_explanation'] ?? $changeRequest?->supporting_explanation }}</textarea></label>
         @if ($isEditable)
             <label class="block font-bold">Supporting document <span class="font-normal text-slate-500">(optional unless required by the reviewer)</span>

@@ -81,7 +81,7 @@
 
         <p>Thank you very much.</p>
 
-        <div class="grid gap-8 pt-8 text-center md:grid-cols-2">
+        <div class="official-signature-row grid gap-8 pt-8 text-center md:grid-cols-2">
             <x-official-signature-field actor-type="program_coordinator" label="Program Coordinator (Name & Signature)" />
             <x-official-signature-field actor-type="language_editor" label="Language Editor (Conforme Signature)" />
             <x-official-signature-field actor-type="dean" label="Noted: Dean (Name & Signature)" />

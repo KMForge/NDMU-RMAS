@@ -30,7 +30,7 @@
         </fieldset>
         <label class="block font-bold">Specific Concern/s:<textarea name="payload[specific_concerns]" class="mt-2 min-h-28 w-full">{{ $payload['specific_concerns'] ?? '' }}</textarea></label>
         <label class="block font-bold">Consultant's Recommendations:<textarea name="payload[recommendations]" class="mt-2 min-h-36 w-full">{{ $payload['recommendations'] ?? '' }}</textarea></label>
-        <div class="grid gap-6 md:grid-cols-2 pt-4">
+        <div class="official-signature-row grid gap-6 pt-4 md:grid-cols-2">
             <label>Follow-up consultation on:<input type="date" name="payload[follow_up_date]" value="{{ $payload['follow_up_date'] ?? '' }}" class="w-full"></label>
             <x-official-signature-field label="Consultant Signature" />
         </div>

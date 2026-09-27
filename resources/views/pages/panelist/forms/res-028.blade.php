@@ -54,26 +54,20 @@
         <div class="space-y-2 text-xs leading-5">
             <p>As Research Panelist, please be guided by the following:</p>
             <ol class="list-decimal space-y-1 pl-5">
-                <li>Review the research manuscript before the scheduled defense.</li>
-                <li>Coordinate any necessary rescheduling with the program coordinator, adviser, and other panel members.</li>
-                <li>Maintain the assigned panel composition through the required oral-defense stages whenever possible.</li>
-                <li>Discuss substantial recommendations with the adviser and other panelists for approval.</li>
+                <li>Examine the research manuscript thoroughly before the defense proper.</li>
+                <li>Be present during the actual oral defense. If unable to attend, coordinate rescheduling with the program coordinator, adviser, and other panel members.</li>
+                <li>Be in the defense room at least five minutes before the scheduled time.</li>
+                <li>Discuss major concerns on content, technical writing, grammar, spacing, and similar matters with the research adviser.</li>
+                <li>Raise questions objectively in consideration of the scope and limitation of the study.</li>
+                <li>Articulate suggestions during the defense and consult the research adviser for recommendations outside the defense proper.</li>
+                <li>Accommodate student-researchers' inquiries and return research documents at least three days upon receipt.</li>
             </ol>
         </div>
         <p>Thank you very much.</p>
-        <div class="grid gap-8 pt-8 text-center md:grid-cols-3">
-            <div>
-                <x-official-signature-field label="Program Coordinator" />
-                <p class="mt-1 text-xs font-bold text-slate-800">{{ $programCoordinatorName }}</p>
-            </div>
-            <div>
-                <x-official-signature-field label="Research Panelist Conforme" />
-                <p class="mt-1 text-xs font-bold text-slate-800">{{ $assignedPanelist?->name }}</p>
-            </div>
-            <div>
-                <x-official-signature-field label="College Dean" />
-                <p class="mt-1 text-xs font-bold text-slate-800">{{ $deanName }}</p>
-            </div>
+        <div class="ml-auto w-full max-w-sm space-y-4 pt-5 text-center">
+            <x-official-signature-field actor-type="program_coordinator" label="Program Coordinator (Name & Signature)" />
+            <x-official-signature-field actor-type="panelist" label="Conforme: Research Panelist (Signature & Date)" />
+            <x-official-signature-field actor-type="dean" label="Noted: Dean (Name & Signature)" />
         </div>
     </x-student-official-form>
 </div>

@@ -40,7 +40,7 @@
             I further attest that the research paper has incorporated the corrections and suggestions of the panel of examiners and was duly edited by proficient language and technical editors. Hence, I highly endorse the attached hard copy for reproduction and hard binding.
         </p>
         <p>For your approval.</p>
-        <div class="grid gap-8 pt-10 text-center md:grid-cols-2">
+        <div class="official-signature-row grid gap-8 pt-10 text-center md:grid-cols-2">
             <div>
                 <x-official-signature-field name-field="res_047_adviser_printed_name" label="Endorsed: Research Adviser" />
                 <p class="mt-1 text-xs font-bold text-slate-800">{{ $adviserName }}</p>
@@ -52,6 +52,7 @@
             <div>
                 <x-official-signature-field name-field="res_047_college_dean_name" label="Approved: College Dean" />
                 <p class="mt-1 text-xs font-bold text-slate-800">{{ $deanName }}</p>
+                <label class="mt-2 block text-xs text-slate-500">Date Approved:<input type="date" name="payload[approved_date]" value="{{ $payload['approved_date'] ?? '' }}" class="w-full text-center"></label>
             </div>
         </div>
     </x-student-official-form>

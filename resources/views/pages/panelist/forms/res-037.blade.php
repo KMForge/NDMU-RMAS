@@ -100,6 +100,7 @@
                     <th class="border border-gray-300 px-2 py-2 text-center w-24">Panelist 2</th>
                     <th class="border border-gray-300 px-2 py-2 text-center w-24">Panelist 3</th>
                     <th class="border border-gray-300 px-2 py-2 text-center w-28">Average Rating<br><small>(1 + 2 + 3) ÷ 3</small></th>
+                    <th class="border border-gray-300 px-2 py-2 text-center w-24">Total Rating</th>
                     <th class="border border-gray-300 px-3 py-2 text-left">Remarks</th>
                 </tr>
             </thead>
@@ -121,6 +122,7 @@
                     <td class="border border-gray-300 p-1 text-center bg-emerald-50/50">
                         <input type="text" id="res_037_paper_avg" name="payload[res_037_paper_average]" value="{{ $paperAverage }}" readonly class="w-full text-center bg-transparent py-1.5 font-black text-xs text-emerald-800 border-0">
                     </td>
+                    <td class="border border-gray-300 p-1"><input type="number" min="0" max="100" step="0.01" name="payload[res_037_paper_total]" value="{{ $payload['res_037_paper_total'] ?? '' }}" class="w-full text-center"></td>
                     <td class="border border-gray-300 p-1">
                         <textarea name="payload[res_037_paper_remarks]" rows="2" placeholder="Summary remarks..." class="w-full text-xs rounded border border-gray-200 p-1.5 resize-none focus:ring-1 focus:ring-emerald-500">{{ $payload['res_037_paper_remarks'] ?? '' }}</textarea>
                     </td>
@@ -150,6 +152,7 @@
                         <td class="border border-gray-300 p-1 text-center bg-emerald-50/50">
                             <input type="text" id="res_037_s_avg_{{ $student }}" name="payload[res_037_student_averages][]" value="{{ $sAvg }}" readonly class="w-full text-center bg-transparent py-1.5 font-black text-xs text-emerald-800 border-0">
                         </td>
+                        <td class="border border-gray-300 p-1"><input type="number" min="0" max="100" step="0.01" name="payload[res_037_student_totals][]" value="{{ $payload['res_037_student_totals'][$student - 1] ?? '' }}" class="w-full text-center"></td>
                         <td class="border border-gray-300 p-1">
                             <textarea name="payload[res_037_student_remarks][]" rows="2" placeholder="Student {{ $student }} remarks..." class="w-full text-xs rounded border border-gray-200 p-1.5 resize-none focus:ring-1 focus:ring-emerald-500">{{ $payload['res_037_student_remarks'][$student - 1] ?? '' }}</textarea>
                         </td>
@@ -158,7 +161,7 @@
             </tbody>
         </table>
 
-        <div class="grid gap-8 pt-8 text-center md:grid-cols-2">
+        <div class="official-signature-row grid gap-8 pt-8 text-center md:grid-cols-2">
             <label class="block text-xs font-semibold text-left">Date Submitted:
                 <input type="date" name="payload[res_037_submitted_at]" value="{{ $submittedAt }}" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs">
             </label>

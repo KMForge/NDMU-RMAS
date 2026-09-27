@@ -43,7 +43,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (['General Concern','Title','Preliminaries','Introduction','Method','Results','Discussion'] as $area)
+                @foreach (['General Concern','Title','Preliminaries','Introduction','Method','Results','Discussion','References','Appendices','Others'] as $area)
                     @php
                         $areaKey = strtolower($area);
                     @endphp
@@ -59,5 +59,18 @@
                 @endforeach
             </tbody>
         </table>
+        <div class="space-y-3 pt-4 text-xs">
+            <strong>Panelists:</strong>
+            @foreach (['Chairman', 'Member', 'Member'] as $index => $position)
+                <div class="official-signature-row grid grid-cols-[6rem_1fr_1fr] gap-4">
+                    <span>{{ $position }}:</span>
+                    <input name="payload[panelists][{{ $index }}][name]" value="{{ $payload['panelists'][$index]['name'] ?? '' }}" class="text-center" aria-label="{{ $position }} name">
+                    <x-official-signature-field :name-field="'res_034_panelist_'.$index.'_signature'" label="Signature" actor-type="panelist" />
+                </div>
+            @endforeach
+            <div class="official-signature-row ml-auto grid max-w-md grid-cols-1 gap-2 pt-4 text-center">
+                <x-official-signature-field name-field="res_034_team_leader_signature" label="Received by: Student Research Team Leader" />
+            </div>
+        </div>
     </x-student-official-form>
 </div>

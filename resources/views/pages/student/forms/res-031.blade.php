@@ -22,14 +22,17 @@
 @endphp
 <div x-show="activeOfficialForm === 'RES-031'" x-cloak>
     <x-student-official-form code="RES-Form-031" title="Consultation Record with Research Adviser" guidebook-page="106">
+        <fieldset>
+            <legend class="mb-2 font-bold">Name of Researchers:</legend>
+            @for ($i = 1; $i <= 4; $i++)
+                <label class="mb-2 flex gap-2"><span>{{ $i }}.</span><input value="{{ $members->get($i - 1)?->student?->name }}" class="flex-1" readonly></label>
+            @endfor
+        </fieldset>
         <div class="grid gap-4 md:grid-cols-2">
-            <label>Name of Researchers:
-                <textarea class="mt-1 min-h-20 w-full font-bold" readonly>{{ $joinedResearchers }}</textarea>
-            </label>
-            <div class="space-y-4">
-                <label class="block">Course / Section:<input value="{{ $courseSection }}" class="w-full font-semibold" readonly></label>
-                <label class="block">Adviser Name:<input value="{{ $adviserName }}" class="w-full font-semibold" readonly></label>
-            </div>
+            <label class="block">Degree Program / Section:<input value="{{ $courseSection }}" class="w-full font-semibold" readonly></label>
+            <label class="block">Research Adviser:<input value="{{ $adviserName }}" class="w-full font-semibold" readonly></label>
+            <label class="block">Date of Proposal Defense:<input type="date" name="payload[proposal_defense_date]" value="{{ $payload['proposal_defense_date'] ?? '' }}" class="w-full"></label>
+            <label class="block">Date of Final Defense:<input type="date" name="payload[final_defense_date]" value="{{ $payload['final_defense_date'] ?? '' }}" class="w-full"></label>
         </div>
         <label class="block">Research Title:<input value="{{ $currentResearchTitle }}" class="w-full font-bold" readonly></label>
         <div class="flex items-center justify-between">
@@ -43,9 +46,10 @@
         <table class="official-form-table text-xs">
             <thead>
                 <tr>
-                    <th class="w-1/5">Date & Conducted By</th>
-                    <th>Agenda, Discussion & Recommendations</th>
-                    <th class="w-1/4">Status & Signature</th>
+                    <th class="w-1/5">Number & Date</th>
+                    <th>Topics Discussed or Concerns</th>
+                    <th class="w-1/5">Student-Researchers</th>
+                    <th class="w-1/5">Adviser</th>
                 </tr>
             </thead>
             <tbody>
@@ -55,7 +59,6 @@
                             <td>
                                 <p class="font-bold text-[#0e5c3a]">#{{ $index + 1 }}</p>
                                 <p class="font-bold">{{ $consultation->consulted_at?->format('M j, Y g:i A') ?? 'N/A' }}</p>
-                                <p class="mt-1 text-gray-500">By: {{ $consultation->conductedBy?->name ?? $adviserName }}</p>
                                 <p class="mt-1 text-gray-500">Mode: {{ str($consultation->consultation_mode?->value ?? $consultation->consultation_mode)->headline() }}</p>
                             </td>
                             <td>
@@ -71,9 +74,10 @@
                                     @endif
                                 </div>
                             </td>
+                            <td><x-official-signature-field label="Student-Researchers" name-field="res_031_student_{{ $consultation->id }}_signature" /></td>
                             <td>
                                 <x-official-signature-field
-                                    label="Adviser Session Conforme"
+                                    label="Adviser"
                                     actor-type="adviser"
                                     name-field="res_031_consultation_{{ $consultation->id }}_signer_name"
                                 />
@@ -82,16 +86,12 @@
                     @endforeach
                 @else
                     <tr>
-                        <td colspan="3" class="p-8 text-center text-gray-500">
+                        <td colspan="4" class="p-8 text-center text-gray-500">
                             No consultation sessions recorded yet. Consultation sessions recorded via the Adviser Portal will automatically synchronize into this form.
                         </td>
                     </tr>
                 @endif
             </tbody>
         </table>
-        <div class="grid grid-cols-2 gap-8 pt-6 text-center">
-            <x-official-signature-field name-field="res_031_student_rep_signature" label="Lead Student Researcher" />
-            <x-official-signature-field name-field="res_031_adviser_signature" label="Thesis Adviser" />
-        </div>
     </x-student-official-form>
 </div>

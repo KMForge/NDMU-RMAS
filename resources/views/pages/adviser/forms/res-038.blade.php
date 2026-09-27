@@ -31,15 +31,9 @@
         </div>
         <label class="block">whose research paper is entitled:<input value="{{ $currentResearchTitle }}" class="mt-1 w-full font-bold" readonly></label>
         <label class="flex flex-wrap items-center gap-2">Endorsed this <input type="number" min="1" max="31" name="payload[day]" value="{{ $payload['day'] ?? now()->format('j') }}" class="w-20"> day of <input type="text" name="payload[month_year]" value="{{ $payload['month_year'] ?? now()->format('F Y') }}" class="w-48"></label>
-        <div class="grid gap-8 pt-8 text-center md:grid-cols-2">
-            <div>
-                <x-official-signature-field label="Dean / Program Head" />
-                <p class="mt-1 text-xs font-bold text-slate-800">{{ $programCoordinatorName }}</p>
-            </div>
-            <div>
-                <x-official-signature-field label="Research Adviser Acceptance" />
-                <p class="mt-1 text-xs font-bold text-slate-800">{{ $adviserName }}</p>
-            </div>
+        <div class="official-signature-row ml-auto w-full max-w-sm pt-8 text-center">
+            <x-official-signature-field actor-type="program_coordinator" label="Endorsed by: Dean / Program Head" />
+            <p class="mt-1 text-xs font-bold text-slate-800">{{ $programCoordinatorName }}</p>
         </div>
     </x-student-official-form>
 </div>

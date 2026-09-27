@@ -8,7 +8,6 @@
     <fieldset><legend class="font-bold">Type of Evaluation Phase:</legend>
         <div class="mt-2 flex flex-wrap gap-6">
             <label><input type="radio" name="payload[evaluation_phase]" value="proposal" @checked(($payload['evaluation_phase'] ?? '') === 'proposal')> Research Proposal Phase (Research-I)</label>
-            <label><input type="radio" name="payload[evaluation_phase]" value="pre_final" @checked(($payload['evaluation_phase'] ?? '') === 'pre_final')> Pre-Final Phase</label>
             <label><input type="radio" name="payload[evaluation_phase]" value="final" @checked(($payload['evaluation_phase'] ?? '') === 'final')> Final Phase (Research-II)</label>
         </div>
     </fieldset>
@@ -43,7 +42,7 @@
             </tr>
         </tbody>
     </table>
-    <div class="mx-auto mt-10 grid max-w-xl gap-6 md:grid-cols-2">
+    <div class="official-signature-row mx-auto mt-10 grid max-w-xl gap-6 md:grid-cols-2">
         <x-official-signature-field label="Student Evaluator" />
         <label class="text-center"><input type="date" name="payload[evaluation_date]" value="{{ $payload['evaluation_date'] ?? '' }}" class="w-full text-center"><span class="mt-1 block text-xs">Date of Evaluation</span></label>
     </div>

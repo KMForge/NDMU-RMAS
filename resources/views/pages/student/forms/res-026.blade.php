@@ -28,5 +28,5 @@
                 <x-official-signature-field :label="$panelRole['label'].' signature'" :actor-type="$panelRole['actor']" :academic-action="$panelRole['action']" />
             @endforeach
         </div>
-        <div class="grid grid-cols-2 gap-8 pt-8 text-center"><x-official-signature-field actor-type="program_coordinator" name-field="program_coordinator_name" label="Program Coordinator" /><x-official-signature-field actor-type="dean" name-field="college_dean_name" label="College Dean" /></div>
+        <div class="official-signature-row grid grid-cols-2 gap-8 pt-8 text-center"><x-official-signature-field actor-type="program_coordinator" name-field="program_coordinator_name" label="Program Coordinator" /><x-official-signature-field actor-type="dean" name-field="college_dean_name" label="College Dean" /></div>
     </x-student-official-form></div>

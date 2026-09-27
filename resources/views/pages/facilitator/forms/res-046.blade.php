@@ -36,7 +36,7 @@
             @endfor
         </div>
         <p class="leading-7">has been edited technically. The content and the authors' intention were not altered in any way during the editing process. The paper follows the prescribed research format stipulated in the NDMU Undergraduate Research Manual.</p>
-        <div class="grid gap-8 pt-8 text-center md:grid-cols-2">
+        <div class="official-signature-row grid gap-8 pt-8 text-center md:grid-cols-2">
             <x-official-signature-field name-field="res_046_editor_printed_name" label="Technical Editor" />
             <label>
                 <span>Date Edited:</span>

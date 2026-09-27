@@ -54,6 +54,11 @@
             break-inside: avoid;
             page-break-inside: avoid;
         }
+        .official-signature-row {
+            align-items: end;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
         .official-signature-mark,
         .official-signature-name {
             display: flex;
@@ -138,6 +143,13 @@
             .official-form-body { overflow: visible !important; }
             .official-form-actions { display: none !important; }
             .official-signature-placeholder { color: transparent !important; }
+            .official-form-table thead { display: table-header-group; }
+            .official-form-table tr,
+            .official-form-table th,
+            .official-form-table td {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
         }
     </style>
 @endonce
@@ -161,7 +173,7 @@
         <h2 class="mt-5 text-base font-bold uppercase">{{ $title }}</h2>
     </div>
 
-    <div class="official-form-body mt-7 space-y-5 text-sm">
+    <div class="official-form-body mt-7 space-y-4 text-sm">
         {{ $slot }}
     </div>
 
