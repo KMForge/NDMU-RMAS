@@ -35,19 +35,24 @@ class PortableSchemaBlueprint extends Blueprint
     }
 
     /**
-     * MySQL limits identifiers to 64 characters. Laravel's descriptive default
-     * names can exceed that limit for compound indexes on domain tables.
+     * Keep generated index and constraint names within each database driver's
+     * identifier limit while retaining a deterministic collision-safe suffix.
      */
     protected function createIndexName($type, array $columns)
     {
         $name = parent::createIndexName($type, $columns);
+        $identifierLimit = match ($this->connection->getDriverName()) {
+            'mysql' => 64,
+            'pgsql' => 63,
+            default => null,
+        };
 
-        if ($this->connection->getDriverName() !== 'mysql' || strlen($name) <= 64) {
+        if ($identifierLimit === null || strlen($name) <= $identifierLimit) {
             return $name;
         }
 
         $hash = substr(hash('sha256', $name), 0, 12);
 
-        return substr($name, 0, 51).'_'.$hash;
+        return substr($name, 0, $identifierLimit - 13).'_'.$hash;
     }
 }
