@@ -97,34 +97,8 @@
                     </dl>
                 </section>
 
-                <details class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <summary class="cursor-pointer text-xs font-black uppercase tracking-wider text-slate-700">Cryptographic integrity details</summary>
-                    <dl class="mt-4 space-y-3 text-xs">
-                        <div>
-                            <dt class="font-semibold text-slate-500">Attestation status</dt>
-                            <dd class="mt-1 font-mono font-bold {{ $isValid ? 'text-emerald-700' : 'text-rose-700' }}">{{ $evaluation['status'] }}</dd>
-                        </div>
-                        <div>
-                            <dt class="font-semibold text-slate-500">Attestation key version</dt>
-                            <dd class="mt-1 font-mono text-slate-700">{{ $evaluation['attestation_key_version'] }}</dd>
-                        </div>
-                        <div>
-                            <dt class="font-semibold text-slate-500">Signature specimen SHA-256</dt>
-                            <dd class="mt-1 break-all font-mono text-[10px] text-slate-700">{{ $evaluation['signature_sha256'] }}</dd>
-                        </div>
-                        <div>
-                            <dt class="font-semibold text-slate-500">Signed form payload SHA-256</dt>
-                            <dd class="mt-1 break-all font-mono text-[10px] text-slate-700">{{ $evaluation['version_payload_sha256'] }}</dd>
-                        </div>
-                        <div>
-                            <dt class="font-semibold text-slate-500">Institutional attestation fingerprint</dt>
-                            <dd class="mt-1 break-all font-mono text-[10px] text-slate-700">{{ $evaluation['attestation_hash'] }}</dd>
-                        </div>
-                    </dl>
-                </details>
-
                 <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-[11px] leading-relaxed text-amber-950">
-                    This is an NDMU-RMAS institutional digital attestation backed by system integrity checks and audit evidence. It must not be represented as a Philippine National Public Key Infrastructure certificate or an eGovPH-issued signature unless NDMU completes an approved external PKI integration.
+                    This digital signature was recorded and verified by NDMU-RMAS using the signer's authenticated account, registered signature, signing time, document version, and audit trail. It confirms that the displayed signature matches the protected system record.
                 </div>
 
                 <footer class="border-t border-slate-200 pt-4 text-center text-[10px] text-slate-500">

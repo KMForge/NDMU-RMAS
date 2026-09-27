@@ -110,8 +110,13 @@
             border-radius: .2rem;
             background: #fff;
             padding: .1rem;
+            cursor: zoom-in;
+            transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
         }
+        .official-signature-qr:hover { border-color: #059669; box-shadow: 0 0 0 2px rgba(5, 150, 105, .16); }
+        .official-signature-qr:focus-visible { outline: 2px solid #047857; outline-offset: 2px; }
         .official-signature-qr img { display: block; width: 100%; height: 100%; }
+        .official-signature-qr-modal[x-cloak] { display: none !important; }
         .official-signature-label {
             display: flex;
             height: 1.25rem;

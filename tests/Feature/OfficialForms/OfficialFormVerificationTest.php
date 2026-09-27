@@ -158,8 +158,22 @@ class OfficialFormVerificationTest extends TestCase
             ->assertSee($adviser->name)
             ->assertSee('RES-040')
             ->assertSee($verification->public_reference)
+            ->assertSee('This digital signature was recorded and verified by NDMU-RMAS')
+            ->assertDontSee('eGovPH-issued signature')
+            ->assertDontSee('Cryptographic integrity details')
+            ->assertDontSee('Signature specimen SHA-256')
+            ->assertDontSee('Institutional attestation fingerprint')
             ->assertDontSee($adviser->email)
             ->assertDontSee('official_form_signatures/');
+
+        $this->blade(
+            '<x-official-signature-field label="Research Adviser" :signature="$signature" />',
+            ['signature' => $signature],
+        )
+            ->assertSee('Enlarge QR code for Research Adviser signature verification')
+            ->assertSee('Scan to verify this signature')
+            ->assertSee('Open Verification Page')
+            ->assertSee($verification->public_reference);
     }
 
     public function test_unknown_signature_reference_returns_safe_404(): void

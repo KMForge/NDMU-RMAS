@@ -8,7 +8,10 @@
     'instance' => null,
 ])
 
-<div {{ $attributes->class(['official-signature-field text-center']) }}>
+<div
+    x-data="{ signatureQrOpen: false }"
+    {{ $attributes->class(['official-signature-field text-center']) }}
+>
     @php
         $formInstance = $instance
             ?? ($officialFormInstance ?? null)
@@ -133,9 +136,15 @@
                 </span>
             @endif
             @if ($signatureQrDataUri)
-                <span class="official-signature-qr" title="Scan to verify this digital signature">
+                <button
+                    type="button"
+                    class="official-signature-qr"
+                    title="Enlarge this verification QR code"
+                    aria-label="Enlarge QR code for {{ $label }} signature verification"
+                    @click="signatureQrOpen = true"
+                >
                     <img src="{{ $signatureQrDataUri }}" alt="QR code for {{ $label }} signature verification">
-                </span>
+                </button>
             @endif
         </div>
     @else
@@ -151,4 +160,62 @@
     @endif
 
     <span class="official-signature-label">{{ $label }}</span>
+
+    @if ($signatureQrDataUri && $signatureVerification)
+        <template x-teleport="body">
+            <div
+                x-show="signatureQrOpen"
+                x-cloak
+                x-transition.opacity
+                class="official-signature-qr-modal fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm print:hidden"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="signature-qr-title-{{ $appliedSignature->id }}"
+                @click.self="signatureQrOpen = false"
+                @keydown.escape.window="signatureQrOpen = false"
+            >
+                <section class="w-full max-w-sm rounded-3xl border border-emerald-100 bg-white p-5 text-center font-sans shadow-2xl sm:p-6">
+                    <div class="flex items-start justify-between gap-4 text-left">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-700">Digital signature verification</p>
+                            <h2 id="signature-qr-title-{{ $appliedSignature->id }}" class="mt-1 text-lg font-black text-slate-950">
+                                {{ $label }}
+                            </h2>
+                        </div>
+                        <button
+                            type="button"
+                            class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                            aria-label="Close QR code preview"
+                            @click="signatureQrOpen = false"
+                        >
+                            <i class="ph ph-x text-lg" aria-hidden="true"></i>
+                        </button>
+                    </div>
+
+                    <div class="mx-auto mt-5 w-fit rounded-2xl border-2 border-emerald-200 bg-white p-3 shadow-sm">
+                        <img
+                            src="{{ $signatureQrDataUri }}"
+                            alt="Enlarged QR code for {{ $label }} signature verification"
+                            class="h-64 w-64 sm:h-72 sm:w-72"
+                        >
+                    </div>
+
+                    <p class="mt-4 text-sm font-bold text-slate-900">Scan to verify this signature</p>
+                    <p class="mt-1 break-all font-mono text-[10px] text-slate-500">
+                        Reference: {{ $signatureVerification->public_reference }}
+                    </p>
+
+                    <a
+                        href="{{ $signatureVerifyUrl }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#0e5c3a] px-4 py-3 text-sm font-black text-white transition hover:bg-[#09472d] focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
+                    >
+                        <i class="ph ph-seal-check text-lg" aria-hidden="true"></i>
+                        <span>Open Verification Page</span>
+                    </a>
+                </section>
+            </div>
+        </template>
+    @endif
 </div>
