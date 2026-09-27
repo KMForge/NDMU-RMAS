@@ -1,70 +1,12 @@
 @extends('layouts.blank')
 
 @section('content')
-<div class="min-h-screen bg-[#f4f7f6] font-sans flex">
-    <!-- Left Sidebar -->
-    <aside class="fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-[#09472d] via-[#0e5c3a] to-[#073622] text-white flex flex-col justify-between z-20 border-r border-emerald-800/40 shadow-2xl overflow-y-auto">
-        <div class="flex-shrink-0">
-            <!-- Brand Logo Header -->
-            <div class="p-6 pb-4 flex items-center gap-3.5">
-                <div class="p-2 bg-gradient-to-br from-white/15 to-white/5 rounded-2xl border border-white/20 shadow-lg backdrop-blur-md">
-                    <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto drop-shadow-sm">
-                </div>
-                <div class="flex flex-col leading-none">
-                    <span class="font-heading font-black text-xl text-white tracking-tight">NDMU</span>
-                    <span class="text-[9px] font-black text-[#eebc3f] tracking-[0.16em] uppercase mt-1">Research Management</span>
-                </div>
-            </div>
-
-            <!-- Profile Card -->
-            <div class="px-5 py-3">
-                <div class="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.06] border border-white/10 shadow-inner backdrop-blur-xs">
-                    <div class="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-[#eebc3f] to-[#ffd76f] text-[#09472d] font-black flex items-center justify-center text-lg flex-shrink-0 shadow-md">
-                        {{ Illuminate\Support\Str::upper(Illuminate\Support\Str::substr($student->name, 0, 1)) }}
-                    </div>
-                    <div class="flex flex-col leading-tight overflow-hidden min-w-0">
-                        <span class="font-bold text-xs text-white truncate">{{ $student->name }}</span>
-                        <span class="text-[10px] text-white/70 font-medium mt-0.5 truncate">Student Researcher</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Navigation Links -->
-        <div class="flex-grow px-5 py-3 space-y-2">
-            <a
-                href="{{ route('student.dashboard') }}"
-                class="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold text-white/85 hover:text-white hover:bg-white/15 transition-all"
-            >
-                <i class="ph ph-squares-four text-lg"></i>
-                <span>Dashboard</span>
-            </a>
-            <a
-                href="{{ route('student.dashboard', ['tab' => 'classes']) }}"
-                class="flex items-center justify-between rounded-xl bg-[#eebc3f] px-3.5 py-2.5 text-[13px] font-bold text-[#09472d] shadow-md shadow-amber-950/20"
-            >
-                <div class="flex items-center gap-3">
-                    <i class="ph ph-users text-lg"></i>
-                    <span>My Classes</span>
-                </div>
-                <span class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
-            </a>
-        </div>
-
-        <div class="px-5 pb-6">
-            <form method="POST" action="{{ route('logout') }}" data-confirm-logout>
-                @csrf
-                <button type="submit" class="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold text-white/85 hover:text-white hover:bg-white/15 transition-all cursor-pointer">
-                    <i class="ph ph-sign-out text-lg text-[#eebc3f]"></i>
-                    <span>Sign Out</span>
-                </button>
-            </form>
-        </div>
-    </aside>
+<div class="min-h-screen bg-[#f4f7f6] font-sans flex" data-portal-shell>
+    <x-portal-detail-sidebar :user="$student" portal="student" active="classes" />
 
     <!-- Main Content Area -->
-    <div class="min-h-screen flex-1 pl-72">
-        <header class="sticky top-0 z-40 flex h-20 items-center justify-between border-b border-slate-200/80 bg-white/95 backdrop-blur-md px-8">
+    <div class="min-h-screen flex-1 pl-72" data-portal-content>
+        <header class="sticky top-0 z-40 flex h-20 items-center justify-between border-b border-slate-200/80 bg-white/95 backdrop-blur-md px-8" data-portal-header>
             <a href="{{ route('student.dashboard', ['tab' => 'classes']) }}" class="inline-flex items-center gap-2 text-xs font-black text-slate-700 hover:text-[#0e5c3a] transition-colors">
                 <i class="ph ph-arrow-left text-sm text-[#0e5c3a]"></i>
                 <span>Back to My Classes</span>
@@ -75,7 +17,7 @@
             </div>
         </header>
 
-        <main class="space-y-8 p-6 sm:p-8">
+        <main class="space-y-8 p-6 sm:p-8" data-portal-main>
             <!-- Hero Banner -->
             <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#042416] p-7 sm:p-8 text-white shadow-xl border border-emerald-800/40">
                 <div class="absolute -right-12 -top-12 h-64 w-64 rounded-full bg-[#eebc3f]/10 blur-2xl pointer-events-none"></div>
@@ -317,4 +259,3 @@
     </div>
 </div>
 @endsection
-
