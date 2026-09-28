@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Authentication;
 
+use App\Http\Middleware\ThrottleRequestsUnlessHighTrafficMode;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Passwords\PasswordBroker;
@@ -19,7 +20,10 @@ class PasswordResetTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->withoutMiddleware(ThrottleRequests::class);
+        $this->withoutMiddleware([
+            ThrottleRequests::class,
+            ThrottleRequestsUnlessHighTrafficMode::class,
+        ]);
     }
 
     public function test_password_reset_link_can_be_requested(): void

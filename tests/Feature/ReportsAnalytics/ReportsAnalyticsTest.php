@@ -3,6 +3,7 @@
 namespace Tests\Feature\ReportsAnalytics;
 
 use App\Enums\UserType;
+use App\Http\Middleware\ThrottleRequestsUnlessHighTrafficMode;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
@@ -37,7 +38,10 @@ class ReportsAnalyticsTest extends TestCase
             Permission::findOrCreate($permission);
         }
         app(PermissionRegistrar::class)->forgetCachedPermissions();
-        $this->withoutMiddleware(ThrottleRequests::class);
+        $this->withoutMiddleware([
+            ThrottleRequests::class,
+            ThrottleRequestsUnlessHighTrafficMode::class,
+        ]);
     }
 
     public function test_guest_cannot_view_or_export_reports(): void

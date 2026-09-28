@@ -97,7 +97,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('document-reviews', function (Request $request): Limit {
-            $highTrafficMode = app(RateLimitSettings::class)->defenseHighTrafficModeEnabled();
+            $highTrafficMode = app(RateLimitSettings::class)->highTrafficModeEnabled();
 
             if ($highTrafficMode) {
                 return Limit::none();
@@ -141,7 +141,7 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         RateLimiter::for('defense-actions', function (Request $request): Limit {
-            $highTrafficMode = app(RateLimitSettings::class)->defenseHighTrafficModeEnabled();
+            $highTrafficMode = app(RateLimitSettings::class)->highTrafficModeEnabled();
 
             if ($highTrafficMode) {
                 return Limit::none();
@@ -153,7 +153,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('defense-drafts', function (Request $request): Limit {
-            $highTrafficMode = app(RateLimitSettings::class)->defenseHighTrafficModeEnabled();
+            $highTrafficMode = app(RateLimitSettings::class)->highTrafficModeEnabled();
 
             if ($highTrafficMode) {
                 return Limit::none();
@@ -165,7 +165,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('official-form-actions', function (Request $request): Limit {
-            $highTrafficMode = app(RateLimitSettings::class)->defenseHighTrafficModeEnabled();
+            $highTrafficMode = app(RateLimitSettings::class)->highTrafficModeEnabled();
 
             if ($highTrafficMode) {
                 return Limit::none();

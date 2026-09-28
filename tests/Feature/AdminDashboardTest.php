@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -156,7 +157,7 @@ class AdminDashboardTest extends TestCase
         $this->assertDatabaseHas('academic_terms', ['id' => $academicTermId, 'is_current' => true]);
     }
 
-    public function test_defense_limiters_are_disabled_only_when_defense_mode_is_enabled(): void
+    public function test_high_traffic_mode_disables_authenticated_route_limits_but_keeps_guest_limits(): void
     {
         $settings = SystemSetting::query()->firstOrFail();
         $request = Request::create('/defense-test', 'POST');
@@ -176,6 +177,29 @@ class AdminDashboardTest extends TestCase
 
         $this->assertNotInstanceOf(Unlimited::class, $authenticationLimit);
         $this->assertSame(10, $authenticationLimit->maxAttempts);
+
+        Route::get('/test/authenticated-numeric-throttle', fn () => response('ok'))
+            ->middleware('throttle:1,1,authenticated-high-traffic-test|');
+        Route::get('/test/authenticated-class-throttle', fn () => response('ok'))
+            ->middleware('throttle:class-creation');
+        Route::get('/test/guest-throttle', fn () => response('ok'))
+            ->middleware('throttle:1,1,guest-high-traffic-test|');
+
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        foreach (range(1, 12) as $attempt) {
+            $this->get('/test/authenticated-numeric-throttle')->assertOk();
+            $this->get('/test/authenticated-class-throttle')->assertOk();
+        }
+
+        auth()->logout();
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.77'])
+            ->get('/test/guest-throttle')
+            ->assertOk();
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.77'])
+            ->get('/test/guest-throttle')
+            ->assertTooManyRequests();
     }
 
     public function test_admin_can_seed_academic_cycle(): void

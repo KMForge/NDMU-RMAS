@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\ThrottleRequestsUnlessHighTrafficMode;
 use App\Http\Middleware\TrackActiveWorkspace;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -32,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'active' => EnsureAccountIsActive::class,
+            'throttle' => ThrottleRequestsUnlessHighTrafficMode::class,
             'workspace.context' => TrackActiveWorkspace::class,
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,

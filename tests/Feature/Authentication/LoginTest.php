@@ -4,6 +4,7 @@ namespace Tests\Feature\Authentication;
 
 use App\Enums\AccountStatus;
 use App\Enums\UserType;
+use App\Http\Middleware\ThrottleRequestsUnlessHighTrafficMode;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Modules\SystemSettings\Services\TurnstileSettings;
@@ -22,7 +23,10 @@ class LoginTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->withoutMiddleware(ThrottleRequests::class);
+        $this->withoutMiddleware([
+            ThrottleRequests::class,
+            ThrottleRequestsUnlessHighTrafficMode::class,
+        ]);
         $this->seed(RolePermissionSeeder::class);
     }
 
