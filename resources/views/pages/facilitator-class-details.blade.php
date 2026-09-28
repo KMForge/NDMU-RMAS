@@ -249,6 +249,56 @@
                                         </div>
                                     </div>
 
+                                    @php
+                                        $currentProject = $grp->researchGroup?->currentProject;
+                                    @endphp
+                                    <div class="mt-3.5 rounded-2xl border border-emerald-200/80 bg-emerald-50/60 p-4">
+                                        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                            <div class="min-w-0">
+                                                <p class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Canonical Research Title</p>
+                                                <p class="mt-1 break-words text-sm font-black leading-5 text-slate-900">{{ $currentProject?->title ?? 'Pending finalized RES-026 title approval' }}</p>
+                                                @if ($currentProject?->titleHistories?->isNotEmpty())
+                                                    <p class="mt-1 text-[10px] font-semibold text-slate-500">Revised {{ $currentProject->titleHistories->count() }} time(s). Complete history is preserved.</p>
+                                                @endif
+                                            </div>
+                                            @if ($currentProject)
+                                                <details class="group shrink-0 sm:max-w-md">
+                                                    <summary class="cursor-pointer list-none rounded-xl bg-[#0e5c3a] px-3.5 py-2 text-center text-xs font-bold text-white hover:bg-[#073823]">Revise Title</summary>
+                                                    <form method="POST" action="{{ route('facilitator.classes.groups.title.revise', [$researchClass, $grp]) }}" class="mt-3 space-y-3 rounded-xl border border-emerald-200 bg-white p-3 shadow-sm" onsubmit="return confirm('Apply this revised canonical title? RES-026 and previously signed forms will remain unchanged as historical records.')">
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <div>
+                                                            <label for="title-{{ $grp->id }}" class="block text-[10px] font-bold uppercase tracking-wide text-slate-600">Revised title</label>
+                                                            <textarea id="title-{{ $grp->id }}" name="title" required minlength="5" maxlength="500" rows="3" class="mt-1 block w-full rounded-xl border-slate-300 text-xs focus:border-[#0e5c3a] focus:ring-[#0e5c3a]">{{ $currentProject->title }}</textarea>
+                                                        </div>
+                                                        <div>
+                                                            <label for="title-reason-{{ $grp->id }}" class="block text-[10px] font-bold uppercase tracking-wide text-slate-600">Reason for revision</label>
+                                                            <textarea id="title-reason-{{ $grp->id }}" name="reason" required minlength="10" maxlength="2000" rows="3" placeholder="Explain why the approved title is being revised..." class="mt-1 block w-full rounded-xl border-slate-300 text-xs focus:border-[#0e5c3a] focus:ring-[#0e5c3a]"></textarea>
+                                                        </div>
+                                                        <p class="text-[10px] leading-4 text-amber-700">Progress, documents, forms, signatures, schedules, and evaluations will not be reset.</p>
+                                                        <button type="submit" class="w-full rounded-xl bg-[#0e5c3a] px-4 py-2 text-xs font-bold text-white hover:bg-[#073823]">Save Revised Title</button>
+                                                    </form>
+                                                </details>
+                                            @endif
+                                        </div>
+
+                                        @if ($currentProject?->titleHistories?->isNotEmpty())
+                                            <details class="mt-3 border-t border-emerald-200 pt-3">
+                                                <summary class="cursor-pointer text-[10px] font-bold text-emerald-800">View title revision history</summary>
+                                                <div class="mt-2 space-y-2">
+                                                    @foreach ($currentProject->titleHistories as $history)
+                                                        <div class="rounded-lg border border-slate-200 bg-white p-3 text-[10px] leading-4 text-slate-600">
+                                                            <p><span class="font-bold">Previous:</span> {{ $history->previous_title }}</p>
+                                                            <p><span class="font-bold">Revised:</span> {{ $history->revised_title }}</p>
+                                                            <p><span class="font-bold">Reason:</span> {{ $history->reason }}</p>
+                                                            <p class="mt-1 text-slate-400">{{ $history->changedBy?->name ?? 'Research Facilitator' }} · {{ $history->effective_at?->format('M d, Y h:i A') }}</p>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            </details>
+                                        @endif
+                                    </div>
+
                                     <!-- Adviser Status -->
                                     <div class="mt-3.5 rounded-2xl bg-slate-50 p-4 border border-slate-200/80 space-y-2">
                                         <p class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Assigned Adviser</p>

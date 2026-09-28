@@ -130,6 +130,10 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
                 ->middleware(['permission:classes.manage-groups', 'throttle:class-creation'])
                 ->whereNumber('group')
                 ->name('classes.groups.rename');
+            Route::patch('/groups/{group}/title', [ResearchClassGroupController::class, 'reviseTitle'])
+                ->middleware(['permission:classes.manage-groups', 'throttle:class-creation'])
+                ->whereNumber('group')
+                ->name('classes.groups.title.revise');
             Route::delete('/groups/{group}', [ResearchClassGroupController::class, 'disband'])
                 ->middleware(['permission:classes.manage-groups', 'throttle:class-creation'])
                 ->whereNumber('group')

@@ -19,6 +19,7 @@ use App\Modules\Classes\Actions\RemoveResearchClassGroupAdviser;
 use App\Modules\Classes\Actions\RenameResearchClassGroup;
 use App\Modules\Classes\Actions\RequestAdviserForResearchClassGroup;
 use App\Modules\Classes\Actions\RestoreResearchClassGroupForContinuation;
+use App\Modules\Classes\Actions\ReviseResearchGroupTitle;
 use App\Modules\Classes\Exceptions\ClassOperationException;
 use App\Modules\Classes\Exceptions\DuplicateClassOperation;
 use App\Modules\ResearchProgress\Actions\ResetDryRunGroupProgress;
@@ -183,6 +184,40 @@ class ResearchClassGroupController extends Controller
 
         return to_route('facilitator.classes.show', $researchClass)
             ->with('class_success', 'Group renamed successfully.');
+    }
+
+    public function reviseTitle(
+        Request $request,
+        ResearchClass $researchClass,
+        ResearchClassGroup $group,
+        ReviseResearchGroupTitle $action,
+    ): JsonResponse|RedirectResponse {
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'min:5', 'max:500'],
+            'reason' => ['required', 'string', 'min:10', 'max:2000'],
+        ]);
+
+        try {
+            $project = $action->handle(
+                $request->user(),
+                $researchClass,
+                $group,
+                $validated['title'],
+                $validated['reason'],
+            );
+        } catch (ClassOperationException $exception) {
+            return $this->errorResponse($request, $researchClass, $exception->getMessage(), 422);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Research title revised successfully.',
+                'project' => ['id' => $project->getKey(), 'title' => $project->title],
+            ]);
+        }
+
+        return to_route('facilitator.classes.show', $researchClass)
+            ->with('class_success', 'Research title revised successfully. The previous title remains in the title history.');
     }
 
     public function disband(

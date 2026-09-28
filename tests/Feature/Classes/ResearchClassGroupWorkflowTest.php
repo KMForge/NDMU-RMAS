@@ -10,9 +10,11 @@ use App\Models\ResearchClassGroupAdviserHistory;
 use App\Models\ResearchClassGroupAdviserRequest;
 use App\Models\ResearchClassGroupMember;
 use App\Models\ResearchGroupMilestone;
+use App\Models\ResearchProject;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -47,6 +49,52 @@ class ResearchClassGroupWorkflowTest extends TestCase
             'created_by' => $facilitator->getKey(),
             'status' => 'active',
         ]);
+    }
+
+    public function test_owning_facilitator_can_revise_the_canonical_title_without_resetting_group_records(): void
+    {
+        $facilitator = $this->userWithRole('research-facilitator');
+        $otherFacilitator = $this->userWithRole('research-facilitator');
+        $researchClass = $this->createClass($facilitator);
+        $group = $this->createGroup($researchClass, $facilitator, 'Title Revision Group');
+        $project = $this->attachCanonicalProject($group, $facilitator, 'Original Approved Research Title');
+
+        $this->actingAs($facilitator)
+            ->patchJson(route('facilitator.classes.groups.title.revise', [$researchClass, $group]), [
+                'title' => 'Revised Approved Research Title',
+                'reason' => 'The facilitator corrected the title to match the final study scope.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('project.title', 'Revised Approved Research Title');
+
+        $this->assertSame('Revised Approved Research Title', $project->fresh()->title);
+        $this->assertSame($project->research_group_id, $group->fresh()->research_group_id);
+        $this->assertDatabaseHas('research_project_title_histories', [
+            'research_project_id' => $project->getKey(),
+            'previous_title' => 'Original Approved Research Title',
+            'revised_title' => 'Revised Approved Research Title',
+            'changed_by' => $facilitator->getKey(),
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'research-project.title-revised',
+            'auditable_id' => $project->getKey(),
+        ]);
+
+        $this->actingAs($facilitator)
+            ->get(route('facilitator.classes.show', $researchClass))
+            ->assertOk()
+            ->assertSee('Canonical Research Title')
+            ->assertSee('Revised Approved Research Title')
+            ->assertSee('View title revision history');
+
+        $this->actingAs($otherFacilitator)
+            ->patchJson(route('facilitator.classes.groups.title.revise', [$researchClass, $group]), [
+                'title' => 'Unauthorized Replacement Title',
+                'reason' => 'This facilitator does not own the research class.',
+            ])
+            ->assertUnprocessable();
+
+        $this->assertSame('Revised Approved Research Title', $project->fresh()->title);
     }
 
     public function test_facilitator_can_assign_only_an_approved_class_student_to_a_group(): void
@@ -775,6 +823,27 @@ class ResearchClassGroupWorkflowTest extends TestCase
             'status' => $status,
             'requested_at' => now(),
             'joined_at' => $status === 'active' ? now() : null,
+        ]);
+    }
+
+    private function attachCanonicalProject(ResearchClassGroup $group, User $creator, string $title): ResearchProject
+    {
+        $now = now();
+        $collegeId = DB::table('colleges')->insertGetId(['code' => 'TITLE-COLLEGE', 'name' => 'Title College', 'is_active' => true, 'created_at' => $now, 'updated_at' => $now]);
+        $departmentId = DB::table('departments')->insertGetId(['college_id' => $collegeId, 'code' => 'TITLE-DEPT', 'name' => 'Title Department', 'is_active' => true, 'created_at' => $now, 'updated_at' => $now]);
+        $programId = DB::table('programs')->insertGetId(['department_id' => $departmentId, 'code' => 'TITLE-PROG', 'name' => 'Title Program', 'degree_level' => 'Undergraduate', 'is_active' => true, 'created_at' => $now, 'updated_at' => $now]);
+        $academicYearId = DB::table('academic_years')->insertGetId(['name' => '2098-2099', 'starts_at' => '2098-06-01', 'ends_at' => '2099-05-31', 'is_current' => true, 'created_at' => $now, 'updated_at' => $now]);
+        $academicTermId = DB::table('academic_terms')->insertGetId(['academic_year_id' => $academicYearId, 'name' => 'First Semester', 'starts_at' => '2098-06-01', 'ends_at' => '2098-10-31', 'is_current' => true, 'created_at' => $now, 'updated_at' => $now]);
+        $researchGroupId = DB::table('research_groups')->insertGetId(['program_id' => $programId, 'academic_term_id' => $academicTermId, 'name' => 'Canonical Title Group', 'created_by' => $creator->getKey(), 'created_at' => $now, 'updated_at' => $now]);
+
+        $group->update(['research_group_id' => $researchGroupId]);
+
+        return ResearchProject::query()->create([
+            'research_group_id' => $researchGroupId,
+            'title' => $title,
+            'status' => 'active',
+            'created_by' => $creator->getKey(),
+            'approved_at' => $now,
         ]);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'research_group_id',
@@ -28,6 +29,11 @@ class ResearchProject extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function titleHistories(): HasMany
+    {
+        return $this->hasMany(ResearchProjectTitleHistory::class)->latest('effective_at');
     }
 
     protected function casts(): array

@@ -69,6 +69,7 @@ class ResearchClassController extends Controller
                 'adviser:id,name,email,department',
                 'members' => fn ($query) => $query->with('student:id,name,email,student_id,program,year_level'),
                 'adviserRequests' => fn ($query) => $query->where('status', 'pending')->with('adviser:id,name,email'),
+                'researchGroup.currentProject.titleHistories.changedBy:id,name',
             ])
             ->latest()
             ->get();
