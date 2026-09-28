@@ -2,9 +2,20 @@
 
 @section('content')
 @php($workspace = str(request()->route()->getName())->before('.'))
-<main class="min-h-screen bg-[#f4f7f6] px-4 py-8 sm:px-8">
+<div @if($workspace === 'dean') data-portal-shell @endif class="min-h-screen bg-[#f4f7f6]">
+@if($workspace === 'dean')
+    <x-dean-sidebar active="reports" />
+@endif
+<div @if($workspace === 'dean') data-portal-content @endif @class(['min-h-screen', 'pl-72' => $workspace === 'dean'])>
+@if($workspace === 'dean')
+    <header data-portal-header class="sticky top-0 z-20 flex min-h-20 items-center justify-between border-b border-slate-200 bg-white/90 px-8 py-4 backdrop-blur">
+        <div class="min-w-0"><p class="text-[10px] font-black uppercase tracking-[.15em] text-[#0e5c3a]">College Dean Portal</p><h1 class="truncate text-xl font-black text-slate-900">Research Reports</h1></div>
+        <div class="flex items-center gap-3"><x-workspace-switcher current="dean" /><x-notification-dropdown /></div>
+    </header>
+@endif
+<main @if($workspace === 'dean') data-portal-main @endif class="px-4 py-6 sm:px-8">
     <div class="mx-auto max-w-7xl">
-        <section class="overflow-hidden rounded-3xl bg-[#0e5c3a] p-8 text-white shadow-sm">
+        <section class="overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#0a462c] p-6 text-white shadow-lg sm:p-8">
             <p class="text-xs font-black uppercase tracking-[.2em] text-amber-300">NDMU-RMAS {{ strtoupper($workspace) }} PORTAL</p>
             <div class="mt-2 flex flex-wrap items-end justify-between gap-4">
                 <div><h1 class="text-3xl font-black">Reports &amp; Analytics</h1><p class="mt-1 text-sm text-emerald-100">CEAC reporting with permission and ownership controls.</p></div>
@@ -55,4 +66,6 @@
         </section>
     </div>
 </main>
+</div>
+</div>
 @endsection
