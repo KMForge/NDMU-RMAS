@@ -13,7 +13,6 @@
 </head>
 <body class="min-h-screen bg-[#f4f7f6] text-slate-900 antialiased">
     @yield('content')
-    <x-portal-onboarding />
     <x-portal-mobile-navigation />
     <x-logout-confirmation />
     @livewireScripts
