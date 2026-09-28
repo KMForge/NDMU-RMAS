@@ -32,7 +32,7 @@ class OfficialFormPayloadValidator
         'RES-030' => ['date' => 'string', 'degree_program' => 'string', 'research_title' => 'string', 'personnel_type' => 'array', 'current_names' => 'array', 'proposed_replacement' => 'string', 'requested_adviser_id' => 'integer', 'reasons' => 'string', 'supporting_explanation' => 'nullable|string', 'group_leader_confirmed' => 'boolean'],
         'RES-031' => [],
         'RES-032' => ['date' => 'string', 'consultant_types' => 'array', 'specific_concerns' => 'string', 'recommendations' => 'string', 'follow_up_date' => 'string'],
-        'RES-033' => ['date' => 'string', 'defense_type' => 'string', 'defense_date' => 'string', 'time' => 'string'],
+        'RES-033' => ['date' => 'string', 'defense_type' => 'string', 'defense_date' => 'string', 'time' => 'string', 'venue' => 'string', 'date_received' => 'string'],
         'RES-034' => ['date' => 'string', 'time' => 'string', 'defense_type' => 'string', 'issues' => 'array', 'pages' => 'array'],
         'RES-035' => ['date' => 'string', 'time' => 'string', 'defense_type' => 'string', 'comments' => 'array', 'decision' => 'string'],
         'RES-036' => [
@@ -194,7 +194,7 @@ class OfficialFormPayloadValidator
     /** @param array<string, mixed> $payload */
     private function validateSemantics(string $code, array $payload): void
     {
-        foreach (['date', 'defense_date', 'follow_up_date', 'evaluation_date'] as $dateField) {
+        foreach (['date', 'defense_date', 'follow_up_date', 'evaluation_date', 'date_received'] as $dateField) {
             if (! isset($payload[$dateField]) || $payload[$dateField] === '') {
                 continue;
             }

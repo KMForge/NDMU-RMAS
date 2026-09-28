@@ -1655,6 +1655,23 @@ class OfficialFormBackendTest extends TestCase
         }
     }
 
+    public function test_res033_payload_accepts_defense_venue_and_program_head_receipt_date(): void
+    {
+        $payload = (new OfficialFormPayloadValidator)->validate('RES-033', [
+            'defense_type' => 'proposal_defense',
+            'defense_date' => '2026-10-02',
+            'time' => '09:30',
+            'venue' => 'CEAC AVR',
+            'date_received' => '2026-10-01',
+        ]);
+
+        $this->assertSame('CEAC AVR', $payload['venue']);
+        $this->assertSame('2026-10-01', $payload['date_received']);
+
+        $this->expectException(InvalidArgumentException::class);
+        (new OfficialFormPayloadValidator)->validate('RES-033', ['date_received' => 'October 1, 2026']);
+    }
+
     public function test_unverified_institutional_transitions_fail_closed(): void
     {
         $authorization = new OfficialFormAuthorization;

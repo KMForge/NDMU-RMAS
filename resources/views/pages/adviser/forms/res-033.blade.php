@@ -48,26 +48,27 @@
             @endfor
         </div>
         <label class="block font-bold">Research Title:<input type="text" value="{{ $currentResearchTitle }}" class="mt-1 w-full font-bold" readonly></label>
-        <fieldset class="space-y-3">
-            <legend class="mb-2 font-bold">Defense stage endorsed by this form:</legend>
+        <fieldset class="space-y-2">
+            <legend class="mb-2 font-bold">For Research (please check):</legend>
             <input type="hidden" name="payload[defense_type]" value="{{ $defenseType }}">
-            <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 font-bold text-emerald-900">
-                {{ $defenseTypeLabel }}
-            </div>
-            <div class="mt-2 grid gap-3 md:grid-cols-2">
-                <label class="block">Defense Date: <input type="date" name="payload[defense_date]" value="{{ $payload['defense_date'] ?? now()->format('Y-m-d') }}" class="w-full"></label>
-                <label class="block">Defense Time: <input type="time" name="payload[time]" value="{{ $payload['time'] ?? '09:00' }}" class="w-full"></label>
+            <p class="font-bold">({{ $defenseType === 'proposal_defense' ? 'X' : ' ' }}) {{ $defenseTypeLabel }} on:</p>
+            <div class="grid gap-3 md:grid-cols-3">
+                <label class="block">Date: <input type="date" name="payload[defense_date]" value="{{ $payload['defense_date'] ?? now()->format('Y-m-d') }}" class="w-full"></label>
+                <label class="block">Time: <input type="time" name="payload[time]" value="{{ $payload['time'] ?? '09:00' }}" class="w-full"></label>
+                <label class="block">at Venue: <input type="text" name="payload[venue]" value="{{ $payload['venue'] ?? '' }}" class="w-full"></label>
             </div>
         </fieldset>
         <p class="text-xs leading-5">This endorsement is valid only for the defense stage identified above. A separate completed RES-033 is required for every succeeding defense stage.</p>
         <div class="official-signature-row grid gap-8 pt-8 text-center md:grid-cols-2">
             <div>
-                <x-official-signature-field label="Instructor / Research Adviser" />
+                <x-official-signature-field actor-type="adviser" academic-action="endorse" label="Instructor / Research Adviser (Name & Signature)" />
                 <p class="mt-1 text-xs font-bold text-slate-800">{{ $adviserName }}</p>
             </div>
-            <div>
-                <input type="text" value="{{ $programCoordinatorName }}" class="w-full text-center font-bold" readonly>
-                <span class="block text-xs text-slate-500">Received by: Program Coordinator</span>
+            <div class="space-y-2">
+                <x-official-signature-field actor-type="program_head" academic-action="receive" label="Program Head (Name & Signature)" />
+                <label class="flex items-center justify-center gap-2 text-xs">Date Received:
+                    <input type="date" name="payload[date_received]" value="{{ $payload['date_received'] ?? '' }}" class="w-40">
+                </label>
             </div>
         </div>
     </x-student-official-form>

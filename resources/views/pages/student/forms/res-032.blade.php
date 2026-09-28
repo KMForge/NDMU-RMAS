@@ -5,20 +5,22 @@
     $class = $officialFormInstance?->researchClass ?? $group?->researchClass;
 
     $members = $group?->members?->values() ?? collect();
-    $joinedResearchers = $members->map(fn($m) => $m->student?->name)->filter()->join(', ');
     $program = $members->first()?->student?->studentProfile?->program;
     $programName = $payload['degree_program'] ?? $program?->name ?? $members->first()?->student?->program ?? 'Information Technology';
 @endphp
 <div x-show="activeOfficialForm === 'RES-032'" x-cloak>
     <x-student-official-form code="RES-Form-032" title="Consultation Sheet (With Other Consultants)" guidebook-page="112">
+        <div class="flex justify-end">
+            <label class="flex w-64 items-center gap-2">Date:<input type="date" name="payload[date]" value="{{ $payload['date'] ?? now()->format('Y-m-d') }}" class="w-full"></label>
+        </div>
         <div class="grid gap-4 md:grid-cols-2">
-            <label>Name of Student/s:
-                <textarea class="mt-1 min-h-20 w-full font-bold" readonly>{{ $joinedResearchers }}</textarea>
-            </label>
-            <div class="space-y-4">
-                <label class="block">Degree Program:<input name="payload[degree_program]" value="{{ $programName }}" class="w-full font-semibold" readonly></label>
-                <label class="block">Date:<input type="date" name="payload[date]" value="{{ $payload['date'] ?? now()->format('Y-m-d') }}" class="w-full"></label>
-            </div>
+            <fieldset class="space-y-1">
+                <legend class="font-bold">Name of Student/s:</legend>
+                @for ($i = 1; $i <= 4; $i++)
+                    <label class="flex items-center gap-2"><span>{{ $i }}.</span><input value="{{ $members->get($i - 1)?->student?->name }}" class="w-full font-semibold" readonly></label>
+                @endfor
+            </fieldset>
+            <label class="block">Degree Program:<input name="payload[degree_program]" value="{{ $programName }}" class="w-full font-semibold" readonly></label>
         </div>
         <fieldset>
             <legend class="font-bold">Type of Consultant (Please check):</legend>
