@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\OfficialFormWorkspaceController;
 use App\Http\Controllers\ReportController;
+use App\Modules\Dashboard\Queries\GetDeanDashboardData;
 use App\Modules\Notifications\Queries\GetNotificationsForUser;
 use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use Illuminate\Http\Request;
@@ -26,7 +27,7 @@ Route::prefix('dean')->name('dean.')->middleware([
                 'notificationFilter' => 'all',
             ];
 
-        return view('pages.dean-dashboard', [
+        return view('pages.dean-dashboard-live', [
             'area' => 'College Dean',
             'dean' => $request->user(),
             'pendingFormInstances' => $pendingFormInstances,
@@ -38,6 +39,7 @@ Route::prefix('dean')->name('dean.')->middleware([
                     ? $request->user()->unreadNotifications()->count()
                     : 0,
             ],
+            ...app(GetDeanDashboardData::class)->for($request->user(), $request->query()),
             ...$notificationsData,
         ]);
     })->name('dashboard');

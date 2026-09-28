@@ -39,7 +39,24 @@ class RoleRouteAccessTest extends TestCase
         $this->actingAs($dean)
             ->get(route('dean.dashboard', ['tab' => 'repository']))
             ->assertOk()
-            ->assertSee("activeTab: 'repository'", false)
-            ->assertSee('persistTab(tab)', false);
+            ->assertSee('College Document Repository')
+            ->assertSee('bg-[#eebc3f] font-bold text-[#09472d]', false);
+    }
+
+    public function test_dean_dashboard_does_not_expose_prototype_faculty_appointments(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+        $dean = User::factory()->create();
+        $dean->assignRole('dean');
+
+        $this->actingAs($dean)
+            ->get(route('dean.dashboard', ['tab' => 'appointments']))
+            ->assertOk()
+            ->assertSee('College Research Overview')
+            ->assertDontSee('Faculty Appointments')
+            ->assertDontSee('New Advisor Appointment')
+            ->assertDontSee('Register New User')
+            ->assertDontSee('AI-Powered Traffic Management System')
+            ->assertDontSee('Machine Learning for Crop Disease Detection');
     }
 }

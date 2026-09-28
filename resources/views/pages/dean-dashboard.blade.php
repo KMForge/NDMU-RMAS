@@ -1,7 +1,7 @@
 @extends('layouts.blank')
 
 @php
-    $allowedTabs = ['dashboard', 'pending', 'manuscript', 'appointments', 'schedule', 'reports', 'repository', 'notifications', 'settings'];
+    $allowedTabs = ['dashboard', 'pending', 'manuscript', 'schedule', 'reports', 'repository', 'notifications', 'settings'];
     $initialTab = in_array(request()->query('tab'), $allowedTabs, true) ? request()->query('tab') : 'dashboard';
 @endphp
 
@@ -40,50 +40,6 @@
     notificationsFilter: 'all',
     showDetailsModal: false,
     selectedRequest: null,
-    userSearchQuery: '',
-    userRoleFilter: 'all',
-    managementSubTab: 'all',
-    managementUsers: [
-        { name: 'System Administrator', initials: 'S', initialsBg: 'bg-emerald-700 text-white', email: 'admin@ndmu.edu.ph', role: 'Administrator', roleClass: 'bg-blue-50 border border-blue-100 text-blue-700', status: 'Active', dept: 'Information Technology', date: '2024-01-01', isSystem: true },
-        { name: 'Dr. Lourdes Castillo', initials: 'D', initialsBg: 'bg-emerald-700 text-white', email: 'l.castillo@ndmu.edu.ph', role: 'College Dean', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'Office of the College Dean', date: '2024-01-01', isSystem: true },
-        { name: 'Dr. Rosario Dela Paz', initials: 'D', initialsBg: 'bg-emerald-700 text-white', email: 'r.dela-paz@ndmu.edu.ph', role: 'Research Facilitator', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Information Technology', date: '2024-01-01', isSystem: true },
-        { name: 'Engr. Jose Montero', initials: 'E', initialsBg: 'bg-emerald-700 text-white', email: 'j.montero@ndmu.edu.ph', role: 'Research Facilitator', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Engineering', date: '2024-01-01', isSystem: true },
-        { name: 'Dr. Reyna Garcia', initials: 'D', initialsBg: 'bg-emerald-700 text-white', email: 'r.garcia@ndmu.edu.ph', role: 'Research Adviser', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Information Technology', date: '2024-01-01', isSystem: true },
-        { name: 'Dr. Michael Tan', initials: 'D', initialsBg: 'bg-emerald-700 text-white', email: 'm.tan@ndmu.edu.ph', role: 'Research Adviser', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Information Technology', date: '2024-01-01', isSystem: true },
-        { name: 'Prof. Lucia Fernandez', initials: 'P', initialsBg: 'bg-emerald-700 text-white', email: 'l.fernandez@ndmu.edu.ph', role: 'Research Adviser', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Engineering', date: '2024-01-01', isSystem: true },
-        { name: 'Dr. Maria Santos', initials: 'M', initialsBg: 'bg-emerald-700 text-white', email: 'maria.santos@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Active', dept: 'College of Information Technology', date: '2024-08-12', isSystem: true },
-        { name: 'Carlo Mendoza', initials: 'C', initialsBg: 'bg-[#0f766e] text-white', email: 'carlo.mendoza@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Active', dept: 'College of Information Technology', date: '2024-08-12', isSystem: true },
-        { name: 'Anna Lim', initials: 'A', initialsBg: 'bg-emerald-700 text-white', email: 'anna.lim@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Active', dept: 'College of Information Technology', date: '2024-08-15', isSystem: true },
-        { name: 'Felix Torres', initials: 'F', initialsBg: 'bg-[#0f766e] text-white', email: 'felix.torres@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Active', dept: 'College of Engineering', date: '2024-08-20', isSystem: true },
-        { name: 'Sofia Herrera', initials: 'S', initialsBg: 'bg-emerald-700 text-white', email: 'sofia.herrera@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Active', dept: 'College of Engineering', date: '2025-08-10', isSystem: true },
-        { name: 'Rafael Ocampo', initials: 'R', initialsBg: 'bg-[#0f766e] text-white', email: 'rafael.ocampo@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Active', dept: 'College of Engineering', date: '2025-08-10', isSystem: true },
-        { name: 'Isabelle Garcia', initials: 'I', initialsBg: 'bg-emerald-700 text-white', email: 'isabelle.garcia@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Active', dept: 'College of Engineering', date: '2025-08-11', isSystem: true },
-        { name: 'Marco Villanueva', initials: 'M', initialsBg: 'bg-[#0f766e] text-white', email: 'marco.villanueva@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Active', dept: 'College of Engineering', date: '2025-08-12', isSystem: true },
-        { name: 'Juan Dela Cruz', initials: 'J', initialsBg: 'bg-[#0f766e] text-white', email: 'juan.delacruz@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Pending', dept: 'College of Engineering', date: '2026-05-28', isSystem: false },
-        { name: 'Ana Reyes', initials: 'A', initialsBg: 'bg-emerald-700 text-white', email: 'ana.reyes@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Pending', dept: 'College of Information Technology', date: '2026-05-30', isSystem: false },
-        { name: 'Kevin Aguila', initials: 'K', initialsBg: 'bg-[#0f766e] text-white', email: 'kevin.aguila@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Pending', dept: 'College of Engineering', date: '2026-06-01', isSystem: false },
-        { name: 'Clara Nieto', initials: 'C', initialsBg: 'bg-[#0f766e] text-white', email: 'clara.nieto@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Pending', dept: 'College of Engineering', date: '2026-06-01', isSystem: false },
-        { name: 'Dante Flores', initials: 'D', initialsBg: 'bg-emerald-700 text-white', email: 'dante.flores@ndmu.edu.ph', role: 'Student Researcher', roleClass: 'bg-gray-50 border border-gray-100 text-gray-700', status: 'Pending', dept: 'College of Engineering', date: '2026-06-02', isSystem: false },
-        { name: 'Dr. Miguel Torres', initials: 'D', initialsBg: 'bg-emerald-700 text-white', email: 'newadviser@ndmu.edu.ph', role: 'Research Adviser', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Engineering', date: '2026-06-01', isSystem: false, hasTempPw: true },
-        { name: 'Prof. Roberto Garcia', initials: 'R', initialsBg: 'bg-emerald-700 text-white', email: 'r.garcia@ndmu.edu.ph', role: 'Research Adviser', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Information Technology', date: '2024-01-01', isSystem: true },
-        { name: 'Dr. Patricia Cruz', initials: 'D', initialsBg: 'bg-[#0f766e] text-white', email: 'p.cruz@ndmu.edu.ph', role: 'Research Adviser', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Engineering', date: '2024-01-01', isSystem: true },
-        { name: 'Prof. Michael Tan', initials: 'P', initialsBg: 'bg-emerald-700 text-white', email: 'm.tan-panelist@ndmu.edu.ph', role: 'Panelist', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Information Technology', date: '2024-01-01', isSystem: true },
-        { name: 'Dr. Antonio Santos', initials: 'D', initialsBg: 'bg-emerald-700 text-white', email: 'a.santos@ndmu.edu.ph', role: 'Panelist', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Information Technology', date: '2024-01-01', isSystem: true },
-        { name: 'Prof. Patricia Cruz', initials: 'P', initialsBg: 'bg-[#0f766e] text-white', email: 'p.cruz-panelist@ndmu.edu.ph', role: 'Panelist', roleClass: 'bg-emerald-50 border border-emerald-100 text-emerald-700', status: 'Active', dept: 'College of Engineering', date: '2024-01-01', isSystem: true }
-    ],
-
-    filteredUsers() {
-        return this.managementUsers.filter(u => {
-            if (this.managementSubTab === 'pending' && u.status !== 'Pending') return false;
-            if (this.userRoleFilter !== 'all' && u.role.toLowerCase() !== this.userRoleFilter.toLowerCase()) return false;
-            if (this.userSearchQuery.trim() !== '') {
-                const q = this.userSearchQuery.toLowerCase();
-                return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
-            }
-            return true;
-        });
-    },
-    
     defenseTypeFilter: 'all',
     defenseStatusFilter: 'all',
     defenseSchedules: [
@@ -271,13 +227,6 @@
         }
     ],
 
-    appointments: [
-        { name: 'Dr. Maria Santos', role: 'Research Adviser', dept: 'Computer Science', date: 'May 28, 2026', status: 'Active' },
-        { name: 'Prof. Roberto Garcia', role: 'Panelist', dept: 'Information Technology', date: 'May 27, 2026', status: 'Active' },
-        { name: 'Dr. Patricia Cruz', role: 'Research Adviser', dept: 'Engineering', date: 'May 25, 2026', status: 'Active' },
-        { name: 'Prof. Michael Tan', role: 'Panelist', dept: 'Computer Science', date: 'May 24, 2026', status: 'Active' }
-    ],
-
     notifications: [
         {
             id: 1,
@@ -290,18 +239,6 @@
             icon: 'ph ph-signature',
             iconBg: 'bg-orange-50 text-orange-600',
             unread: true
-        },
-        {
-            id: 2,
-            title: 'New Advisor Appointment',
-            isNew: false,
-            badge: 'Faculty',
-            badgeClass: 'bg-blue-50 border border-blue-100 text-blue-700',
-            description: 'Dr. Maria Santos has been successfully appointed as a Research Advisor for the CS Department.',
-            time: '1 day ago',
-            icon: 'ph ph-user-circle',
-            iconBg: 'bg-blue-50 text-blue-600',
-            unread: false
         }
     ]
 }"
@@ -396,19 +333,6 @@
                         <span>Manuscript Approvals</span>
                     </div>
                     <span x-show="activeTab === 'manuscript'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
-                </button>
-
-                <!-- Faculty Appointments -->
-                <button 
-                   type="button" 
-                   @click="activeTab = 'appointments'"
-                   :class="activeTab === 'appointments' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
-                   class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
-                    <div class="flex items-center gap-3">
-                        <i class="ph ph-users text-lg transition-transform group-hover:scale-110"></i>
-                        <span>Faculty Appointments</span>
-                    </div>
-                    <span x-show="activeTab === 'appointments'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
 
                 <!-- Defense Schedules -->
@@ -566,7 +490,6 @@
                 'pending' => ['eyebrow' => 'College Dean Portal', 'title' => 'Pending Approvals', 'description' => 'Review research matters that require college-level approval.', 'icon' => 'ph-hourglass-medium'],
                 'manuscript' => ['eyebrow' => 'College Dean Portal', 'title' => 'Manuscript Review', 'description' => 'Review authorized manuscripts and associated recommendations.', 'icon' => 'ph-file-search'],
                 'schedule' => ['eyebrow' => 'College Dean Portal', 'title' => 'Defense Schedule', 'description' => 'View and oversee scheduled research defenses.', 'icon' => 'ph-calendar-check'],
-                'appointments' => ['eyebrow' => 'College Dean Portal', 'title' => 'Appointments', 'description' => 'Review research personnel appointments and assignments.', 'icon' => 'ph-user-focus'],
                 'reports' => ['eyebrow' => 'College Dean Portal', 'title' => 'College Reports', 'description' => 'Review research performance and compliance across CEAC.', 'icon' => 'ph-presentation-chart'],
                 'repository' => ['eyebrow' => 'College Dean Portal', 'title' => 'Research Repository', 'description' => 'Access authorized college research records and documents.', 'icon' => 'ph-folder-open'],
             ]" />
@@ -652,12 +575,12 @@
 
                 <x-pending-academic-actions-card :pendingActions="$pendingAcademicActions ?? []" />
 
-                {{-- === 4 KPI METRIC CARDS === --}}
+                {{-- === KPI METRIC CARDS === --}}
                 @php
                     $pendingApprovalCount = $pendingFormInstances->count();
                 @endphp
-                <!-- Modern Vibrant 4-KPI Metric Grid -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <!-- Modern KPI Metric Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                     <!-- KPI 1: Pending Approvals -->
                     <div
                         @click="activeTab = 'pending'"
@@ -720,37 +643,7 @@
                         </div>
                     </div>
 
-                    <!-- KPI 3: Faculty Appointments -->
-                    <div
-                        @click="activeTab = 'appointments'"
-                        class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
-                    >
-                        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
-                        <div class="absolute -right-3 -bottom-3 text-slate-100/70 group-hover:text-blue-50 text-7xl font-bold transition-colors pointer-events-none -z-0 select-none">
-                            <i class="ph ph-user-focus"></i>
-                        </div>
-                        <div class="relative z-10">
-                            <div class="flex items-center justify-between">
-                                <span class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-700 text-white shadow-md shadow-blue-700/20 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                                    <i class="ph ph-user-focus"></i>
-                                </span>
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                                    <span>Faculty</span>
-                                    <i class="ph ph-arrow-up-right"></i>
-                                </span>
-                            </div>
-                            <div class="mt-5">
-                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Appointments</span>
-                                <span class="text-3xl font-black text-slate-900 tracking-tight mt-1 block">{{ $appointmentsCount ?? '—' }}</span>
-                                <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100">
-                                    <span>Advisers &amp; Panelists</span>
-                                    <span class="font-bold text-blue-600">CEAC</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- KPI 4: Approved Manuscripts -->
+                    <!-- KPI 3: Approved Manuscripts -->
                     <div
                         @click="activeTab = 'manuscript'"
                         class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
@@ -847,7 +740,6 @@
                                     $quickLinks = [
                                         ['tab' => 'schedule', 'icon' => 'ph-calendar-check', 'label' => 'Defense Schedule', 'color' => 'text-purple-600 bg-purple-50 border-purple-100 hover:bg-purple-100'],
                                         ['tab' => 'reports', 'icon' => 'ph-chart-line-up', 'label' => 'College Reports', 'color' => 'text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100'],
-                                        ['tab' => 'appointments', 'icon' => 'ph-user-focus', 'label' => 'Appointments', 'color' => 'text-teal-600 bg-teal-50 border-teal-100 hover:bg-teal-100'],
                                         ['tab' => 'repository', 'icon' => 'ph-folder-open', 'label' => 'Repository', 'color' => 'text-emerald-700 bg-emerald-50 border-emerald-100 hover:bg-emerald-100'],
                                     ];
                                 @endphp
@@ -861,27 +753,6 @@
                             </div>
                         </div>
 
-                        {{-- Recent Appointments Summary --}}
-                        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-                            <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
-                                <div class="flex items-center gap-2">
-                                    <i class="ph ph-users-three text-blue-500 text-base"></i>
-                                    <h3 class="font-bold text-xs text-slate-900">Recent Appointments</h3>
-                                </div>
-                                <button type="button" @click="activeTab = 'appointments'" class="text-[10px] font-bold text-[#0e5c3a] hover:underline cursor-pointer">Manage</button>
-                            </div>
-                            <div class="divide-y divide-slate-50">
-                                <template x-for="app in appointments" :key="app.name">
-                                    <div class="px-5 py-3 flex items-center justify-between gap-2">
-                                        <div class="min-w-0">
-                                            <p class="text-xs font-bold text-slate-900 truncate" x-text="app.name"></p>
-                                            <p class="text-[10px] text-slate-500" x-text="app.role + ' · ' + app.dept"></p>
-                                        </div>
-                                        <span class="shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100" x-text="app.status"></span>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1226,7 +1097,7 @@
             </div>
 
 
-            <!-- TAB: Faculty Appointments (User Management) -->
+            @if (false)
             <div x-show="activeTab === 'appointments'" x-cloak class="space-y-8 animate-fade-in">
                 <!-- Title Block -->
                 <div>
@@ -1526,6 +1397,7 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- TAB: Defense Schedules -->
             <div x-show="activeTab === 'schedule'" x-cloak class="space-y-8 animate-fade-in">
@@ -1994,7 +1866,7 @@
             </div>
 
             <!-- Placeholder Fallback View for Other Tabs -->
-            <div x-show="!['notifications', 'dashboard', 'settings', 'pending', 'manuscript', 'appointments', 'schedule', 'reports', 'repository'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
+            <div x-show="!['notifications', 'dashboard', 'settings', 'pending', 'manuscript', 'schedule', 'reports', 'repository'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-3xl">
                     <i class="ph ph-terminal-window"></i>
                 </div>
