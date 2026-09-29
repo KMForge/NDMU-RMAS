@@ -3,6 +3,7 @@
 @section('content')
 @php
     $workspace = str(request()->route()->getName())->before('.');
+    $dean = auth()->user();
     $query = request()->except('page');
     $unique = fn($key, $label) => $options->filter(fn($item) => $item->{$key} !== null)->unique($key)->sortBy($label);
 @endphp
@@ -12,16 +13,16 @@
 @endif
 <div @if($workspace === 'dean') data-portal-content @endif @class(['min-h-screen', 'pl-72' => $workspace === 'dean'])>
 @if($workspace === 'dean')
-    <header data-portal-header class="sticky top-0 z-20 flex min-h-20 items-center justify-between border-b border-slate-200 bg-white/90 px-8 py-4 backdrop-blur">
-        <div class="min-w-0"><p class="text-[10px] font-black uppercase tracking-[.15em] text-[#0e5c3a]">Research Reports</p><h1 class="truncate text-xl font-black text-slate-900">{{ $definition['title'] }}</h1></div>
-        <div class="flex items-center gap-3"><x-workspace-switcher current="dean" /><x-notification-dropdown /></div>
+    <header data-portal-header class="sticky top-0 z-20 flex min-h-20 items-center justify-between gap-4 border-b border-slate-200 bg-white/95 px-5 py-3 shadow-sm backdrop-blur sm:px-6 lg:px-8">
+        <div class="min-w-0 flex-1"><p class="truncate text-[9px] font-black uppercase tracking-[.15em] text-[#0e5c3a] sm:text-[10px]">Research Reports</p><h1 class="truncate text-lg font-black text-slate-900 sm:text-xl">{{ $definition['title'] }}</h1></div>
+        <div class="flex shrink-0 items-center gap-2 sm:gap-3"><x-workspace-switcher current="dean" /><x-notification-dropdown /><div class="hidden items-center gap-2 border-l border-slate-200 pl-3 md:flex"><div class="h-9 w-9 overflow-hidden rounded-xl bg-amber-400"><x-current-user-avatar :user="$dean" rounded="rounded-xl" /></div><div class="max-w-36 min-w-0 leading-tight"><p class="truncate text-xs font-black">{{ $dean->displayFirstName() }}</p><p class="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">College Dean</p></div></div></div>
     </header>
 @endif
 <main @if($workspace === 'dean') data-portal-main @endif class="px-4 py-6 sm:px-8">
 <div class="mx-auto max-w-7xl">
-    <section class="rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#0a462c] p-6 text-white shadow-lg sm:p-7">
-        <p class="text-xs font-black uppercase tracking-[.2em] text-amber-300">CEAC · {{ $scope->label() }}</p>
-        <div class="mt-2 flex flex-wrap items-end justify-between gap-4"><div><h1 class="text-3xl font-black">{{ $definition['title'] }}</h1><p class="mt-1 text-sm text-emerald-100">{{ $definition['description'] }}</p></div><a href="{{ route($workspace.'.reports.index') }}" class="rounded-xl border border-white/30 px-4 py-2 text-sm font-bold">Report Catalog</a></div>
+    <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#0a462c] p-5 text-white shadow-lg sm:p-7">
+        <div class="pointer-events-none absolute -right-12 -top-20 h-56 w-56 rounded-full bg-white/[.06]"></div>
+        <div class="relative"><p class="text-xs font-black uppercase tracking-[.2em] text-amber-300">College scope &middot; {{ $scope->label() }}</p><div class="mt-2 flex flex-wrap items-end justify-between gap-4"><div><h1 class="text-2xl font-black sm:text-3xl">{{ $definition['title'] }}</h1><p class="mt-1 text-sm leading-6 text-emerald-100">{{ $definition['description'] }}</p></div><a href="{{ route($workspace.'.reports.index') }}" class="rounded-xl border border-white/30 px-4 py-2 text-sm font-bold hover:bg-white/10">Report Catalog</a></div></div>
     </section>
 
     <form method="GET" class="mt-6 grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 md:grid-cols-2 xl:grid-cols-4">
@@ -37,11 +38,11 @@
         <div class="flex flex-col gap-2 sm:flex-row"><button class="rounded-xl bg-[#0e5c3a] px-5 py-2.5 text-sm font-bold text-white">Apply filters</button><a href="{{ route($workspace.'.reports.show', $report) }}" class="rounded-xl border border-gray-300 px-5 py-2.5 text-center text-sm font-bold">Reset</a></div>
     </form>
 
-    <div class="mt-5 flex flex-wrap items-center justify-between gap-3"><p class="text-sm text-slate-600"><strong>{{ $result['summary']['row_count'] }}</strong> result rows</p>@can('reports.export')<div class="flex gap-2"><a href="{{ route($workspace.'.reports.csv', [$report] + $query) }}" class="rounded-xl border border-emerald-700 bg-white px-4 py-2 text-sm font-bold text-emerald-800">Export CSV</a><a href="{{ route($workspace.'.reports.pdf', [$report] + $query) }}" class="rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white">Export PDF</a></div>@endcan</div>
+    <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p class="text-sm text-slate-600"><strong>{{ number_format($result['summary']['row_count']) }}</strong> result rows</p>@can('reports.export')<div class="grid grid-cols-2 gap-2 sm:flex"><a href="{{ route($workspace.'.reports.csv', [$report] + $query) }}" class="rounded-xl border border-emerald-700 bg-white px-4 py-2 text-center text-sm font-bold text-emerald-800">Export CSV</a><a href="{{ route($workspace.'.reports.pdf', [$report] + $query) }}" class="rounded-xl bg-violet-600 px-4 py-2 text-center text-sm font-bold text-white">Export PDF</a></div>@endcan</div>
     @if(isset($result['summary']['definition']))<p class="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">{{ $result['summary']['definition'] }}</p>@endif
 
     <section class="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div data-responsive-table-container><table data-responsive-table class="min-w-full text-left text-sm"><thead class="bg-[#0e5c3a] text-xs uppercase tracking-wider text-white"><tr>@foreach($definition['columns'] as $column)<th class="px-5 py-4">{{ $column }}</th>@endforeach</tr></thead><tbody class="divide-y divide-gray-100">@forelse($paginator as $row)<tr class="hover:bg-emerald-50/60">@foreach($definition['columns'] as $column)<td class="whitespace-nowrap px-5 py-4 text-slate-700">{{ $row[$column] ?? '—' }}</td>@endforeach</tr>@empty<tr><td colspan="{{ count($definition['columns']) }}" class="px-5 py-16 text-center text-slate-500">No authorized records match the selected filters.</td></tr>@endforelse</tbody></table></div>
+        <div data-responsive-table-container tabindex="0" aria-label="Report results. Scroll horizontally for all columns."><table data-responsive-table class="min-w-[720px] text-left text-sm"><thead class="bg-[#0e5c3a] text-xs uppercase tracking-wider text-white"><tr>@foreach($definition['columns'] as $column)<th class="px-5 py-4">{{ $column }}</th>@endforeach</tr></thead><tbody class="divide-y divide-gray-100">@forelse($paginator as $row)<tr class="hover:bg-emerald-50/60">@foreach($definition['columns'] as $column)<td class="whitespace-nowrap px-5 py-4 text-slate-700">{{ $row[$column] ?? 'Not available' }}</td>@endforeach</tr>@empty<tr><td colspan="{{ count($definition['columns']) }}" class="px-5 py-16 text-center text-slate-500">No authorized records match the selected filters.</td></tr>@endforelse</tbody></table></div>
         @if($paginator->hasPages())<div class="border-t border-gray-100 p-4">{{ $paginator->links() }}</div>@endif
     </section>
 </div>

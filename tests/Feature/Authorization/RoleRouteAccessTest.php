@@ -40,7 +40,33 @@ class RoleRouteAccessTest extends TestCase
             ->get(route('dean.dashboard', ['tab' => 'repository']))
             ->assertOk()
             ->assertSee('College Document Repository')
-            ->assertSee('bg-[#eebc3f] font-bold text-[#09472d]', false);
+            ->assertSee('bg-[#eebc3f]', false);
+    }
+
+    public function test_every_dean_dashboard_tab_renders_without_a_server_error(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+        $dean = User::factory()->create();
+        $dean->assignRole('dean');
+
+        foreach (['dashboard', 'pending', 'manuscript', 'schedule', 'repository', 'notifications', 'settings'] as $tab) {
+            $this->actingAs($dean)
+                ->get(route('dean.dashboard', ['tab' => $tab]))
+                ->assertOk();
+        }
+    }
+
+    public function test_empty_dean_approval_queue_displays_a_clear_empty_state(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+        $dean = User::factory()->create();
+        $dean->assignRole('dean');
+
+        $this->actingAs($dean)
+            ->get(route('dean.dashboard', ['tab' => 'pending']))
+            ->assertOk()
+            ->assertSee('No approvals waiting')
+            ->assertSee('Open Forms Workspace');
     }
 
     public function test_dean_dashboard_does_not_expose_prototype_faculty_appointments(): void

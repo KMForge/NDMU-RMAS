@@ -24,6 +24,10 @@ class DocumentRepositoryAccess
             return true;
         }
 
+        if ($this->hasCollegeAccess($user, $document)) {
+            return true;
+        }
+
         if ($document->research_class_group_id === null) {
             return $user->getKey() === $document->user_id
                 || $this->reviewerAccess->canReview($user, $document);
@@ -60,6 +64,12 @@ class DocumentRepositoryAccess
 
         if ($user->can('documents.download-any')) {
             return $query;
+        }
+
+        $collegeId = $user->facultyProfile?->department?->college_id;
+        if ($user->can('research.view-college') && $collegeId !== null) {
+            return $query->whereHas('researchClassGroup.researchClass.facilitator.facultyProfile.department', fn (Builder $department) => $department
+                ->where('college_id', $collegeId));
         }
 
         return $query->where(function (Builder $access) use ($user): void {
@@ -117,6 +127,24 @@ class DocumentRepositoryAccess
             ->whereIn('status', ['scheduled', 'completed'])
             ->whereHas('activePanelAssignments', fn (Builder $assignment) => $assignment
                 ->where('user_id', $user->getKey()))
+            ->exists();
+    }
+
+    private function hasCollegeAccess(User $user, Document $document): bool
+    {
+        if (! $user->can('research.view-college') || $document->research_class_group_id === null) {
+            return false;
+        }
+
+        $collegeId = $user->facultyProfile?->department?->college_id;
+        if ($collegeId === null) {
+            return false;
+        }
+
+        return Document::query()
+            ->whereKey($document->getKey())
+            ->whereHas('researchClassGroup.researchClass.facilitator.facultyProfile.department', fn (Builder $department) => $department
+                ->where('college_id', $collegeId))
             ->exists();
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Dashboard\Queries;
 
+use App\Enums\DocumentStatus;
 use App\Models\DefenseSchedule;
 use App\Models\Document;
 use App\Models\ResearchClassGroup;
@@ -34,10 +35,12 @@ class GetDeanDashboardData
             ->latest('id')
             ->get();
 
-        $documents = Document::query()
+        $documentScope = Document::query()
             ->whereNotNull('research_class_group_id')
             ->where('is_current', true)
-            ->whereHas('researchClassGroup', $groupScope)
+            ->whereHas('researchClassGroup', $groupScope);
+
+        $documents = (clone $documentScope)
             ->when($filters['document_search'] !== '', fn (Builder $query) => $query
                 ->whereRaw('LOWER(original_filename) LIKE ?', ['%'.Str::lower($filters['document_search']).'%']))
             ->when($filters['document_status'] !== 'all', fn (Builder $query) => $query
@@ -52,8 +55,10 @@ class GetDeanDashboardData
             ->latest('id')
             ->get();
 
-        $schedules = DefenseSchedule::query()
-            ->whereHas('defense.group', $groupScope)
+        $scheduleScope = DefenseSchedule::query()
+            ->whereHas('defense.group', $groupScope);
+
+        $schedules = (clone $scheduleScope)
             ->when($filters['schedule_status'] !== 'all', fn (Builder $query) => $query
                 ->where('status', $filters['schedule_status']))
             ->with([
@@ -66,6 +71,21 @@ class GetDeanDashboardData
             ->latest('id')
             ->get();
 
+        $documentStatusCounts = (clone $documentScope)
+            ->selectRaw('status, COUNT(*) AS aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+        $pendingDocumentCount = collect([
+            DocumentStatus::Pending->value,
+            DocumentStatus::Submitted->value,
+            DocumentStatus::UnderReview->value,
+            DocumentStatus::RevisionRequested->value,
+        ])->sum(fn (string $status): int => (int) $documentStatusCounts->get($status, 0));
+        $upcomingDefenseCount = (clone $scheduleScope)
+            ->where('starts_at', '>', now())
+            ->whereNotIn('status', ['cancelled', 'completed'])
+            ->count();
+
         return [
             'deanCollege' => $college,
             'deanGroups' => $groups,
@@ -75,15 +95,9 @@ class GetDeanDashboardData
             'deanStats' => [
                 'groups' => $groups->count(),
                 'active_groups' => $groups->where('status', 'active')->count(),
-                'documents' => $documents->count(),
-                'pending_documents' => $documents->filter(fn (Document $document): bool => in_array(
-                    $document->status?->value ?? (string) $document->status,
-                    ['pending', 'submitted', 'under_review'],
-                    true,
-                ))->count(),
-                'upcoming_defenses' => $schedules->filter(fn (DefenseSchedule $schedule): bool => $schedule->starts_at?->isFuture()
-                    && ! in_array($schedule->status, ['cancelled', 'completed'], true)
-                )->count(),
+                'documents' => (clone $documentScope)->count(),
+                'pending_documents' => $pendingDocumentCount,
+                'upcoming_defenses' => $upcomingDefenseCount,
                 'archived_research' => $groups->filter(fn (ResearchClassGroup $group): bool => $group->researchGroup?->currentProject?->status === 'archived'
                 )->count(),
             ],
@@ -114,7 +128,7 @@ class GetDeanDashboardData
      */
     private function filters(array $input): array
     {
-        $documentStatuses = ['all', 'pending', 'submitted', 'under_review', 'accepted', 'rejected'];
+        $documentStatuses = ['all', ...array_column(DocumentStatus::cases(), 'value')];
         $scheduleStatuses = ['all', 'pending', 'current', 'scheduled', 'completed', 'cancelled'];
 
         return [

@@ -3,7 +3,10 @@
 namespace Tests\Feature\Documents;
 
 use App\Enums\DocumentStatus;
+use App\Models\College;
+use App\Models\Department;
 use App\Models\Document;
+use App\Models\FacultyProfile;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
@@ -87,6 +90,30 @@ class DocumentAccessFoundationTest extends TestCase
 
         $this->assertTrue(app(DocumentPolicy::class)->view($uploader, $document));
         $this->assertFalse(app(DocumentPolicy::class)->view($otherStudent, $document));
+    }
+
+    public function test_dean_can_access_documents_only_inside_their_college_scope(): void
+    {
+        $leader = $this->student();
+        $group = $this->groupWithMembers([$leader], $leader);
+        $document = $this->document($leader, $group);
+
+        $college = College::query()->create(['code' => 'CEAC', 'name' => 'College of Engineering', 'is_active' => true]);
+        $department = Department::query()->create(['college_id' => $college->id, 'code' => 'CSD', 'name' => 'Computer Studies', 'is_active' => true]);
+        FacultyProfile::query()->create(['user_id' => $group->researchClass->facilitator_id, 'department_id' => $department->id, 'employee_number' => 'FAC-SCOPE-1']);
+
+        $dean = User::factory()->create(['user_type' => 'faculty']);
+        $dean->assignRole('dean');
+        FacultyProfile::query()->create(['user_id' => $dean->id, 'department_id' => $department->id, 'employee_number' => 'FAC-SCOPE-2']);
+
+        $otherCollege = College::query()->create(['code' => 'CAS', 'name' => 'College of Arts', 'is_active' => true]);
+        $otherDepartment = Department::query()->create(['college_id' => $otherCollege->id, 'code' => 'HUM', 'name' => 'Humanities', 'is_active' => true]);
+        $otherDean = User::factory()->create(['user_type' => 'faculty']);
+        $otherDean->assignRole('dean');
+        FacultyProfile::query()->create(['user_id' => $otherDean->id, 'department_id' => $otherDepartment->id, 'employee_number' => 'FAC-SCOPE-3']);
+
+        $this->assertTrue(app(DocumentPolicy::class)->download($dean, $document));
+        $this->assertFalse(app(DocumentPolicy::class)->download($otherDean, $document));
     }
 
     /**

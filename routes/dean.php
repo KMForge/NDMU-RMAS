@@ -14,6 +14,7 @@ Route::prefix('dean')->name('dean.')->middleware([
 ])->group(function (): void {
     Route::get('/dashboard', function (Request $request) {
         $pendingFormInstances = app(OfficialFormWorkspaceController::class)->pendingInstances($request);
+        $pendingAcademicActions = app(GetPendingAcademicActionsForUser::class)->execute($request->user());
         $tab = (string) $request->query('tab', 'dashboard');
         $notificationsData = $tab === 'notifications'
             ? [
@@ -31,9 +32,9 @@ Route::prefix('dean')->name('dean.')->middleware([
             'area' => 'College Dean',
             'dean' => $request->user(),
             'pendingFormInstances' => $pendingFormInstances,
-            'pendingAcademicActions' => app(GetPendingAcademicActionsForUser::class)->execute($request->user()),
+            'pendingAcademicActions' => $pendingAcademicActions,
             'sidebarBadges' => [
-                'pending' => $pendingFormInstances->count(),
+                'pending' => $pendingAcademicActions->count(),
                 'forms' => $pendingFormInstances->count(),
                 'notifications' => Schema::hasTable('notifications')
                     ? $request->user()->unreadNotifications()->count()
