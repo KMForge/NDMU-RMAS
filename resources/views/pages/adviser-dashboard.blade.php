@@ -40,7 +40,7 @@
     }
 </style>
 
-<div class="min-h-screen flex font-sans bg-[#f4f7f6]" x-data="{ 
+<div data-portal-shell class="min-h-screen flex font-sans bg-[#f4f7f6]" x-data="{ 
     activeTab: @js($initialTab),
     activeFormPhase: @js($initialFormPhase),
     activeOfficialForm: @js($initialOfficialForm),
@@ -91,7 +91,7 @@
     "
 >
     <!-- SIDEBAR NAV -->
-    <aside class="fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-[#09472d] via-[#0e5c3a] to-[#073622] text-white flex flex-col justify-between z-20 border-r border-emerald-800/40 shadow-2xl overflow-y-auto">
+    <aside data-portal-sidebar class="fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-[#09472d] via-[#0e5c3a] to-[#073622] text-white flex flex-col justify-between z-20 border-r border-emerald-800/40 shadow-2xl overflow-y-auto">
         <div class="flex-shrink-0">
             <!-- Brand Logo Header -->
             <div class="p-6 pb-4 flex items-center gap-3.5">
@@ -412,9 +412,9 @@
     </aside>
 
     <!-- MAIN CONTENT AREA -->
-    <main class="flex-1 min-w-0 flex flex-col h-screen overflow-y-auto pl-72">
+    <main data-portal-content class="flex-1 min-w-0 flex flex-col h-screen overflow-y-auto pl-72">
         <!-- Top Sticky Header -->
-        <header class="h-20 bg-white/85 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between sticky top-0 z-40 shrink-0 transition-all">
+        <header data-portal-header class="h-20 bg-white/85 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between sticky top-0 z-40 shrink-0 transition-all">
             <div class="flex items-center gap-3">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Research Adviser</span>
                 <span class="text-slate-300">/</span>
@@ -433,7 +433,7 @@
             </div>
         </header>
 
-        <div class="p-8 space-y-8 flex-1">
+        <div data-portal-main class="p-8 space-y-8 flex-1">
             <!-- Green Hero Banner Component for specific inner tabs -->
             <x-portal-feature-banner class="mb-8" :sections="[
                 'classes' => ['eyebrow' => 'Research Adviser Portal', 'title' => 'My Classes Workspace', 'description' => 'Review pending adviser invitations and manage your assigned research groups.', 'icon' => 'ph-chalkboard-teacher'],
@@ -478,7 +478,7 @@
             <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8 animate-fade-in">
 
                 <!-- Rich Branded Command Hub & Quick Action Header -->
-                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#0a462c] p-6 md:p-8 text-white shadow-xl shadow-emerald-950/20 border border-emerald-600/30">
+                <div data-dashboard-hero class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#0a462c] p-6 md:p-8 text-white shadow-xl shadow-emerald-950/20 border border-emerald-600/30">
                     <!-- Ambient Glow & Watermark Logo -->
                     <div class="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-[#eebc3f]/15 blur-3xl"></div>
                     <div class="pointer-events-none absolute -left-12 -bottom-20 h-48 w-48 rounded-full bg-emerald-400/15 blur-2xl"></div>

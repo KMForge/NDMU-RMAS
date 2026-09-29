@@ -37,12 +37,14 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function displayFirstName(): string
     {
-        if (! empty($this->first_name)) {
-            return $this->first_name;
+        $honorifics = ['atty', 'dr', 'engr', 'fr', 'mr', 'mrs', 'ms', 'prof', 'sr', 'sra'];
+        $storedFirstName = trim((string) $this->first_name);
+
+        if ($storedFirstName !== '' && ! in_array(mb_strtolower(rtrim($storedFirstName, '.')), $honorifics, true)) {
+            return $storedFirstName;
         }
 
         $parts = preg_split('/\s+/', trim((string) $this->name)) ?: [];
-        $honorifics = ['atty', 'dr', 'engr', 'fr', 'mr', 'mrs', 'ms', 'prof', 'sr', 'sra'];
 
         while (count($parts) > 1 && in_array(mb_strtolower(rtrim($parts[0], '.')), $honorifics, true)) {
             array_shift($parts);

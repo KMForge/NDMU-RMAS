@@ -389,6 +389,7 @@ document.addEventListener('alpine:init', () => {
 
 <div
     class="min-h-screen flex font-sans bg-[#f4f7f6]"
+    data-portal-shell
     x-data="panelistDashboard({
         initialTab: @js($initialTab),
         initialFormPhase: @js($initialFormPhase),
@@ -404,7 +405,7 @@ document.addEventListener('alpine:init', () => {
     })"
 >
     <!-- Left Sidebar: Navigation -->
-    <aside class="fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-[#09472d] via-[#0e5c3a] to-[#073622] text-white flex flex-col justify-between z-20 border-r border-emerald-800/40 shadow-2xl overflow-y-auto">
+    <aside data-portal-sidebar class="fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-[#09472d] via-[#0e5c3a] to-[#073622] text-white flex flex-col justify-between z-20 border-r border-emerald-800/40 shadow-2xl overflow-y-auto">
         <div class="flex-shrink-0">
             <!-- Brand Logo Header -->
             <div class="p-6 pb-4 flex items-center gap-3.5">
@@ -679,9 +680,9 @@ document.addEventListener('alpine:init', () => {
     </aside>
 
     <!-- Right Side: Content Area -->
-    <div class="flex-1 flex flex-col min-h-screen pl-72">
+    <div data-portal-content class="flex-1 flex flex-col min-h-screen pl-72">
         <!-- Top Nav Header -->
-        <header class="h-20 bg-white/85 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between sticky top-0 z-40 flex-shrink-0 transition-all">
+        <header data-portal-header class="h-20 bg-white/85 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between sticky top-0 z-40 flex-shrink-0 transition-all">
             <!-- Search bar -->
             <div class="relative w-96">
                 <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 pointer-events-none">
@@ -716,7 +717,7 @@ document.addEventListener('alpine:init', () => {
         </header>
 
         <!-- Main Body Content -->
-        <main class="flex-grow p-8">
+        <main data-portal-main class="flex-grow p-8">
             <x-portal-feature-banner class="mb-8" :sections="[
                 'assigned-papers' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Assigned Papers', 'description' => 'Access the research papers assigned to you for review.', 'icon' => 'ph-files'],
                 'proposal-eval' => ['eyebrow' => 'Panel Member Portal', 'title' => 'Proposal Evaluation', 'description' => 'Evaluate assigned proposal defenses using the approved criteria.', 'icon' => 'ph-clipboard-text'],
@@ -732,7 +733,7 @@ document.addEventListener('alpine:init', () => {
             <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8 animate-fade-in">
 
                 <!-- Rich Branded Command Hub & Quick Action Header -->
-                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#0a462c] p-6 md:p-8 text-white shadow-xl shadow-emerald-950/20 border border-emerald-600/30">
+                <div data-dashboard-hero class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#0a462c] p-6 md:p-8 text-white shadow-xl shadow-emerald-950/20 border border-emerald-600/30">
                     <!-- Ambient Glow & Watermark Logo -->
                     <div class="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-[#eebc3f]/15 blur-3xl"></div>
                     <div class="pointer-events-none absolute -left-12 -bottom-20 h-48 w-48 rounded-full bg-emerald-400/15 blur-2xl"></div>

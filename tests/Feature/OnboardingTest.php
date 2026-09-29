@@ -18,6 +18,16 @@ class OnboardingTest extends TestCase
         $this->assertSame('Jose', $user->displayFirstName());
     }
 
+    public function test_display_first_name_ignores_an_honorific_stored_as_the_first_name(): void
+    {
+        $user = User::factory()->make([
+            'name' => 'Dr. Lourdes Castillo',
+            'first_name' => 'Dr.',
+        ]);
+
+        $this->assertSame('Lourdes', $user->displayFirstName());
+    }
+
     public function test_user_can_complete_an_authorized_workspace_introduction_once(): void
     {
         $permission = Permission::findOrCreate('dashboards.facilitator.view');

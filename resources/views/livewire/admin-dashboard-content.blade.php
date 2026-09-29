@@ -81,7 +81,7 @@
             <div class="px-5 py-3">
                 <div class="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.06] border border-white/10 shadow-inner backdrop-blur-xs hover:bg-white/[0.09] transition-all">
                     <div class="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-[#eebc3f] to-[#ffd76f] text-[#09472d] font-black flex items-center justify-center text-lg flex-shrink-0 shadow-md">
-                        {{ mb_strtoupper(mb_substr($administrator?->name ?? 'A', 0, 1)) }}
+                        <x-current-user-avatar :user="$administrator" rounded="rounded-xl" />
                         <span class="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
                             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                             <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-[#09472d]"></span>
@@ -310,7 +310,7 @@
                 <!-- User profile badge -->
                 <div class="flex items-center gap-3 pl-2 border-l border-slate-200">
                     <div class="w-8 h-8 rounded-full bg-[#0e5c3a] text-white flex items-center justify-center font-bold text-xs shadow-2xs">
-                        {{ mb_strtoupper(mb_substr($administrator?->name ?? 'A', 0, 1)) }}
+                        <x-current-user-avatar :user="$administrator" />
                     </div>
                     <div class="flex flex-col leading-none">
                         <span class="font-bold text-xs text-slate-800">{{ $administrator?->name ?? 'Administrator' }}</span>
@@ -350,7 +350,7 @@
             <!-- TAB 1: ADMIN DASHBOARD VIEW -->
             <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8 animate-fade-in">
                 <!-- Rich Branded Command Hub & Quick Action Header -->
-                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#0a462c] p-6 md:p-8 text-white shadow-xl shadow-emerald-950/20 border border-emerald-600/30">
+                <div data-dashboard-hero class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#0a462c] p-6 md:p-8 text-white shadow-xl shadow-emerald-950/20 border border-emerald-600/30">
                     <!-- Ambient Glow & Watermark Logo -->
                     <div class="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-[#eebc3f]/15 blur-3xl"></div>
                     <div class="pointer-events-none absolute -left-12 -bottom-20 h-48 w-48 rounded-full bg-emerald-400/15 blur-2xl"></div>
