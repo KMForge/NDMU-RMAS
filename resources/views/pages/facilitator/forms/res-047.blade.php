@@ -14,7 +14,7 @@
     $members = $group?->members?->values() ?? collect();
     $adviserName = $group?->adviser?->name ?? '';
     $dean = $resolver->dean();
-    $deanName = $dean?->name ?? 'Dr. Lourdes Castillo';
+    $deanName = $dean?->name ?? 'College Dean';
 @endphp
 <div x-show="activeOfficialForm === 'RES-047'" x-cloak>
     <x-student-official-form code="RES-Form-047" title="Endorsement for Reproduction of the Research Paper" guidebook-page="133">
@@ -24,7 +24,7 @@
             <br>
             <span>Dean, College of <input value="Engineering, Architecture, and Computing" class="w-80" readonly></span>
         </div>
-        <p class="mt-2">Dear <input name="payload[salutation]" value="{{ $payload['salutation'] ?? 'Dr. Castillo' }}" class="w-56">:</p>
+        <p class="mt-2">Dear <input name="payload[salutation]" value="{{ $payload['salutation'] ?? $deanName }}" class="w-56">:</p>
         <p>After a thorough examination of the revised research paper entitled:</p>
         <input value="{{ $currentResearchTitle }}" class="w-full text-center font-bold" aria-label="Research title" readonly>
         <p>of the following students:</p>
@@ -50,7 +50,7 @@
                 </label>
             </div>
             <div>
-                <x-official-signature-field name-field="res_047_college_dean_name" label="Approved: College Dean" />
+                <x-official-signature-field actor-type="dean" name-field="res_047_college_dean_name" label="Approved: College Dean" />
                 <p class="mt-1 text-xs font-bold text-slate-800">{{ $deanName }}</p>
                 <label class="mt-2 block text-xs text-slate-500">Date Approved:<input type="date" name="payload[approved_date]" value="{{ $payload['approved_date'] ?? '' }}" class="w-full text-center"></label>
             </div>

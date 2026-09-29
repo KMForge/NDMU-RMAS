@@ -405,15 +405,19 @@ class OfficialFormAuthorization
                 return false;
             }
 
-            return (int) $class->facilitator_id === (int) $user->id
+            if ((int) $class->facilitator_id === (int) $user->id
                 || $this->institutionalActors->isProgramCoordinator($user, $class, $instance->group)
-                || $this->institutionalActors->isDean($user)
-                || ResearchClassActorAssignment::query()
-                    ->where('research_class_id', $class->id)
-                    ->where('user_id', $user->id)
-                    ->whereIn('actor_type', ['program_coordinator', 'program_head', 'dean'])
-                    ->where('status', 'active')
-                    ->exists();
+                || $this->institutionalActors->isDean($user)) {
+                return true;
+            }
+
+            $hasCoordinatorFallback = ! $this->institutionalActors->hasConfiguredProgramCoordinator($class, $instance->group)
+                && ($this->hasClassActorAssignment($user, $class, 'program_coordinator')
+                    || $this->hasClassActorAssignment($user, $class, 'program_head'));
+            $hasDeanFallback = ! $this->institutionalActors->hasConfiguredDean()
+                && $this->hasClassActorAssignment($user, $class, 'dean');
+
+            return $hasCoordinatorFallback || $hasDeanFallback;
         }
 
         $titlePanelPosition = match ($requiredActorType) {
@@ -442,10 +446,13 @@ class OfficialFormAuthorization
         if ($requiredActorType === 'program_coordinator' || $requiredActorType === 'program_head') {
             $class = $instance->researchClass ?? $instance->group?->researchClass;
 
-            if ($this->institutionalActors->isProgramCoordinator($user, $class, $instance->group)) {
-                return true;
+            if ($this->institutionalActors->hasConfiguredProgramCoordinator($class, $instance->group)) {
+                return $this->institutionalActors->isProgramCoordinator($user, $class, $instance->group);
             }
 
+            // Compatibility path for installations that have not assigned a
+            // current Program Coordinator role. Once one exists, live role
+            // resolution is authoritative and stale saved assignments close.
             return $class !== null && ($this->hasClassActorAssignment($user, $class, 'program_coordinator') || $this->hasClassActorAssignment($user, $class, 'program_head'));
         }
 

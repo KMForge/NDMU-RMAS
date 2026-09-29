@@ -16,7 +16,7 @@
     $programCoordinator = $resolver->programCoordinatorForGroup($group) ?? $resolver->programCoordinatorForClass($class);
     $programCoordinatorName = $programCoordinator?->name ?? 'Program Coordinator';
     $dean = $resolver->dean();
-    $deanName = $dean?->name ?? 'Dr. Lourdes Castillo';
+    $deanName = $dean?->name ?? 'College Dean';
 @endphp
 <div x-show="activeOfficialForm === 'RES-044'" x-cloak>
     <x-student-official-form code="RES-Form-044" title="Endorsement of Student Researcher for Data Gathering" guidebook-page="130">
@@ -26,7 +26,7 @@
             <br>
             <span>Dean, College of <input value="Engineering, Architecture, and Computing" class="w-80" readonly></span>
         </div>
-        <p class="mt-2">Dear <input name="payload[salutation]" value="{{ $payload['salutation'] ?? 'Dr. Castillo' }}" class="w-56" placeholder="Sir / Madam">:</p>
+        <p class="mt-2">Dear <input name="payload[salutation]" value="{{ $payload['salutation'] ?? $deanName }}" class="w-56" placeholder="Sir / Madam">:</p>
         <div class="grid gap-3 md:grid-cols-2">
             @for ($i = 1; $i <= 4; $i++)
                 <label class="flex gap-2">
@@ -56,11 +56,11 @@
         </div>
         <div class="official-signature-row grid gap-8 pt-8 text-center md:grid-cols-2">
             <div>
-                <x-official-signature-field label="Program Coordinator" />
+                <x-official-signature-field actor-type="program_coordinator" label="Program Coordinator" />
                 <p class="mt-1 text-xs font-bold text-slate-800">{{ $programCoordinatorName }}</p>
             </div>
             <div>
-                <x-official-signature-field label="College Dean" />
+                <x-official-signature-field actor-type="dean" label="College Dean" />
                 <p class="mt-1 text-xs font-bold text-slate-800">{{ $deanName }}</p>
             </div>
         </div>

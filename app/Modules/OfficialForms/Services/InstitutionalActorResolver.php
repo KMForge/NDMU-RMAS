@@ -65,7 +65,10 @@ class InstitutionalActorResolver
             ->where('user_type', UserType::Faculty)
             ->where('status', AccountStatus::Active)
             ->whereNotNull('approved_at')
+            ->whereNotNull('email_verified_at')
             ->whereHas('roles', fn ($query) => $query->whereIn('name', ['program-coordinator', 'department-chair']))
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
             ->first();
     }
 
@@ -119,21 +122,31 @@ class InstitutionalActorResolver
         return false;
     }
 
+    public function hasConfiguredProgramCoordinator(?ResearchClass $class = null, ?ResearchClassGroup $group = null): bool
+    {
+        if ($group !== null && $this->programCoordinatorForGroup($group) !== null) {
+            return true;
+        }
+
+        if ($class !== null && $this->programCoordinatorForClass($class) !== null) {
+            return true;
+        }
+
+        return false;
+    }
+
     public function programCoordinatorForDepartmentId(int $departmentId): ?User
     {
         return User::query()
             ->where('user_type', UserType::Faculty)
             ->where('status', AccountStatus::Active)
             ->whereNotNull('approved_at')
+            ->whereNotNull('email_verified_at')
             ->whereHas('facultyProfile', fn ($fp) => $fp->where('department_id', $departmentId))
             ->whereHas('roles', fn ($query) => $query->whereIn('name', ['program-coordinator', 'department-chair']))
-            ->first()
-            ?? User::query()
-                ->where('user_type', UserType::Faculty)
-                ->where('status', AccountStatus::Active)
-                ->whereNotNull('approved_at')
-                ->whereHas('roles', fn ($query) => $query->whereIn('name', ['program-coordinator', 'department-chair']))
-                ->first();
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->first();
     }
 
     /** @return Collection<int, User> */

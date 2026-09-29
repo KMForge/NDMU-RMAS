@@ -2,11 +2,14 @@
 
 namespace Tests\Feature\OfficialForms;
 
+use App\Models\College;
 use App\Models\ConsultationRecord;
 use App\Models\ConsultationRequest;
 use App\Models\Defense;
+use App\Models\Department;
 use App\Models\Document;
 use App\Models\DocumentReview;
+use App\Models\FacultyProfile;
 use App\Models\OfficialFormActorAssignment;
 use App\Models\OfficialFormDefinition;
 use App\Models\OfficialFormInstance;
@@ -564,6 +567,61 @@ class OfficialFormBackendTest extends TestCase
         $instance2 = $createAction->handle($instructor, 'RES-041', classId: $class->id, contextKey: 'second_class_submission');
         $this->expectException(InvalidArgumentException::class);
         $approveAction->handle($coordinator, $instance2, ['notes' => 'Coordinator endorse attempt'], 'endorsed', 'endorse');
+    }
+
+    public function test_current_program_coordinator_role_overrides_stale_class_assignment(): void
+    {
+        $group = $this->createGroup();
+        $class = $group->researchClass;
+        $instructor = $class->facilitator;
+        $instructor->givePermissionTo('forms.res-041.fill', 'forms.res-041.endorse');
+
+        $college = College::query()->create([
+            'code' => 'CEAC',
+            'name' => 'College of Engineering, Architecture and Computing',
+            'is_active' => true,
+        ]);
+        $department = Department::query()->create([
+            'college_id' => $college->id,
+            'code' => 'CSD',
+            'name' => 'Computer Studies Department',
+            'is_active' => true,
+        ]);
+        FacultyProfile::query()->create([
+            'user_id' => $instructor->id,
+            'department_id' => $department->id,
+            'employee_number' => 'FAC-RESOLVER-1',
+        ]);
+
+        $formerCoordinator = User::factory()->create(['user_type' => 'faculty']);
+        $formerCoordinator->assignRole('program-coordinator');
+        FacultyProfile::query()->create([
+            'user_id' => $formerCoordinator->id,
+            'department_id' => $department->id,
+            'employee_number' => 'FAC-RESOLVER-2',
+        ]);
+
+        $newCoordinator = User::factory()->create(['user_type' => 'faculty']);
+        FacultyProfile::query()->create([
+            'user_id' => $newCoordinator->id,
+            'department_id' => $department->id,
+            'employee_number' => 'FAC-RESOLVER-3',
+        ]);
+
+        $classAssignAction = new AssignResearchClassFormActor;
+        $classAssignAction->handle($instructor, $class, $instructor, 'research_instructor');
+        $classAssignAction->handle($instructor, $class, $formerCoordinator, 'program_coordinator');
+
+        $instance = (new CreateOfficialFormInstance)->handle($instructor, 'RES-041', classId: $class->id);
+
+        $formerCoordinator->removeRole('program-coordinator');
+        $formerCoordinator->givePermissionTo('forms.res-041.receive');
+        $newCoordinator->assignRole('program-coordinator');
+
+        $authorization = app(OfficialFormAuthorization::class);
+
+        $this->assertFalse($authorization->canPerformAction($formerCoordinator->fresh(), $instance->fresh(), 'receive'));
+        $this->assertTrue($authorization->canPerformAction($newCoordinator->fresh(), $instance->fresh(), 'receive'));
     }
 
     public function test_custom_role_compatibility_with_actor_assignment(): void

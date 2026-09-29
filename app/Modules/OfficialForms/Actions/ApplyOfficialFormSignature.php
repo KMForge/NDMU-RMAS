@@ -312,8 +312,11 @@ class ApplyOfficialFormSignature
                     $qualifies = $this->authorization->canPerformAction($actor, $instance, $action);
                 } elseif ($action === 'endorse') {
                     $class = $instance->researchClass ?? $instance->group?->researchClass;
-                    $qualifies = app(InstitutionalActorResolver::class)->isProgramCoordinator($actor, $class, $instance->group)
-                        || ($class !== null && ResearchClassActorAssignment::query()->where('research_class_id', $class->id)->where('user_id', $actor->id)->whereIn('actor_type', ['program_coordinator', 'program_head'])->where('status', 'active')->exists());
+                    $resolver = app(InstitutionalActorResolver::class);
+                    $qualifies = $resolver->isProgramCoordinator($actor, $class, $instance->group)
+                        || (! $resolver->hasConfiguredProgramCoordinator($class, $instance->group)
+                            && $class !== null
+                            && ResearchClassActorAssignment::query()->where('research_class_id', $class->id)->where('user_id', $actor->id)->whereIn('actor_type', ['program_coordinator', 'program_head'])->where('status', 'active')->exists());
                 } elseif (str_starts_with($action, 'sign_')) {
                     $position = match ($action) {
                         'sign_chairperson' => 'chairperson',

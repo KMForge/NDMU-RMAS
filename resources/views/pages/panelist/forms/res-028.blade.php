@@ -21,7 +21,7 @@
     $programCoordinator = $resolver->programCoordinatorForGroup($group) ?? $resolver->programCoordinatorForClass($class);
     $programCoordinatorName = $programCoordinator?->name ?? 'Program Coordinator';
     $dean = $resolver->dean();
-    $deanName = $dean?->name ?? 'Dr. Lourdes Castillo';
+    $deanName = $dean?->name ?? 'College Dean';
 @endphp
 <div x-show="activeOfficialForm === 'RES-028'" x-cloak>
     <x-student-official-form code="RES-Form-028" title="Invitation to Research Examination Panelist" guidebook-page="103">

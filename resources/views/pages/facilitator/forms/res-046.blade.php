@@ -13,7 +13,7 @@
 
     $members = $group?->members?->values() ?? collect();
     $dean = $resolver->dean();
-    $deanName = $dean?->name ?? 'Dr. Lourdes Castillo';
+    $deanName = $dean?->name ?? 'College Dean';
 @endphp
 <div x-show="activeOfficialForm === 'RES-046'" x-cloak>
     <x-student-official-form code="RES-Form-046" title="Certificate of Technical Editing" guidebook-page="132">
