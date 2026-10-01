@@ -139,6 +139,7 @@
         .res-026-panel-signature .official-signature-mark { height: 2rem; border-bottom: 1px solid #365e50; }
         .res-026-panel-signature .official-signature-image,
         .res-026-panel-signature .official-signature-placeholder { height: 1.9rem; border: 0; padding: 0; }
+        .res-026-panel-signature .official-signature-image img { display: block; }
         .res-026-panel-signature .official-signature-name,
         .res-026-panel-signature .official-signature-status { display: none; }
         .res-026-panel-signature .official-signature-label { height: .9rem; font-size: .55rem; }
