@@ -59,6 +59,7 @@
             break-inside: avoid;
             page-break-inside: avoid;
         }
+        .res-033-signature-row { align-items: start; }
         .official-signature-mark,
         .official-signature-name {
             display: flex;

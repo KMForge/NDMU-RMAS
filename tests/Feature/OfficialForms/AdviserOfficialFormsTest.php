@@ -51,6 +51,8 @@ class AdviserOfficialFormsTest extends TestCase
         $this->actingAs($adviser)
             ->get(route('adviser.dashboard', ['tab' => 'forms', 'form' => 'RES-033']))
             ->assertOk()
+            ->assertSee('res-033-signature-row', false)
+            ->assertSee('.res-033-signature-row { align-items: start; }', false)
             ->assertSee('mx-auto max-w-[18rem]', false)
             ->assertSee('flex flex-col items-center', false);
     }

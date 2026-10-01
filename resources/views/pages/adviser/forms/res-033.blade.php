@@ -59,7 +59,7 @@
             </div>
         </fieldset>
         <p class="text-xs leading-5">This endorsement is valid only for the defense stage identified above. A separate completed RES-033 is required for every succeeding defense stage.</p>
-        <div class="official-signature-row grid gap-8 pt-8 text-center md:grid-cols-2">
+        <div class="official-signature-row res-033-signature-row grid gap-8 pt-8 text-center md:grid-cols-2">
             <div class="flex flex-col items-center">
                 <x-official-signature-field class="mx-auto max-w-[18rem]" actor-type="adviser" academic-action="endorse" label="Instructor / Research Adviser (Name & Signature)" />
                 <p class="mt-1 text-xs font-bold text-slate-800">{{ $adviserName }}</p>
