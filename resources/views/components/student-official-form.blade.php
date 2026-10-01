@@ -60,7 +60,8 @@
             page-break-inside: avoid;
         }
         .res-033-signature-row,
-        .res-042-signature-row { align-items: start; }
+        .res-042-signature-row,
+        .res-047-signature-row { align-items: start; }
         .official-signature-mark,
         .official-signature-name {
             display: flex;

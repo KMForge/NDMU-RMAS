@@ -40,7 +40,7 @@
             I further attest that the research paper has incorporated the corrections and suggestions of the panel of examiners and was duly edited by proficient language and technical editors. Hence, I highly endorse the attached hard copy for reproduction and hard binding.
         </p>
         <p>For your approval.</p>
-        <div class="official-signature-row grid gap-8 pt-10 text-center md:grid-cols-2">
+        <div class="official-signature-row res-047-signature-row grid gap-8 pt-10 text-center md:grid-cols-2">
             <div>
                 <x-official-signature-field name-field="res_047_adviser_printed_name" label="Endorsed: Research Adviser" />
                 <p class="mt-1 text-xs font-bold text-slate-800">{{ $adviserName }}</p>
