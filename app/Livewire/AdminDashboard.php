@@ -8,10 +8,16 @@ use App\Models\AcademicTerm;
 use App\Models\AcademicYear;
 use App\Models\AuditLog;
 use App\Models\Department;
+use App\Models\SystemBackup;
+use App\Models\SystemBackupSetting;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Modules\Administration\Actions\CreateSystemBackup;
+use App\Modules\Administration\Actions\DeleteSystemBackup;
 use App\Modules\Administration\Actions\UpdateSystemSettings;
 use App\Modules\AuditLogs\Queries\GetAuditLogsForAdmin;
+use App\Modules\AuditLogs\Services\AuditLogWriter;
+use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Dashboard\Queries\GetAdminDashboardData;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\UserManagement\Actions\ManageRoleAccess;
@@ -103,6 +109,14 @@ class AdminDashboard extends Component
 
     public bool $settingsDefenseHighTrafficModeEnabled = false;
 
+    public bool $backupScheduleEnabled = false;
+
+    public string $backupFrequency = 'daily';
+
+    public string $backupRunTime = '23:00';
+
+    public int $backupRetentionCount = 14;
+
     public string $settingsMaintenanceNotice = '';
 
     public ?int $settingsAcademicYearId = null;
@@ -149,6 +163,7 @@ class AdminDashboard extends Component
         $this->department = '';
         $this->isCollegeDean = false;
         $this->loadSystemSettings();
+        $this->loadBackupSettings();
     }
 
     public function updatedSearchQuery(string $value): void
@@ -194,6 +209,9 @@ class AdminDashboard extends Component
     {
         if ($value === 'audit') {
             Gate::authorize('audit-logs.view');
+        }
+        if ($value === 'backups') {
+            abort_unless($this->administrator()->can('settings.manage'), 403);
         }
     }
 
@@ -591,6 +609,74 @@ class AdminDashboard extends Component
         $this->resetValidation();
     }
 
+    public function runSystemBackup(CreateSystemBackup $createBackup): void
+    {
+        abort_unless($this->administrator()->can('settings.manage'), 403);
+        $this->resetErrorBag('backup');
+
+        try {
+            $backup = $createBackup->handle($this->administrator());
+            $this->successMessage = "Backup {$backup->filename} was created successfully.";
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->addError('backup', $exception->getMessage());
+        }
+    }
+
+    public function saveBackupSchedule(AuditLogWriter $auditLogs): void
+    {
+        abort_unless($this->administrator()->can('settings.manage'), 403);
+
+        $validated = $this->validate([
+            'backupScheduleEnabled' => ['boolean'],
+            'backupFrequency' => ['required', Rule::in(['daily', 'weekly', 'monthly'])],
+            'backupRunTime' => ['required', 'date_format:H:i'],
+            'backupRetentionCount' => ['required', 'integer', 'min:1', 'max:365'],
+        ]);
+
+        $settings = DB::transaction(function () use ($validated): SystemBackupSetting {
+            $settings = SystemBackupSetting::query()->lockForUpdate()->firstOrFail();
+            $settings->update([
+                'enabled' => $validated['backupScheduleEnabled'],
+                'frequency' => $validated['backupFrequency'],
+                'run_time' => $validated['backupRunTime'],
+                'retention_count' => $validated['backupRetentionCount'],
+                'last_scheduled_for' => null,
+                'updated_by' => $this->administrator()->getKey(),
+            ]);
+
+            return $settings;
+        });
+
+        $auditLogs->write(
+            actor: $this->administrator(),
+            event: 'system-backup.schedule-updated',
+            description: 'The automatic system backup schedule was updated.',
+            requestContext: AuditRequestContext::fromRequest(request()),
+            auditable: $settings,
+            subjectName: 'System Backup Schedule',
+            newValues: $settings->only(['enabled', 'frequency', 'run_time', 'retention_count']),
+            actorContext: 'administrator',
+        );
+
+        $this->successMessage = 'Backup schedule saved successfully.';
+    }
+
+    public function deleteSystemBackup(int $backupId, DeleteSystemBackup $deleteBackup): void
+    {
+        abort_unless($this->administrator()->can('settings.manage'), 403);
+        $backup = SystemBackup::query()->findOrFail($backupId);
+
+        try {
+            $filename = $backup->filename;
+            $deleteBackup->handle($this->administrator(), $backup);
+            $this->successMessage = "Backup {$filename} was deleted.";
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->addError('backup', $exception->getMessage());
+        }
+    }
+
     public function seedAcademicCycle(): void
     {
         abort_unless($this->administrator()->can('settings.manage'), 403);
@@ -711,6 +797,7 @@ class AdminDashboard extends Component
             $this->roleManagementData(),
             $this->auditLogData($auditLogs),
             $this->systemSettingsData(),
+            $this->systemBackupData(),
             $repositoryData->for($this->administrator(), request()->query()),
         );
 
@@ -1128,6 +1215,44 @@ class AdminDashboard extends Component
         $this->settingsMaintenanceNotice = $settings->maintenance_notice ?? '';
         $this->settingsAcademicYearId = AcademicYear::query()->where('is_current', true)->value('id');
         $this->settingsAcademicTermId = AcademicTerm::query()->where('is_current', true)->value('id');
+    }
+
+    private function loadBackupSettings(): void
+    {
+        if (! Schema::hasTable('system_backup_settings')) {
+            return;
+        }
+
+        $settings = SystemBackupSetting::query()->first();
+        if ($settings === null) {
+            return;
+        }
+
+        $this->backupScheduleEnabled = $settings->enabled;
+        $this->backupFrequency = $settings->frequency;
+        $this->backupRunTime = substr((string) $settings->run_time, 0, 5);
+        $this->backupRetentionCount = $settings->retention_count;
+    }
+
+    /** @return array<string, mixed> */
+    private function systemBackupData(): array
+    {
+        if (! Schema::hasTable('system_backups')) {
+            return ['systemBackups' => collect(), 'lastSuccessfulBackup' => null];
+        }
+
+        return [
+            'systemBackups' => SystemBackup::query()
+                ->with('triggeredBy:id,name')
+                ->latest('started_at')
+                ->latest('id')
+                ->limit(50)
+                ->get(),
+            'lastSuccessfulBackup' => SystemBackup::query()
+                ->where('status', 'completed')
+                ->latest('completed_at')
+                ->first(),
+        ];
     }
 
     /** @return array<string, mixed> */

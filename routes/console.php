@@ -3,6 +3,7 @@
 use App\Enums\AccountStatus;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
+use App\Modules\Administration\Actions\RunScheduledSystemBackup;
 use App\Modules\ResearchProgress\Actions\ReconcileWorkflowMilestones;
 use App\Modules\ResearchProgress\Actions\ResetDryRunGroupProgress;
 use Illuminate\Foundation\Inspiring;
@@ -11,6 +12,12 @@ use Illuminate\Support\Facades\Artisan;
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+Artisan::command('system-backup:run-scheduled', function (RunScheduledSystemBackup $action): int {
+    $this->line($action->handle() ? 'Scheduled backup evaluated and started.' : 'No system backup is due.');
+
+    return 0;
+})->purpose('Create the due scheduled system backup');
 
 Artisan::command('research-progress:reconcile', function (ReconcileWorkflowMilestones $action): void {
     $result = $action->execute();

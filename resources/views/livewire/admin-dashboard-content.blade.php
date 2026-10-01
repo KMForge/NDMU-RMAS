@@ -225,6 +225,21 @@
                     <span x-show="activeTab === 'audit'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
                 @endcan
+
+                @can('settings.manage')
+                <button
+                    type="button"
+                    @click="activeTab = 'backups'"
+                    :class="activeTab === 'backups' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group"
+                >
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-database text-lg transition-transform group-hover:scale-110"></i>
+                        <span>Backup Management</span>
+                    </div>
+                    <span x-show="activeTab === 'backups'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
+                </button>
+                @endcan
             </div>
         </div>
 
@@ -330,6 +345,7 @@
                 'forms' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Forms Management', 'description' => 'Manage official form availability, records, and workflow status.', 'icon' => 'ph-file-text'],
                 'reports' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Reports & Analytics', 'description' => 'Review operational metrics and research-system outcomes.', 'icon' => 'ph-chart-bar'],
                 'audit' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Audit Logs', 'description' => 'Review security-relevant and administrative activity.', 'icon' => 'ph-list-magnifying-glass'],
+                'backups' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Backup Management', 'description' => 'Protect PostgreSQL data and private system files with verified backup archives.', 'icon' => 'ph-database'],
             ]" />
             <!-- Alert / Success Notification Banner -->
             @if ($successMessage)
@@ -3012,6 +3028,12 @@
                     </div>
                 </div>
             </div>
+
+            @can('settings.manage')
+            <div x-show="activeTab === 'backups'" x-cloak class="space-y-8 animate-fade-in">
+                @include('admin.backup-management')
+            </div>
+            @endcan
 
             <!-- TAB 10: SYSTEM SETTINGS -->
             <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">

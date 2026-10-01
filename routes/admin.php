@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DefenseRoomController;
+use App\Http\Controllers\Admin\SystemBackupDownloadController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
@@ -8,6 +9,11 @@ Route::prefix('admin')->name('admin.')->middleware([
     'auth', 'verified', 'active', 'permission:dashboards.admin.view', 'workspace.context',
 ])->group(function (): void {
     Route::view('/dashboard', 'pages.admin-dashboard', ['area' => 'System Administrator'])->name('dashboard');
+
+    Route::get('/backups/{backup}/download', SystemBackupDownloadController::class)
+        ->middleware(['permission:settings.manage', 'throttle:10,1'])
+        ->whereNumber('backup')
+        ->name('backups.download');
 
     Route::prefix('/reports')->middleware(['permission:reports.view', 'throttle:reports'])->group(function (): void {
         Route::get('/', [ReportController::class, 'index'])->name('reports.index');
