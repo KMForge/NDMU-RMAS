@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 #[Fillable([
     'research_class_group_id',
@@ -30,6 +31,11 @@ class ResearchClassGroupAdviserRequest extends Model
     public function requester(): BelongsTo
     {
         return $this->belongsTo(User::class, 'requested_by');
+    }
+
+    public function officialFormInvitation(): MorphOne
+    {
+        return $this->morphOne(OfficialFormInstance::class, 'source');
     }
 
     protected function casts(): array

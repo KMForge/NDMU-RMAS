@@ -6,21 +6,31 @@ use App\Enums\AccountStatus;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\User;
+use App\Modules\OfficialForms\Services\InstitutionalActorResolver;
 use Illuminate\Support\Str;
 
 class GetFacilitatorClassData
 {
+    public function __construct(
+        private readonly InstitutionalActorResolver $institutionalActors = new InstitutionalActorResolver,
+    ) {}
+
     /** @return array<string, mixed> */
     public function for(User $facilitator, mixed $search = null, mixed $status = null): array
     {
         $classes = ResearchClass::query()
-            ->where('facilitator_id', $facilitator->getKey())
+            ->when(! $facilitator->can('classes.assign-advisers'), fn ($query) => $query->where('facilitator_id', $facilitator->getKey()))
+            ->with(['facilitator.facultyProfile', 'groups.members.student.studentProfile.program'])
             ->withCount([
                 'enrollments as active_students_count' => fn ($query) => $query->where('status', 'active'),
                 'groups as active_groups_count' => fn ($query) => $query->where('status', 'active'),
             ])
             ->latest()
-            ->get();
+            ->get()
+            ->filter(fn (ResearchClass $class): bool => (int) $class->facilitator_id === (int) $facilitator->getKey()
+                || ($facilitator->can('classes.assign-advisers')
+                    && $this->institutionalActors->isProgramCoordinator($facilitator, $class)))
+            ->values();
 
         $requestSearch = Str::limit(strip_tags((string) $search), 100, '');
         $requestStatus = in_array($status, ['pending', 'active', 'rejected', 'all'], true)

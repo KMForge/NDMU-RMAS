@@ -19,6 +19,7 @@ use App\Models\OfficialFormInstance;
 use App\Models\OfficialFormVersion;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
+use App\Models\ResearchClassGroupAdviserRequest;
 use App\Models\ResearchClassGroupMember;
 use App\Models\RevisionRequest;
 use App\Models\User;
@@ -42,6 +43,7 @@ class CreateOfficialFormInstance
     /** @var array<string, list<string>> */
     public const FORM_ALLOWED_SOURCE_TYPES = [
         'RES-026' => [Document::class],
+        'RES-027' => [ResearchClassGroupAdviserRequest::class],
         'RES-031' => [ConsultationRecord::class],
         'RES-036' => [DefenseSchedule::class],
         'RES-037' => [DefenseEvaluationRound::class, DefenseSchedule::class],
@@ -417,6 +419,13 @@ class CreateOfficialFormInstance
                 || ! $document->is_current
                 || ($groupId !== null && (int) $document->research_class_group_id !== (int) $groupId)) {
                 throw new InvalidArgumentException('RES-026 requires the current approved Title Proposal document for this research group.');
+            }
+        } elseif ($sourceType === ResearchClassGroupAdviserRequest::class) {
+            $adviserRequest = ResearchClassGroupAdviserRequest::query()->lockForUpdate()->find($sourceId);
+            if (! $adviserRequest
+                || $adviserRequest->status !== 'pending'
+                || ($groupId !== null && (int) $adviserRequest->research_class_group_id !== (int) $groupId)) {
+                throw new InvalidArgumentException('RES-027 requires the active adviser invitation for this research group.');
             }
         } elseif ($sourceType === DocumentReview::class) {
             /** @var DocumentReview|null $review */

@@ -1007,7 +1007,7 @@
                                             </button>
                                             <button type="button" @click="confirmingAccept = true" class="px-4.5 py-2.5 bg-gradient-to-r from-[#073823] to-[#0e5c3a] hover:brightness-110 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-950/20 transition cursor-pointer flex items-center gap-1.5">
                                                 <i class="ph ph-check-circle text-sm text-[#eebc3f]"></i>
-                                                <span>Accept Assignment</span>
+                                                <span>Review &amp; Sign RES-027</span>
                                             </button>
                                         </div>
 
@@ -1020,13 +1020,13 @@
                                                         <i class="ph ph-check-circle"></i>
                                                     </div>
                                                     <div>
-                                                        <h3 class="font-black text-lg font-heading text-slate-900">Accept Advising Role?</h3>
-                                                        <p class="text-xs text-slate-500">Confirm your role as official research adviser.</p>
+                                                        <h3 class="font-black text-lg font-heading text-slate-900">Review Adviser Invitation?</h3>
+                                                        <p class="text-xs text-slate-500">RES-027 must be digitally signed before assignment.</p>
                                                     </div>
                                                 </div>
 
                                                 <p class="text-xs leading-relaxed text-slate-600 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                                    You are accepting the official research advising assignment for <strong class="text-slate-900">{{ $pGroup?->name }}</strong> in <strong class="text-slate-900">{{ $pClass?->name }}</strong>. This group will activate in your workspace immediately.
+                                                    Review RES-027 for <strong class="text-slate-900">{{ $pGroup?->name }}</strong> in <strong class="text-slate-900">{{ $pClass?->name }}</strong>. You will only become the active adviser after digitally signing the form.
                                                 </p>
 
                                                 <div class="flex justify-end gap-3 pt-2">
@@ -1038,7 +1038,7 @@
                                                         @method('PATCH')
                                                         <input type="hidden" name="decision" value="accept">
                                                         <button type="submit" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#073823] text-white text-xs font-bold rounded-xl shadow-md transition cursor-pointer">
-                                                            Confirm &amp; Accept
+                                                            Open RES-027
                                                         </button>
                                                     </form>
                                                 </div>

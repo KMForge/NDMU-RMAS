@@ -187,8 +187,8 @@ return [
 
     'facilitator' => [
         'RES-026' => ['title' => 'Research Title Approval', 'phase' => 'phase-1', 'shared_with' => 'student', 'purpose' => 'Facilitator approves the title at the facilitator level.'],
-        'RES-027' => ['title' => 'Invitation to Research Adviser', 'phase' => 'phase-2', 'shared_with' => 'adviser', 'purpose' => 'Facilitator issues the invitation to adviser.'],
-        'RES-028' => ['title' => 'Invitation to Research Examination Panelist', 'phase' => 'phase-2', 'shared_with' => 'panelist', 'purpose' => 'Facilitator issues the invitation to panelist.'],
+        'RES-027' => ['title' => 'Invitation to Research Adviser', 'phase' => 'phase-2', 'shared_with' => 'adviser', 'purpose' => 'Program Coordinator issues the invitation to the proposed adviser.'],
+        'RES-028' => ['title' => 'Invitation to Research Examination Panelist', 'phase' => 'phase-2', 'shared_with' => 'panelist', 'purpose' => 'Program Coordinator issues the invitation to the proposed panelist or chairperson.'],
         'RES-030' => ['title' => 'Request for Change of Adviser/Panelist/Language Editor', 'phase' => 'phase-2', 'shared_with' => 'student', 'purpose' => 'Facilitator approves personnel change requests.'],
         'RES-038' => ['title' => 'Endorsement of Student Researchers to Research Adviser', 'phase' => 'phase-2', 'shared_with' => 'adviser', 'purpose' => 'Facilitator issues the endorsement to adviser.'],
         'RES-031' => ['title' => 'Consultation Record with Research Adviser', 'phase' => 'phase-3', 'shared_with' => 'student', 'purpose' => 'Facilitator has oversight of consultation records.'],

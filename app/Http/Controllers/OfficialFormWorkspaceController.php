@@ -6,6 +6,7 @@ use App\Enums\AccountStatus;
 use App\Enums\DocumentStage;
 use App\Enums\DocumentStatus;
 use App\Enums\UserType;
+use App\Models\AuditLog;
 use App\Models\ConsultationRecord;
 use App\Models\DefenseEvaluationRound;
 use App\Models\DefenseRoom;
@@ -149,7 +150,7 @@ class OfficialFormWorkspaceController extends Controller
                     ->get(['id', 'name', 'email'])
                 : collect(),
             'defenseRooms' => $isOwningFacilitator ? DefenseRoom::query()->where('is_active', true)->orderBy('name')->get() : collect(),
-            'availableActions' => collect(['sign_chairperson', 'sign_member_1', 'sign_member_2', 'endorse', 'receive', 'approve', 'reject', 'certify', 'validate', 'review', 'sign'])
+            'availableActions' => collect(['sign_chairperson', 'sign_member_1', 'sign_member_2', 'endorse', 'receive', 'approve', 'reject', 'certify', 'validate', 'review', 'sign', 'respond'])
                 ->filter(function (string $action) use ($request, $instance): bool {
                     $transition = app(OfficialFormAuthorization::class)->transitionFor($instance, $action);
 
@@ -425,6 +426,39 @@ class OfficialFormWorkspaceController extends Controller
         }
 
         return back()->with('official_form_success', 'Digital signature attestation recorded.');
+    }
+
+    public function declinePanelInvitation(Request $request, OfficialFormInstance $instance): RedirectResponse
+    {
+        $instance->loadMissing('definition', 'actorAssignments');
+        abort_unless(strtoupper((string) $instance->definition?->code) === 'RES-028', 404);
+        abort_unless($instance->actorAssignments->contains(fn ($assignment): bool => (int) $assignment->user_id === (int) $request->user()->id
+            && $assignment->actor_type === 'panelist'
+            && $assignment->status === 'active'), 403);
+
+        DB::transaction(function () use ($request, $instance): void {
+            $locked = OfficialFormInstance::query()->lockForUpdate()->findOrFail($instance->id);
+            abort_unless(in_array($locked->status, ['draft', 'submitted', 'in_progress', 'pending_action'], true), 409);
+
+            $locked->update(['status' => 'rejected']);
+            $locked->actorAssignments()
+                ->where('user_id', $request->user()->id)
+                ->where('status', 'active')
+                ->update(['status' => 'inactive']);
+
+            AuditLog::query()->create([
+                'user_id' => $request->user()->id,
+                'actor_name' => $request->user()->name,
+                'actor_email' => $request->user()->email,
+                'event' => 'panel.invitation.declined',
+                'auditable_type' => OfficialFormInstance::class,
+                'auditable_id' => $locked->id,
+                'description' => 'Declined the RES-028 panel invitation.',
+            ]);
+        });
+
+        return to_route('official-forms.workspace.index')
+            ->with('official_form_success', 'Panel invitation declined.');
     }
 
     public function adviserChangeSupportingDocument(Request $request, OfficialFormInstance $instance): StreamedResponse

@@ -146,8 +146,11 @@ Route::middleware(['auth', 'verified', 'active'])
                 'sign_chairperson',
                 'sign_member_1',
                 'sign_member_2',
+                'respond',
             ])
             ->middleware('throttle:official-form-actions')->name('sign-action');
+        Route::post('/instances/{instance}/panel-invitation/decline', [OfficialFormWorkspaceController::class, 'declinePanelInvitation'])
+            ->whereNumber('instance')->middleware('throttle:official-form-actions')->name('panel-invitation.decline');
         Route::get('/instances/{instance}/adviser-change-supporting-document', [OfficialFormWorkspaceController::class, 'adviserChangeSupportingDocument'])
             ->name('adviser-change-supporting-document');
         Route::get('/signatures/{signature}/image', [OfficialFormSignatureController::class, 'image'])

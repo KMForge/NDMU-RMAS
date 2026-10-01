@@ -2,8 +2,8 @@
 
 namespace App\Modules\Classes\Actions;
 
+use App\Models\OfficialFormInstance;
 use App\Models\ResearchClassGroup;
-use App\Models\ResearchClassGroupAdviserHistory;
 use App\Models\ResearchClassGroupAdviserRequest;
 use App\Models\User;
 use App\Modules\Classes\Exceptions\ClassOperationException;
@@ -53,41 +53,48 @@ class RespondResearchGroupAdviserRequest
                     throw new ClassOperationException('The research group is no longer active.');
                 }
 
-                $now = now();
-
                 if ($decision === 'accept') {
                     if ($group->adviser_id !== null) {
                         throw new ClassOperationException('This group already has an active adviser.');
                     }
 
-                    $lockedRequest->update([
-                        'status' => 'accepted',
-                        'responded_at' => $now,
-                    ]);
+                    $hasInvitation = OfficialFormInstance::query()
+                        ->where('source_type', ResearchClassGroupAdviserRequest::class)
+                        ->where('source_id', $lockedRequest->getKey())
+                        ->whereHas('definition', fn ($query) => $query->where('code', 'RES-027'))
+                        ->whereHas('actorAssignments', fn ($query) => $query
+                            ->where('user_id', $adviser->getKey())
+                            ->where('actor_type', 'adviser')
+                            ->where('status', 'active'))
+                        ->exists();
 
-                    $group->update([
-                        'adviser_id' => $adviser->getKey(),
-                    ]);
+                    if (! $hasInvitation) {
+                        throw new ClassOperationException('The RES-027 adviser invitation is missing. Ask the Program Coordinator to resend the request.');
+                    }
 
-                    ResearchClassGroupAdviserHistory::query()->create([
-                        'research_class_group_id' => $group->getKey(),
-                        'adviser_id' => $adviser->getKey(),
-                        'assigned_by' => $lockedRequest->requested_by,
-                        'assigned_at' => $now,
-                    ]);
-                } else {
-                    $lockedRequest->update([
-                        'status' => 'declined',
-                        'responded_at' => $now,
-                    ]);
+                    return $lockedRequest;
                 }
 
-                $facilitator = User::query()->find($lockedRequest->requested_by);
+                $lockedRequest->update([
+                    'status' => 'declined',
+                    'responded_at' => now(),
+                ]);
 
-                if ($facilitator !== null) {
-                    $decisionLabel = $decision === 'accept' ? 'accepted' : 'declined';
+                OfficialFormInstance::query()
+                    ->where('source_type', ResearchClassGroupAdviserRequest::class)
+                    ->where('source_id', $lockedRequest->getKey())
+                    ->whereHas('definition', fn ($query) => $query->where('code', 'RES-027'))
+                    ->each(function (OfficialFormInstance $instance): void {
+                        $instance->update(['status' => 'rejected']);
+                        $instance->actorAssignments()->where('status', 'active')->update(['status' => 'inactive']);
+                    });
+
+                $coordinator = User::query()->find($lockedRequest->requested_by);
+
+                if ($coordinator !== null) {
+                    $decisionLabel = 'declined';
                     $this->notifications->send(
-                        recipient: $facilitator,
+                        recipient: $coordinator,
                         eventKey: "adviser.invitation.{$decisionLabel}",
                         title: "Adviser invitation {$decisionLabel}",
                         message: "{$adviser->name} {$decisionLabel} the invitation for {$group->name}.",
@@ -98,7 +105,7 @@ class RespondResearchGroupAdviserRequest
                         sourceId: $lockedRequest->getKey(),
                         actor: $adviser,
                         contextLabel: $group->name,
-                        actingAs: 'Research Facilitator',
+                        actingAs: 'Program Coordinator',
                         occurrence: $decision,
                     );
                 }

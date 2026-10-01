@@ -11,7 +11,7 @@ class SyncOfficialFormCatalog
     {
         return [
             ['code' => 'RES-026', 'title' => 'Research Title Approval', 'default_category' => 'Title Approval', 'ownership_scope' => 'research_group', 'cardinality' => 'single_per_group', 'template_view' => 'pages.student.forms.res-026', 'sort_order' => 1],
-            ['code' => 'RES-027', 'title' => 'Invitation to Research Adviser', 'default_category' => 'Adviser Assignment', 'ownership_scope' => 'research_group', 'cardinality' => 'single_per_group', 'template_view' => 'pages.adviser.forms.res-027', 'sort_order' => 2],
+            ['code' => 'RES-027', 'title' => 'Invitation to Research Adviser', 'default_category' => 'Adviser Assignment', 'ownership_scope' => 'research_group', 'cardinality' => 'per_actor', 'template_view' => 'pages.adviser.forms.res-027', 'sort_order' => 2],
             ['code' => 'RES-028', 'title' => 'Invitation to Research Examination Panelist', 'default_category' => 'Panelist Assignment', 'ownership_scope' => 'research_group', 'cardinality' => 'per_actor', 'template_view' => 'pages.panelist.forms.res-028', 'sort_order' => 3],
             ['code' => 'RES-029', 'title' => 'Invitation to Research Language Editor', 'default_category' => 'Editor Assignment', 'ownership_scope' => 'research_group', 'cardinality' => 'per_actor', 'template_view' => 'pages.student.forms.res-029', 'sort_order' => 4],
             ['code' => 'RES-030', 'title' => 'Adviser Change Request Form', 'default_category' => 'Adviser Change', 'ownership_scope' => 'research_group', 'cardinality' => 'repeatable', 'template_view' => 'pages.student.forms.res-030', 'sort_order' => 5],

@@ -10,6 +10,7 @@ use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
 use App\Models\UserSignature;
+use App\Modules\Classes\Actions\RequestAdviserForResearchClassGroup;
 use App\Modules\OfficialForms\Actions\ApplyOfficialFormSignature;
 use App\Modules\OfficialForms\Actions\CreateOfficialFormInstance;
 use App\Modules\OfficialForms\Actions\SaveOfficialFormDraft;
@@ -68,6 +69,82 @@ class OfficialFormSignatureTest extends TestCase
         ]);
 
         Storage::disk('local')->assertExists($sigRecord->signature_storage_path);
+    }
+
+    public function test_signing_automatic_res027_invitation_activates_the_invited_adviser(): void
+    {
+        $facilitator = User::factory()->create([
+            'user_type' => UserType::Faculty,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+        $facilitator->assignRole('research-facilitator');
+
+        $coordinator = User::factory()->create([
+            'user_type' => UserType::Faculty,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+        $coordinator->assignRole('program-coordinator');
+
+        $adviser = User::factory()->create([
+            'user_type' => UserType::Faculty,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+        $adviser->assignRole('thesis-adviser');
+
+        $class = ResearchClass::query()->forceCreate([
+            'facilitator_id' => $facilitator->id,
+            'creation_token' => (string) Str::uuid(),
+            'name' => 'Capstone Class',
+            'join_code_hash' => hash('sha256', 'RES027'),
+            'join_code_encrypted' => 'RES027',
+            'is_active' => true,
+        ]);
+        $group = ResearchClassGroup::query()->create([
+            'research_class_id' => $class->id,
+            'name' => 'RES-027 Group',
+            'created_by' => $facilitator->id,
+            'creation_token' => (string) Str::uuid(),
+            'status' => 'active',
+        ]);
+
+        $request = app(RequestAdviserForResearchClassGroup::class)
+            ->handle($coordinator, $class, $group, $adviser);
+        $invitation = $request->officialFormInvitation()->sole();
+
+        $this->assertNull($group->fresh()->adviser_id);
+        $this->assertSame('pending', $request->fresh()->status);
+
+        $this->actingAs($adviser)
+            ->get(route('official-forms.workspace.show', $invitation))
+            ->assertOk()
+            ->assertSee('RES-027');
+
+        $this->enrollSignature($adviser);
+        app(ApplyOfficialFormSignature::class)->handle(
+            $adviser,
+            $invitation->id,
+            $invitation->current_version_id,
+            'respond',
+        );
+
+        $this->assertSame($adviser->id, $group->fresh()->adviser_id);
+        $this->assertSame('accepted', $request->fresh()->status);
+        $this->assertDatabaseHas('research_class_group_adviser_histories', [
+            'research_class_group_id' => $group->id,
+            'adviser_id' => $adviser->id,
+            'assigned_by' => $coordinator->id,
+        ]);
+        $this->assertDatabaseHas('official_form_signatures', [
+            'official_form_instance_id' => $invitation->id,
+            'signer_user_id' => $adviser->id,
+            'academic_action' => 'respond',
+        ]);
     }
 
     public function test_res033_is_endorsed_and_received_with_one_signature_action_when_roles_share_a_user(): void

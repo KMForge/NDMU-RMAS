@@ -2,12 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Enums\UserType;
+use App\Models\OfficialFormInstance;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchGroupPanelCommittee;
 use App\Models\User;
 use App\Modules\DefenseScheduling\Actions\AssignClassDefenseCommittee;
 use App\Modules\DefenseScheduling\Actions\AssignGroupDefenseCommittee;
+use App\Modules\DefenseScheduling\Queries\GetClassCommitteeAssignments;
+use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -239,5 +244,52 @@ class DefenseCommitteeAssignmentTest extends TestCase
             panelMember2Id: $this->panel2->id,
             assignedByUserId: $this->facilitator->id
         );
+    }
+
+    public function test_group_assignment_issues_individual_res028_invitations_and_reports_response_statuses(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+        (new SyncOfficialFormCatalog)->handle();
+
+        $coordinator = User::factory()->create(['user_type' => UserType::Faculty]);
+        $coordinator->assignRole('program-coordinator');
+        foreach ([$this->chairperson, $this->panel1, $this->panel2] as $panelist) {
+            $panelist->update(['user_type' => UserType::Faculty]);
+            $panelist->assignRole('panelist');
+        }
+
+        app(AssignGroupDefenseCommittee::class)->execute(
+            researchClassGroupId: $this->classGroup1->id,
+            defenseType: 'proposal_defense',
+            chairpersonId: $this->chairperson->id,
+            panelMember1Id: $this->panel1->id,
+            panelMember2Id: $this->panel2->id,
+            assignedByUserId: $this->facilitator->id,
+        );
+
+        $invitations = OfficialFormInstance::query()
+            ->where('research_class_group_id', $this->classGroup1->id)
+            ->whereHas('definition', fn ($query) => $query->where('code', 'RES-028'))
+            ->with('actorAssignments')
+            ->get();
+
+        $this->assertCount(3, $invitations);
+        $this->assertEqualsCanonicalizing(
+            [$this->chairperson->id, $this->panel1->id, $this->panel2->id],
+            $invitations->flatMap->actorAssignments->pluck('user_id')->all(),
+        );
+
+        $panelOneInvitation = $invitations->first(fn (OfficialFormInstance $instance): bool => $instance->actorAssignments->contains('user_id', $this->panel1->id));
+        $this->actingAs($this->panel1)
+            ->post(route('official-forms.workspace.panel-invitation.decline', $panelOneInvitation))
+            ->assertRedirect(route('official-forms.workspace.index'));
+
+        $statuses = app(GetClassCommitteeAssignments::class)
+            ->forClass($this->researchClass, 'proposal_defense')['groups']
+            ->firstWhere('id', $this->classGroup1->id);
+
+        $this->assertSame('pending', $statuses['chairperson_invitation_status']);
+        $this->assertSame('rejected', $statuses['member_1_invitation_status']);
+        $this->assertSame('pending', $statuses['member_2_invitation_status']);
     }
 }

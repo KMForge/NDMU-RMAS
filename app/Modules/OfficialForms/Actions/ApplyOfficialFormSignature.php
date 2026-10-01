@@ -232,6 +232,10 @@ class ApplyOfficialFormSignature
                     $this->advanceRes026AfterSignature($lockedInstance, $signatureRecord, $actor);
                 }
 
+                if ($formCode === 'RES-027' && $academicAction === 'respond') {
+                    app(ActivateAdviserFromInvitation::class)->handle($lockedInstance, $actor);
+                }
+
                 if (in_array($formCode, ['RES-026', 'RES-033'], true)) {
                     $this->applyDualSignaturesIfEligible($actor, $lockedInstance, $currentVersion, $academicAction, $specimen, $specimenBytes, $request, $disk);
                 }

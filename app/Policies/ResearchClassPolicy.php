@@ -4,12 +4,22 @@ namespace App\Policies;
 
 use App\Models\ResearchClass;
 use App\Models\User;
+use App\Modules\OfficialForms\Services\InstitutionalActorResolver;
 
 class ResearchClassPolicy
 {
+    public function __construct(
+        private readonly InstitutionalActorResolver $institutionalActors = new InstitutionalActorResolver,
+    ) {}
+
     public function view(User $user, ResearchClass $researchClass): bool
     {
         if ($user->can('classes.view-own') && $researchClass->facilitator_id === $user->getKey()) {
+            return true;
+        }
+
+        if ($user->can('classes.assign-advisers')
+            && $this->institutionalActors->isProgramCoordinator($user, $researchClass)) {
             return true;
         }
 

@@ -73,6 +73,14 @@ class RolePermissionSeeder extends Seeder
             // custom permissions deliberately added by an administrator.
             $role->givePermissionTo($definition['permissions']);
         }
+
+        // Adviser invitations are an institutional Program Coordinator action.
+        // Explicitly remove the former facilitator grant on upgraded databases;
+        // givePermissionTo() intentionally preserves unrelated custom grants.
+        Role::query()
+            ->where('name', 'research-facilitator')
+            ->where('guard_name', 'web')
+            ->first()?->revokePermissionTo('classes.assign-advisers');
     }
 
     private function migrateLegacyAssignments(): void

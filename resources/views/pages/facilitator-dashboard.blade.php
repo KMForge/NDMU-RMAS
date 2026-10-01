@@ -474,7 +474,14 @@
             });
             if (!resp.ok) throw new Error('Failed to fetch class committee data.');
             const data = await resp.json();
-            this.classCommitteeForm.groupsData = data.groups || [];
+            this.classCommitteeForm.groupsData = (data.groups || []).map(group => ({
+                ...group,
+                editChairpersonId: group.chairperson_id ? String(group.chairperson_id) : '',
+                editMember1Id: group.member_1_id ? String(group.member_1_id) : '',
+                editMember2Id: group.member_2_id ? String(group.member_2_id) : '',
+                saving: false,
+                saveError: '',
+            }));
             this.classCommitteeForm.classDefault = data.class_committee || null;
             if (data.class_committee) {
                 const chairId = String(data.class_committee.chairperson?.id || '');
@@ -647,6 +654,47 @@
 
     saveCustomGroupCommittee() {
         return this.submitCustomGroupCommittee();
+    },
+
+    async saveInlineGroupCommittee(group) {
+        const selected = [group.editChairpersonId, group.editMember1Id, group.editMember2Id];
+        group.saveError = '';
+        if (selected.some(id => !id)) {
+            group.saveError = 'Select a chairperson and two panel members.';
+            return;
+        }
+        if (new Set(selected).size !== 3) {
+            group.saveError = 'All three faculty members must be different.';
+            return;
+        }
+
+        group.saving = true;
+        try {
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const resp = await fetch(`/facilitator/classes/${this.classCommitteeForm.classId}/groups/${group.id}/defense-committee`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    defense_type: this.classCommitteeForm.type || this.classCommitteeForm.defenseType,
+                    chairperson_user_id: group.editChairpersonId,
+                    panel_user_ids: [group.editMember1Id, group.editMember2Id],
+                    is_custom: true,
+                }),
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.message || 'Failed to save this group panel.');
+            this.classCommitteeForm.successMessage = `${group.group_name || group.name} panel saved and invitations issued.`;
+            await this.fetchClassCommitteeData();
+        } catch (e) {
+            group.saveError = e.message || 'Failed to save this group panel.';
+        } finally {
+            group.saving = false;
+        }
     },
 
     async revertCustomGroupCommittee(group) {
@@ -3975,7 +4023,7 @@
         </div>
     </div>
 
-    @include('pages.facilitator.defense-class-committees-modal')
+    @include('pages.facilitator.defense-group-panels-modal')
     @include('pages.facilitator.defense-bulk-schedule-modal')
 
 </div>

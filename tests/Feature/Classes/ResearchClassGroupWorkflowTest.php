@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Classes;
 
+use App\Enums\UserType;
 use App\Models\MilestoneDefinition;
+use App\Models\OfficialFormInstance;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
@@ -12,10 +14,15 @@ use App\Models\ResearchClassGroupMember;
 use App\Models\ResearchGroupMilestone;
 use App\Models\ResearchProject;
 use App\Models\User;
+use App\Models\UserSignature;
+use App\Modules\OfficialForms\Actions\ApplyOfficialFormSignature;
+use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -28,6 +35,10 @@ class ResearchClassGroupWorkflowTest extends TestCase
         parent::setUp();
 
         $this->seed(RolePermissionSeeder::class);
+        (new SyncOfficialFormCatalog)->handle();
+        Storage::fake('local');
+        Config::set('signatures.verification_key', 'test_secret_verification_key_32_bytes_long!!');
+        Config::set('signatures.verification_key_version', 'v1');
     }
 
     public function test_facilitator_can_create_a_group_for_an_owned_class(): void
@@ -237,14 +248,18 @@ class ResearchClassGroupWorkflowTest extends TestCase
         $this->assertSame(2, $group->members()->count());
     }
 
-    public function test_facilitator_can_send_adviser_request_and_adviser_can_accept_or_decline(): void
+    public function test_program_coordinator_can_send_adviser_request_and_adviser_can_accept_it_by_signing_res027(): void
     {
         $facilitator = $this->userWithRole('research-facilitator');
+        $coordinator = $this->facultyWithRole('program-coordinator');
         $adviser = $this->userWithRole('thesis-adviser');
         $researchClass = $this->createClass($facilitator);
         $group = $this->createGroup($researchClass, $facilitator, 'Capstone Group 1');
 
-        $this->actingAs($facilitator)
+        $this->assertTrue($coordinator->can('dashboards.facilitator.view'));
+        $this->assertTrue($coordinator->can('classes.assign-advisers'));
+
+        $this->actingAs($coordinator)
             ->postJson(route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $group]), [
                 'adviser_id' => $adviser->getKey(),
             ])
@@ -267,39 +282,45 @@ class ResearchClassGroupWorkflowTest extends TestCase
                 'decision' => 'accept',
             ])
             ->assertOk()
-            ->assertJsonPath('adviser_request.status', 'accepted');
+            ->assertJsonPath('adviser_request.status', 'pending')
+            ->assertJsonStructure(['official_form_url']);
+
+        $this->assertNull($group->fresh()->adviser_id);
+        $this->signPendingAdviserInvitation($adviser, $request);
 
         $this->assertEquals($adviser->getKey(), $group->fresh()->adviser_id);
+        $this->assertSame('accepted', $request->fresh()->status);
         $this->assertDatabaseHas('research_class_group_adviser_histories', [
             'research_class_group_id' => $group->getKey(),
             'adviser_id' => $adviser->getKey(),
-            'assigned_by' => $facilitator->getKey(),
+            'assigned_by' => $coordinator->getKey(),
         ]);
     }
 
     public function test_group_cannot_have_multiple_simultaneous_pending_adviser_requests(): void
     {
         $facilitator = $this->userWithRole('research-facilitator');
+        $coordinator = $this->facultyWithRole('program-coordinator');
         $adviser1 = $this->userWithRole('thesis-adviser');
         $adviser2 = $this->userWithRole('thesis-adviser');
         $researchClass = $this->createClass($facilitator);
         $group = $this->createGroup($researchClass, $facilitator, 'Capstone Group 1');
 
-        $this->actingAs($facilitator)
+        $this->actingAs($coordinator)
             ->postJson(route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $group]), [
                 'adviser_id' => $adviser1->getKey(),
             ])
             ->assertOk();
 
         // Second request while first is pending must be blocked
-        $this->actingAs($facilitator)
+        $this->actingAs($coordinator)
             ->postJson(route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $group]), [
                 'adviser_id' => $adviser2->getKey(),
             ])
             ->assertUnprocessable();
     }
 
-    public function test_facilitator_can_cancel_pending_adviser_request(): void
+    public function test_research_facilitator_cannot_issue_an_adviser_invitation(): void
     {
         $facilitator = $this->userWithRole('research-facilitator');
         $adviser = $this->userWithRole('thesis-adviser');
@@ -310,25 +331,43 @@ class ResearchClassGroupWorkflowTest extends TestCase
             ->postJson(route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $group]), [
                 'adviser_id' => $adviser->getKey(),
             ])
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('research_class_group_adviser_requests', 0);
+    }
+
+    public function test_program_coordinator_can_cancel_pending_adviser_request(): void
+    {
+        $facilitator = $this->userWithRole('research-facilitator');
+        $coordinator = $this->facultyWithRole('program-coordinator');
+        $adviser = $this->userWithRole('thesis-adviser');
+        $researchClass = $this->createClass($facilitator);
+        $group = $this->createGroup($researchClass, $facilitator, 'Capstone Group 1');
+
+        $this->actingAs($coordinator)
+            ->postJson(route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $group]), [
+                'adviser_id' => $adviser->getKey(),
+            ])
             ->assertOk();
 
         $adviserRequest = ResearchClassGroupAdviserRequest::query()->sole();
 
-        $this->actingAs($facilitator)
+        $this->actingAs($coordinator)
             ->deleteJson(route('facilitator.classes.groups.adviser-requests.cancel', [$researchClass, $group, $adviserRequest]))
             ->assertOk();
 
         $this->assertEquals('cancelled', $adviserRequest->fresh()->status);
     }
 
-    public function test_facilitator_cannot_remove_an_accepted_adviser_without_an_approved_change_request(): void
+    public function test_program_coordinator_cannot_remove_an_accepted_adviser_without_an_approved_change_request(): void
     {
         $facilitator = $this->userWithRole('research-facilitator');
+        $coordinator = $this->facultyWithRole('program-coordinator');
         $adviser = $this->userWithRole('thesis-adviser');
         $researchClass = $this->createClass($facilitator);
         $group = $this->createGroup($researchClass, $facilitator, 'Capstone Group 1');
 
-        $this->actingAs($facilitator)
+        $this->actingAs($coordinator)
             ->postJson(route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $group]), [
                 'adviser_id' => $adviser->getKey(),
             ])
@@ -340,10 +379,12 @@ class ResearchClassGroupWorkflowTest extends TestCase
             ->patchJson(route('adviser.group-requests.respond', $adviserRequest), ['decision' => 'accept'])
             ->assertOk();
 
+        $this->signPendingAdviserInvitation($adviser, $adviserRequest);
+
         $this->assertEquals($adviser->getKey(), $group->fresh()->adviser_id);
 
         // Active adviser changes must go through the audited RES-030 workflow.
-        $this->actingAs($facilitator)
+        $this->actingAs($coordinator)
             ->deleteJson(route('facilitator.classes.groups.adviser.remove', [$researchClass, $group]))
             ->assertUnprocessable()
             ->assertJsonPath('message', 'An active adviser cannot be removed directly. Submit and approve a RES-030 Adviser Change Request Form instead.');
@@ -355,6 +396,7 @@ class ResearchClassGroupWorkflowTest extends TestCase
     public function test_facilitator_can_disband_a_group_returning_members_to_unassigned(): void
     {
         $facilitator = $this->userWithRole('research-facilitator');
+        $coordinator = $this->facultyWithRole('program-coordinator');
         $student = $this->userWithRole('student-researcher');
         $adviser = $this->userWithRole('thesis-adviser');
         $researchClass = $this->createClass($facilitator);
@@ -365,7 +407,7 @@ class ResearchClassGroupWorkflowTest extends TestCase
             ->putJson(route('facilitator.classes.groups.students.assign', [$researchClass, $group, $enrollment]))
             ->assertOk();
 
-        $this->actingAs($facilitator)
+        $this->actingAs($coordinator)
             ->postJson(route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $group]), [
                 'adviser_id' => $adviser->getKey(),
             ])
@@ -604,6 +646,7 @@ class ResearchClassGroupWorkflowTest extends TestCase
     public function test_facilitator_browser_flow_renders_cards_roster_groups_and_adviser_assignment(): void
     {
         $facilitator = $this->userWithRole('research-facilitator');
+        $coordinator = $this->facultyWithRole('program-coordinator');
         $student = $this->userWithRole('student-researcher');
         $adviser = $this->userWithRole('thesis-adviser');
         $student->update(['name' => 'Browser Flow Student']);
@@ -624,7 +667,7 @@ class ResearchClassGroupWorkflowTest extends TestCase
             ->put(route('facilitator.classes.groups.students.assign', [$researchClass, $group, $enrollment]))
             ->assertRedirect(route('facilitator.classes.show', $researchClass));
 
-        $this->actingAs($facilitator)
+        $this->actingAs($coordinator)
             ->post(route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $group]), [
                 'adviser_id' => $adviser->getKey(),
             ])
@@ -634,7 +677,9 @@ class ResearchClassGroupWorkflowTest extends TestCase
 
         $this->actingAs($adviser)
             ->patch(route('adviser.group-requests.respond', $adviserRequest), ['decision' => 'accept'])
-            ->assertRedirect(route('adviser.dashboard', ['tab' => 'classes']));
+            ->assertRedirect();
+
+        $this->signPendingAdviserInvitation($adviser, $adviserRequest);
 
         $this->actingAs($facilitator)
             ->get(route('facilitator.classes.show', $researchClass))
@@ -789,6 +834,14 @@ class ResearchClassGroupWorkflowTest extends TestCase
         return $user;
     }
 
+    private function facultyWithRole(string $role): User
+    {
+        $user = User::factory()->create(['user_type' => UserType::Faculty]);
+        $user->assignRole($role);
+
+        return $user;
+    }
+
     private function createClass(User $facilitator): ResearchClass
     {
         $researchClass = new ResearchClass([
@@ -845,5 +898,37 @@ class ResearchClassGroupWorkflowTest extends TestCase
             'created_by' => $creator->getKey(),
             'approved_at' => $now,
         ]);
+    }
+
+    private function signPendingAdviserInvitation(User $adviser, ResearchClassGroupAdviserRequest $request): void
+    {
+        $adviser->update(['user_type' => UserType::Faculty]);
+        $adviser->refresh();
+        $signatureBytes = 'test-signature-'.$adviser->id;
+        $signaturePath = "signatures/{$adviser->id}/test.png";
+        Storage::disk('local')->put($signaturePath, $signatureBytes);
+        UserSignature::query()->create([
+            'user_id' => $adviser->id,
+            'storage_disk' => 'local',
+            'storage_path' => $signaturePath,
+            'original_filename' => 'signature.png',
+            'mime_type' => 'image/png',
+            'file_size' => strlen($signatureBytes),
+            'content_sha256' => hash('sha256', $signatureBytes),
+            'registered_at' => now(),
+        ]);
+
+        $invitation = OfficialFormInstance::query()
+            ->where('source_type', ResearchClassGroupAdviserRequest::class)
+            ->where('source_id', $request->getKey())
+            ->whereHas('definition', fn ($query) => $query->where('code', 'RES-027'))
+            ->sole();
+
+        app(ApplyOfficialFormSignature::class)->handle(
+            $adviser,
+            $invitation->id,
+            $invitation->current_version_id,
+            'respond',
+        );
     }
 }

@@ -197,6 +197,12 @@ class OfficialFormAuthorization
     public function canInitiate(User $user, OfficialFormDefinition $definition, ?ResearchClassGroup $group = null, ?ResearchClass $class = null): bool
     {
         $code = strtolower($definition->code);
+
+        if (in_array($code, ['res-027', 'res-028'], true) && $group?->researchClass !== null) {
+            return $this->institutionalActors->isProgramCoordinator($user, $group->researchClass, $group)
+                && $user->can('classes.assign-advisers');
+        }
+
         $allowedPermissions = self::FORM_ACTION_PERMISSIONS[$code]['fill'] ?? null;
 
         if ($allowedPermissions === null) {
@@ -435,6 +441,14 @@ class OfficialFormAuthorization
         }
 
         if ($requiredActorType === 'adviser') {
+            if (strtolower($instance->definition->code) === 'res-027') {
+                return $instance->actorAssignments()
+                    ->where('user_id', $user->id)
+                    ->where('actor_type', 'adviser')
+                    ->where('status', 'active')
+                    ->exists();
+            }
+
             return $instance->group !== null && (int) $instance->group->adviser_id === (int) $user->id;
         }
 

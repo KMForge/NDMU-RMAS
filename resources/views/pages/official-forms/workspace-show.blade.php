@@ -281,11 +281,18 @@
                             'sign_chairperson' => 'Sign as Chairperson',
                             'sign_member_1' => 'Sign as Panel Member 1',
                             'sign_member_2' => 'Sign as Panel Member 2',
+                            'respond' => in_array(strtoupper($instance->definition->code), ['RES-027', 'RES-028'], true) ? 'Sign & Accept Invitation' : 'Sign & Respond',
                             default => 'Sign & '.str($action)->headline(),
                         } }}
                     </button>
                 </form>
             @endforeach
+            @if (strtoupper($instance->definition->code) === 'RES-028' && $availableActions->contains('respond'))
+                <form method="POST" action="{{ route('official-forms.workspace.panel-invitation.decline', $instance) }}" onsubmit="return confirm('Decline this panel invitation?')">
+                    @csrf
+                    <button type="submit" class="rounded-xl border border-rose-200 bg-white px-5 py-2.5 text-xs font-bold text-rose-700 hover:bg-rose-50">Decline Invitation</button>
+                </form>
+            @endif
             @if (strtoupper($instance->definition->code) === 'RES-049' && auth()->user()->hasPermissionTo('forms.res-049.sign'))
                 <form method="POST" action="{{ route('official-forms.workspace.sign-action', [$instance, 'sign_authorship']) }}">
                     @csrf

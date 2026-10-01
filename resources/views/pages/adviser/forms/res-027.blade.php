@@ -14,7 +14,10 @@
     $members = $group?->members?->values() ?? collect();
     $program = $members->first()?->student?->studentProfile?->program;
     $programName = $payload['course'] ?? $program?->name ?? $members->first()?->student?->program ?? ($class?->name ?? 'Information Technology');
-    $adviserName = $group?->adviser?->name ?? 'Research Adviser';
+    $invitedAdviser = $officialFormInstance?->actorAssignments
+        ?->first(fn ($assignment) => $assignment->actor_type === 'adviser' && $assignment->status === 'active')
+        ?->user;
+    $adviserName = $invitedAdviser?->name ?? $officialFormInstance?->source?->adviser?->name ?? 'Research Adviser';
 
     $programCoordinator = $resolver->programCoordinatorForGroup($group) ?? $resolver->programCoordinatorForClass($class);
     $programCoordinatorName = $programCoordinator?->name ?? 'Program Coordinator';

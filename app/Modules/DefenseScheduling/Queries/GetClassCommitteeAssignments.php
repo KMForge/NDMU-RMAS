@@ -2,10 +2,12 @@
 
 namespace App\Modules\DefenseScheduling\Queries;
 
+use App\Models\OfficialFormInstance;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassPanelCommittee;
 use App\Models\ResearchGroupPanelCommittee;
+use App\Models\User;
 use App\Modules\DefenseScheduling\Services\DefenseEndorsementEligibility;
 use Illuminate\Support\Collection;
 
@@ -38,13 +40,20 @@ class GetClassCommitteeAssignments
             ->get()
             ->keyBy('research_class_group_id');
 
+        $panelInvitations = OfficialFormInstance::query()
+            ->whereHas('group', fn ($query) => $query->where('research_class_id', $researchClass->id))
+            ->whereHas('definition', fn ($query) => $query->where('code', 'RES-028'))
+            ->with('actorAssignments')
+            ->latest('id')
+            ->get();
+
         $groups = ResearchClassGroup::query()
             ->where('research_class_id', $researchClass->id)
             ->where('status', 'active')
             ->with(['adviser:id,name,email,department', 'leader:id,name'])
             ->orderBy('name')
             ->get()
-            ->map(function (ResearchClassGroup $group) use ($groupCommittees, $classCommittee, $defenseType): array {
+            ->map(function (ResearchClassGroup $group) use ($groupCommittees, $classCommittee, $defenseType, $panelInvitations): array {
                 $groupCommittee = $groupCommittees->get($group->id);
 
                 if ($groupCommittee !== null) {
@@ -69,6 +78,22 @@ class GetClassCommitteeAssignments
                 $member2 = $members->firstWhere('panel_position', 'member_2')?->user ?? $members->get(1)?->user ?? null;
 
                 $isComplete = $chairperson !== null && $member1 !== null && $member2 !== null;
+                $invitationStatus = function (string $position, ?User $invitee) use ($group, $defenseType, $panelInvitations): ?string {
+                    if ($invitee === null) {
+                        return null;
+                    }
+
+                    $contextKey = "panel-invitation:{$defenseType}:{$position}";
+                    $instance = $panelInvitations->first(fn (OfficialFormInstance $form): bool => (int) $form->research_class_group_id === (int) $group->id
+                        && $form->context_key === $contextKey
+                        && $form->actorAssignments->contains(fn ($assignment): bool => (int) $assignment->user_id === (int) $invitee->id));
+
+                    return match ($instance?->status) {
+                        'approved', 'completed', 'signed' => 'accepted',
+                        'rejected', 'cancelled' => 'rejected',
+                        default => 'pending',
+                    };
+                };
 
                 return [
                     'id' => $group->id,
@@ -86,10 +111,13 @@ class GetClassCommitteeAssignments
                     'res033_complete' => $this->endorsementEligibility->isComplete($group, $defenseType),
                     'chairperson_id' => $chairperson?->id,
                     'chairperson_name' => $chairperson?->name,
+                    'chairperson_invitation_status' => $invitationStatus('chairperson', $chairperson),
                     'member_1_id' => $member1?->id,
                     'member_1_name' => $member1?->name,
+                    'member_1_invitation_status' => $invitationStatus('member_1', $member1),
                     'member_2_id' => $member2?->id,
                     'member_2_name' => $member2?->name,
+                    'member_2_invitation_status' => $invitationStatus('member_2', $member2),
                     'committee' => [
                         'chairperson_id' => $chairperson?->id,
                         'chairperson_name' => $chairperson?->name,

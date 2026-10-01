@@ -37,13 +37,13 @@ return [
             'label' => 'Research Facilitator',
             'description' => 'Coordinates research classes, groups, reviews, defenses, and reporting.',
             'user_type' => 'faculty',
-            'permissions' => ['dashboards.facilitator.view', 'research.view-all', 'progress.view-owned-classes', 'progress.manage-owned-classes', 'progress.override-order', 'proposal.review', 'proposal.approve', 'documents.review', 'documents.download', 'revisions.create', 'defenses.view', 'defenses.manage', 'evaluations.create', 'evaluations.release', 'evaluations.view-assigned', 'reports.view', 'reports.export', 'notifications.broadcast', 'classes.create', 'classes.view-own', 'classes.manage-join-requests', 'classes.manage-groups', 'classes.assign-advisers', 'forms.res-026.view', 'forms.res-026.approve', 'forms.res-027.view', 'forms.res-028.view', 'forms.res-030.view', 'forms.res-030.approve', 'forms.res-031.view', 'forms.res-032.view', 'forms.res-033.view', 'forms.res-034.view', 'forms.res-035.view', 'forms.res-036.view', 'forms.res-036.evaluate', 'forms.res-037.view', 'forms.res-037.sign', 'forms.res-038.view', 'forms.res-038.endorse', 'forms.res-039.view', 'forms.res-040.view', 'forms.res-041.view', 'forms.res-042.view', 'forms.res-044.view', 'forms.res-047.view', 'forms.res-048.view', 'forms.res-049.view'],
+            'permissions' => ['dashboards.facilitator.view', 'research.view-all', 'progress.view-owned-classes', 'progress.manage-owned-classes', 'progress.override-order', 'proposal.review', 'proposal.approve', 'documents.review', 'documents.download', 'revisions.create', 'defenses.view', 'defenses.manage', 'evaluations.create', 'evaluations.release', 'evaluations.view-assigned', 'reports.view', 'reports.export', 'notifications.broadcast', 'classes.create', 'classes.view-own', 'classes.manage-join-requests', 'classes.manage-groups', 'forms.res-026.view', 'forms.res-026.approve', 'forms.res-027.view', 'forms.res-028.view', 'forms.res-030.view', 'forms.res-030.approve', 'forms.res-031.view', 'forms.res-032.view', 'forms.res-033.view', 'forms.res-034.view', 'forms.res-035.view', 'forms.res-036.view', 'forms.res-036.evaluate', 'forms.res-037.view', 'forms.res-037.sign', 'forms.res-038.view', 'forms.res-038.endorse', 'forms.res-039.view', 'forms.res-040.view', 'forms.res-041.view', 'forms.res-042.view', 'forms.res-044.view', 'forms.res-047.view', 'forms.res-048.view', 'forms.res-049.view'],
         ],
         'program-coordinator' => [
             'label' => 'Program Coordinator',
             'description' => 'Coordinates program-level research activity and approvals.',
             'user_type' => 'faculty',
-            'permissions' => ['dashboards.facilitator.view', 'research.view-college', 'research.approve', 'proposal.approve', 'documents.review', 'documents.download', 'defenses.view', 'reports.view', 'reports.export', 'forms.res-026.view', 'forms.res-026.approve', 'forms.res-030.view', 'forms.res-030.approve', 'forms.res-033.view', 'forms.res-033.endorse', 'forms.res-041.view', 'forms.res-041.receive'],
+            'permissions' => ['dashboards.facilitator.view', 'research.view-college', 'research.approve', 'proposal.approve', 'documents.review', 'documents.download', 'defenses.view', 'reports.view', 'reports.export', 'classes.view-own', 'classes.assign-advisers', 'forms.res-026.view', 'forms.res-026.approve', 'forms.res-027.view', 'forms.res-028.view', 'forms.res-030.view', 'forms.res-030.approve', 'forms.res-033.view', 'forms.res-033.endorse', 'forms.res-041.view', 'forms.res-041.receive'],
         ],
         'thesis-adviser' => [
             'label' => 'Thesis Adviser',
@@ -144,7 +144,7 @@ return [
             'classes.view-assigned' => ['label' => 'View Assigned Classes', 'description' => 'View classes or groups assigned to an adviser.', 'scope' => 'Assigned classes'],
             'classes.manage-join-requests' => ['label' => 'Manage Join Requests', 'description' => 'Approve or reject student class requests.', 'scope' => 'Owned classes'],
             'classes.manage-groups' => ['label' => 'Manage Research Groups', 'description' => 'Create groups and assign enrolled students.', 'scope' => 'Owned classes'],
-            'classes.assign-advisers' => ['label' => 'Assign Advisers', 'description' => 'Assign eligible advisers to research groups.', 'scope' => 'Owned classes'],
+            'classes.assign-advisers' => ['label' => 'Issue Adviser Invitations', 'description' => 'Issue RES-027 invitations to eligible advisers for research groups within the authorized program.', 'scope' => 'Program scope'],
         ],
         'Documents and Proposals' => [
             'proposal.submit' => ['label' => 'Submit Proposals', 'description' => 'Submit research proposals for review.', 'scope' => 'Owned research'],

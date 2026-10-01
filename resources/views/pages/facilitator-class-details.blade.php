@@ -314,27 +314,33 @@
                                             <div class="flex items-center justify-between">
                                                 <div>
                                                     <p class="text-xs font-bold text-amber-800">Pending Request: {{ $pendingReq->adviser?->name }}</p>
-                                                    <p class="text-[10px] text-slate-400">Awaiting adviser acceptance</p>
+                                                    <p class="text-[10px] text-slate-400">Awaiting the invited adviser&rsquo;s RES-027 signature</p>
                                                 </div>
-                                                <form method="POST" action="{{ route('facilitator.classes.groups.adviser-requests.cancel', [$researchClass, $grp, $pendingReq]) }}">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="text-xs text-slate-500 hover:text-slate-700 font-bold">Cancel</button>
-                                                </form>
+                                                @can('classes.assign-advisers')
+                                                    <form method="POST" action="{{ route('facilitator.classes.groups.adviser-requests.cancel', [$researchClass, $grp, $pendingReq]) }}">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="text-xs text-slate-500 hover:text-slate-700 font-bold">Cancel</button>
+                                                    </form>
+                                                @endcan
                                             </div>
                                         @else
-                                            <form method="POST" action="{{ route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $grp]) }}" class="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                                                @csrf
-                                                <select name="adviser_id" required class="block min-w-0 w-full max-w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs focus:border-[#0e5c3a] focus:outline-none">
-                                                    <option value="">Select Adviser...</option>
-                                                    @foreach ($adviserOptions as $adv)
-                                                        <option value="{{ $adv->id }}">{{ $adv->name }} ({{ $adv->department ?? 'Faculty' }})</option>
-                                                    @endforeach
-                                                </select>
-                                                <button type="submit" class="w-full shrink-0 whitespace-nowrap rounded-xl bg-[#0e5c3a] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#073823] transition-colors cursor-pointer sm:w-auto">
-                                                    Request
-                                                </button>
-                                            </form>
+                                            @can('classes.assign-advisers')
+                                                <form method="POST" action="{{ route('facilitator.classes.groups.adviser-requests.store', [$researchClass, $grp]) }}" class="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                                                    @csrf
+                                                    <select name="adviser_id" required class="block min-w-0 w-full max-w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs focus:border-[#0e5c3a] focus:outline-none">
+                                                        <option value="">Select proposed adviser...</option>
+                                                        @foreach ($adviserOptions as $adv)
+                                                            <option value="{{ $adv->id }}">{{ $adv->name }} ({{ $adv->department ?? 'Faculty' }})</option>
+                                                        @endforeach
+                                                    </select>
+                                                    <button type="submit" class="w-full shrink-0 whitespace-nowrap rounded-xl bg-[#0e5c3a] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#073823] transition-colors cursor-pointer sm:w-auto">
+                                                        Send RES-027
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <p class="text-[10px] font-semibold leading-4 text-slate-500">The Program Coordinator issues the RES-027 adviser invitation.</p>
+                                            @endcan
                                         @endif
                                     </div>
 
