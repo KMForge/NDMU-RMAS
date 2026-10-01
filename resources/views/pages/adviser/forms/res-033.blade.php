@@ -60,12 +60,12 @@
         </fieldset>
         <p class="text-xs leading-5">This endorsement is valid only for the defense stage identified above. A separate completed RES-033 is required for every succeeding defense stage.</p>
         <div class="official-signature-row grid gap-8 pt-8 text-center md:grid-cols-2">
-            <div>
-                <x-official-signature-field actor-type="adviser" academic-action="endorse" label="Instructor / Research Adviser (Name & Signature)" />
+            <div class="flex flex-col items-center">
+                <x-official-signature-field class="mx-auto max-w-[18rem]" actor-type="adviser" academic-action="endorse" label="Instructor / Research Adviser (Name & Signature)" />
                 <p class="mt-1 text-xs font-bold text-slate-800">{{ $adviserName }}</p>
             </div>
-            <div class="space-y-2">
-                <x-official-signature-field actor-type="program_head" academic-action="receive" label="Program Head (Name & Signature)" />
+            <div class="flex flex-col items-center gap-2">
+                <x-official-signature-field class="mx-auto max-w-[18rem]" actor-type="program_head" academic-action="receive" label="Program Head (Name & Signature)" />
                 <label class="flex items-center justify-center gap-2 text-xs">Date Received:
                     <input type="date" name="payload[date_received]" value="{{ $payload['date_received'] ?? '' }}" class="w-40">
                 </label>

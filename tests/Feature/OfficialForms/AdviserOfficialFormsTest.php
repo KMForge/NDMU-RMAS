@@ -43,6 +43,18 @@ class AdviserOfficialFormsTest extends TestCase
             ->assertSee('Open Workspace to Edit & Save', false);
     }
 
+    public function test_res033_signature_section_uses_aligned_layout_classes(): void
+    {
+        $adviser = User::factory()->create();
+        $adviser->assignRole('research-adviser');
+
+        $this->actingAs($adviser)
+            ->get(route('adviser.dashboard', ['tab' => 'forms', 'form' => 'RES-033']))
+            ->assertOk()
+            ->assertSee('mx-auto max-w-[18rem]', false)
+            ->assertSee('flex flex-col items-center', false);
+    }
+
     public function test_only_adviser_specific_forms_have_adviser_blade_files(): void
     {
         $adviserOnlyForms = ['RES-027', 'RES-033', 'RES-035', 'RES-038', 'RES-040', 'RES-044'];
