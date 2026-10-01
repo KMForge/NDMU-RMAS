@@ -35,6 +35,18 @@ class StudentOfficialFormsTest extends TestCase
             ->assertSee('Certificate of Authentic Authorship');
     }
 
+    public function test_res042_signature_section_uses_aligned_layout_classes(): void
+    {
+        $student = User::factory()->create();
+        $student->assignRole('student');
+
+        $this->actingAs($student)
+            ->get(route('student.dashboard', ['tab' => 'forms', 'form' => 'RES-042']))
+            ->assertOk()
+            ->assertSee('res-042-signature-row', false)
+            ->assertSee('.res-042-signature-row { align-items: start; }', false);
+    }
+
     public function test_authenticated_student_can_view_the_official_forms_pdf(): void
     {
         $student = User::factory()->create();

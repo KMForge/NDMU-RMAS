@@ -42,7 +42,7 @@
         <p>The research instrument of the study is a researcher-made one which needs to be validated by experts.</p>
         <p>In view of the above, may I/we humbly ask a special favor from you by validating the content of my/our research instrument? I/We believe that your field of specialization and expertise in research can surely help me/us improve my/our survey instrument.</p>
         <p>Thank you very much.</p>
-        <div class="official-signature-row grid gap-8 pt-10 text-center md:grid-cols-2">
+        <div class="official-signature-row res-042-signature-row grid gap-8 pt-10 text-center md:grid-cols-2">
             <div>
                 <x-official-signature-field label="Student Researcher" />
                 <p class="mt-1 text-xs font-bold text-slate-800">{{ $members->first()?->student?->name ?? 'Lead Researcher' }}</p>
