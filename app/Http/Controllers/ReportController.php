@@ -54,7 +54,7 @@ final class ReportController extends Controller
             ['label' => 'Unreleased Evaluations', 'value' => (int) $evaluationStatuses->get('Not Released', 0), 'icon' => 'ph-lock-key', 'report' => 'evaluation-release-status'],
         ];
 
-        return view('pages.reports.index', [
+        return view('pages.reports.index-professional', [
             'reports' => $this->catalog->all(),
             'scope' => $scope,
             'summaryCards' => $summaryCards,
@@ -91,7 +91,7 @@ final class ReportController extends Controller
             $this->record($request, 'report.viewed', $report, $scope->label(), count($result['rows']), $filters->toArray());
         }
 
-        return view('pages.reports.show', compact('report', 'definition', 'result', 'scope', 'filters', 'paginator') + [
+        return view('pages.reports.show-professional', compact('report', 'definition', 'result', 'scope', 'filters', 'paginator') + [
             'options' => $this->reports->filterOptions($scope),
             'milestoneDefinitions' => DB::table('milestone_definitions')->where('is_active', true)->orderBy('sequence')->get(['code', 'name']),
         ]);

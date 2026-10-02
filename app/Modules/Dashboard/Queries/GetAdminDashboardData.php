@@ -3,6 +3,7 @@
 namespace App\Modules\Dashboard\Queries;
 
 use App\Enums\DocumentStatus;
+use App\Models\Defense;
 use App\Models\Document;
 use App\Models\ResearchProposal;
 use App\Models\RevisionRequest;
@@ -37,16 +38,71 @@ class GetAdminDashboardData
                     ...$revisions,
                     'staffList' => $this->staffList(),
                     'defensesList' => $this->defensesList(),
-                    'repositoryList' => [],
+                    'repositoryList' => $this->repositoryList(),
                     'proposalsList' => $this->proposalsList(),
                     'adviserOptions' => $this->staffOptions('classes.serve-as-adviser'),
                     'panelistOptions' => $this->staffOptions('evaluations.create'),
                     'pendingActions' => $this->pendingActions(),
                     'securityOverview' => $this->securityOverview(),
-                    'systemHealth' => $this->systemHealth(),
+                    'systemHealth' => $this->cachedSystemHealth(),
                 ];
             },
         );
+    }
+
+    /**
+     * Return only the data required by the active admin workspace. Hidden
+     * workspaces are rendered by Livewire on demand instead of being queried
+     * during every dashboard request.
+     *
+     * @return array<string, mixed>
+     */
+    public function forTab(string $tab): array
+    {
+        return match ($tab) {
+            'dashboard' => Cache::remember('admin-dashboard.tab.dashboard', now()->addSeconds(30), fn (): array => [
+                ...$this->researchData(),
+                'pendingActions' => $this->pendingActions(),
+                'securityOverview' => $this->securityOverview(),
+                'systemHealth' => $this->cachedSystemHealth(),
+            ]),
+            'research', 'reports' => Cache::remember('admin-dashboard.tab.research', now()->addSeconds(30), fn (): array => [
+                ...$this->researchData(),
+                ...$this->revisionData(),
+            ]),
+            'defenses' => Cache::remember('admin-dashboard.tab.defenses', now()->addSeconds(30), fn (): array => [
+                'defensesList' => $this->defensesList(),
+                'adviserOptions' => $this->staffOptions('classes.serve-as-adviser'),
+                'panelistOptions' => $this->staffOptions('evaluations.create'),
+            ]),
+            'forms' => Cache::remember('admin-dashboard.tab.forms', now()->addSeconds(30), fn (): array => [
+                'proposalsList' => $this->proposalsList(),
+            ]),
+            default => [],
+        };
+    }
+
+    /** @return array{pending_users:int,active_research:int,pending_defenses:int} */
+    public function sidebarSummary(): array
+    {
+        return Cache::remember('admin-dashboard.sidebar-summary', now()->addSeconds(30), function (): array {
+            return [
+                'pending_users' => User::query()
+                    ->where('user_type', 'student')
+                    ->where('status', 'pending')
+                    ->count(),
+                'active_research' => $this->tableExists('research_projects')
+                    ? DB::table('research_projects')
+                        ->whereNull('archived_at')
+                        ->whereNull('completed_at')
+                        ->whereNotIn('status', ['completed', 'archived', 'rejected'])
+                        ->count()
+                    : 0,
+                'pending_defenses' => $this->tableExists('defenses')
+                    ? DB::table('defenses')->whereIn('status', ['pending', 'requested'])->count()
+                    : 0,
+            ];
+        });
     }
 
     /**
@@ -70,8 +126,8 @@ class GetAdminDashboardData
         $pendingJoinRequests = $this->tableExists('research_class_enrollments')
             ? DB::table('research_class_enrollments')->where('status', 'pending')->count()
             : 0;
-        $pendingDefenses = $this->tableExists('defense_requests')
-            ? DB::table('defense_requests')->whereIn('status', ['pending', 'requested'])->count()
+        $pendingDefenses = $this->tableExists('defenses')
+            ? DB::table('defenses')->whereIn('status', ['pending', 'requested'])->count()
             : 0;
         $overdueRevisions = $this->tableExists('revision_requests')
             ? DB::table('revision_requests')
@@ -122,12 +178,42 @@ class GetAdminDashboardData
         $databaseHealthy = $this->databaseIsHealthy();
         $storageHealthy = $this->privateStorageIsHealthy();
         $failedJobs = $this->tableExists('failed_jobs') ? DB::table('failed_jobs')->count() : 0;
+        $queueDriver = (string) config('queue.default', 'sync');
+        $queueStatus = $queueDriver === 'sync'
+            ? 'Synchronous'
+            : ($failedJobs === 0 ? 'Operational' : 'Needs Attention');
+        $queueDetail = $queueDriver === 'sync'
+            ? 'Jobs run during the web request; no worker is required'
+            : ($failedJobs === 0 ? 'No failed jobs recorded' : "{$failedJobs} failed job(s)");
+        $heartbeat = Cache::get('system:scheduler-heartbeat');
+        $schedulerHealthy = is_string($heartbeat) && Carbon::parse($heartbeat)->greaterThan(now()->subMinutes(5));
+        $backupDependenciesConfigured = $this->backupDependenciesAreConfigured();
 
         return [
             ['label' => 'Database', 'status' => $databaseHealthy ? 'Operational' : 'Unavailable', 'healthy' => $databaseHealthy, 'detail' => 'Application database connection', 'icon' => 'ph-database'],
             ['label' => 'Private Storage', 'status' => $storageHealthy ? 'Operational' : 'Unavailable', 'healthy' => $storageHealthy, 'detail' => 'Protected document storage', 'icon' => 'ph-lock-key'],
-            ['label' => 'Queue Processing', 'status' => $failedJobs === 0 ? 'Operational' : 'Needs Attention', 'healthy' => $failedJobs === 0, 'detail' => $failedJobs === 0 ? 'No failed jobs' : "{$failedJobs} failed job(s)", 'icon' => 'ph-stack'],
+            ['label' => 'Queue Processing', 'status' => $queueStatus, 'healthy' => $failedJobs === 0, 'detail' => $queueDetail, 'icon' => 'ph-stack'],
+            ['label' => 'Task Scheduler', 'status' => $schedulerHealthy ? 'Operational' : 'No heartbeat', 'healthy' => $schedulerHealthy, 'detail' => $schedulerHealthy ? 'Scheduler heartbeat received within five minutes' : 'Start php artisan schedule:work on the server', 'icon' => 'ph-timer'],
+            ['label' => 'Backup Toolchain', 'status' => $backupDependenciesConfigured ? 'Configured' : 'Incomplete', 'healthy' => $backupDependenciesConfigured, 'detail' => $backupDependenciesConfigured ? 'Run backup verification from Backup Management to confirm the toolchain' : 'ZIP or PostgreSQL backup configuration is incomplete', 'icon' => 'ph-hard-drives'],
         ];
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function cachedSystemHealth(): array
+    {
+        // Process checks (pg_dump/docker) are intentionally kept off the hot
+        // request path after the first check in this five-minute window.
+        return Cache::remember('admin-dashboard.system-health', now()->addMinutes(5), fn (): array => $this->systemHealth());
+    }
+
+    private function backupDependenciesAreConfigured(): bool
+    {
+        if (! class_exists(\ZipArchive::class) || config('database.default') !== 'pgsql') {
+            return false;
+        }
+
+        return trim((string) config('backups.pg_dump_binary')) !== ''
+            || trim((string) config('backups.pg_dump_docker_container')) !== '';
     }
 
     private function databaseIsHealthy(): bool
@@ -393,83 +479,65 @@ class GetAdminDashboardData
      */
     private function defensesList(): array
     {
-        if (! $this->tablesExist(['defense_requests', 'defense_schedules', 'defense_rooms', 'research_projects'])) {
+        if (! $this->tablesExist(['defenses', 'defense_schedules', 'research_class_groups'])) {
             return [];
         }
 
-        $rows = DB::table('defense_requests as requests')
-            ->join('research_projects as projects', 'projects.id', '=', 'requests.research_project_id')
-            ->leftJoin('defense_schedules as schedules', 'schedules.defense_request_id', '=', 'requests.id')
-            ->leftJoin('defense_rooms as rooms', 'rooms.id', '=', 'schedules.room_id')
-            ->leftJoin('users as students', 'students.id', '=', 'requests.requested_by')
-            ->select([
-                'requests.id',
-                'requests.research_project_id',
-                'requests.defense_type',
-                'requests.status as request_status',
-                'requests.remarks',
-                'projects.title',
-                'students.name as student_name',
-                'schedules.starts_at',
-                'schedules.ends_at',
-                'schedules.status as schedule_status',
-                'schedules.notes',
-                'rooms.name as room_name',
-                'rooms.building',
-                'rooms.location',
+        return Defense::query()
+            ->with([
+                'currentSchedule.room',
+                'group.researchClass:id,name',
+                'group.adviser:id,name',
+                'group.leader:id,name',
+                'group.members.student:id,name',
+                'group.researchGroup.currentProject:id,research_group_id,title',
+                'activePanelAssignments.user:id,name',
             ])
-            ->orderByDesc('schedules.starts_at')
-            ->get();
-        $advisers = $this->advisersByProject($rows->pluck('research_project_id'));
+            ->latest('updated_at')
+            ->limit(100)
+            ->get()
+            ->map(function (Defense $defense): array {
+                $schedule = $defense->currentSchedule;
+                $start = $schedule?->starts_at;
+                $end = $schedule?->ends_at;
+                $duration = $start !== null && $end !== null
+                    ? $start->diffForHumans($end, true)
+                    : '';
+                $venue = collect([
+                    $schedule?->room?->name,
+                    $schedule?->room?->location_notes,
+                ])
+                    ->filter()
+                    ->unique()
+                    ->implode(', ');
+                $group = $defense->group;
+                $memberNames = $group?->members->pluck('student.name')->filter()->values() ?? collect();
 
-        $adviserNames = $advisers->all();
-
-        return $rows->map(function (object $row) use ($adviserNames): array {
-            $start = $row->starts_at === null ? null : Carbon::parse($row->starts_at);
-            $end = $row->ends_at === null ? null : Carbon::parse($row->ends_at);
-            $duration = $start !== null && $end !== null
-                ? $start->diffForHumans($end, true)
-                : '';
-            $venue = collect([$row->room_name, $row->building, $row->location])
-                ->filter()
-                ->unique()
-                ->implode(', ');
-
-            return [
-                'id' => (int) $row->id,
-                'type' => Str::headline((string) $row->defense_type),
-                'title' => $row->title,
-                'student' => $row->student_name ?? '',
-                'date' => $start?->format('Y-m-d') ?? '',
-                'time' => $start?->format('H:i') ?? '',
-                'duration' => $duration,
-                'venue' => $venue,
-                'adviser' => (string) ($adviserNames[(int) $row->research_project_id] ?? ''),
-                'panelists' => [],
-                'status' => Str::headline((string) ($row->schedule_status ?? $row->request_status)),
-                'notes' => $row->notes ?? $row->remarks ?? '',
-                'generateNotice' => false,
-            ];
-        })->all();
-    }
-
-    /**
-     * @param  Collection<int, int>  $projectIds
-     * @return Collection<int, string>
-     */
-    private function advisersByProject(Collection $projectIds): Collection
-    {
-        if ($projectIds->isEmpty() || ! $this->tablesExist(['adviser_assignments', 'faculty_profiles'])) {
-            return collect();
-        }
-
-        return DB::table('adviser_assignments as assignments')
-            ->join('faculty_profiles as faculty', 'faculty.id', '=', 'assignments.adviser_id')
-            ->join('users', 'users.id', '=', 'faculty.user_id')
-            ->whereIn('assignments.research_project_id', $projectIds->unique())
-            ->where('assignments.status', 'active')
-            ->whereNull('assignments.ended_at')
-            ->pluck('users.name', 'assignments.research_project_id');
+                return [
+                    'id' => (int) $defense->getKey(),
+                    'type' => Str::headline((string) $defense->defense_type),
+                    'title' => $group?->title ?: $group?->name ?: 'Research Group',
+                    'student' => $memberNames->implode(', ') ?: ($group?->leader?->name ?? ''),
+                    'group' => $group?->name ?? '',
+                    'class' => $group?->researchClass?->name ?? '',
+                    'date' => $start?->format('Y-m-d') ?? '',
+                    'time' => $start?->format('H:i') ?? '',
+                    'duration' => $duration,
+                    'venue' => $venue,
+                    'adviser' => $group?->adviser?->name ?? 'Not assigned',
+                    'panelists' => $defense->activePanelAssignments
+                        ->map(fn ($assignment): array => [
+                            'name' => $assignment->user?->name ?? 'Unknown user',
+                            'position' => Str::headline((string) ($assignment->panel_position ?: 'panelist')),
+                        ])
+                        ->values()
+                        ->all(),
+                    'status' => Str::headline((string) ($schedule?->status ?? $defense->status)),
+                    'notes' => $schedule?->reason ?? '',
+                    'generateNotice' => false,
+                ];
+            })
+            ->all();
     }
 
     /**

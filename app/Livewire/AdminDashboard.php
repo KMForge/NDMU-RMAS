@@ -7,19 +7,26 @@ use App\Enums\UserType;
 use App\Models\AcademicTerm;
 use App\Models\AcademicYear;
 use App\Models\AuditLog;
+use App\Models\College;
+use App\Models\DefenseRoom;
 use App\Models\Department;
+use App\Models\OfficialFormDefinition;
+use App\Models\Program;
 use App\Models\SystemBackup;
 use App\Models\SystemBackupSetting;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Modules\Administration\Actions\CreateSystemBackup;
 use App\Modules\Administration\Actions\DeleteSystemBackup;
+use App\Modules\Administration\Actions\ManageAcademicConfiguration;
 use App\Modules\Administration\Actions\UpdateSystemSettings;
+use App\Modules\Administration\Actions\VerifySystemBackup;
 use App\Modules\AuditLogs\Queries\GetAuditLogsForAdmin;
 use App\Modules\AuditLogs\Services\AuditLogWriter;
 use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Dashboard\Queries\GetAdminDashboardData;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
+use App\Modules\Notifications\Services\UnreadNotificationCount;
 use App\Modules\UserManagement\Actions\ManageRoleAccess;
 use App\Modules\UserManagement\Actions\ManageUserAccount;
 use Illuminate\Support\Carbon;
@@ -131,6 +138,24 @@ class AdminDashboard extends Component
 
     public string $newAcademicYearEndDate = '';
 
+    public string $newDepartmentCode = '';
+
+    public string $newDepartmentName = '';
+
+    public ?int $newProgramDepartmentId = null;
+
+    public string $newProgramCode = '';
+
+    public string $newProgramName = '';
+
+    public string $newProgramDegreeLevel = 'Bachelor';
+
+    public string $newDefenseRoomCode = '';
+
+    public string $newDefenseRoomName = '';
+
+    public string $newDefenseRoomLocation = '';
+
     public string $tab = 'dashboard';
 
     public string $userManagementTab = 'all-users';
@@ -157,13 +182,19 @@ class AdminDashboard extends Component
     public function mount(): void
     {
         Gate::authorize('viewAny', User::class);
+        abort_unless(in_array($this->tab, $this->availableTabs(), true), 404);
         if ($this->tab === 'audit') {
             Gate::authorize('audit-logs.view');
         }
         $this->department = '';
         $this->isCollegeDean = false;
-        $this->loadSystemSettings();
-        $this->loadBackupSettings();
+
+        if ($this->tab === 'settings') {
+            $this->loadSystemSettings();
+        }
+        if ($this->tab === 'backups') {
+            $this->loadBackupSettings();
+        }
     }
 
     public function updatedSearchQuery(string $value): void
@@ -207,11 +238,18 @@ class AdminDashboard extends Component
 
     public function updatedTab(string $value): void
     {
+        abort_unless(in_array($value, $this->availableTabs(), true), 404);
         if ($value === 'audit') {
             Gate::authorize('audit-logs.view');
         }
-        if ($value === 'backups') {
+        if (in_array($value, ['backups', 'configuration', 'settings'], true)) {
             abort_unless($this->administrator()->can('settings.manage'), 403);
+        }
+        if ($value === 'settings') {
+            $this->loadSystemSettings();
+        }
+        if ($value === 'backups') {
+            $this->loadBackupSettings();
         }
     }
 
@@ -384,6 +422,7 @@ class AdminDashboard extends Component
         $this->authorizeRoleManagement();
         $role = Role::query()->with('permissions:id,name')->findOrFail($roleId);
 
+        $this->tab = 'permissions';
         $this->editingRoleId = (int) $role->getKey();
         $this->showRoleEditor = true;
         $this->roleName = $role->name;
@@ -395,6 +434,7 @@ class AdminDashboard extends Component
     public function createRole(): void
     {
         $this->authorizeRoleManagement();
+        $this->tab = 'permissions';
         $this->reset(['editingRoleId', 'roleName', 'selectedPermissions']);
         $this->showRoleEditor = true;
         $this->resetValidation();
@@ -465,6 +505,7 @@ class AdminDashboard extends Component
 
     public function resetRoleEditor(): void
     {
+        $this->tab = 'permissions';
         $this->reset(['editingRoleId', 'roleName', 'selectedPermissions']);
         $this->showRoleEditor = false;
         $this->resetValidation();
@@ -476,6 +517,7 @@ class AdminDashboard extends Component
         $subject = User::query()->with('roles:id,name')->findOrFail($userId);
         Gate::authorize('manageRoles', $subject);
 
+        $this->tab = 'assign-roles';
         $this->roleAssignmentMode = $mode;
         $this->roleAssignmentUserId = (int) $subject->getKey();
         $this->assignedRoles = $subject->roles->pluck('name')->sort()->values()->all();
@@ -556,6 +598,8 @@ class AdminDashboard extends Component
 
     public function closeRoleAssignment(): void
     {
+        $this->tab = 'users';
+        $this->userManagementTab = 'all-users';
         $this->reset(['roleAssignmentUserId', 'assignedRoles', 'originalAssignedRoles', 'assignedUserType', 'userActiveDuties']);
         $this->resetValidation();
         $this->dispatch('role-assignment-closed');
@@ -677,6 +721,21 @@ class AdminDashboard extends Component
         }
     }
 
+    public function verifySystemBackup(int $backupId, VerifySystemBackup $verifyBackup): void
+    {
+        abort_unless($this->administrator()->can('settings.manage'), 403);
+        $backup = SystemBackup::query()->findOrFail($backupId);
+        $this->resetErrorBag('backup');
+
+        try {
+            $verifyBackup->handle($this->administrator(), $backup);
+            $this->successMessage = "Backup {$backup->filename} passed integrity verification.";
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->addError('backup', $exception->getMessage());
+        }
+    }
+
     public function seedAcademicCycle(): void
     {
         abort_unless($this->administrator()->can('settings.manage'), 403);
@@ -773,8 +832,120 @@ class AdminDashboard extends Component
         $this->closeAcademicYearModal();
     }
 
+    public function createDepartment(ManageAcademicConfiguration $configuration): void
+    {
+        abort_unless($this->administrator()->can('settings.manage'), 403);
+        $this->newDepartmentCode = Str::upper(trim(strip_tags($this->newDepartmentCode)));
+        $this->newDepartmentName = trim(strip_tags($this->newDepartmentName));
+        $validated = $this->validate([
+            'newDepartmentCode' => ['required', 'string', 'max:30', 'regex:/^[A-Z0-9-]+$/', 'unique:departments,code'],
+            'newDepartmentName' => ['required', 'string', 'max:255'],
+        ]);
+        $college = College::query()->where('code', config('academic.college.code'))->firstOrFail();
+        $department = $configuration->createDepartment($this->administrator(), $college, [
+            'code' => $validated['newDepartmentCode'],
+            'name' => $validated['newDepartmentName'],
+        ]);
+        $this->reset(['newDepartmentCode', 'newDepartmentName']);
+        $this->successMessage = "Department {$department->code} created successfully.";
+        $this->clearDashboardCache();
+    }
+
+    public function setDepartmentActive(int $departmentId, bool $active, ManageAcademicConfiguration $configuration): void
+    {
+        $department = Department::query()->findOrFail($departmentId);
+        if (! $active && $department->programs()->where('is_active', true)->exists()) {
+            $this->addError('configuration', 'Deactivate the department’s active programs first.');
+
+            return;
+        }
+        $configuration->setDepartmentActive($this->administrator(), $department, $active);
+        $this->successMessage = "Department {$department->code} ".($active ? 'activated.' : 'deactivated.');
+        $this->clearDashboardCache();
+    }
+
+    public function createProgram(ManageAcademicConfiguration $configuration): void
+    {
+        abort_unless($this->administrator()->can('settings.manage'), 403);
+        $this->newProgramCode = Str::upper(trim(strip_tags($this->newProgramCode)));
+        $this->newProgramName = trim(strip_tags($this->newProgramName));
+        $this->newProgramDegreeLevel = trim(strip_tags($this->newProgramDegreeLevel));
+        $validated = $this->validate([
+            'newProgramDepartmentId' => ['required', 'integer', Rule::exists('departments', 'id')->where('is_active', true)],
+            'newProgramCode' => ['required', 'string', 'max:30', 'regex:/^[A-Z0-9-]+$/', 'unique:programs,code'],
+            'newProgramName' => ['required', 'string', 'max:255'],
+            'newProgramDegreeLevel' => ['nullable', 'string', 'max:50'],
+        ]);
+        $department = Department::query()->findOrFail($validated['newProgramDepartmentId']);
+        $program = $configuration->createProgram($this->administrator(), $department, [
+            'code' => $validated['newProgramCode'],
+            'name' => $validated['newProgramName'],
+            'degree_level' => $validated['newProgramDegreeLevel'] ?: null,
+        ]);
+        $this->reset(['newProgramDepartmentId', 'newProgramCode', 'newProgramName']);
+        $this->newProgramDegreeLevel = 'Bachelor';
+        $this->successMessage = "Program {$program->code} created successfully.";
+        $this->clearDashboardCache();
+    }
+
+    public function setProgramActive(int $programId, bool $active, ManageAcademicConfiguration $configuration): void
+    {
+        $program = Program::query()->findOrFail($programId);
+        $configuration->setProgramActive($this->administrator(), $program, $active);
+        $this->successMessage = "Program {$program->code} ".($active ? 'activated.' : 'deactivated.');
+        $this->clearDashboardCache();
+    }
+
+    public function createDefenseRoom(ManageAcademicConfiguration $configuration): void
+    {
+        abort_unless($this->administrator()->can('settings.manage'), 403);
+        $this->newDefenseRoomCode = Str::upper(trim(strip_tags($this->newDefenseRoomCode)));
+        $this->newDefenseRoomName = trim(strip_tags($this->newDefenseRoomName));
+        $this->newDefenseRoomLocation = trim(strip_tags($this->newDefenseRoomLocation));
+        $validated = $this->validate([
+            'newDefenseRoomCode' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9-]+$/', 'unique:defense_rooms,code'],
+            'newDefenseRoomName' => ['required', 'string', 'max:255'],
+            'newDefenseRoomLocation' => ['nullable', 'string', 'max:1000'],
+        ]);
+        $room = $configuration->createDefenseRoom($this->administrator(), [
+            'code' => $validated['newDefenseRoomCode'],
+            'name' => $validated['newDefenseRoomName'],
+            'location_notes' => $validated['newDefenseRoomLocation'] ?: null,
+        ]);
+        $this->reset(['newDefenseRoomCode', 'newDefenseRoomName', 'newDefenseRoomLocation']);
+        $this->successMessage = "Defense room {$room->code} created successfully.";
+        $this->clearDashboardCache();
+    }
+
+    public function setDefenseRoomActive(int $roomId, bool $active, ManageAcademicConfiguration $configuration): void
+    {
+        $room = DefenseRoom::query()->findOrFail($roomId);
+        if (! $active && $room->schedules()->where('starts_at', '>=', now())->whereIn('status', ['current', 'scheduled'])->exists()) {
+            $this->addError('configuration', 'This room has an upcoming defense. Reschedule it before deactivating the room.');
+
+            return;
+        }
+        $configuration->setDefenseRoomActive($this->administrator(), $room, $active);
+        $this->successMessage = "Defense room {$room->code} ".($active ? 'activated.' : 'deactivated.');
+        $this->clearDashboardCache();
+    }
+
+    public function setOfficialFormActive(int $definitionId, bool $active, ManageAcademicConfiguration $configuration): void
+    {
+        $definition = OfficialFormDefinition::query()->findOrFail($definitionId);
+        if (! $active && $definition->instances()->whereNotIn('status', ['approved', 'completed', 'rejected', 'cancelled'])->exists()) {
+            $this->addError('configuration', "{$definition->code} has active records and cannot be disabled yet.");
+
+            return;
+        }
+        $configuration->setOfficialFormActive($this->administrator(), $definition, $active);
+        $this->successMessage = "Official form {$definition->code} ".($active ? 'enabled.' : 'disabled.');
+        $this->clearDashboardCache();
+    }
+
     public function render(GetAdminDashboardData $getAdminDashboardData, GetDocumentRepositoryData $repositoryData, GetAuditLogsForAdmin $auditLogs)
     {
+        $administrator = $this->administrator();
         $data = [
             'totalUsersCount' => 0,
             'pendingApprovalCount' => 0,
@@ -786,35 +957,77 @@ class AdminDashboard extends Component
             'recentActivities' => [],
             'usersList' => null,
             'pendingStudents' => collect(),
-            'administrator' => $this->administrator(),
+            'administrator' => $administrator,
+            'activeResearchCount' => 0,
+            'completedResearchCount' => 0,
+            'totalResearchCount' => 0,
+            'researchCompletionRate' => 0,
+            'researchInProgressRate' => 0,
+            'averageResearchMonths' => null,
+            'researchByProgram' => [],
+            'monthlyResearchSubmissions' => [],
+            'researchLifecycle' => ['title' => null, 'progress' => 0, 'completed' => 0, 'in_progress' => 0, 'pending' => 0, 'milestones' => []],
+            'revisionStats' => ['pending' => 0, 'completed' => 0, 'overdue' => 0],
+            'revisionHistory' => [],
+            'pendingActions' => [],
+            'securityOverview' => [],
+            'systemHealth' => [],
+            'defensesList' => [],
+            'repositoryList' => [],
+            'proposalsList' => [],
+            'staffList' => [],
+            'adviserOptions' => [],
+            'panelistOptions' => [],
+            'notifications' => null,
+            'notificationUnreadCount' => 0,
         ];
 
-        $data = array_merge(
-            $data,
-            $this->dashboardData(),
-            $this->userManagementData(),
-            $getAdminDashboardData->get(),
-            $this->roleManagementData(),
-            $this->auditLogData($auditLogs),
-            $this->systemSettingsData(),
-            $this->systemBackupData(),
-            $repositoryData->for($this->administrator(), request()->query()),
-        );
+        $activeData = match ($this->tab) {
+            'dashboard' => array_merge($this->dashboardData(), $getAdminDashboardData->forTab('dashboard')),
+            'users' => array_merge($this->userManagementData(), $this->roleManagementData()),
+            'permissions', 'assign-roles' => $this->roleManagementData(),
+            'research', 'reports', 'defenses', 'forms' => $getAdminDashboardData->forTab($this->tab),
+            'repository' => $repositoryData->for($administrator, request()->query()),
+            'audit' => $this->auditLogData($auditLogs),
+            'backups' => $this->systemBackupData(),
+            'configuration' => $this->configurationData(),
+            'settings' => $this->systemSettingsData(),
+            'notifications' => [
+                'notifications' => $administrator->notifications()->latest()->paginate(20, ['*'], 'notificationPage'),
+                'notificationUnreadCount' => app(UnreadNotificationCount::class)->for($administrator),
+            ],
+            default => [],
+        };
+
+        $data = array_merge($data, $activeData);
+        $sidebarSummary = $getAdminDashboardData->sidebarSummary();
 
         $data['sidebarBadges'] = [
-            'users' => (int) ($data['pendingApprovalCount'] ?? 0),
-            'research' => (int) ($data['activeResearchCount'] ?? 0),
-            'defenses' => (int) ($data['pendingDefenseCount'] ?? 0),
+            'users' => $sidebarSummary['pending_users'],
+            'research' => $sidebarSummary['active_research'],
+            'defenses' => $sidebarSummary['pending_defenses'],
             'notifications' => Schema::hasTable('notifications')
-                ? $data['administrator']->unreadNotifications()->count()
+                ? ($this->tab === 'notifications'
+                    ? $data['notificationUnreadCount']
+                    : app(UnreadNotificationCount::class)->for($administrator))
                 : 0,
         ];
 
-        $data['roleAssignmentUser'] = $this->roleAssignmentUserId
+        $data['roleAssignmentUser'] = $this->tab === 'assign-roles' && $this->roleAssignmentUserId
             ? User::query()->with('roles:id,name,display_name')->find($this->roleAssignmentUserId)
             : null;
 
         return view('livewire.admin-dashboard-content', $data);
+    }
+
+    /** @return list<string> */
+    private function availableTabs(): array
+    {
+        return [
+            'dashboard', 'users', 'permissions', 'assign-roles', 'research',
+            'defenses', 'repository', 'forms', 'reports', 'audit', 'backups',
+            'configuration', 'settings', 'notifications',
+        ];
     }
 
     /**
@@ -1243,7 +1456,7 @@ class AdminDashboard extends Component
 
         return [
             'systemBackups' => SystemBackup::query()
-                ->with('triggeredBy:id,name')
+                ->with(['triggeredBy:id,name', 'verifiedBy:id,name'])
                 ->latest('started_at')
                 ->latest('id')
                 ->limit(50)
@@ -1264,6 +1477,19 @@ class AdminDashboard extends Component
                 ->orderByDesc('starts_at')
                 ->get(),
             'systemSettingsUpdatedAt' => SystemSetting::query()->value('updated_at'),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function configurationData(): array
+    {
+        return [
+            'configurationCollege' => College::query()
+                ->where('code', config('academic.college.code'))
+                ->with(['departments' => fn ($query) => $query->with('programs')->orderBy('name')])
+                ->first(),
+            'configurationDefenseRooms' => DefenseRoom::query()->withCount('schedules')->orderBy('name')->get(),
+            'configurationFormDefinitions' => OfficialFormDefinition::query()->withCount('instances')->orderBy('sort_order')->get(),
         ];
     }
 

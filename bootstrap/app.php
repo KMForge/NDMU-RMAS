@@ -8,6 +8,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
@@ -42,6 +43,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
+        $schedule->call(fn () => Cache::put('system:scheduler-heartbeat', now()->toIso8601String(), now()->addMinutes(10)))
+            ->name('system-scheduler-heartbeat')
+            ->everyMinute()
+            ->withoutOverlapping();
+
         $schedule->command('system-backup:run-scheduled')
             ->everyMinute()
             ->withoutOverlapping()

@@ -6,8 +6,8 @@
     class="min-h-screen flex font-sans bg-[#f4f7f6]"
     data-portal-shell
     x-data="{
-    activeTab: $wire.entangle('tab'),
-    userManagementTab: $wire.entangle('userManagementTab'),
+    activeTab: $wire.entangle('tab').live,
+    userManagementTab: $wire.entangle('userManagementTab').live,
     showPassword: false,
     selectedDefense: null,
     permissionsSearch: '',
@@ -15,27 +15,9 @@
     showPermissionsModal: false,
     selectedUser: null,
     modalPermissions: {},
-    showScheduleModal: false,
     showViewModal: false,
-    showEditModal: false,
-    panelistInput: '',
     defenseFilterType: 'All Defense Types',
     defenseFilterStatus: 'All Status',
-    formDefense: {
-        id: null,
-        type: 'Proposal Defense',
-        title: '',
-        student: '',
-        date: '',
-        time: '',
-        duration: '2 hours',
-        venue: '',
-        adviser: '',
-        panelists: [],
-        status: 'Pending',
-        notes: '',
-        generateNotice: true
-    },
     defensesList: @js($defensesList),
     repositorySearch: '',
     repositoryFilter: 'All Status',
@@ -115,6 +97,8 @@
                     </div>
                     <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
+
+                <div class="px-3 pt-4 pb-1 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-200/60">Identity &amp; access</div>
                 
                 <!-- User Management Link -->
                 <button
@@ -144,6 +128,8 @@
                     <span x-show="activeTab === 'permissions'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
 
+                <div class="px-3 pt-4 pb-1 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-200/60">Research oversight</div>
+
                 <button
                    type="button"
                    @click="activeTab = 'research'"
@@ -166,7 +152,7 @@
                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
                         <i class="ph ph-calendar text-lg transition-transform group-hover:scale-110"></i>
-                        <span>Defense Scheduling</span>
+                        <span>Defense Oversight</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <x-sidebar-count-badge :count="$sidebarBadges['defenses'] ?? 0" label="scheduled defenses" />
@@ -195,7 +181,7 @@
                 >
                     <div class="flex items-center gap-3">
                         <i class="ph ph-file-text text-lg transition-transform group-hover:scale-110"></i>
-                        <span>Forms Management</span>
+                        <span>Forms &amp; Proposals</span>
                     </div>
                     <span x-show="activeTab === 'forms'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                 </button>
@@ -209,6 +195,20 @@
                         <span>Reports & Analytics</span>
                     </div>
                 </a>
+                @endcan
+
+                <div class="px-3 pt-4 pb-1 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-200/60">System operations</div>
+
+                @can('settings.manage')
+                <button
+                    type="button"
+                    @click="activeTab = 'configuration'"
+                    :class="activeTab === 'configuration' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group"
+                >
+                    <div class="flex items-center gap-3"><i class="ph ph-sliders-horizontal text-lg"></i><span>Configuration</span></div>
+                    <span x-show="activeTab === 'configuration'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
+                </button>
                 @endcan
 
                 @can('audit-logs.view')
@@ -253,7 +253,7 @@
             <div class="space-y-1">
                 <button
                     type="button"
-                    @click="switchTab('notifications')"
+                    @click="activeTab = 'notifications'"
                     :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md' : 'text-white/85 hover:text-white hover:bg-white/15 font-semibold'"
                     class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
                 >
@@ -302,18 +302,13 @@
     <div data-portal-content class="flex-1 pl-72 flex flex-col min-h-screen">
         <!-- Top Header Navbar -->
         <header data-portal-header class="h-20 bg-white/85 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between sticky top-0 z-40 flex-shrink-0 transition-all">
-            <!-- Search bar -->
-            <div data-portal-primary-search class="relative w-96">
-                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 pointer-events-none">
-                    <i class="ph ph-magnifying-glass text-base"></i>
-                </span>
-                <input
-                    type="text"
-                    placeholder="Search research, documents, or tasks..."
-                    class="w-full pl-10 pr-14 py-2.5 bg-slate-100/80 border border-slate-200/60 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#0e5c3a] focus:ring-2 focus:ring-[#0e5c3a]/10 transition-all duration-200 shadow-2xs"
-                >
-                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <kbd class="px-1.5 py-0.5 text-[10px] font-bold text-slate-400 bg-white border border-slate-200 rounded-md shadow-2xs">Ctrl K</kbd>
+            <div data-portal-primary-search class="flex items-center gap-3">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-[#0e5c3a]">
+                    <i class="ph ph-command text-lg"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-black text-slate-800">Administration Control Center</p>
+                    <p class="mt-0.5 text-[10px] font-medium text-slate-400">Configuration, oversight, security, and recovery</p>
                 </div>
             </div>
 
@@ -340,11 +335,12 @@
             <x-portal-feature-banner class="mb-8" :sections="[
                 'users' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'User Management', 'description' => 'Manage accounts, monitor institutional email verification, and assign reusable roles.', 'icon' => 'ph-users-three'],
                 'research' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Research Management', 'description' => 'Oversee research records, assignments, and approval activity.', 'icon' => 'ph-book-open'],
-                'defenses' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Defense Scheduling', 'description' => 'Coordinate defense requests, schedules, rooms, and panels.', 'icon' => 'ph-calendar-check'],
+                'defenses' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Defense Oversight', 'description' => 'Monitor defense schedules, rooms, and committees. Academic assignments remain with authorized academic roles.', 'icon' => 'ph-calendar-check'],
                 'repository' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Research Repository', 'description' => 'Administer secure research records and document access.', 'icon' => 'ph-folder-open'],
-                'forms' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Forms Management', 'description' => 'Manage official form availability, records, and workflow status.', 'icon' => 'ph-file-text'],
+                'forms' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Forms & Proposals', 'description' => 'Monitor official form records and proposal workflow without replacing academic approvers.', 'icon' => 'ph-file-text'],
                 'reports' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Reports & Analytics', 'description' => 'Review operational metrics and research-system outcomes.', 'icon' => 'ph-chart-bar'],
                 'audit' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Audit Logs', 'description' => 'Review security-relevant and administrative activity.', 'icon' => 'ph-list-magnifying-glass'],
+                'configuration' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Institutional Configuration', 'description' => 'Manage academic structure, defense rooms, and official-form availability with audited controls.', 'icon' => 'ph-sliders-horizontal'],
                 'backups' => ['eyebrow' => 'NDMU-RMAS Administration', 'title' => 'Backup Management', 'description' => 'Protect PostgreSQL data and private system files with verified backup archives.', 'icon' => 'ph-database'],
             ]" />
             <!-- Alert / Success Notification Banner -->
@@ -364,7 +360,8 @@
             @enderror
 
             <!-- TAB 1: ADMIN DASHBOARD VIEW -->
-            <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($tab === 'dashboard')
+            <div class="space-y-8 animate-fade-in">
                 <!-- Rich Branded Command Hub & Quick Action Header -->
                 <div data-dashboard-hero class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#0a462c] p-6 md:p-8 text-white shadow-xl shadow-emerald-950/20 border border-emerald-600/30">
                     <!-- Ambient Glow & Watermark Logo -->
@@ -410,7 +407,7 @@
 
                             <button
                                 type="button"
-                                @click="activeTab = 'roles'"
+                                @click="activeTab = 'permissions'"
                                 class="px-4 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
                             >
                                 <i class="ph ph-shield-check text-base text-blue-300"></i>
@@ -475,7 +472,7 @@
 
                     <!-- KPI 2: Active Research -->
                     <div
-                        @click="activeTab = 'academic-years'"
+                        @click="activeTab = 'research'"
                         class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
                     >
                         <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
@@ -505,7 +502,7 @@
 
                     <!-- KPI 3: Completed Research -->
                     <div
-                        @click="activeTab = 'academic-years'"
+                        @click="activeTab = 'repository'"
                         class="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer"
                     >
                         <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 opacity-80 group-hover:opacity-100 group-hover:h-1.5 transition-all"></div>
@@ -825,9 +822,11 @@
                         </section>
                     </div>
             </div>
+            @endif
 
             <!-- TAB 2: USER MANAGEMENT VIEW -->
-            <div x-show="activeTab === 'users'" x-cloak class="min-w-0 space-y-8 animate-fade-in">
+            @if ($tab === 'users')
+            <div class="min-w-0 space-y-8 animate-fade-in">
                     <!-- Section Action Header -->
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-2xs relative overflow-hidden">
                         <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
@@ -1544,12 +1543,18 @@
                         </div>
                     </div>
             </div>
+            @endif
 
-            @include('admin.assign-roles')
+            @if ($tab === 'assign-roles')
+                @include('admin.assign-roles')
+            @endif
 
-            @include('admin.roles-permissions')
+            @if ($tab === 'permissions')
+                @include('admin.roles-permissions')
+            @endif
 
             <!-- Legacy visual prototype retained temporarily but no longer reachable. -->
+            @if ($tab === 'legacy-permissions')
             <div x-show="activeTab === 'legacy-permissions'" x-cloak class="space-y-8 animate-fade-in">
                 <!-- Title Section -->
                 <div>
@@ -1995,9 +2000,11 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- TAB 4: RESEARCH MANAGEMENT VIEW -->
-            <div x-show="activeTab === 'research'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($tab === 'research')
+            <div class="space-y-8 animate-fade-in">
                 <!-- Section Action Header -->
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-2xs relative overflow-hidden">
                     <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
@@ -2022,12 +2029,12 @@
                     <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] via-[#eebc3f] to-[#0e5c3a]"></div>
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div class="space-y-1">
-                            <h3 class="text-lg font-black text-slate-900">Overall Progress</h3>
+                            <h3 class="text-lg font-black text-slate-900">Recently Updated Research Group</h3>
                             <p class="text-xs text-slate-500 font-medium">{{ $researchLifecycle['title'] ?? 'Institutional research studies' }}</p>
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="text-3xl font-black text-[#0e5c3a] font-heading">{{ $researchLifecycle['progress'] }}%</span>
-                            <span class="text-[10px] text-slate-400 font-black uppercase tracking-wider">Overall</span>
+                            <span class="text-[10px] text-slate-400 font-black uppercase tracking-wider">Group progress</span>
                         </div>
                     </div>
 
@@ -2325,20 +2332,16 @@
                         --}}
                     </div>
 
-                    <!-- Bottom Buttons -->
-                    <div class="flex items-center gap-3 pt-4">
-                        <button type="button" class="px-6 py-3.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-md shadow-emerald-700/10 hover:shadow-lg transition-all duration-300 font-sans">
-                            Update Progress
-                        </button>
-                        <button type="button" class="px-6 py-3.5 border border-gray-200 text-gray-600 hover:text-gray-800 text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm transition-all duration-300 bg-white font-sans">
-                            Download Timeline
-                        </button>
-                    </div>
+                    <p class="pt-4 text-xs font-medium text-slate-500">
+                        Progress is updated by the authorized research workflow. Administrators monitor records here without replacing facilitators or academic approvers.
+                    </p>
                 </div>
             </div>
+            @endif
 
             <!-- TAB 5: DEFENSE SCHEDULING VIEW -->
-            <div x-show="activeTab === 'defenses'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($tab === 'defenses')
+            <div class="space-y-8 animate-fade-in">
                 <!-- Section Action Header -->
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-2xs relative overflow-hidden">
                     <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
@@ -2348,23 +2351,16 @@
                         </div>
                         <div>
                             <h2 class="text-xl sm:text-2xl font-black font-heading text-slate-900 flex items-center gap-2">
-                                <span>Defense Scheduling & Management</span>
-                                <span class="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-[10px] font-black uppercase text-[#0e5c3a]" x-text="defensesList.length + ' Scheduled'">
+                                <span>Defense Oversight</span>
+                                <span class="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-[10px] font-black uppercase text-[#0e5c3a]" x-text="defensesList.length + ' Records'">
                                 </span>
                             </h2>
-                            <p class="text-xs text-slate-500 font-medium mt-0.5">Coordinate defense requests, time slots, venues, and assigned faculty evaluation panels.</p>
+                            <p class="text-xs text-slate-500 font-medium mt-0.5">Read-only institutional view of schedules and committees created by authorized academic roles.</p>
                         </div>
                     </div>
-                    <button 
-                        type="button" 
-                        @click="
-                            formDefense = { id: null, type: 'Proposal Defense', title: '', student: '', date: '', time: '', duration: '2 hours', venue: '', adviser: '', panelists: [], status: 'Pending', notes: '', generateNotice: true };
-                            showScheduleModal = true;
-                        "
-                        class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#073823] text-white text-xs font-black rounded-xl flex items-center gap-2 shadow-md transition-all cursor-pointer"
-                    >
-                        <i class="ph ph-plus-circle text-base"></i> Schedule Defense
-                    </button>
+                    <div class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-[11px] font-bold text-blue-800">
+                        Scheduling: facilitator &nbsp;&middot;&nbsp; Committee assignment: program coordinator
+                    </div>
                 </div>
 
                 <!-- Row of 4 statistics cards -->
@@ -2460,7 +2456,6 @@
                                     <p class="text-xs text-gray-400 font-medium">Student: <span x-text="defense.student"></span></p>
                                 </div>
                                 <div class="flex items-center gap-1">
-                                    <!-- View button -->
                                     <button 
                                         type="button" 
                                         @click="
@@ -2470,29 +2465,6 @@
                                         class="w-8 h-8 rounded-full hover:bg-blue-50 text-blue-600 flex items-center justify-center transition-colors"
                                     >
                                         <i class="ph ph-eye text-lg"></i>
-                                    </button>
-                                    <!-- Edit button -->
-                                    <button 
-                                        type="button" 
-                                        @click="
-                                            formDefense = JSON.parse(JSON.stringify(defense));
-                                            showEditModal = true;
-                                        "
-                                        class="w-8 h-8 rounded-full hover:bg-emerald-50 text-[#0fa47b] flex items-center justify-center transition-colors"
-                                    >
-                                        <i class="ph ph-pencil-simple text-lg"></i>
-                                    </button>
-                                    <!-- Delete button -->
-                                    <button 
-                                        type="button" 
-                                        @click="
-                                            if(confirm('Are you sure you want to delete this defense presentation?')) {
-                                                defensesList = defensesList.filter(d => d.id !== defense.id);
-                                            }
-                                        "
-                                        class="w-8 h-8 rounded-full hover:bg-red-50 text-red-600 flex items-center justify-center transition-colors"
-                                    >
-                                        <i class="ph ph-trash text-lg"></i>
                                     </button>
                                 </div>
                             </div>
@@ -2516,18 +2488,21 @@
                             <div class="space-y-2 pt-2 border-t border-gray-100">
                                 <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Panel Members</span>
                                 <div class="flex flex-wrap gap-2">
-                                    <template x-for="panelist in defense.panelists">
-                                        <span class="px-3 py-1.5 rounded-2xl bg-gray-50 border border-gray-150 text-xs text-gray-600 font-semibold" x-text="panelist"></span>
+                                    <template x-for="panelist in defense.panelists" :key="panelist.name + panelist.position">
+                                        <span class="px-3 py-1.5 rounded-2xl bg-gray-50 border border-gray-150 text-xs text-gray-600 font-semibold" x-text="panelist.name + ' · ' + panelist.position"></span>
                                     </template>
+                                    <span x-show="defense.panelists.length === 0" class="text-xs font-medium text-slate-400">No active committee recorded.</span>
                                 </div>
                             </div>
                         </div>
                     </template>
                 </div>
             </div>
+            @endif
 
             <!-- TAB 6: RESEARCH REPOSITORY VIEW -->
-            <div x-show="activeTab === 'repository'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($tab === 'repository')
+            <div class="space-y-8 animate-fade-in">
                 <x-student-section-heading title="Research Repository" description="Browse documents according to your explicit repository permissions." />
                 <x-document-repository :documents="$repositoryDocuments" :filters="$repositoryFilters" :stats="$repositoryStats" :stage-options="$repositoryStageOptions" :status-options="$repositoryStatusOptions" />
                 @if (false)
@@ -2670,13 +2645,15 @@
                 </div>
                 @endif
             </div>
+            @endif
 
             <!-- TAB 7: PROPOSAL MANAGEMENT VIEW -->
-            <div x-show="activeTab === 'forms'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($tab === 'forms')
+            <div class="space-y-8 animate-fade-in">
                 <!-- Header -->
                 <div>
-                    <h1 class="text-3xl font-extrabold font-heading text-gray-800 tracking-tight">Proposal Management</h1>
-                    <p class="text-sm text-gray-500 font-light mt-1">Manage research proposals and approvals</p>
+                    <h1 class="text-3xl font-extrabold font-heading text-gray-800 tracking-tight">Proposal &amp; Official Form Oversight</h1>
+                    <p class="text-sm text-gray-500 font-light mt-1">Monitor submitted records while academic decisions remain with assigned approvers.</p>
                 </div>
 
                 <!-- Row of 4 statistics cards -->
@@ -2767,9 +2744,11 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- TAB 8: REPORTS & ANALYTICS VIEW -->
-            <div x-show="activeTab === 'reports'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($tab === 'reports')
+            <div class="space-y-8 animate-fade-in">
                 <!-- Section Action Header -->
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-2xs relative overflow-hidden">
                     <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
@@ -2944,14 +2923,18 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- TAB 9: AUDIT LOGS VIEW -->
             @can('audit-logs.view')
-            <div x-show="activeTab === 'audit'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($tab === 'audit')
+            <div class="space-y-8 animate-fade-in">
                 @include('admin.audit-logs')
             </div>
+            @endif
             @endcan
 
+            @if (false)
             <div class="hidden" aria-hidden="true">
                 <!-- Header -->
                 <div>
@@ -3028,15 +3011,25 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             @can('settings.manage')
-            <div x-show="activeTab === 'backups'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($tab === 'backups')
+            <div class="space-y-8 animate-fade-in">
                 @include('admin.backup-management')
             </div>
+            @endif
+
+            @if ($tab === 'configuration')
+            <div class="space-y-8 animate-fade-in">
+                @include('admin.configuration')
+            </div>
+            @endif
             @endcan
 
             <!-- TAB 10: SYSTEM SETTINGS -->
-            <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($tab === 'settings')
+            <div class="space-y-8 animate-fade-in">
                 <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                     <div>
                         <h1 class="text-3xl font-extrabold font-heading text-gray-800 tracking-tight">System Settings</h1>
@@ -3204,6 +3197,8 @@
                 </form>
             </div>
 
+            {{-- Scheduling and committee changes belong to facilitator/program-coordinator workflows. --}}
+            @if (false)
             <!-- SCHEDULE NEW DEFENSE MODAL -->
             <div 
                 x-show="showScheduleModal" 
@@ -3544,6 +3539,8 @@
                 </div>
             </div>
 
+            @endif
+
             <!-- DEFENSE DETAILS VIEW MODAL -->
             <div 
                 x-show="showViewModal" 
@@ -3590,25 +3587,14 @@
                                 <div class="space-y-2">
                                     <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Panel Members</span>
                                     <div class="space-y-2">
-                                        <template x-for="panelist in (selectedDefense ? selectedDefense.panelists : [])">
-                                            <div class="p-3 bg-white border border-gray-150 rounded-2xl text-xs text-gray-700 font-bold" x-text="panelist"></div>
+                                        <template x-for="panelist in (selectedDefense ? selectedDefense.panelists : [])" :key="panelist.name + panelist.position">
+                                            <div class="p-3 bg-white border border-gray-150 rounded-2xl text-xs text-gray-700 font-bold" x-text="panelist.name + ' · ' + panelist.position"></div>
                                         </template>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="p-6 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-3">
-                            <button 
-                                type="button" 
-                                @click="
-                                    formDefense = JSON.parse(JSON.stringify(selectedDefense));
-                                    showEditModal = true;
-                                    showViewModal = false;
-                                "
-                                class="px-5 py-3 bg-[#0fa47b] hover:bg-[#0a825e] text-white text-xs font-bold rounded-2xl transition-all"
-                            >
-                                Edit Schedule
-                            </button>
                             <button type="button" @click="showViewModal = false" class="px-5 py-3 border border-gray-200 text-gray-500 hover:text-gray-700 text-xs font-bold rounded-2xl transition-all bg-white">
                                 Close
                             </button>
@@ -3661,16 +3647,19 @@
                 </div>
             </div>
             @endif
+            @endif
 
             <!-- TAB: Notifications Center -->
-            <div x-show="activeTab === 'notifications'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($tab === 'notifications')
+            <div class="space-y-8 animate-fade-in">
                 <x-notifications.center
-                    :notifications="auth()->user()->notifications()->latest()->paginate(20)"
-                    :unread-count="auth()->user()->unreadNotifications()->count()"
+                    :notifications="$notifications"
+                    :unread-count="$notificationUnreadCount"
                     :filter="request()->query('notification_filter', 'all')"
                     :dashboard-route="route('admin.dashboard')"
                 />
             </div>
+            @endif
         </main>
     </div>
 </div>

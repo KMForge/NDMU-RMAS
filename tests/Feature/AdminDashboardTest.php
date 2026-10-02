@@ -3,12 +3,24 @@
 namespace Tests\Feature;
 
 use App\Enums\AccountStatus;
+use App\Enums\DocumentStatus;
 use App\Enums\UserType;
 use App\Livewire\AdminDashboard;
 use App\Models\AuditLog;
+use App\Models\College;
+use App\Models\Defense;
+use App\Models\DefensePanelAssignment;
+use App\Models\DefenseRoom;
+use App\Models\DefenseSchedule;
+use App\Models\Document;
+use App\Models\OfficialFormDefinition;
+use App\Models\ResearchClass;
+use App\Models\ResearchClassGroup;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Modules\Dashboard\Queries\GetAdminDashboardData;
 use App\Modules\SystemSettings\Services\RateLimitSettings;
+use Database\Seeders\AcademicStructureSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Cache\RateLimiting\Unlimited;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,6 +29,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -75,6 +88,7 @@ class AdminDashboardTest extends TestCase
         $this->actingAs($admin);
 
         Livewire::test(AdminDashboard::class)
+            ->set('tab', 'users')
             ->assertOk()
             ->assertDontSee('Updating dashboard')
             ->assertSee('User Management')
@@ -82,9 +96,171 @@ class AdminDashboardTest extends TestCase
             ->assertSeeHtml('data-responsive-table-container')
             ->assertSeeHtml('data-portal-content')
             ->assertDontSeeHtml('sticky right-0')
-            ->assertSee('Security Overview')
-            ->assertSee('System Health')
+            ->assertSee('Identity & access')
+            ->assertSee('Research oversight')
+            ->assertSee('System operations')
+            ->assertSee('Defense Oversight')
+            ->assertSee('Forms & Proposals')
+            ->assertDontSee('Schedule New Defense')
+            ->assertDontSee('Edit Defense Schedule')
             ->assertSee('Administrator');
+    }
+
+    public function test_admin_dashboard_shortcuts_target_existing_content_tabs(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->assertSeeHtml("@click=\"activeTab = 'permissions'\"")
+            ->assertSeeHtml("@click=\"activeTab = 'research'\"")
+            ->assertSeeHtml("@click=\"activeTab = 'repository'\"")
+            ->assertSeeHtml("@click=\"activeTab = 'notifications'\"")
+            ->assertDontSeeHtml("activeTab = 'roles'")
+            ->assertDontSeeHtml("activeTab = 'academic-years'")
+            ->assertDontSeeHtml("switchTab('notifications')");
+    }
+
+    public function test_admin_oversight_uses_current_defense_schema_and_real_committee_data(): void
+    {
+        $facilitator = User::factory()->create(['name' => 'Facilitator One']);
+        $adviser = User::factory()->create(['name' => 'Adviser One']);
+        $panelist = User::factory()->create(['name' => 'Panel Chair']);
+
+        $researchClass = new ResearchClass([
+            'facilitator_id' => $facilitator->id,
+            'creation_token' => (string) Str::uuid(),
+            'name' => 'Capstone 4A',
+            'max_students' => 40,
+            'is_active' => true,
+        ]);
+        $researchClass->setJoinCode('CAPSTONE4A');
+        $researchClass->save();
+
+        $group = ResearchClassGroup::query()->create([
+            'research_class_id' => $researchClass->id,
+            'creation_token' => (string) Str::uuid(),
+            'name' => 'Group Alpha',
+            'adviser_id' => $adviser->id,
+            'created_by' => $facilitator->id,
+            'status' => 'active',
+        ]);
+        $defense = Defense::query()->create([
+            'research_class_group_id' => $group->id,
+            'defense_type' => 'proposal_defense',
+            'status' => 'scheduled',
+            'created_by' => $facilitator->id,
+        ]);
+        $room = DefenseRoom::query()->create([
+            'code' => 'CEAC-101',
+            'name' => 'CEAC Conference Room',
+            'location_notes' => 'First floor',
+            'is_active' => true,
+        ]);
+        $schedule = DefenseSchedule::query()->create([
+            'defense_id' => $defense->id,
+            'room_id' => $room->id,
+            'starts_at' => now()->addDay(),
+            'ends_at' => now()->addDay()->addHours(2),
+            'status' => 'current',
+            'scheduled_by' => $facilitator->id,
+        ]);
+        $defense->update(['current_schedule_id' => $schedule->id]);
+        DefensePanelAssignment::query()->create([
+            'defense_id' => $defense->id,
+            'user_id' => $panelist->id,
+            'panel_position' => 'chairperson',
+            'assigned_by' => $facilitator->id,
+            'assigned_at' => now(),
+        ]);
+
+        Cache::forget('admin-dashboard.analytics-data');
+        $data = app(GetAdminDashboardData::class)->get();
+
+        $this->assertSame('Group Alpha', $data['defensesList'][0]['title']);
+        $this->assertSame('Adviser One', $data['defensesList'][0]['adviser']);
+        $this->assertSame('Panel Chair', $data['defensesList'][0]['panelists'][0]['name']);
+        $this->assertSame('Chairperson', $data['defensesList'][0]['panelists'][0]['position']);
+        $this->assertSame('CEAC Conference Room, First floor', $data['defensesList'][0]['venue']);
+    }
+
+    public function test_admin_repository_oversight_returns_real_documents(): void
+    {
+        $author = User::factory()->create(['name' => 'Student Author']);
+        Document::query()->create([
+            'user_id' => $author->id,
+            'submission_token' => (string) Str::uuid(),
+            'original_filename' => 'approved-capstone.pdf',
+            'stored_filename' => Str::random(40).'.pdf',
+            'file_type' => 'pdf',
+            'mime_type' => 'application/pdf',
+            'file_size' => 2048,
+            'storage_disk' => 'local',
+            'storage_path' => 'private/'.Str::uuid().'.pdf',
+            'content_sha256' => hash('sha256', 'approved-capstone'),
+            'submitted_at' => now(),
+            'status' => DocumentStatus::Accepted,
+        ]);
+
+        Cache::forget('admin-dashboard.analytics-data');
+        $data = app(GetAdminDashboardData::class)->get();
+
+        $this->assertCount(1, $data['repositoryList']);
+        $this->assertSame('approved-capstone.pdf', $data['repositoryList'][0]['title']);
+        $this->assertSame('Approved', $data['repositoryList'][0]['status']);
+        $this->assertSame('Student Author', $data['repositoryList'][0]['author']);
+    }
+
+    public function test_admin_can_manage_production_configuration_with_audit_logs(): void
+    {
+        $this->seed(AcademicStructureSeeder::class);
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+        $this->actingAs($admin);
+
+        $component = Livewire::test(AdminDashboard::class)
+            ->set('tab', 'configuration')
+            ->assertSee('Institutional Configuration')
+            ->set('newDepartmentCode', 'RDC')
+            ->set('newDepartmentName', 'Research Development Center')
+            ->call('createDepartment')
+            ->assertHasNoErrors();
+
+        $departmentId = DB::table('departments')->where('code', 'RDC')->value('id');
+        $component
+            ->set('newProgramDepartmentId', $departmentId)
+            ->set('newProgramCode', 'BSDS')
+            ->set('newProgramName', 'Bachelor of Science in Data Science')
+            ->set('newProgramDegreeLevel', 'Bachelor')
+            ->call('createProgram')
+            ->set('newDefenseRoomCode', 'RDC-101')
+            ->set('newDefenseRoomName', 'Research Defense Room')
+            ->set('newDefenseRoomLocation', 'Research building, first floor')
+            ->call('createDefenseRoom')
+            ->assertHasNoErrors();
+
+        $definition = OfficialFormDefinition::query()->create([
+            'code' => 'RES-099',
+            'title' => 'Configuration Test Form',
+            'default_category' => 'Test',
+            'ownership_scope' => 'research_group',
+            'cardinality' => 'single_per_group',
+            'template_view' => 'pages.facilitator.forms.res-099',
+            'is_active' => true,
+            'sort_order' => 999,
+        ]);
+        $component->call('setOfficialFormActive', $definition->id, false)->assertHasNoErrors();
+
+        $this->assertDatabaseHas('colleges', ['code' => config('academic.college.code')]);
+        $this->assertDatabaseHas('programs', ['code' => 'BSDS', 'department_id' => $departmentId]);
+        $this->assertDatabaseHas('defense_rooms', ['code' => 'RDC-101', 'is_active' => true]);
+        $this->assertDatabaseHas('official_form_definitions', ['id' => $definition->id, 'is_active' => false]);
+        foreach (['academic.department.created', 'academic.program.created', 'defense-room.created', 'official-form.definition-status-updated'] as $event) {
+            $this->assertDatabaseHas('audit_logs', ['event' => $event, 'user_id' => $admin->id]);
+        }
+        $this->assertSame(config('academic.college.name'), College::query()->where('code', config('academic.college.code'))->value('name'));
     }
 
     public function test_admin_sidebar_shows_students_awaiting_email_verification(): void
@@ -130,6 +306,7 @@ class AdminDashboardTest extends TestCase
         $this->actingAs($admin);
 
         Livewire::test(AdminDashboard::class)
+            ->set('tab', 'settings')
             ->assertSee('System Settings')
             ->set('settingsSystemName', 'NDMU Research Portal')
             ->set('settingsSupportEmail', 'support@ndmu.edu.ph')
@@ -246,16 +423,18 @@ class AdminDashboardTest extends TestCase
 
         $this->actingAs($admin);
 
-        Livewire::test(AdminDashboard::class)
+        $component = Livewire::test(AdminDashboard::class)
             ->assertOk()
             ->assertSee('Current Administrator')
-            ->assertSee('No documents match your current repository view.')
-            ->assertSee('No research proposals found.')
-            ->assertSee('No revision records found.')
             ->assertDontSee('AI-Powered Traffic Management System')
             ->assertDontSee('Blockchain-Based Voting System')
             ->assertDontSee('IoT Smart Agriculture')
             ->assertDontSee('Dr. Maria Santos');
+
+        $component->set('tab', 'repository')
+            ->assertSee('No documents match your current repository view.');
+        $component->set('tab', 'forms')
+            ->assertSee('No research proposals found.');
     }
 
     public function test_admin_sees_pending_students_as_awaiting_verification_without_approval_controls(): void
@@ -276,6 +455,8 @@ class AdminDashboardTest extends TestCase
         $this->actingAs($admin);
 
         Livewire::test(AdminDashboard::class)
+            ->set('tab', 'users')
+            ->set('userManagementTab', 'pending-students')
             ->assertSee($student->name)
             ->assertSee('Waiting for student verification')
             ->assertDontSeeHtml('wire:click="approveStudent(')
@@ -323,6 +504,7 @@ class AdminDashboardTest extends TestCase
         $this->actingAs($admin);
 
         Livewire::test(AdminDashboard::class)
+            ->set('tab', 'users')
             ->assertSee('Assign Role')
             ->assertSee('Disable');
     }
@@ -397,6 +579,7 @@ class AdminDashboardTest extends TestCase
         $this->actingAs($admin);
 
         Livewire::test(AdminDashboard::class)
+            ->set('tab', 'users')
             ->assertSee('College of Engineering, Architecture, and Computing (CEAC)')
             ->set('name', 'Dr. Lourdes Castillo')
             ->set('email', 'l.castillo@ndmu.edu.ph')

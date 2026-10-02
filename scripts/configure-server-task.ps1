@@ -26,7 +26,7 @@ Register-ScheduledTask `
     -Trigger $trigger `
     -Principal $principal `
     -Settings $settings `
-    -Description 'Runs the NDMU-RMAS Laravel origin for Cloudflare Tunnel.' `
+    -Description 'Runs and monitors the NDMU-RMAS Laravel origin and task scheduler for Cloudflare Tunnel.' `
     -Force | Out-Null
 
 Start-ScheduledTask -TaskName $taskName

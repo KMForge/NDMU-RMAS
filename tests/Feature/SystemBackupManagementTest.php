@@ -11,6 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
+use ZipArchive;
 
 class SystemBackupManagementTest extends TestCase
 {
@@ -121,5 +122,53 @@ class SystemBackupManagementTest extends TestCase
         $this->assertFalse($settings->enabled);
         $this->assertSame('daily', $settings->frequency);
         $this->assertSame(14, $settings->retention_count);
+    }
+
+    public function test_administrator_can_verify_a_complete_backup_archive(): void
+    {
+        Storage::fake('local');
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+
+        $archivePath = storage_path('framework/testing/verified-backup.zip');
+        $zip = new ZipArchive;
+        $zip->open($archivePath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        $zip->addFromString('database/database.dump', 'postgresql-dump-content');
+        $zip->addFromString('manifest.json', json_encode([
+            'application' => config('app.name'),
+            'database_driver' => 'pgsql',
+        ], JSON_THROW_ON_ERROR));
+        $zip->close();
+        $contents = file_get_contents($archivePath);
+        Storage::disk('local')->put('system-backups/verified-backup.zip', $contents);
+
+        $backup = SystemBackup::query()->create([
+            'filename' => 'verified-backup.zip',
+            'storage_disk' => 'local',
+            'storage_path' => 'system-backups/verified-backup.zip',
+            'status' => 'completed',
+            'trigger' => 'manual',
+            'size_bytes' => strlen($contents),
+            'sha256' => hash('sha256', $contents),
+            'triggered_by' => $admin->id,
+            'started_at' => now(),
+            'completed_at' => now(),
+        ]);
+
+        $this->actingAs($admin);
+        Livewire::test(AdminDashboard::class)
+            ->call('verifySystemBackup', $backup->id)
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('system_backups', [
+            'id' => $backup->id,
+            'verification_status' => 'verified',
+            'verified_by' => $admin->id,
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'system-backup.verified',
+            'user_id' => $admin->id,
+            'outcome' => 'succeeded',
+        ]);
     }
 }

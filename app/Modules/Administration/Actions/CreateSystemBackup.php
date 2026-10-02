@@ -119,6 +119,12 @@ final class CreateSystemBackup
         }
 
         $binary = (string) config('backups.pg_dump_binary', 'pg_dump');
+        if (! $this->binaryIsAvailable($binary)) {
+            $this->dumpDatabaseFromDocker($target, $connection);
+
+            return;
+        }
+
         $command = [
             $binary,
             '--format=custom',
@@ -149,6 +155,61 @@ final class CreateSystemBackup
 
         if (! is_file($target) || filesize($target) === 0) {
             throw new RuntimeException('PostgreSQL returned an empty database dump.');
+        }
+    }
+
+    /** @param array<string, mixed> $connection */
+    private function dumpDatabaseFromDocker(string $target, array $connection): void
+    {
+        $container = trim((string) config('backups.pg_dump_docker_container'));
+        if ($container === '') {
+            throw new RuntimeException('PostgreSQL pg_dump is unavailable. Install PostgreSQL client tools, set BACKUP_PG_DUMP_BINARY, or configure BACKUP_PG_DUMP_DOCKER_CONTAINER.');
+        }
+
+        $stream = fopen($target, 'wb');
+        if ($stream === false) {
+            throw new RuntimeException('The temporary database dump could not be created.');
+        }
+
+        $process = new Process([
+            'docker', 'exec', '-e', 'PGPASSWORD='.(string) ($connection['password'] ?? ''),
+            $container,
+            'pg_dump', '--format=custom', '--no-owner', '--no-privileges',
+            '--username='.(string) $connection['username'],
+            (string) $connection['database'],
+        ]);
+        $process->setTimeout((int) config('backups.timeout_seconds', 600));
+
+        try {
+            $process->run(function (string $type, string $buffer) use ($stream): void {
+                if ($type === Process::OUT) {
+                    fwrite($stream, $buffer);
+                }
+            });
+        } finally {
+            fclose($stream);
+        }
+
+        if (! $process->isSuccessful()) {
+            File::delete($target);
+            throw new RuntimeException('The Docker PostgreSQL client could not create the database dump. Check the configured container and database credentials.');
+        }
+
+        if (! is_file($target) || filesize($target) === 0) {
+            throw new RuntimeException('The Docker PostgreSQL client returned an empty database dump.');
+        }
+    }
+
+    private function binaryIsAvailable(string $binary): bool
+    {
+        try {
+            $process = new Process([$binary, '--version']);
+            $process->setTimeout(3);
+            $process->run();
+
+            return $process->isSuccessful();
+        } catch (Throwable) {
+            return false;
         }
     }
 
