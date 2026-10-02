@@ -15,6 +15,16 @@ class ActivateVerifiedStudent
 
     public function handle(User $student, ?AuditRequestContext $requestContext = null): User
     {
+        // The common login path is an already-active account. Avoid opening a
+        // transaction and taking a row lock unless this verified student can
+        // actually transition from pending to active. The transaction repeats
+        // the check below to remain safe under concurrent login requests.
+        if ($student->user_type !== UserType::Student
+            || ! $student->hasVerifiedEmail()
+            || $student->status !== AccountStatus::Pending) {
+            return $student;
+        }
+
         return DB::transaction(function () use ($student, $requestContext): User {
             $student = User::query()->lockForUpdate()->findOrFail($student->getKey());
 

@@ -9,6 +9,7 @@ use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
 use App\Modules\Notifications\Queries\GetNotificationsForUser;
+use App\Modules\Notifications\Services\UnreadNotificationCount;
 use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use App\Modules\Research\Queries\GetStudentDashboardData;
 use Illuminate\Contracts\View\View;
@@ -45,6 +46,7 @@ class DashboardController extends Controller
         $activeTab = in_array($request->query('tab'), $allowedTabs, true)
             ? (string) $request->query('tab')
             : 'dashboard';
+        $unreadNotificationCount = app(UnreadNotificationCount::class)->for($request->user());
         $data = $dashboardData->for(
             $request->user(),
             $request->query('dashboard_q'),
@@ -62,11 +64,11 @@ class DashboardController extends Controller
 
         if ($activeTab === 'notifications') {
             $data['userNotifications'] = $notificationQuery->execute($request->user(), (string) $request->query('notification_filter', 'all'));
-            $data['userUnreadCount'] = $request->user()->unreadNotifications()->count();
+            $data['userUnreadCount'] = $unreadNotificationCount;
             $data['notificationFilter'] = (string) $request->query('notification_filter', 'all');
         } else {
             $data['userNotifications'] = collect();
-            $data['userUnreadCount'] = $request->user()->unreadNotifications()->count();
+            $data['userUnreadCount'] = $unreadNotificationCount;
             $data['notificationFilter'] = 'all';
         }
 
@@ -78,11 +80,21 @@ class DashboardController extends Controller
             : 0;
 
         $data['pendingConsultationsCount'] = $pendingConsultationsCount;
-        $data['defenses'] = $defenseCalendar->execute($request->user());
-        $evaluationData = $evaluationQuery->forStudent($request->user());
+        $data['defenses'] = $activeTab === 'defense'
+            ? $defenseCalendar->execute($request->user())
+            : collect();
+        $evaluationData = $activeTab === 'evaluations'
+            ? $evaluationQuery->forStudent($request->user())
+            : ['rounds' => []];
         $data['releasedEvaluations'] = $evaluationData['rounds'] ?? [];
+        $defenseBadgeCount = $activeTab === 'defense'
+            ? collect($data['defenses'])
+                ->whereNotIn('defense_status', ['completed', 'cancelled'])
+                ->whereNotIn('schedule_status', ['completed', 'cancelled'])
+                ->count()
+            : $defenseCalendar->activeCount($request->user());
         $data['officialFormPhases'] = config('official-forms.phases', []);
-        $data['officialForms'] = collect(config('official-forms.student', []))
+        $data['officialForms'] = ($activeTab === 'forms' ? collect(config('official-forms.student', [])) : collect())
             ->filter(fn (array $form, string $code) => $request->user()->getAllPermissions()
                 ->contains(fn ($permission) => str_starts_with($permission->name, 'forms.'.strtolower($code).'.')))
             ->map(function (array $form, string $code): array {
@@ -104,14 +116,11 @@ class DashboardController extends Controller
             'revisions' => collect($data['revisions'] ?? [])
                 ->whereIn('status', ['open', 'in_progress'])
                 ->count() + (int) ($data['documentFeedbackCount'] ?? 0),
-            'defense' => collect($data['defenses'] ?? [])
-                ->whereNotIn('defense_status', ['completed', 'cancelled'])
-                ->whereNotIn('schedule_status', ['completed', 'cancelled'])
-                ->count(),
+            'defense' => $defenseBadgeCount,
             'evaluations' => is_countable($data['releasedEvaluations'] ?? null) ? count($data['releasedEvaluations']) : 0,
             'forms' => $pendingAcademicActions->count(),
             'notifications' => Schema::hasTable('notifications')
-                ? $request->user()->unreadNotifications()->count()
+                ? $unreadNotificationCount
                 : 0,
         ];
 

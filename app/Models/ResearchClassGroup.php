@@ -98,6 +98,16 @@ class ResearchClassGroup extends Model
 
     public function getTitleAttribute(): ?string
     {
+        if ($this->relationLoaded('researchGroup')) {
+            $researchGroup = $this->getRelation('researchGroup');
+            if ($researchGroup?->relationLoaded('currentProject')) {
+                $loadedTitle = trim((string) ($researchGroup->currentProject?->title ?? ''));
+                if ($loadedTitle !== '') {
+                    return $loadedTitle;
+                }
+            }
+        }
+
         if ($this->research_group_id !== null) {
             $title = DB::table('research_projects')
                 ->where('research_group_id', $this->research_group_id)

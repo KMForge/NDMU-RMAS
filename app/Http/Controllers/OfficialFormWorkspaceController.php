@@ -130,12 +130,74 @@ class OfficialFormWorkspaceController extends Controller
             'adviser' => $instance->group?->adviser,
         ];
 
+        $formCode = strtoupper($instance->definition->code);
+        $formDefense = null;
+        $formPanelCommittee = null;
+        $formSchedule = null;
+        $formConsultations = collect();
+
+        if ($formCode === 'RES-031' && $instance->group !== null) {
+            $formConsultations = $instance->group->consultationRecords()
+                ->where('is_superseded', false)
+                ->latest('consulted_at')
+                ->get();
+        }
+
+        if (in_array($formCode, ['RES-035', 'RES-039'], true) && $instance->group !== null) {
+            $formDefense = $instance->group->defenses()
+                ->with(['currentSchedule.room', 'activePanelAssignments.user'])
+                ->latest('id')
+                ->first();
+        }
+
+        if ($formCode === 'RES-039' && $instance->group !== null) {
+            $instance->group->loadMissing([
+                'members.student.studentProfile.program',
+                'researchGroup.currentProject',
+                'panelCommittees.chairperson',
+                'panelCommittees.members.user',
+                'researchClass.panelCommittees.chairperson',
+                'researchClass.panelCommittees.members.user',
+            ]);
+            $formPanelCommittee = $instance->group->panelCommittees->sortByDesc('id')->first()
+                ?? $instance->group->researchClass?->panelCommittees?->sortByDesc('id')->first();
+        }
+
+        if ($formCode === 'RES-037') {
+            if ($instance->source instanceof DefenseEvaluationRound) {
+                $instance->source->loadMissing([
+                    'summarySigner',
+                    'defenseSchedule.room',
+                    'defenseSchedule.defense',
+                    'defense.group.members.student',
+                    'defense.group.researchGroup.currentProject',
+                    'group.members.student',
+                    'group.researchGroup.currentProject',
+                ]);
+                $formSchedule = $instance->source->defenseSchedule;
+            } elseif ($instance->source instanceof DefenseSchedule) {
+                $instance->source->loadMissing([
+                    'room',
+                    'defense.group.members.student',
+                    'defense.group.researchGroup.currentProject',
+                ]);
+                $formSchedule = $instance->source;
+            }
+        }
+
         return view('pages.official-forms.workspace-show', [
             'instance' => $instance,
             'payload' => $instance->currentVersion?->payload ?? [],
             'canManageActors' => $canManageActors,
             'actorOptions' => $actorOptions,
             'autoResolvedActors' => $autoResolvedActors,
+            'formDefense' => $formDefense,
+            'formPanelCommittee' => $formPanelCommittee,
+            'formSchedule' => $formSchedule,
+            'formConsultations' => $formConsultations,
+            'currentUserHasSignature' => $formCode === 'RES-030'
+                && $request->user()->isEligibleForSignatureEnrollment()
+                && UserSignature::query()->where('user_id', $request->user()->id)->exists(),
             'isOwningFacilitator' => $isOwningFacilitator,
             'titlePanelCandidates' => $titlePanelCandidates,
             'adviserCandidates' => strtoupper($instance->definition->code) === 'RES-030'

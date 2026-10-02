@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Adviser;
 
 use App\Enums\DocumentStatus;
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\OfficialFormWorkspaceController;
 use App\Models\ConsultationRequest;
 use App\Models\Document;
 use App\Models\ResearchClassGroup;
@@ -16,6 +15,7 @@ use App\Modules\Documents\Queries\GetAdviserDocumentReviewData;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
 use App\Modules\Notifications\Queries\GetNotificationsForUser;
+use App\Modules\Notifications\Services\UnreadNotificationCount;
 use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use App\Modules\Research\Queries\GetAdviserDashboardOverview;
 use App\Modules\ResearchProgress\Queries\GetAdviserProgressData;
@@ -65,6 +65,7 @@ class DashboardController extends Controller
             : 'dashboard';
 
         $user = $request->user();
+        $unreadNotificationCount = app(UnreadNotificationCount::class)->for($user);
         $viewData = $this->emptyViewData();
 
         $pendingAdviserRequests = ResearchClassGroupAdviserRequest::query()
@@ -117,25 +118,25 @@ class DashboardController extends Controller
         $viewData['pendingAdviserRequestsCount'] = $pendingAdviserRequests->count();
         $viewData['pendingConsultationsCount'] = $pendingConsultationsCount;
         $viewData['pendingDocReviewsCount'] = $pendingDocReviewsCount;
-        $viewData['pendingFormInstances'] = app(OfficialFormWorkspaceController::class)->pendingInstances($request);
         $viewData['pendingAcademicActions'] = app(GetPendingAcademicActionsForUser::class)->execute($user);
         $viewData['sidebarBadges'] = [
             'classes' => $pendingAdviserRequests->count(),
             'docreview' => $pendingDocReviewsCount,
             'consultation' => $pendingConsultationsCount,
             'revisions' => $pendingRevisionsCount,
-            'forms' => $viewData['pendingFormInstances']->count(),
+            'forms' => $viewData['pendingAcademicActions']->count(),
             'notifications' => Schema::hasTable('notifications')
-                ? $user->unreadNotifications()->count()
+                ? $unreadNotificationCount
                 : 0,
         ];
         $viewData['assignedGroups'] = $assignedGroups;
         $viewData['adviserDefenses'] = $defenseCalendar->execute($user);
-        $evalQuery = app(GetEvaluationRoundData::class);
-        $evalData = $evalQuery->forAdviser($user);
+        $evalData = $activeTab === 'evaluations'
+            ? app(GetEvaluationRoundData::class)->forAdviser($user)
+            : ['rounds' => []];
         $viewData['adviserEvaluations'] = $evalData['rounds'] ?? [];
         $viewData['officialFormPhases'] = config('official-forms.phases', []);
-        $viewData['officialForms'] = collect(config('official-forms.adviser', []))
+        $viewData['officialForms'] = ($activeTab === 'forms' ? collect(config('official-forms.adviser', [])) : collect())
             ->filter(fn (array $form, string $code) => $user->getAllPermissions()
                 ->contains(fn ($permission) => str_starts_with($permission->name, 'forms.'.strtolower($code).'.')))
             ->all();
@@ -189,7 +190,7 @@ class DashboardController extends Controller
 
         if ($activeTab === 'notifications') {
             $viewData['userNotifications'] = $notificationQuery->execute($user, (string) $request->query('notification_filter', 'all'));
-            $viewData['userUnreadCount'] = $user->unreadNotifications()->count();
+            $viewData['userUnreadCount'] = $unreadNotificationCount;
             $viewData['notificationFilter'] = (string) $request->query('notification_filter', 'all');
         }
 

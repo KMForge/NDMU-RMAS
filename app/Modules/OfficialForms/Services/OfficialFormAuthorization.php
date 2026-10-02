@@ -4,6 +4,7 @@ namespace App\Modules\OfficialForms\Services;
 
 use App\Enums\AccountStatus;
 use App\Enums\UserType;
+use App\Models\Defense;
 use App\Models\DefenseEvaluationRound;
 use App\Models\DefensePanelAssignment;
 use App\Models\DefenseSchedule;
@@ -434,19 +435,16 @@ class OfficialFormAuthorization
         };
         if ($titlePanelPosition !== null) {
             return $instance->titlePresentation !== null
-                && $instance->titlePresentation->defense->activePanelAssignments()
-                    ->where('user_id', $user->id)
-                    ->where('panel_position', $titlePanelPosition)
-                    ->exists();
+                && $this->hasActivePanelAssignment(
+                    $instance->titlePresentation->defense,
+                    $user,
+                    $titlePanelPosition,
+                );
         }
 
         if ($requiredActorType === 'adviser') {
             if (strtolower($instance->definition->code) === 'res-027') {
-                return $instance->actorAssignments()
-                    ->where('user_id', $user->id)
-                    ->where('actor_type', 'adviser')
-                    ->where('status', 'active')
-                    ->exists();
+                return $this->hasInstanceActorAssignment($instance, $user, 'adviser');
             }
 
             return $instance->group !== null && (int) $instance->group->adviser_id === (int) $user->id;
@@ -496,11 +494,7 @@ class OfficialFormAuthorization
             }
         }
 
-        return $instance->actorAssignments()
-            ->where('user_id', $user->id)
-            ->where('actor_type', $requiredActorType)
-            ->where('status', 'active')
-            ->exists()
+        return $this->hasInstanceActorAssignment($instance, $user, $requiredActorType)
             || ($instance->group !== null && OfficialFormInstance::query()
                 ->where('research_class_group_id', $instance->group->id)
                 ->whereHas('actorAssignments', fn ($q) => $q->where('user_id', $user->id)->where('actor_type', $requiredActorType)->where('status', 'active'))
@@ -523,9 +517,9 @@ class OfficialFormAuthorization
                 $this->isCurrentGroupMember($user, $group)
                 || (int) $group->adviser_id === (int) $user->id
                 || (int) $class?->facilitator_id === (int) $user->id
-                || ($instance->titlePresentation !== null && $instance->titlePresentation->defense->activePanelAssignments()->where('user_id', $user->id)->exists())
+                || ($instance->titlePresentation !== null && $this->hasActivePanelAssignment($instance->titlePresentation->defense, $user))
                 || $this->institutionalActors->isDean($user)
-                || ($class !== null && ResearchClassActorAssignment::query()->where('research_class_id', $class->id)->where('user_id', $user->id)->where('status', 'active')->exists())
+                || ($class !== null && $this->hasAnyClassActorAssignment($user, $class))
             );
         }
 
@@ -545,7 +539,7 @@ class OfficialFormAuthorization
                 if ($group->researchClass !== null && (int) $group->researchClass->facilitator_id === (int) $user->id) {
                     return true;
                 }
-                if ($instance->titlePresentation !== null && $instance->titlePresentation->defense->activePanelAssignments()->where('user_id', $user->id)->exists()) {
+                if ($instance->titlePresentation !== null && $this->hasActivePanelAssignment($instance->titlePresentation->defense, $user)) {
                     return true;
                 }
                 if ($instance->source_type === DefenseEvaluationRound::class && $instance->source) {
@@ -569,18 +563,12 @@ class OfficialFormAuthorization
         }
 
         $classId = $instance->research_class_id ?? $instance->group?->research_class_id;
-        if ($classId !== null && ResearchClassActorAssignment::query()
-            ->where('research_class_id', $classId)
-            ->where('user_id', $user->id)
-            ->where('status', 'active')
-            ->exists()) {
+        $class = $instance->researchClass ?? $instance->group?->researchClass;
+        if ($classId !== null && $class !== null && $this->hasAnyClassActorAssignment($user, $class)) {
             return true;
         }
 
-        return $instance->actorAssignments()
-            ->where('user_id', $user->id)
-            ->where('status', 'active')
-            ->exists();
+        return $this->hasInstanceActorAssignment($instance, $user);
     }
 
     private function checkDraftContextualAccess(User $user, OfficialFormInstance $instance): bool
@@ -594,6 +582,13 @@ class OfficialFormAuthorization
 
     private function hasClassActorAssignment(User $user, ResearchClass $class, string $actorType): bool
     {
+        if ($class->relationLoaded('officialFormActorAssignments')) {
+            return $class->officialFormActorAssignments->contains(fn (ResearchClassActorAssignment $assignment): bool => (int) $assignment->user_id === (int) $user->id
+                && $assignment->actor_type === $actorType
+                && $assignment->status === 'active'
+            );
+        }
+
         return ResearchClassActorAssignment::query()
             ->where('research_class_id', $class->id)
             ->where('user_id', $user->id)
@@ -604,9 +599,59 @@ class OfficialFormAuthorization
 
     public function isCurrentGroupMember(User $user, ResearchClassGroup $group): bool
     {
+        if ($group->relationLoaded('members')) {
+            return $group->members->contains(fn (ResearchClassGroupMember $member): bool => (int) $member->student_id === (int) $user->id
+            );
+        }
+
         return ResearchClassGroupMember::query()
             ->where('research_class_group_id', $group->id)
             ->where('student_id', $user->id)
+            ->exists();
+    }
+
+    private function hasAnyClassActorAssignment(User $user, ResearchClass $class): bool
+    {
+        if ($class->relationLoaded('officialFormActorAssignments')) {
+            return $class->officialFormActorAssignments->contains(fn (ResearchClassActorAssignment $assignment): bool => (int) $assignment->user_id === (int) $user->id
+                && $assignment->status === 'active'
+            );
+        }
+
+        return ResearchClassActorAssignment::query()
+            ->where('research_class_id', $class->id)
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->exists();
+    }
+
+    private function hasInstanceActorAssignment(OfficialFormInstance $instance, User $user, ?string $actorType = null): bool
+    {
+        if ($instance->relationLoaded('actorAssignments')) {
+            return $instance->actorAssignments->contains(fn ($assignment): bool => (int) $assignment->user_id === (int) $user->id
+                && $assignment->status === 'active'
+                && ($actorType === null || $assignment->actor_type === $actorType)
+            );
+        }
+
+        return $instance->actorAssignments()
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->when($actorType !== null, fn ($query) => $query->where('actor_type', $actorType))
+            ->exists();
+    }
+
+    private function hasActivePanelAssignment(Defense $defense, User $user, ?string $position = null): bool
+    {
+        if ($defense->relationLoaded('activePanelAssignments')) {
+            return $defense->activePanelAssignments->contains(fn (DefensePanelAssignment $assignment): bool => (int) $assignment->user_id === (int) $user->id
+                && ($position === null || $assignment->panel_position === $position)
+            );
+        }
+
+        return $defense->activePanelAssignments()
+            ->where('user_id', $user->id)
+            ->when($position !== null, fn ($query) => $query->where('panel_position', $position))
             ->exists();
     }
 

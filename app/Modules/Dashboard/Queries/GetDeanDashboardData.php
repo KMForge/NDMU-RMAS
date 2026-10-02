@@ -16,6 +16,9 @@ class GetDeanDashboardData
     public function for(User $dean, array $input = []): array
     {
         $filters = $this->filters($input);
+        $activeTab = in_array(($input['tab'] ?? 'dashboard'), ['dashboard', 'pending', 'manuscript', 'schedule', 'repository', 'notifications', 'settings'], true)
+            ? (string) ($input['tab'] ?? 'dashboard')
+            : 'dashboard';
         $college = $dean->facultyProfile()
             ->with('department.college')
             ->first()?->department?->college;
@@ -28,48 +31,54 @@ class GetDeanDashboardData
             ->whereHas('researchClass.facilitator.facultyProfile.department', fn (Builder $department) => $department
                 ->where('college_id', $college->getKey()));
 
-        $groups = ResearchClassGroup::query()
-            ->tap($groupScope)
-            ->with(['researchClass:id,name,facilitator_id', 'researchGroup.currentProject', 'adviser:id,name'])
-            ->withCount('members')
-            ->latest('id')
-            ->get();
+        $groups = $activeTab === 'dashboard'
+            ? ResearchClassGroup::query()
+                ->tap($groupScope)
+                ->with(['researchClass:id,name,facilitator_id', 'researchGroup.currentProject', 'adviser:id,name'])
+                ->withCount('members')
+                ->latest('id')
+                ->get()
+            : collect();
 
         $documentScope = Document::query()
             ->whereNotNull('research_class_group_id')
             ->where('is_current', true)
             ->whereHas('researchClassGroup', $groupScope);
 
-        $documents = (clone $documentScope)
-            ->when($filters['document_search'] !== '', fn (Builder $query) => $query
-                ->whereRaw('LOWER(original_filename) LIKE ?', ['%'.Str::lower($filters['document_search']).'%']))
-            ->when($filters['document_status'] !== 'all', fn (Builder $query) => $query
-                ->where('status', $filters['document_status']))
-            ->with([
-                'user:id,name',
-                'researchClassGroup:id,research_class_id,research_group_id,name',
-                'researchClassGroup.researchClass:id,name,facilitator_id',
-                'researchClassGroup.researchGroup.currentProject',
-            ])
-            ->latest('submitted_at')
-            ->latest('id')
-            ->get();
+        $documents = in_array($activeTab, ['manuscript', 'repository'], true)
+            ? (clone $documentScope)
+                ->when($filters['document_search'] !== '', fn (Builder $query) => $query
+                    ->whereRaw('LOWER(original_filename) LIKE ?', ['%'.Str::lower($filters['document_search']).'%']))
+                ->when($filters['document_status'] !== 'all', fn (Builder $query) => $query
+                    ->where('status', $filters['document_status']))
+                ->with([
+                    'user:id,name',
+                    'researchClassGroup:id,research_class_id,research_group_id,name',
+                    'researchClassGroup.researchClass:id,name,facilitator_id',
+                    'researchClassGroup.researchGroup.currentProject',
+                ])
+                ->latest('submitted_at')
+                ->latest('id')
+                ->get()
+            : collect();
 
         $scheduleScope = DefenseSchedule::query()
             ->whereHas('defense.group', $groupScope);
 
-        $schedules = (clone $scheduleScope)
-            ->when($filters['schedule_status'] !== 'all', fn (Builder $query) => $query
-                ->where('status', $filters['schedule_status']))
-            ->with([
-                'defense.group.researchClass:id,name,facilitator_id',
-                'defense.group.researchGroup.currentProject',
-                'defense.activePanelAssignments.user:id,name',
-                'room:id,code,name,location_notes',
-            ])
-            ->latest('starts_at')
-            ->latest('id')
-            ->get();
+        $schedules = $activeTab === 'schedule'
+            ? (clone $scheduleScope)
+                ->when($filters['schedule_status'] !== 'all', fn (Builder $query) => $query
+                    ->where('status', $filters['schedule_status']))
+                ->with([
+                    'defense.group.researchClass:id,name,facilitator_id',
+                    'defense.group.researchGroup.currentProject',
+                    'defense.activePanelAssignments.user:id,name',
+                    'room:id,code,name,location_notes',
+                ])
+                ->latest('starts_at')
+                ->latest('id')
+                ->get()
+            : collect();
 
         $documentStatusCounts = (clone $documentScope)
             ->selectRaw('status, COUNT(*) AS aggregate')
@@ -95,7 +104,7 @@ class GetDeanDashboardData
             'deanStats' => [
                 'groups' => $groups->count(),
                 'active_groups' => $groups->where('status', 'active')->count(),
-                'documents' => (clone $documentScope)->count(),
+                'documents' => (int) $documentStatusCounts->sum(),
                 'pending_documents' => $pendingDocumentCount,
                 'upcoming_defenses' => $upcomingDefenseCount,
                 'archived_research' => $groups->filter(fn (ResearchClassGroup $group): bool => $group->researchGroup?->currentProject?->status === 'archived'

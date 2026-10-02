@@ -21,6 +21,9 @@ class ResearchJourneyService
     /** @var list<int> */
     private const BSIT_AUTOMATIC_STAGE_NUMBERS = [5, 7, 8, 9, 13];
 
+    /** @var array<string, string|null> */
+    private array $resolvedProgramCodes = [];
+
     /**
      * @return array<string, mixed>
      */
@@ -777,6 +780,14 @@ class ResearchJourneyService
 
     private function resolveProgramCode(ResearchClassGroup $group): ?string
     {
+        $cacheKey = $group->exists
+            ? 'group:'.(string) $group->getKey()
+            : 'object:'.spl_object_id($group);
+
+        if (array_key_exists($cacheKey, $this->resolvedProgramCodes)) {
+            return $this->resolvedProgramCodes[$cacheKey];
+        }
+
         // Some dashboards preload a reduced student column set for display. Force
         // this canonical curriculum relation to reload so progress never depends
         // on which screen happened to hydrate the group first.
@@ -810,7 +821,9 @@ class ResearchJourneyService
             ->unique()
             ->values();
 
-        return $programCodes->count() === 1 ? $programCodes->first() : null;
+        return $this->resolvedProgramCodes[$cacheKey] = $programCodes->count() === 1
+            ? $programCodes->first()
+            : null;
     }
 
     private function determineActorForFormStatus(string $formCode, string $status): string

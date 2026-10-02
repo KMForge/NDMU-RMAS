@@ -83,13 +83,17 @@ class CreateResearchClass
 
     private function generateJoinCode(): string
     {
-        do {
+        for ($attempt = 0; $attempt < 10; $attempt++) {
             $joinCode = Str::upper(Str::random(8));
             $exists = ResearchClass::query()
                 ->where('join_code_hash', ResearchClass::joinCodeFingerprint($joinCode))
                 ->exists();
-        } while ($exists);
 
-        return $joinCode;
+            if (! $exists) {
+                return $joinCode;
+            }
+        }
+
+        throw new ClassOperationException('A unique class join code could not be generated. Please try again.');
     }
 }

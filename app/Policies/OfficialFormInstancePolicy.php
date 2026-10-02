@@ -53,9 +53,7 @@ class OfficialFormInstancePolicy
         $isAssignedRes026Panelist = $code === 'res-026'
             && $user->can('evaluations.create')
             && $instance->titlePresentation !== null
-            && $instance->titlePresentation->defense->activePanelAssignments()
-                ->where('user_id', $user->id)
-                ->exists();
+            && $this->hasActivePanelAssignment($instance, $user);
         $isClassFacilitator = ($instance->researchClass !== null && (int) $instance->researchClass->facilitator_id === (int) $user->id)
             || ($instance->group?->researchClass !== null && (int) $instance->group->researchClass->facilitator_id === (int) $user->id);
 
@@ -196,5 +194,21 @@ class OfficialFormInstancePolicy
     public function assignActor(User $user, OfficialFormInstance $instance): bool
     {
         return $this->authorization->canAssignActor($user, $instance);
+    }
+
+    private function hasActivePanelAssignment(OfficialFormInstance $instance, User $user): bool
+    {
+        $defense = $instance->titlePresentation?->defense;
+        if ($defense === null) {
+            return false;
+        }
+
+        if ($defense->relationLoaded('activePanelAssignments')) {
+            return $defense->activePanelAssignments->contains(
+                fn ($assignment): bool => (int) $assignment->user_id === (int) $user->id,
+            );
+        }
+
+        return $defense->activePanelAssignments()->where('user_id', $user->id)->exists();
     }
 }

@@ -7,6 +7,9 @@ use App\APIs\Contracts\StorageProvider;
 use App\Integrations\Supabase\SupabaseRealtimeService;
 use App\Integrations\Supabase\SupabaseStorageService;
 use App\Modules\Documents\Actions\RecordDocumentUploadAttempt;
+use App\Modules\Notifications\Services\UnreadNotificationCount;
+use App\Modules\OfficialForms\Services\InstitutionalActorResolver;
+use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use App\Modules\SystemSettings\Services\RateLimitSettings;
 use App\Support\PortableSchemaBlueprint;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -34,6 +37,9 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(StorageProvider::class, SupabaseStorageService::class);
         $this->app->singleton(RealtimeProvider::class, SupabaseRealtimeService::class);
+        $this->app->scoped(InstitutionalActorResolver::class);
+        $this->app->scoped(OfficialFormAuthorization::class);
+        $this->app->scoped(UnreadNotificationCount::class);
     }
 
     /**

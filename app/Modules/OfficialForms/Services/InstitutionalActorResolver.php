@@ -14,6 +14,13 @@ class InstitutionalActorResolver
     /** @var Collection<int, User>|null */
     private ?Collection $eligibleDeans = null;
 
+    /** @var array<int, User|null> */
+    private array $coordinatorsByDepartment = [];
+
+    private bool $fallbackCoordinatorResolved = false;
+
+    private ?User $fallbackCoordinator = null;
+
     /**
      * Resolve the single authoritative College Dean for the institution.
      *
@@ -61,7 +68,13 @@ class InstitutionalActorResolver
         }
 
         // Fallback: return any active faculty with program-coordinator role
-        return User::query()
+        if ($this->fallbackCoordinatorResolved) {
+            return $this->fallbackCoordinator;
+        }
+
+        $this->fallbackCoordinatorResolved = true;
+
+        return $this->fallbackCoordinator = User::query()
             ->where('user_type', UserType::Faculty)
             ->where('status', AccountStatus::Active)
             ->whereNotNull('approved_at')
@@ -137,7 +150,11 @@ class InstitutionalActorResolver
 
     public function programCoordinatorForDepartmentId(int $departmentId): ?User
     {
-        return User::query()
+        if (array_key_exists($departmentId, $this->coordinatorsByDepartment)) {
+            return $this->coordinatorsByDepartment[$departmentId];
+        }
+
+        return $this->coordinatorsByDepartment[$departmentId] = User::query()
             ->where('user_type', UserType::Faculty)
             ->where('status', AccountStatus::Active)
             ->whereNotNull('approved_at')

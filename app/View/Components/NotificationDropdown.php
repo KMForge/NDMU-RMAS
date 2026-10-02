@@ -3,6 +3,7 @@
 namespace App\View\Components;
 
 use App\Models\User;
+use App\Modules\Notifications\Services\UnreadNotificationCount;
 use Illuminate\Contracts\View\View;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Collection;
@@ -26,7 +27,7 @@ class NotificationDropdown extends Component
             return;
         }
 
-        $this->unreadCount = $user->unreadNotifications()->count();
+        $this->unreadCount = app(UnreadNotificationCount::class)->for($user);
         $this->recentNotifications = $user->notifications()
             ->latest()
             ->limit(max(1, min($this->limit, 10)))

@@ -16,10 +16,18 @@ class GetPendingAcademicActionsForUser
     /** @return Collection<int, array<string, mixed>> */
     public function execute(User $user): Collection
     {
-        $authorization = app(OfficialFormAuthorization::class);
-
         $visibleInstances = OfficialFormInstance::query()
-            ->with(['definition', 'currentVersion.signatures.verification', 'group.researchClass', 'group.members.student.studentProfile.program', 'researchClass', 'actorAssignments', 'titlePresentation.defense.activePanelAssignments'])
+            ->with([
+                'definition',
+                'currentVersion.signatures.verification',
+                'group.researchClass.facilitator.facultyProfile',
+                'group.researchClass.officialFormActorAssignments',
+                'group.members.student.studentProfile.program',
+                'researchClass.facilitator.facultyProfile',
+                'researchClass.officialFormActorAssignments',
+                'actorAssignments',
+                'titlePresentation.defense.activePanelAssignments',
+            ])
             ->get()
             ->filter(fn (OfficialFormInstance $instance) => Gate::forUser($user)->allows('view', $instance));
 

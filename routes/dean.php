@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\OfficialFormWorkspaceController;
 use App\Http\Controllers\ReportController;
 use App\Modules\Dashboard\Queries\GetDeanDashboardData;
 use App\Modules\Notifications\Queries\GetNotificationsForUser;
+use App\Modules\Notifications\Services\UnreadNotificationCount;
 use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -13,31 +13,30 @@ Route::prefix('dean')->name('dean.')->middleware([
     'auth', 'verified', 'active', 'permission:dashboards.dean.view', 'workspace.context',
 ])->group(function (): void {
     Route::get('/dashboard', function (Request $request) {
-        $pendingFormInstances = app(OfficialFormWorkspaceController::class)->pendingInstances($request);
         $pendingAcademicActions = app(GetPendingAcademicActionsForUser::class)->execute($request->user());
         $tab = (string) $request->query('tab', 'dashboard');
+        $unreadNotificationCount = app(UnreadNotificationCount::class)->for($request->user());
         $notificationsData = $tab === 'notifications'
             ? [
                 'userNotifications' => app(GetNotificationsForUser::class)->execute($request->user(), (string) $request->query('notification_filter', 'all')),
-                'userUnreadCount' => $request->user()->unreadNotifications()->count(),
+                'userUnreadCount' => $unreadNotificationCount,
                 'notificationFilter' => (string) $request->query('notification_filter', 'all'),
             ]
             : [
                 'userNotifications' => collect(),
-                'userUnreadCount' => $request->user()->unreadNotifications()->count(),
+                'userUnreadCount' => $unreadNotificationCount,
                 'notificationFilter' => 'all',
             ];
 
         return view('pages.dean-dashboard-live', [
             'area' => 'College Dean',
             'dean' => $request->user(),
-            'pendingFormInstances' => $pendingFormInstances,
             'pendingAcademicActions' => $pendingAcademicActions,
             'sidebarBadges' => [
                 'pending' => $pendingAcademicActions->count(),
-                'forms' => $pendingFormInstances->count(),
+                'forms' => $pendingAcademicActions->count(),
                 'notifications' => Schema::hasTable('notifications')
-                    ? $request->user()->unreadNotifications()->count()
+                    ? $unreadNotificationCount
                     : 0,
             ],
             ...app(GetDeanDashboardData::class)->for($request->user(), $request->query()),

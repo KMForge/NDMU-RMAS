@@ -8,6 +8,7 @@ use App\Models\DefenseEvaluationRound;
 use App\Models\DefenseSchedule;
 use App\Models\OfficialFormInstance;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class GetDefenseScheduleCalendar
@@ -18,45 +19,39 @@ class GetDefenseScheduleCalendar
             return collect();
         }
 
-        $query = DefenseSchedule::query()
-            ->with([
-                'defense.group.researchClass',
-                'defense.group.researchGroup.currentProject',
-                'defense.activePanelAssignments.user',
-                'defense.evaluationRounds.evaluations',
-                'defense.evaluationRounds.summarySigner',
-                'defense.titlePresentation',
-                'room',
-            ]);
-
-        if ($user->user_type === UserType::Student) {
-            $query->whereHas('defense.group.members', function ($q) use ($user) {
-                $q->where('student_id', $user->id);
-            });
-        } elseif ($user->user_type === UserType::Faculty) {
-            $query->where(function ($q) use ($user) {
-                // Owned class facilitator
-                $q->whereHas('defense.group.researchClass', function ($rq) use ($user) {
-                    $rq->where('facilitator_id', $user->id);
-                })
-                // Adviser of group
-                    ->orWhereHas('defense.group', function ($gq) use ($user) {
-                        $gq->where('adviser_id', $user->id);
-                    })
-                // Active panel assignment
-                    ->orWhereHas('defense.activePanelAssignments', function ($pq) use ($user) {
-                        $pq->where('user_id', $user->id);
-                    });
-            });
-        } elseif ($user->user_type === UserType::Admin && $user->can('research.view-all')) {
-            // Admin system-wide read visibility
-        } else {
+        $query = $this->visibleScheduleQuery($user);
+        if ($query === null) {
             return collect();
         }
 
-        $schedules = $query->orderByDesc('id')->get();
+        $query->with([
+            'defense.group.researchClass',
+            'defense.group.researchGroup.currentProject',
+            'defense.activePanelAssignments.user',
+            'defense.evaluationRounds.evaluations',
+            'defense.evaluationRounds.summarySigner',
+            'defense.titlePresentation',
+            'room',
+        ]);
 
-        return $schedules->map(function (DefenseSchedule $schedule) use ($user) {
+        $schedules = $query->orderByDesc('id')->get();
+        $roundIds = $schedules
+            ->flatMap(fn (DefenseSchedule $schedule) => $schedule->defense?->evaluationRounds?->pluck('id') ?? collect())
+            ->unique()
+            ->values();
+        $res037ByRound = $roundIds->isEmpty()
+            ? collect()
+            : OfficialFormInstance::query()
+                ->where('source_type', DefenseEvaluationRound::class)
+                ->whereIn('source_id', $roundIds)
+                ->with('definition:id,code')
+                ->latest('id')
+                ->get()
+                ->filter(fn (OfficialFormInstance $instance): bool => strtolower((string) $instance->definition?->code) === 'res-037')
+                ->unique('source_id')
+                ->keyBy('source_id');
+
+        return $schedules->map(function (DefenseSchedule $schedule) use ($user, $res037ByRound) {
             $defense = $schedule->defense;
             $group = $defense?->group;
             $room = $schedule->room;
@@ -107,13 +102,7 @@ class GetDefenseScheduleCalendar
             $computedDefenseStatus = $isCompleted ? 'completed' : $defense?->status;
             $computedScheduleStatus = $isCompleted ? 'completed' : $schedule->status;
 
-            $res037Instance = $round
-                ? OfficialFormInstance::query()
-                    ->where('source_type', DefenseEvaluationRound::class)
-                    ->where('source_id', $round->id)
-                    ->latest('id')
-                    ->first()
-                : null;
+            $res037Instance = $round ? $res037ByRound->get($round->id) : null;
 
             return [
                 'id' => $schedule->id,
@@ -160,5 +149,41 @@ class GetDefenseScheduleCalendar
                 'res037_url' => $res037Instance ? route('official-forms.workspace.show', $res037Instance) : null,
             ];
         });
+    }
+
+    public function activeCount(User $user): int
+    {
+        if ($user->status !== AccountStatus::Active) {
+            return 0;
+        }
+
+        $query = $this->visibleScheduleQuery($user);
+
+        return $query?->whereNotIn('status', ['completed', 'cancelled'])
+            ->whereHas('defense', fn (Builder $defense) => $defense->whereNotIn('status', ['completed', 'cancelled']))
+            ->count() ?? 0;
+    }
+
+    private function visibleScheduleQuery(User $user): ?Builder
+    {
+        $query = DefenseSchedule::query();
+
+        if ($user->user_type === UserType::Student) {
+            return $query->whereHas('defense.group.members', fn (Builder $members) => $members->where('student_id', $user->id));
+        }
+
+        if ($user->user_type === UserType::Faculty) {
+            return $query->where(function (Builder $visible) use ($user): void {
+                $visible->whereHas('defense.group.researchClass', fn (Builder $class) => $class->where('facilitator_id', $user->id))
+                    ->orWhereHas('defense.group', fn (Builder $group) => $group->where('adviser_id', $user->id))
+                    ->orWhereHas('defense.activePanelAssignments', fn (Builder $panel) => $panel->where('user_id', $user->id));
+            });
+        }
+
+        if ($user->user_type === UserType::Admin && $user->can('research.view-all')) {
+            return $query;
+        }
+
+        return null;
     }
 }

@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Panelist;
 
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\OfficialFormWorkspaceController;
 use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Documents\Queries\GetPanelistAssignedDocuments;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
 use App\Modules\Notifications\Queries\GetNotificationsForUser;
+use App\Modules\Notifications\Services\UnreadNotificationCount;
 use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -27,7 +27,7 @@ class DashboardController extends Controller
         $assignedPhases = array_flip(array_unique(array_column($officialForms, 'phase')));
         $assignedDefenses = $defenseCalendar->execute($request->user());
         $evaluationData = $evaluationQuery->forPanelist($request->user());
-        $pendingFormInstances = app(OfficialFormWorkspaceController::class)->pendingInstances($request);
+        $pendingAcademicActions = $pendingActionsService->execute($request->user());
         $assignedPapers = $assignedDocumentsQuery->for($request->user());
         $proposalPapers = $assignedPapers
             ->whereIn('defenseType', ['Title Proposal', 'Proposal Defense'])
@@ -45,15 +45,16 @@ class DashboardController extends Controller
                 && data_get($round, 'evaluation.status') !== 'submitted',
         );
         $tab = (string) $request->query('tab', 'dashboard');
+        $unreadNotificationCount = app(UnreadNotificationCount::class)->for($request->user());
         $notificationsData = $tab === 'notifications'
             ? [
                 'userNotifications' => $notificationQuery->execute($request->user(), (string) $request->query('notification_filter', 'all')),
-                'userUnreadCount' => $request->user()->unreadNotifications()->count(),
+                'userUnreadCount' => $unreadNotificationCount,
                 'notificationFilter' => (string) $request->query('notification_filter', 'all'),
             ]
             : [
                 'userNotifications' => collect(),
-                'userUnreadCount' => $request->user()->unreadNotifications()->count(),
+                'userUnreadCount' => $unreadNotificationCount,
                 'notificationFilter' => 'all',
             ];
 
@@ -61,8 +62,7 @@ class DashboardController extends Controller
             'area' => 'Panelist',
             'panelist' => $request->user(),
             ...$notificationsData,
-            'pendingFormInstances' => $pendingFormInstances,
-            'pendingAcademicActions' => $pendingActionsService->execute($request->user()),
+            'pendingAcademicActions' => $pendingAcademicActions,
             'officialFormPhases' => array_intersect_key(
                 config('official-forms.phases', []),
                 $assignedPhases,
@@ -78,7 +78,7 @@ class DashboardController extends Controller
                 'assigned-papers' => $assignedPapers
                     ->whereIn('status', ['For Review', 'Under Review', 'Pending Defense'])
                     ->count(),
-                'forms' => $pendingFormInstances->count(),
+                'forms' => $pendingAcademicActions->count(),
                 'proposal-eval' => $pendingEvaluations
                     ->whereIn('defense_type', ['title_presentation', 'proposal_defense'])
                     ->count(),
@@ -86,7 +86,7 @@ class DashboardController extends Controller
                     ->whereIn('defense_type', ['pre_final_defense', 'final_defense'])
                     ->count(),
                 'notifications' => Schema::hasTable('notifications')
-                    ? $request->user()->unreadNotifications()->count()
+                    ? $unreadNotificationCount
                     : 0,
             ],
         ]);

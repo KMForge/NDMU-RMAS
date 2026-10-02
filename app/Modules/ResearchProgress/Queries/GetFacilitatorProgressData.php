@@ -26,6 +26,7 @@ class GetFacilitatorProgressData
 
         $allFilterGroups = ResearchClassGroup::query()
             ->whereHas('researchClass', fn ($query) => $query->where('facilitator_id', $facilitator->getKey()))
+            ->with('researchGroup.currentProject:id,research_group_id,title')
             ->orderBy('name')
             ->get(['id', 'name', 'research_class_id', 'research_group_id']);
 
@@ -42,6 +43,7 @@ class GetFacilitatorProgressData
                 'researchClass:id,name,facilitator_id',
                 'adviser:id,name,email',
                 'leader:id,name,email',
+                'researchGroup.currentProject:id,research_group_id,title',
                 'members.student:id,name,email,program',
                 'members.student.studentProfile.program',
                 'milestones.definition',
