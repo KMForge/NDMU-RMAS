@@ -1645,17 +1645,22 @@
             ]" />
 
             <!-- TAB: Capstone Classes -->
-            <div x-show="activeTab === 'classes'" x-cloak>
+            @if ($initialTab === 'classes')
+            <div>
                 @include('pages.facilitator.classes')
             </div>
+            @endif
 
             <!-- TAB: Join Requests -->
-            <div x-show="activeTab === 'join-requests'" x-cloak>
+            @if ($initialTab === 'join-requests')
+            <div>
                 @include('pages.facilitator.join-requests')
             </div>
+            @endif
 
             <!-- TAB: Dashboard (Active Default) -->
-            <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'dashboard')
+            <div class="space-y-8 animate-fade-in">
                 <!-- Rich Branded Command Hub & Quick Action Header -->
                 <div data-dashboard-hero class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#0a462c] p-6 md:p-8 text-white shadow-xl shadow-emerald-950/20 border border-emerald-600/30">
                     <!-- Ambient Glow & Watermark Logo -->
@@ -2227,9 +2232,11 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- TAB: Notifications Center -->
-            <div x-show="activeTab === 'notifications'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'notifications')
+            <div class="space-y-8 animate-fade-in">
                 <x-notifications.center
                     :notifications="$userNotifications ?? collect()"
                     :unread-count="$userUnreadCount ?? 0"
@@ -2237,9 +2244,11 @@
                     :dashboard-route="route('facilitator.dashboard')"
                 />
             </div>
+            @endif
 
             <!-- TAB: Research Monitoring -->
-            <div x-show="activeTab === 'monitoring'" x-cloak class="space-y-8">
+            @if ($initialTab === 'monitoring')
+            <div class="space-y-8">
                 @if (isset($progressGroups))
                     <x-research-progress.facilitator-monitoring
                         :groups="$progressGroups"
@@ -2430,9 +2439,11 @@
                 @endif
                 @endif
             </div>
+            @endif
 
             <!-- TAB: Research Screening (Proposal Management) -->
-            <div x-show="activeTab === 'screening'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'screening')
+            <div class="space-y-8 animate-fade-in">
                 <!-- Breadcrumbs & Header -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
@@ -2737,9 +2748,11 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- TAB: Defense Management (Defense Scheduling) -->
-            <div x-show="activeTab === 'defenses'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'defenses')
+            <div class="space-y-8 animate-fade-in">
                 <!-- Breadcrumbs & Header -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
@@ -3136,15 +3149,17 @@
                     </template>
                 </div>
             </div>
+            @endif
 
-            @if ($statistics !== null)
+            @if ($initialTab === 'statistics' && $statistics !== null)
                 <!-- TAB: Research Statistics -->
-                <div x-show="activeTab === 'statistics'" x-cloak class="animate-fade-in">
+                <div class="animate-fade-in">
                     <x-research-statistics.facilitator-dashboard :statistics="$statistics" />
                 </div>
             @endif
 
             <!-- TAB: Research Reports (Document Screening / Review) -->
+            @if ($initialTab === 'reports')
             <div x-show="activeTab === 'reports'" x-cloak class="space-y-8 animate-fade-in">
                 <!-- Breadcrumbs & Header -->
                 <div class="flex flex-col gap-2">
@@ -3384,10 +3399,12 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- TAB: Research Repository -->
+            @if ($initialTab === 'repository')
             @isset($repositoryDocuments)
-            <div x-show="activeTab === 'repository'" x-cloak class="space-y-8 animate-fade-in">
+            <div class="space-y-8 animate-fade-in">
                 <x-student-section-heading title="Research Repository" description="Browse documents from research groups in the classes you manage." />
                 <x-document-repository :documents="$repositoryDocuments" :filters="$repositoryFilters" :stats="$repositoryStats" :stage-options="$repositoryStageOptions" :status-options="$repositoryStatusOptions" />
             </div>
@@ -3561,19 +3578,24 @@
             </div>
 
             @endisset
+            @endif
 
             <!-- TAB: Settings -->
-            <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'settings')
+            <div class="space-y-8 animate-fade-in">
                 @include('partials.settings', [
                     'portalType' => 'Facilitator Portal',
                     'accessLevel' => 'Research Facilitator Access'
                 ])
             </div>
+            @endif
 
             <!-- TAB: Official Facilitator Forms -->
-            <div x-show="activeTab === 'forms'" x-cloak class="space-y-6 animate-fade-in">
+            @if ($initialTab === 'forms')
+            <div class="space-y-6 animate-fade-in">
                 @include('pages.facilitator.forms.index')
             </div>
+            @endif
 
             <!-- Placeholder Fallback View for Other Tabs -->
             <div x-show="!['notifications', 'dashboard', 'classes', 'join-requests', 'settings', 'monitoring', 'advisers', 'screening', 'defenses', 'statistics', 'reports', 'repository', 'forms'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">

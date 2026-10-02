@@ -17,8 +17,7 @@
             ?? ($officialFormInstance ?? null)
             ?? ($__data['officialFormInstance'] ?? null)
             ?? ($__data['instance'] ?? null)
-            ?? (request()->route('instance') instanceof \App\Models\OfficialFormInstance ? request()->route('instance') : null)
-            ?? (is_numeric(request()->route('instance')) ? \App\Models\OfficialFormInstance::with('currentVersion.signatures')->find((int) request()->route('instance')) : null);
+            ?? (request()->route('instance') instanceof \App\Models\OfficialFormInstance ? request()->route('instance') : null);
         
         // If signature prop wasn't passed explicitly, attempt to resolve from instance currentVersion
         $appliedSignature = $signature;

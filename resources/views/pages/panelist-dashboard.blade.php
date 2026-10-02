@@ -730,7 +730,8 @@ document.addEventListener('alpine:init', () => {
             ]" />
             
             <!-- TAB: Dashboard (Active Default) -->
-            <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'dashboard')
+            <div class="space-y-8 animate-fade-in">
 
                 <!-- Rich Branded Command Hub & Quick Action Header -->
                 <div data-dashboard-hero class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#0a462c] p-6 md:p-8 text-white shadow-xl shadow-emerald-950/20 border border-emerald-600/30">
@@ -1089,9 +1090,11 @@ document.addEventListener('alpine:init', () => {
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- TAB: Assigned Research Papers -->
-            <div x-show="activeTab === 'assigned-papers'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'assigned-papers')
+            <div class="space-y-8 animate-fade-in">
                 <!-- Breadcrumbs & Title Block -->
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
@@ -1296,9 +1299,11 @@ document.addEventListener('alpine:init', () => {
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- TAB: Proposal Evaluation -->
-            <div x-show="activeTab === 'proposal-eval'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'proposal-eval')
+            <div class="space-y-8 animate-fade-in">
                 <!-- Title Block -->
                 <div>
                     <h1 class="text-2xl font-bold font-heading text-gray-800">Proposal Management</h1>
@@ -1436,9 +1441,11 @@ document.addEventListener('alpine:init', () => {
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- TAB: Final Defense Evaluation -->
-            <div x-show="activeTab === 'final-eval'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'final-eval')
+            <div class="space-y-8 animate-fade-in">
                 <!-- Title Block -->
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
@@ -1644,9 +1651,11 @@ document.addEventListener('alpine:init', () => {
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- TAB: My Recommendations / Paper Critique & Defense Review -->
-            <div x-show="activeTab === 'recommendations'" x-cloak class="space-y-6 animate-fade-in">
+            @if ($initialTab === 'recommendations')
+            <div class="space-y-6 animate-fade-in">
                 <!-- Title Block & Paper Switcher -->
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
@@ -2022,9 +2031,11 @@ document.addEventListener('alpine:init', () => {
                     </div>
                 @endif
             </div>
+            @endif
 
             <!-- TAB: My Defense Schedule -->
-            <div x-show="activeTab === 'schedule'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'schedule')
+            <div class="space-y-8 animate-fade-in">
                 <!-- Title Block -->
                 <div>
                     <h1 class="text-2xl font-bold font-heading text-gray-800">My Defense Schedule</h1>
@@ -2196,9 +2207,11 @@ document.addEventListener('alpine:init', () => {
                     </template>
                 </div>
             </div>
+            @endif
 
             <!-- TAB: Research Repository -->
-            <div x-show="activeTab === 'repository'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'repository')
+            <div class="space-y-8 animate-fade-in">
                 <!-- Breadcrumbs -->
                 <div class="flex items-center gap-2 text-xs font-semibold text-gray-500">
                     <span class="hover:text-[#0e5c3a] cursor-pointer flex items-center gap-1.5" @click="activeTab = 'dashboard'"><i class="ph ph-layout"></i> Dashboard</span>
@@ -2355,11 +2368,14 @@ document.addEventListener('alpine:init', () => {
                     </template>
                 </div>
             </div>
+            @endif
 
             <!-- TAB: Official Panelist Forms -->
-            <div x-show="activeTab === 'forms'" x-cloak class="space-y-6 animate-fade-in">
+            @if ($initialTab === 'forms')
+            <div class="space-y-6 animate-fade-in">
                 @include('pages.panelist.forms.index')
             </div>
+            @endif
 
             <!-- Placeholder Fallback View for Other Tabs -->
             <div x-show="!['notifications', 'dashboard', 'settings', 'assigned-papers', 'proposal-eval', 'final-eval', 'recommendations', 'schedule', 'repository', 'forms'].includes(activeTab)" x-cloak class="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-4">
@@ -2376,7 +2392,8 @@ document.addEventListener('alpine:init', () => {
             </div>
             
             <!-- TAB: Notifications Center -->
-            <div x-show="activeTab === 'notifications'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'notifications')
+            <div class="space-y-8 animate-fade-in">
                 <x-notifications.center
                     :notifications="$userNotifications ?? collect()"
                     :unread-count="$userUnreadCount ?? 0"
@@ -2384,11 +2401,14 @@ document.addEventListener('alpine:init', () => {
                     :dashboard-route="route('panelist.dashboard')"
                 />
             </div>
+            @endif
 
             <!-- TAB: Settings -->
-            <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'settings')
+            <div class="space-y-8 animate-fade-in">
                 @include('partials.settings')
             </div>
+            @endif
         </main>
     </div>
 

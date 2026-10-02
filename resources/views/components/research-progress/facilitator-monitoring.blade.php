@@ -39,8 +39,9 @@
             >
                 <option value="">All Research Groups</option>
                 @foreach ($allFilterGroups as $fg)
+                    @php $filterTitle = $fg->researchGroup?->currentProject?->title; @endphp
                     <option value="{{ $fg->id }}" @selected((int) (request()->query('progress_group_id') ?? $groupId) === (int) $fg->id)>
-                        {{ $fg->name }}{{ $fg->title ? ' — '.\Illuminate\Support\Str::limit($fg->title, 35) : '' }}
+                        {{ $fg->name }}{{ $filterTitle ? ' — '.\Illuminate\Support\Str::limit($filterTitle, 35) : '' }}
                     </option>
                 @endforeach
             </select>
@@ -91,7 +92,7 @@
                 }
             },
             init() {
-                this.refreshTimer = window.setInterval(() => this.refreshFromServer(), 15000);
+                this.refreshTimer = window.setInterval(() => this.refreshFromServer(), 60000);
             },
             destroy() {
                 window.clearInterval(this.refreshTimer);
@@ -100,7 +101,10 @@
         @focus.window.debounce.750ms="refreshFromServer()"
     >
         @forelse ($groups as $group)
-            @php $summary = $group->progress_summary; @endphp
+            @php
+                $summary = $group->progress_summary;
+                $groupTitle = $group->researchGroup?->currentProject?->title;
+            @endphp
             <section class="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
                 <!-- Decorative card accent (intentionally distinct from progress) -->
                 <div class="h-1 bg-[#0e5c3a]"></div>
@@ -118,7 +122,7 @@
                         </div>
 
                         <h2 class="text-lg sm:text-xl font-black font-heading text-slate-900 leading-snug">
-                            {{ $group->title ?: $group->name }}
+                            {{ $groupTitle ?: $group->name }}
                         </h2>
 
                         <div class="pt-1 flex flex-wrap items-center gap-y-2 gap-x-4 text-xs text-slate-600">

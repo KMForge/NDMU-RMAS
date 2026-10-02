@@ -33,18 +33,8 @@
         ?? ($class?->name ?? '');
 
     // 4. Panel Chairman and Panel Members (up to 4)
-    $panelCommittee = $group?->panelCommittees?->first() ?? $class?->panelCommittees?->first();
-    if (! $panelCommittee && $group) {
-        $panelCommittee = \App\Models\ResearchGroupPanelCommittee::with(['chairperson', 'members.user'])
-            ->where('research_class_group_id', $group->id)
-            ->latest('id')
-            ->first()
-            ?? \App\Models\ResearchClassPanelCommittee::with(['chairperson', 'members.user'])
-            ->where('research_class_id', $group->research_class_id)
-            ->latest('id')
-            ->first();
-    }
-    $defenseSchedule = $group?->defenses()->with(['currentSchedule.room', 'activePanelAssignments.user'])->latest('id')->first();
+    $panelCommittee = $formPanelCommittee ?? $group?->panelCommittees?->first() ?? $class?->panelCommittees?->first();
+    $defenseSchedule = $formDefense ?? null;
     $panelAssignments = $defenseSchedule?->activePanelAssignments ?? collect();
 
     $panelChairName = $payload['panel_chair']

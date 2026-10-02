@@ -85,7 +85,7 @@ class StudentDashboardDataTest extends TestCase
         );
 
         $this->actingAs($student)
-            ->get(route('student.dashboard'))
+            ->get(route('student.dashboard', ['tab' => 'research']))
             ->assertOk()
             ->assertSee('Authenticated Student Research')
             ->assertSee('Only the authenticated student should read this abstract.')
@@ -131,7 +131,7 @@ class StudentDashboardDataTest extends TestCase
         ]);
 
         $this->actingAs($student)
-            ->get(route('student.dashboard'))
+            ->get(route('student.dashboard', ['tab' => 'repository']))
             ->assertOk()
             ->assertViewHas('dashboardOverview', fn (array $overview): bool => $overview['document_count'] === 1
                 && $overview['pending_document_count'] === 1)

@@ -12,7 +12,7 @@
 
     $members = $group?->members?->values() ?? collect();
     $adviserName = $group?->adviser?->name ?? 'Research Adviser';
-    $defense = $group ? \App\Models\Defense::query()->with(['currentSchedule', 'activePanelAssignments.user'])->where('research_class_group_id', $group->id)->latest('id')->first() : null;
+    $defense = $formDefense ?? null;
     $panelists = $defense?->activePanelAssignments?->sortBy('panel_position')?->values() ?? collect();
 @endphp
 <div x-show="activeOfficialForm === 'RES-035'" x-cloak>

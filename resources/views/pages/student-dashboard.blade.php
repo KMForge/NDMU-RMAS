@@ -367,7 +367,8 @@
                     {{ $errors->first('class') }}
                 </div>
             @endif
-            <section x-show="activeTab === 'dashboard'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'dashboard')
+            <section class="space-y-8 animate-fade-in">
                 <!-- Rich Branded Command Hub & Quick Action Header -->
                 <div data-dashboard-hero class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#0a462c] p-6 md:p-8 text-white shadow-xl shadow-emerald-950/20 border border-emerald-600/30">
                     <!-- Ambient Glow & Watermark Logo -->
@@ -779,8 +780,10 @@
                     </div>
                 </div>
             </section>
+            @endif
 
-            <section x-show="activeTab === 'classes'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'classes')
+            <section class="space-y-8 animate-fade-in">
                 <!-- Section Action Header -->
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-sm relative overflow-hidden">
                     <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
@@ -884,8 +887,10 @@
                     </div>
                 </div>
             </section>
+            @endif
 
-            <section x-show="activeTab === 'research'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'research')
+            <section class="space-y-8 animate-fade-in">
                 <x-student-section-heading title="Research Details" :description="$researchProject?->title" />
 
                 @if ($researchProject)
@@ -967,8 +972,10 @@
                     <x-student-empty-state message="No research details are available for your account." />
                 @endif
             </section>
+            @endif
 
-            <section x-show="activeTab === 'proposal'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'proposal')
+            <section class="space-y-8 animate-fade-in">
                 <x-student-section-heading title="Proposal & Document Submission" description="Upload and manage research documents owned by your Research Group." />
 
                 @if (session('document_success'))
@@ -1120,8 +1127,10 @@
                     <x-student-empty-state message="You do not belong to an active research group yet. Join a class and get assigned to a research group to submit documents." />
                 @endif
             </section>
+            @endif
 
-            <section x-show="activeTab === 'progress'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'progress')
+            <section class="space-y-8 animate-fade-in">
                 <!-- Title Section -->
                 <div>
                     <h1 class="text-2xl sm:text-3xl font-black font-heading text-slate-900 tracking-tight">Research Lifecycle Tracker</h1>
@@ -1296,8 +1305,10 @@
                     </button>
                 </div>
             </section>
+            @endif
 
-            <section x-show="activeTab === 'consultation'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'consultation')
+            <section class="space-y-8 animate-fade-in">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <x-student-section-heading title="Consultation Management" description="Schedule and manage adviser consultations." />
                     <button
@@ -1380,8 +1391,10 @@
                     </div>
                 </div>
             </section>
+            @endif
 
-            <section x-show="activeTab === 'revisions'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'revisions')
+            <section class="space-y-8 animate-fade-in">
                 <x-student-section-heading title="Revision Tracker" description="Panel feedback and revision requests for your research." />
 
                 <div class="space-y-4">
@@ -1493,8 +1506,10 @@
                     </div>
                 </div>
             </section>
+            @endif
 
-            <section x-show="activeTab === 'defense'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'defense')
+            <section class="space-y-8 animate-fade-in">
                 <x-student-section-heading title="My Defense Schedule" description="Defense requests and confirmed schedules." />
                 @php
                     $title = 'Research Defense';
@@ -1524,8 +1539,10 @@
                     @endforelse
                 </div>
             </section>
+            @endif
 
-            <section x-show="activeTab === 'evaluations'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'evaluations')
+            <section class="space-y-8 animate-fade-in">
                 <x-student-section-heading title="Evaluation Results" description="Released evaluation records for your defenses." />
                 <div class="space-y-4">
                     @forelse ($evaluations as $evaluation)
@@ -1540,19 +1557,25 @@
                     @endforelse
                 </div>
             </section>
+            @endif
 
-            <section x-show="activeTab === 'repository'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'repository')
+            <section class="space-y-8 animate-fade-in">
                 <x-student-section-heading title="Research Repository" description="Securely view and download your group's submitted documents." />
                 @isset($repositoryDocuments)
                     <x-document-repository :documents="$repositoryDocuments" :filters="$repositoryFilters" :stats="$repositoryStats" :stage-options="$repositoryStageOptions" :status-options="$repositoryStatusOptions" />
                 @endisset
-            </section>            </section>
+            </section>
+            @endif
 
-            <section x-show="activeTab === 'forms'" x-cloak class="space-y-8">
+            @if ($initialTab === 'forms')
+            <section class="space-y-8">
                 @include('pages.student.forms.index')
             </section>
+            @endif
 
-            <section x-show="activeTab === 'notifications'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'notifications')
+            <section class="space-y-8 animate-fade-in">
                 <x-notifications.center
                     :notifications="$userNotifications ?? ($notifications ?? collect())"
                     :unread-count="$userUnreadCount ?? ($sidebarBadges['notifications'] ?? 0)"
@@ -1560,10 +1583,13 @@
                     :dashboard-route="route('student.dashboard')"
                 />
             </section>
+            @endif
 
-            <section x-show="activeTab === 'settings'" x-cloak class="space-y-8">
+            @if ($initialTab === 'settings')
+            <section class="space-y-8">
                 @include('partials.settings')
             </section>
+            @endif
         </main>
     </div>
 

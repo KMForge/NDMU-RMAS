@@ -171,6 +171,12 @@ class DocumentSubmissionTest extends TestCase
             ->assertOk()
             ->assertDontSee('Submit Document')
             ->assertDontSee('student-document-upload-input')
+            ->assertDontSee('data-document-upload-trigger');
+
+        $this->actingAs($nonLeader)
+            ->get(route('student.dashboard', ['tab' => 'proposal']))
+            ->assertOk()
+            ->assertDontSee('student-document-upload-input')
             ->assertDontSee('data-document-upload-trigger')
             ->assertSee('Group Leader Only Action');
     }

@@ -542,11 +542,5 @@
     <p>&copy; {{ now()->year }} Notre Dame of Marbel University. All rights reserved.</p>
 </footer>
 
-<script>
-    const siteHeader = document.querySelector('[data-site-header]');
-    const updateHeader = () => siteHeader?.classList.toggle('is-scrolled', window.scrollY > 15);
-    window.addEventListener('scroll', updateHeader, { passive: true });
-    updateHeader();
-</script>
 </body>
 </html>

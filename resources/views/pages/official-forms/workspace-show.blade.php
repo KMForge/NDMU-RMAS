@@ -252,7 +252,7 @@
             @if (strtoupper($instance->definition->code) === 'RES-030' && ($availableActions->contains('approve') || $availableActions->contains('reject')))
                 @php
                     $res030UsesSignature = auth()->user()->isEligibleForSignatureEnrollment()
-                        && \App\Models\UserSignature::query()->where('user_id', auth()->id())->exists();
+                        && ($currentUserHasSignature ?? false);
                 @endphp
                 <div class="w-full rounded-xl border border-amber-200 bg-amber-50 p-4">
                     <label class="block text-xs font-black uppercase tracking-wide text-amber-900">Reviewer remarks</label>

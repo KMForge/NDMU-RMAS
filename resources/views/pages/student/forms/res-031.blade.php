@@ -18,7 +18,7 @@
     $sourceConsultation = $officialFormInstance?->source;
     $consultationRecords = $sourceConsultation
         ? collect([$sourceConsultation])
-        : ($group?->consultationRecords()->where('is_superseded', false)->latest('consulted_at')->get() ?? collect());
+        : ($formConsultations ?? collect());
 @endphp
 <div x-show="activeOfficialForm === 'RES-031'" x-cloak>
     <x-student-official-form code="RES-Form-031" title="Consultation Record with Research Adviser" guidebook-page="106">

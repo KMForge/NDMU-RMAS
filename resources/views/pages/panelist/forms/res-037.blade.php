@@ -1,7 +1,7 @@
 @php
     $instance = $officialFormInstance ?? null;
     $round = $instance?->source instanceof \App\Models\DefenseEvaluationRound ? $instance->source : null;
-    $schedule = $instance?->source instanceof \App\Models\DefenseSchedule ? $instance->source : ($round?->defense_schedule_id ? \App\Models\DefenseSchedule::find($round->defense_schedule_id) : null);
+    $schedule = $formSchedule ?? ($instance?->source instanceof \App\Models\DefenseSchedule ? $instance->source : $round?->defenseSchedule);
     $defense = $schedule?->defense ?? $round?->defense;
     $group = $instance?->group ?? $round?->group ?? $defense?->group;
 
@@ -54,7 +54,7 @@
         }
     }
 
-    $signerName = $payload['res_037_panelist_printed_name'] ?? ($round?->summary_signer_user_id ? \App\Models\User::find($round->summary_signer_user_id)?->name : auth()->user()?->name ?? 'Panel Member');
+    $signerName = $payload['res_037_panelist_printed_name'] ?? $round?->summarySigner?->name ?? auth()->user()?->name ?? 'Panel Member';
     $submittedAt = $payload['res_037_submitted_at'] ?? now()->format('Y-m-d');
 @endphp
 

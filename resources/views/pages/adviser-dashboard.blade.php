@@ -475,7 +475,8 @@
             @endif
 
             <!-- TAB: Dashboard Overview -->
-            <div x-show="activeTab === 'dashboard'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'dashboard')
+            <div class="space-y-8 animate-fade-in">
 
                 <!-- Rich Branded Command Hub & Quick Action Header -->
                 <div data-dashboard-hero class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#073823] via-[#0e5c3a] to-[#0a462c] p-6 md:p-8 text-white shadow-xl shadow-emerald-950/20 border border-emerald-600/30">
@@ -899,9 +900,11 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- TAB: My Classes Workspace -->
-            <div x-show="activeTab === 'classes'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'classes')
+            <div class="space-y-8 animate-fade-in">
                 <!-- Header & Stats Bar -->
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
@@ -1165,7 +1168,7 @@
                                                             @if ($isGroupLeader)
                                                                 <span class="shrink-0 inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-900 shadow-2xs">
                                                                     <i class="ph ph-star-fill text-amber-600 text-[10px]"></i>
-                                                                    <span>Leader</span>
+                                                                    <span>Group Leader</span>
                                                                 </span>
                                                             @endif
                                                         </li>
@@ -1208,18 +1211,24 @@
                     </section>
                 @endif
             </div>
+            @endif
 
-            @include('pages.adviser.partials.consultations')
+            @if ($initialTab === 'consultation')
+                @include('pages.adviser.partials.consultations')
+            @endif
 
-            <div x-show="activeTab === 'repository'" x-cloak class="space-y-6">
+            @if ($initialTab === 'repository')
+            <div class="space-y-6">
                 <x-student-section-heading title="Research Repository" description="Browse documents owned by your currently assigned research groups." />
                 @isset($repositoryDocuments)
                     <x-document-repository :documents="$repositoryDocuments" :filters="$repositoryFilters" :stats="$repositoryStats" :stage-options="$repositoryStageOptions" :status-options="$repositoryStatusOptions" />
                 @endisset
             </div>
+            @endif
 
             <!-- TAB: Document Review -->
-            <div x-show="activeTab === 'docreview'" x-cloak class="space-y-6" x-data="{ showCorrectionModal: false }">
+            @if ($initialTab === 'docreview')
+            <div class="space-y-6" x-data="{ showCorrectionModal: false }">
                 <div>
                     <h1 class="text-2xl font-bold font-heading text-gray-850">Document Review Workstation</h1>
                     <p class="text-sm text-gray-500 mt-1">Annotate findings, resolve issues, and record authoritative review decisions for your assigned research groups.</p>
@@ -1623,9 +1632,11 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- TAB: Revision Tracker -->
-            <section x-show="activeTab === 'revisions'" x-cloak class="space-y-6 animate-fade-in">
+            @if ($initialTab === 'revisions')
+            <section class="space-y-6 animate-fade-in">
                 @php
                     $revisionCards = [
                         ['label' => 'Open', 'key' => 'open', 'icon' => 'ph-folder-open'],
@@ -1760,9 +1771,11 @@
                 </div>
                 @if ($revisionRequests->hasPages())<div>{{ $revisionRequests->links() }}</div>@endif
             </section>
+            @endif
 
             <!-- TAB: Assigned Researchers -->
-            <div x-show="activeTab === 'researchers'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'researchers')
+            <div class="space-y-8 animate-fade-in">
                 <!-- Section Header & Controls -->
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
@@ -2009,9 +2022,11 @@
                     </div>
                 @endif
             </div>
+            @endif
 
             <!-- TAB: Research Monitoring -->
-            <div x-show="activeTab === 'monitoring'" x-cloak class="space-y-8">
+            @if ($initialTab === 'monitoring')
+            <div class="space-y-8">
                 @if (isset($progressGroups))
                     <x-research-progress.facilitator-monitoring
                         :groups="$progressGroups"
@@ -2028,9 +2043,11 @@
                     </div>
                 @endif
             </div>
+            @endif
 
             <!-- TAB: Defense Endorsement -->
-            <div x-show="activeTab === 'endorsement'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'endorsement')
+            <div class="space-y-8 animate-fade-in">
                 <!-- Section Header -->
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
@@ -2130,9 +2147,11 @@
                     </div>
                 @endif
             </div>
+            @endif
 
             <!-- TAB: Evaluation Records -->
-            <div x-show="activeTab === 'evaluations'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'evaluations')
+            <div class="space-y-8 animate-fade-in">
                 <!-- Section Header & Filter Controls -->
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
@@ -2536,14 +2555,18 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- TAB: Official Research Forms (UI only; persistence begins in Phase 19 backend work) -->
-            <section x-show="activeTab === 'forms'" x-cloak class="space-y-8">
+            @if ($initialTab === 'forms')
+            <section class="space-y-8">
                 @include('pages.adviser.forms.index')
             </section>
+            @endif
 
             <!-- TAB: Notifications Center -->
-            <div x-show="activeTab === 'notifications'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'notifications')
+            <div class="space-y-8 animate-fade-in">
                 <x-notifications.center
                     :notifications="$userNotifications ?? collect()"
                     :unread-count="$userUnreadCount ?? 0"
@@ -2551,11 +2574,14 @@
                     :dashboard-route="route('adviser.dashboard')"
                 />
             </div>
+            @endif
 
             <!-- TAB: Settings -->
-            <div x-show="activeTab === 'settings'" x-cloak class="space-y-8 animate-fade-in">
+            @if ($initialTab === 'settings')
+            <div class="space-y-8 animate-fade-in">
                 @include('partials.settings')
             </div>
+            @endif
         </div>
     </main>
 </div>
