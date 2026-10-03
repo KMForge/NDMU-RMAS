@@ -183,7 +183,15 @@ class GetPendingAcademicActionsForUser
                     'action' => 'evaluate',
                     'action_label' => 'Evaluate Defense',
                     'status' => $round->status,
-                    'route' => route('panelist.evaluations.show', $round),
+                    'route' => $round->defense_schedule_id
+                        ? route('official-forms.workspace.store-from-source', [
+                            'definition' => 'res-036',
+                            'sourceKind' => 'defense-schedule',
+                            'source' => $round->defense_schedule_id,
+                        ])
+                        : route('panelist.dashboard', [
+                            'tab' => in_array($defenseType, ['pre_final_defense', 'final_defense'], true) ? 'final-eval' : 'proposal-eval',
+                        ]),
                     'created_at' => $round->updated_at?->diffForHumans() ?? 'Recently',
                 ]);
             });

@@ -6,6 +6,7 @@ use App\Enums\AccountStatus;
 use App\Enums\DocumentStage;
 use App\Enums\DocumentStatus;
 use App\Enums\UserType;
+use App\Models\DefensePanelAssignment;
 use App\Models\DefenseRoom;
 use App\Models\DefenseSchedule;
 use App\Models\Document;
@@ -17,7 +18,9 @@ use App\Models\ResearchClassGroupMember;
 use App\Models\User;
 use App\Modules\DefenseScheduling\Actions\AssignGroupDefenseCommittee;
 use App\Modules\DefenseScheduling\Actions\ScheduleDefense;
+use App\Modules\Evaluations\Actions\OpenDefenseEvaluationRound;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
+use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use Carbon\Carbon;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -388,5 +391,87 @@ class DefenseDashboardIntegrationTest extends TestCase
         $this->assertSame($this->panelist->id, $committee['member_1_id']);
         $this->assertSame($secondPanelist->id, $committee['member_2_id']);
         $this->assertSame('Customized group committee', $committee['source_label']);
+    }
+
+    private function ensureThreePanelAssignments(): void
+    {
+        Permission::firstOrCreate(['name' => 'forms.res-037.sign', 'guard_name' => 'web']);
+        $this->panelist->givePermissionTo('forms.res-037.sign');
+
+        $enrollment = ResearchClassEnrollment::query()->firstOrCreate([
+            'research_class_id' => $this->group->research_class_id,
+            'student_id' => $this->student->id,
+        ], [
+            'status' => 'enrolled',
+            'joined_at' => now(),
+            'reviewed_by' => $this->facilitator->id,
+            'reviewed_at' => now(),
+        ]);
+
+        ResearchClassGroupMember::query()->firstOrCreate([
+            'research_class_group_id' => $this->group->id,
+            'student_id' => $this->student->id,
+        ], [
+            'research_class_id' => $this->group->research_class_id,
+            'research_class_enrollment_id' => $enrollment->id,
+            'assigned_by' => $this->facilitator->id,
+        ]);
+
+        $defense = $this->schedule->defense;
+        $currentCount = $defense->panelAssignments()->count();
+        while ($currentCount < 3) {
+            $extra = User::factory()->create([
+                'user_type' => UserType::Faculty,
+                'status' => AccountStatus::Active,
+                'email_verified_at' => now(),
+                'approved_at' => now(),
+            ]);
+            $extra->givePermissionTo(['evaluations.create', 'forms.res-036.evaluate', 'forms.res-037.sign']);
+            DefensePanelAssignment::create([
+                'defense_id' => $defense->id,
+                'user_id' => $extra->id,
+                'assigned_by' => $this->facilitator->id,
+                'assigned_at' => now(),
+            ]);
+            $currentCount++;
+        }
+    }
+
+    public function test_pending_academic_actions_evaluate_defense_links_to_res036_form_and_redirects_browser(): void
+    {
+        $this->ensureThreePanelAssignments();
+        $defense = $this->schedule->defense;
+        $round = app(OpenDefenseEvaluationRound::class)->handle($this->facilitator, $defense);
+
+        $pendingService = app(GetPendingAcademicActionsForUser::class);
+        $pending = $pendingService->execute($this->panelist);
+
+        $evalAction = $pending->firstWhere('id', "defense-round-{$round->id}-evaluate");
+        $this->assertNotNull($evalAction);
+        $expectedRes036Url = route('official-forms.workspace.store-from-source', [
+            'definition' => 'res-036',
+            'sourceKind' => 'defense-schedule',
+            'source' => $this->schedule->id,
+        ]);
+        $this->assertSame($expectedRes036Url, $evalAction['route']);
+
+        $this->actingAs($this->panelist)
+            ->get(route('panelist.evaluations.show', $round))
+            ->assertRedirect($expectedRes036Url);
+    }
+
+    public function test_proposal_evaluation_tab_reflects_active_evaluation_round(): void
+    {
+        $this->ensureThreePanelAssignments();
+        $defense = $this->schedule->defense;
+        app(OpenDefenseEvaluationRound::class)->handle($this->facilitator, $defense);
+
+        $response = $this->actingAs($this->panelist)
+            ->get(route('panelist.dashboard', ['tab' => 'proposal-eval']))
+            ->assertOk();
+
+        $response->assertSee('Proposal Defense Evaluations');
+        $response->assertSee('Group Beta');
+        $response->assertSee('Open Evaluation Sheet (RES-036)');
     }
 }

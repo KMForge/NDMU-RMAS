@@ -269,6 +269,8 @@ document.addEventListener('alpine:init', () => {
                 return true;
             });
         },
+        proposalSearchQuery: '',
+        proposalStatusFilter: 'all',
         proposalProposals: config.proposalPapers || [],
         filteredProposals() {
             return this.proposalProposals.filter(p => {
@@ -1342,7 +1344,7 @@ document.addEventListener('alpine:init', () => {
                                 <i class="ph ph-check-circle"></i>
                             </span>
                             <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Evaluated</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="proposalProposals.filter(p => p.status === 'Evaluated').length">0</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="proposalEvaluationRounds().filter(r => r.evaluation && r.evaluation.status === 'submitted').length || proposalProposals.filter(p => p.status === 'Evaluated').length">0</span>
                         </div>
                         <span class="text-emerald-600 text-xl font-bold">
                             <i class="ph ph-check-fat"></i>
@@ -1356,7 +1358,7 @@ document.addEventListener('alpine:init', () => {
                                 <i class="ph ph-clock"></i>
                             </span>
                             <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Awaiting Evaluation</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="proposalProposals.filter(p => ['Pending Defense', 'For Review'].includes(p.status)).length">0</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="proposalEvaluationRounds().filter(r => ['open', 'in_progress'].includes(r.status) && (!r.evaluation || r.evaluation.status !== 'submitted')).length || proposalProposals.filter(p => ['Pending Defense', 'For Review'].includes(p.status)).length">0</span>
                         </div>
                         <span class="text-amber-500 text-xl font-bold">
                             <i class="ph ph-hourglass"></i>
@@ -1370,7 +1372,7 @@ document.addEventListener('alpine:init', () => {
                                 <i class="ph ph-x-circle"></i>
                             </span>
                             <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Under Review</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="proposalProposals.filter(p => p.status === 'Under Review').length">0</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="proposalEvaluationRounds().filter(r => ['open', 'in_progress'].includes(r.status)).length || proposalProposals.filter(p => p.status === 'Under Review').length">0</span>
                         </div>
                         <span class="text-red-500 text-xl font-bold">
                             <i class="ph ph-warning"></i>
@@ -1384,7 +1386,7 @@ document.addEventListener('alpine:init', () => {
                                 <i class="ph ph-file-text"></i>
                             </span>
                             <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Total Proposals</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="proposalProposals.length">1</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="proposalEvaluationRounds().length || proposalProposals.length">0</span>
                         </div>
                         <span class="text-blue-500 text-xl font-bold">
                             <i class="ph ph-files"></i>
@@ -1394,54 +1396,145 @@ document.addEventListener('alpine:init', () => {
 
                 <!-- Main Proposal Card -->
                 <div class="bg-white rounded-2xl border border-slate-200/60 shadow-xs hover:shadow-md transition-all duration-200 p-6 space-y-6">
-                    <h2 class="text-sm font-bold text-slate-900 font-heading tracking-wide">Research Proposal</h2>
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <h2 class="text-sm font-bold text-slate-900 font-heading tracking-wide">Proposal Defense Evaluations</h2>
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <i class="ph ph-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                                <input
+                                    type="text"
+                                    x-model="proposalSearchQuery"
+                                    placeholder="Search research title..."
+                                    class="pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-slate-50/50 focus:bg-white focus:border-blue-500 focus:outline-none transition w-48 sm:w-64"
+                                >
+                            </div>
+                        </div>
+                    </div>
                     
                     <div class="space-y-4">
-                        <template x-for="p in filteredProposals()" :key="p.id">
-                            <div class="bg-white border border-slate-200/60 rounded-xl p-6 space-y-4 shadow-2xs hover:shadow-xs transition-all">
+                        <!-- Dynamic Evaluation Rounds List for Proposal Defenses -->
+                        <template x-for="r in proposalEvaluationRounds().filter(rnd => {
+                            if (!proposalSearchQuery.trim()) return true;
+                            const q = proposalSearchQuery.toLowerCase();
+                            return (rnd.research_title || '').toLowerCase().includes(q) || (rnd.group_name || '').toLowerCase().includes(q);
+                        })" :key="r.id">
+                            <div class="bg-white border border-slate-200/80 rounded-xl p-6 space-y-4 shadow-2xs hover:shadow-xs transition-all">
                                 <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                                    <div>
-                                        <h3 class="font-extrabold text-sm text-slate-900 leading-snug" x-text="p.title">Machine Learning Applications in Agricultural Pest Detection</h3>
-                                        <p class="text-[10px] text-slate-500 font-semibold mt-1.5" x-text="p.filename">Proposal document</p>
-                                        <p class="text-[10px] text-slate-500 font-semibold mt-0.5" x-text="`Submitted: ${p.submitted}`">Submitted: March 5, 2026</p>
+                                    <div class="space-y-1">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200" x-text="r.defense_type_label || 'Proposal Defense'">Proposal Defense</span>
+                                            <span class="text-xs text-slate-400">•</span>
+                                            <span class="text-xs font-semibold text-slate-600" x-text="r.group_name">Research Group</span>
+                                        </div>
+                                        <h3 class="font-extrabold text-sm text-slate-900 leading-snug" x-text="r.research_title">Research Title</h3>
                                     </div>
-                                    <span :class="p.statusClass" class="flex-shrink-0 self-start text-[10px] font-black" x-text="p.status">Approved</span>
+                                    <div class="shrink-0">
+                                        <span x-show="r.evaluation && r.evaluation.status === 'submitted'" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                                            <i class="ph ph-check-circle"></i> Evaluated
+                                        </span>
+                                        <span x-show="['open', 'in_progress'].includes(r.status) && (!r.evaluation || r.evaluation.status !== 'submitted')" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1.5 animate-pulse">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Evaluation In Progress
+                                        </span>
+                                        <span x-show="!['open', 'in_progress'].includes(r.status) && (!r.evaluation || r.evaluation.status !== 'submitted')" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200" x-text="r.status">
+                                            Scheduled
+                                        </span>
+                                    </div>
                                 </div>
 
-                                <div class="border-t border-slate-100 pt-4 grid grid-cols-2 gap-4">
+                                <div class="border-t border-slate-100 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                                     <div>
                                         <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Research Adviser</span>
-                                        <span class="text-xs text-slate-800 font-bold block mt-1" x-text="p.adviser">Not assigned</span>
+                                        <span class="text-xs text-slate-800 font-bold block mt-1" x-text="r.adviser_name || 'Not assigned'">Adviser Name</span>
                                     </div>
                                     <div>
-                                        <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Defense Stage</span>
-                                        <span class="text-xs text-slate-800 font-bold block mt-1" x-text="p.defenseType">Proposal Defense</span>
+                                        <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Schedule & Venue</span>
+                                        <span class="text-xs text-slate-800 font-bold block mt-1" x-text="`${r.formatted_date || 'Date TBD'} • ${r.venue || 'Room'}`">Schedule Details</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Panel Role</span>
+                                        <span class="text-xs text-slate-800 font-bold block mt-1" x-text="r.is_designated_signer ? 'Summary Signer (RES-037)' : 'Defense Panelist'">Defense Panelist</span>
                                     </div>
                                 </div>
 
-                                <div class="flex items-center gap-3 pt-2">
-                                    <a :href="p.viewUrl" target="_blank" rel="noopener" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer">
-                                        View Proposal
-                                    </a>
-                                    <a :href="p.downloadUrl" class="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer">
-                                        Download <span x-text="p.fileType"></span>
-                                    </a>
-                                    <a :href="p.reviewUrl" class="px-5 py-2.5 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-800 text-xs font-bold rounded-xl transition-all cursor-pointer">
-                                        Review & Comment
-                                    </a>
-                                    <a x-show="p.status !== 'Pending Defense'" :href="p.evaluationUrl" class="px-5 py-2.5 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition-all cursor-pointer">
-                                        Open Evaluation
-                                    </a>
+                                <div x-show="r.students && r.students.length > 0" class="pt-2">
+                                    <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider mb-1.5">Student Researchers</span>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        <template x-for="s in r.students" :key="s.user_id">
+                                            <span class="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-semibold rounded-lg" x-text="s.name">Student Name</span>
+                                        </template>
+                                    </div>
                                 </div>
-                                <p x-show="p.status === 'Pending Defense'" class="text-[10px] font-semibold text-amber-700">
-                                    The paper is available for advance reading. Formal scoring opens when the facilitator starts the evaluation round.
-                                </p>
+
+                                <div class="flex items-center gap-3 pt-3 border-t border-slate-100">
+                                    <a x-show="r.can_evaluate" :href="r.res036_url" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#073823] text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5">
+                                        <i class="ph ph-pencil-simple text-sm"></i>
+                                        <span>Open Evaluation Sheet (RES-036)</span>
+                                    </a>
+                                    <span x-show="r.evaluation && r.evaluation.status === 'submitted'" class="px-4 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-xl flex items-center gap-1.5">
+                                        <i class="ph ph-check-circle"></i>
+                                        <span>Your Evaluation Has Been Submitted</span>
+                                    </span>
+                                    <p x-show="!r.can_evaluate && (!r.evaluation || r.evaluation.status !== 'submitted')" class="text-[11px] font-semibold text-amber-700 flex items-center gap-1">
+                                        <i class="ph ph-info"></i>
+                                        <span>Formal scoring opens when the facilitator starts the evaluation round.</span>
+                                    </p>
+                                </div>
                             </div>
                         </template>
 
-                        <template x-if="filteredProposals().length === 0">
-                            <div class="bg-gray-50 rounded-2xl p-8 text-center text-xs text-gray-455 font-semibold border border-gray-100">
-                                No proposals found matching search query.
+                        <!-- Fallback to Proposal Papers if no evaluation rounds exist yet -->
+                        <template x-if="proposalEvaluationRounds().length === 0">
+                            <div class="space-y-4">
+                                <template x-for="p in filteredProposals()" :key="p.id">
+                                    <div class="bg-white border border-slate-200/60 rounded-xl p-6 space-y-4 shadow-2xs hover:shadow-xs transition-all">
+                                        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                            <div>
+                                                <h3 class="font-extrabold text-sm text-slate-900 leading-snug" x-text="p.title">Proposal Title</h3>
+                                                <p class="text-[10px] text-slate-500 font-semibold mt-1.5" x-text="p.filename">Proposal document</p>
+                                                <p class="text-[10px] text-slate-500 font-semibold mt-0.5" x-text="`Submitted: ${p.submitted}`">Submitted Date</p>
+                                            </div>
+                                            <span :class="p.statusClass" class="flex-shrink-0 self-start text-[10px] font-black" x-text="p.status">Approved</span>
+                                        </div>
+
+                                        <div class="border-t border-slate-100 pt-4 grid grid-cols-2 gap-4 text-xs">
+                                            <div>
+                                                <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Research Adviser</span>
+                                                <span class="text-xs text-slate-800 font-bold block mt-1" x-text="p.adviser">Not assigned</span>
+                                            </div>
+                                            <div>
+                                                <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Defense Stage</span>
+                                                <span class="text-xs text-slate-800 font-bold block mt-1" x-text="p.defenseType">Proposal Defense</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-center gap-3 pt-2">
+                                            <a :href="p.viewUrl" target="_blank" rel="noopener" class="px-5 py-2.5 bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer">
+                                                View Proposal
+                                            </a>
+                                            <a :href="p.downloadUrl" class="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer">
+                                                Download <span x-text="p.fileType"></span>
+                                            </a>
+                                            <a :href="p.reviewUrl" class="px-5 py-2.5 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-800 text-xs font-bold rounded-xl transition-all cursor-pointer">
+                                                Review & Comment
+                                            </a>
+                                            <a x-show="p.status !== 'Pending Defense'" :href="p.evaluationUrl" class="px-5 py-2.5 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition-all cursor-pointer">
+                                                Open Evaluation
+                                            </a>
+                                        </div>
+                                        <p x-show="p.status === 'Pending Defense'" class="text-[10px] font-semibold text-amber-700">
+                                            The paper is available for advance reading. Formal scoring opens when the facilitator starts the evaluation round.
+                                        </p>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <!-- Empty state if neither has data -->
+                        <template x-if="proposalEvaluationRounds().length === 0 && filteredProposals().length === 0">
+                            <div class="bg-gray-50 rounded-2xl p-10 text-center text-xs text-gray-400 font-semibold border border-gray-100 space-y-2">
+                                <i class="ph ph-clipboard-text text-3xl text-gray-300"></i>
+                                <p class="text-sm font-bold text-gray-600">No Proposal Defenses Assigned</p>
+                                <p class="text-xs text-gray-400">Assigned proposal defense evaluation rounds will appear here once scheduled by the facilitator.</p>
                             </div>
                         </template>
                     </div>

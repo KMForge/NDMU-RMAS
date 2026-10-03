@@ -8,13 +8,25 @@ use App\Modules\Evaluations\Actions\SaveDefenseEvaluationDraft;
 use App\Modules\Evaluations\Actions\SubmitDefenseEvaluation;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class EvaluationController extends Controller
 {
-    public function show(Request $request, DefenseEvaluationRound $round, GetEvaluationRoundData $query): JsonResponse
+    public function show(Request $request, DefenseEvaluationRound $round, GetEvaluationRoundData $query): JsonResponse|RedirectResponse
     {
         $data = $query->forPanelist($request->user(), $round->defense);
+
+        if (! $request->expectsJson()) {
+            $firstRound = $data['rounds'][0] ?? null;
+            if ($firstRound && ! empty($firstRound['res036_url'])) {
+                return redirect()->to($firstRound['res036_url']);
+            }
+
+            return redirect()->route('panelist.dashboard', [
+                'tab' => in_array($round->defense?->defense_type, ['pre_final_defense', 'final_defense'], true) ? 'final-eval' : 'proposal-eval',
+            ]);
+        }
 
         return response()->json([
             'status' => 'success',
