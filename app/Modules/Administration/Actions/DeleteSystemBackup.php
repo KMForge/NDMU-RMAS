@@ -7,15 +7,23 @@ use App\Models\User;
 use App\Modules\AuditLogs\Services\AuditLogWriter;
 use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 final class DeleteSystemBackup
 {
     public function __construct(private readonly AuditLogWriter $auditLogs) {}
 
-    public function handle(User $actor, SystemBackup $backup): void
+    public function handle(User $actor, SystemBackup $backup, string $confirmation): void
     {
         abort_unless($actor->can('settings.manage'), 403);
+
+        $requiredConfirmation = 'DELETE '.$backup->filename;
+        if (! hash_equals($requiredConfirmation, trim($confirmation))) {
+            throw ValidationException::withMessages([
+                'backupDeleteConfirmation' => "Type {$requiredConfirmation} exactly to delete this backup.",
+            ]);
+        }
 
         if ($backup->status === 'running') {
             throw new RuntimeException('A running backup cannot be deleted.');

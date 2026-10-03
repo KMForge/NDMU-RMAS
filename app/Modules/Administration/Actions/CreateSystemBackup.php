@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\AuditLogs\Services\AuditLogWriter;
 use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -24,7 +25,7 @@ final class CreateSystemBackup
             abort_unless($actor->can('settings.manage'), 403);
         }
 
-        if (! in_array($trigger, ['manual', 'scheduled'], true)) {
+        if (! in_array($trigger, ['manual', 'scheduled', 'pre_restore'], true)) {
             throw new RuntimeException('Unsupported backup trigger.');
         }
 
@@ -51,7 +52,7 @@ final class CreateSystemBackup
             $archive = $temporaryDirectory.DIRECTORY_SEPARATOR.$backup->filename;
 
             $this->dumpDatabase($databaseDump);
-            $this->buildArchive($archive, $databaseDump, $backup);
+            $manifest = $this->buildArchive($archive, $databaseDump, $backup);
 
             $path = trim((string) config('backups.directory', 'system-backups'), '/').'/'.$backup->filename;
             $stream = fopen($archive, 'rb');
@@ -67,6 +68,7 @@ final class CreateSystemBackup
                 'status' => 'completed',
                 'size_bytes' => filesize($archive) ?: null,
                 'sha256' => hash_file('sha256', $archive),
+                'manifest' => $manifest,
                 'completed_at' => now(),
             ]);
 
@@ -130,6 +132,8 @@ final class CreateSystemBackup
             '--format=custom',
             '--no-owner',
             '--no-privileges',
+            '--schema=public',
+            '--blobs',
             '--host='.(string) $connection['host'],
             '--port='.(string) $connection['port'],
             '--username='.(string) $connection['username'],
@@ -172,9 +176,13 @@ final class CreateSystemBackup
         }
 
         $process = new Process([
-            'docker', 'exec', '-e', 'PGPASSWORD='.(string) ($connection['password'] ?? ''),
+            'docker', 'exec',
+            '-e', 'PGPASSWORD='.(string) ($connection['password'] ?? ''),
+            '-e', 'PGSSLMODE='.(string) ($connection['sslmode'] ?? 'prefer'),
             $container,
-            'pg_dump', '--format=custom', '--no-owner', '--no-privileges',
+            'pg_dump', '--format=custom', '--no-owner', '--no-privileges', '--schema=public', '--blobs',
+            '--host='.(string) $connection['host'],
+            '--port='.(string) $connection['port'],
             '--username='.(string) $connection['username'],
             (string) $connection['database'],
         ]);
@@ -213,23 +221,19 @@ final class CreateSystemBackup
         }
     }
 
-    private function buildArchive(string $archivePath, string $databaseDump, SystemBackup $backup): void
+    /** @return array<string, mixed> */
+    private function buildArchive(string $archivePath, string $databaseDump, SystemBackup $backup): array
     {
         $zip = new ZipArchive;
         if ($zip->open($archivePath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             throw new RuntimeException('The backup ZIP archive could not be created.');
         }
 
+        $privateFileCount = 0;
+        $privateFilesSize = 0;
+
         try {
             $zip->addFile($databaseDump, 'database/database.dump');
-            $zip->addFromString('manifest.json', json_encode([
-                'application' => config('app.name'),
-                'created_at' => now()->toIso8601String(),
-                'database_driver' => 'pgsql',
-                'laravel_version' => app()->version(),
-                'includes_private_files' => (bool) config('backups.include_private_files', true),
-                'backup_record_id' => $backup->getKey(),
-            ], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
 
             if ((bool) config('backups.include_private_files', true)) {
                 $root = storage_path('app/private');
@@ -241,12 +245,37 @@ final class CreateSystemBackup
                             continue;
                         }
                         $zip->addFile($file->getPathname(), 'private-files/'.$relative);
+                        $privateFileCount++;
+                        $privateFilesSize += $file->getSize();
                     }
                 }
             }
+
+            $manifest = [
+                'backup_format_version' => 2,
+                'application' => config('app.name'),
+                'created_at' => now()->toIso8601String(),
+                'database_driver' => 'pgsql',
+                'database_scope' => 'complete_schema_and_data',
+                'database_dump_format' => 'postgresql_custom',
+                'database_dump_bytes' => filesize($databaseDump) ?: 0,
+                'database_dump_sha256' => hash_file('sha256', $databaseDump),
+                'database_public_table_count' => DB::table('information_schema.tables')
+                    ->where('table_schema', 'public')
+                    ->where('table_type', 'BASE TABLE')
+                    ->count(),
+                'laravel_version' => app()->version(),
+                'includes_private_files' => (bool) config('backups.include_private_files', true),
+                'private_file_count' => $privateFileCount,
+                'private_files_bytes' => $privateFilesSize,
+                'backup_record_id' => $backup->getKey(),
+            ];
+            $zip->addFromString('manifest.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
         } finally {
             $zip->close();
         }
+
+        return $manifest;
     }
 
     private function safeFailureMessage(Throwable $exception): string

@@ -4,17 +4,20 @@ namespace App\Modules\Administration\Actions;
 
 use App\Models\SystemBackup;
 use App\Models\User;
+use App\Modules\Administration\Services\SystemBackupArchiveInspector;
 use App\Modules\AuditLogs\Services\AuditLogWriter;
 use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Throwable;
-use ZipArchive;
 
 final class VerifySystemBackup
 {
-    public function __construct(private readonly AuditLogWriter $auditLogs) {}
+    public function __construct(
+        private readonly AuditLogWriter $auditLogs,
+        private readonly SystemBackupArchiveInspector $inspector,
+    ) {}
 
     public function handle(User $actor, SystemBackup $backup): SystemBackup
     {
@@ -37,32 +40,12 @@ final class VerifySystemBackup
             fclose($source);
             fclose($target);
 
-            if (($backup->size_bytes !== null && filesize($archive) !== $backup->size_bytes)
-                || ! hash_equals((string) $backup->sha256, (string) hash_file('sha256', $archive))) {
-                throw new RuntimeException('The backup archive checksum or size does not match its protected record.');
-            }
-
-            $zip = new ZipArchive;
-            if ($zip->open($archive, ZipArchive::RDONLY) !== true) {
-                throw new RuntimeException('The backup archive is not a readable ZIP file.');
-            }
-            try {
-                $manifest = $zip->getFromName('manifest.json');
-                $database = $zip->statName('database/database.dump');
-                if (! is_string($manifest) || $database === false || (int) ($database['size'] ?? 0) === 0) {
-                    throw new RuntimeException('The backup is missing its manifest or PostgreSQL database dump.');
-                }
-                $decoded = json_decode($manifest, true, flags: JSON_THROW_ON_ERROR);
-                if (($decoded['application'] ?? null) !== config('app.name') || ($decoded['database_driver'] ?? null) !== 'pgsql') {
-                    throw new RuntimeException('The backup manifest does not belong to this PostgreSQL application.');
-                }
-            } finally {
-                $zip->close();
-            }
+            $inspection = $this->inspector->inspect($archive, $backup->size_bytes, $backup->sha256);
 
             $backup->update([
                 'verification_status' => 'verified',
-                'verification_message' => 'Checksum, archive structure, manifest, and database dump validated.',
+                'verification_message' => 'Checksum, safe archive structure, manifest, and complete PostgreSQL database dump validated.',
+                'manifest' => $inspection['manifest'],
                 'verified_at' => now(),
                 'verified_by' => $actor->getKey(),
             ]);
