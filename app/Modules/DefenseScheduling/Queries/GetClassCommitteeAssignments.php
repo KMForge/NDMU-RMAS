@@ -89,7 +89,7 @@ class GetClassCommitteeAssignments
                         && $form->actorAssignments->contains(fn ($assignment): bool => (int) $assignment->user_id === (int) $invitee->id));
 
                     return match ($instance?->status) {
-                        'approved', 'completed', 'signed' => 'accepted',
+                        'approved', 'completed', 'signed', 'conformed' => 'accepted',
                         'rejected', 'cancelled' => 'rejected',
                         default => 'pending',
                     };

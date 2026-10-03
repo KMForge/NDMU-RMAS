@@ -15,6 +15,7 @@ use App\Modules\OfficialForms\Actions\ApplyOfficialFormSignature;
 use App\Modules\OfficialForms\Actions\CreateOfficialFormInstance;
 use App\Modules\OfficialForms\Actions\SaveOfficialFormDraft;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
+use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use App\Modules\OfficialForms\Services\OfficialFormSignatureHasher;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -560,8 +561,107 @@ class OfficialFormSignatureTest extends TestCase
         ];
         $expectedCanonicalJson = json_encode($expectedPhase20Structure, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $expectedHash = hash('sha256', (string) $expectedCanonicalJson);
-
         $this->assertSame($expectedHash, $actualHash);
+    }
+
+    public function test_invitation_form_res028_requires_conforme_and_coordinator_before_dean_approval(): void
+    {
+        $panelist = User::factory()->create([
+            'user_type' => UserType::Faculty,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+        $panelist->assignRole('panelist');
+        Permission::findOrCreate('forms.res-028.respond');
+        Permission::findOrCreate('forms.res-028.view');
+        $panelist->givePermissionTo('forms.res-028.respond', 'forms.res-028.view');
+
+        $group = $this->createGroup();
+        $class = $group->researchClass;
+        $coordinator = $class->facilitator;
+        $coordinator->assignRole('program-coordinator');
+        Permission::findOrCreate('classes.assign-advisers');
+        Permission::findOrCreate('forms.res-028.view');
+        $coordinator->givePermissionTo('classes.assign-advisers', 'forms.res-028.view');
+
+        $dean = User::factory()->create([
+            'user_type' => UserType::Faculty,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+        $dean->assignRole('college-dean');
+        Permission::findOrCreate('dashboards.dean.view');
+        Permission::findOrCreate('forms.res-028.view');
+        $dean->givePermissionTo('dashboards.dean.view', 'forms.res-028.view');
+
+        $instance = app(CreateOfficialFormInstance::class)->handle(
+            $coordinator,
+            'RES-028',
+            $group->id,
+            null,
+            'panelist_invitation'
+        );
+
+        $instance->actorAssignments()->create([
+            'user_id' => $panelist->id,
+            'actor_type' => 'panelist',
+            'status' => 'active',
+            'assigned_by' => $coordinator->id,
+            'assigned_at' => now(),
+        ]);
+
+        $this->enrollSignature($panelist);
+        $this->enrollSignature($coordinator);
+        $this->enrollSignature($dean);
+
+        $auth = app(OfficialFormAuthorization::class);
+
+        // Step 1: Panelist signs Conforme (respond)
+        $actionHandler = app(ApplyOfficialFormSignature::class);
+        $actionHandler->handle(
+            $panelist,
+            $instance->id,
+            $instance->current_version_id,
+            'respond'
+        );
+
+        $instance->refresh();
+        // Crucial requirement: Form must NOT be marked approved after only the panelist signs
+        $this->assertSame('conformed', $instance->status);
+        $this->assertNotSame('approved', $instance->status);
+
+        // Step 2: Dean cannot approve yet because Program Coordinator hasn't signed
+        $this->assertFalse($auth->canPerformAction($dean, $instance, 'approve'));
+
+        // Step 3: Program Coordinator endorses
+        $actionHandler->handle(
+            $coordinator,
+            $instance->id,
+            $instance->current_version_id,
+            'endorse'
+        );
+
+        $instance->refresh();
+        $this->assertSame('conformed', $instance->status);
+
+        // Step 4: Now both Invitee and Coordinator have signed, Dean is authorized to approve
+        $this->assertTrue($auth->canPerformAction($dean, $instance, 'approve'));
+
+        // Step 5: Dean notes and approves
+        $actionHandler->handle(
+            $dean,
+            $instance->id,
+            $instance->current_version_id,
+            'approve'
+        );
+
+        $instance->refresh();
+        $this->assertSame('approved', $instance->status);
+
+        // Verify all 3 signatures are registered
+        $this->assertCount(3, $instance->currentVersion->signatures);
     }
 
     private function createFormInstanceForAdviser(string $code = 'RES-040'): array

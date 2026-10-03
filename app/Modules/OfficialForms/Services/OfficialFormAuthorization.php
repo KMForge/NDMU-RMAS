@@ -32,9 +32,27 @@ class OfficialFormAuthorization
             'endorse' => ['forms.res-026.approve', 'forms.res-041.receive'],
             'approve' => ['dashboards.dean.view', 'forms.res-047.approve'],
         ],
-        'res-027' => ['fill' => ['forms.res-027.respond'], 'respond' => ['forms.res-027.respond']],
-        'res-028' => ['fill' => ['forms.res-028.respond'], 'respond' => ['forms.res-028.respond']],
-        'res-029' => ['fill' => ['forms.res-029.respond'], 'respond' => ['forms.res-029.respond']],
+        'res-027' => [
+            'fill' => ['forms.res-027.respond'],
+            'endorse' => ['classes.assign-advisers', 'dashboards.facilitator.view', 'forms.res-027.view'],
+            'respond' => ['forms.res-027.respond'],
+            'conforme' => ['forms.res-027.respond'],
+            'approve' => ['dashboards.dean.view', 'research.approve', 'forms.res-047.approve'],
+        ],
+        'res-028' => [
+            'fill' => ['forms.res-028.respond'],
+            'endorse' => ['classes.assign-advisers', 'dashboards.facilitator.view', 'forms.res-028.view'],
+            'respond' => ['forms.res-028.respond'],
+            'conforme' => ['forms.res-028.respond'],
+            'approve' => ['dashboards.dean.view', 'research.approve', 'forms.res-047.approve'],
+        ],
+        'res-029' => [
+            'fill' => ['forms.res-029.respond'],
+            'endorse' => ['classes.assign-advisers', 'dashboards.facilitator.view', 'forms.res-029.view'],
+            'respond' => ['forms.res-029.respond'],
+            'conforme' => ['forms.res-029.respond'],
+            'approve' => ['dashboards.dean.view', 'research.approve', 'forms.res-047.approve'],
+        ],
         'res-030' => ['fill' => ['forms.res-030.submit'], 'approve' => ['forms.res-030.approve'], 'reject' => ['forms.res-030.approve']],
         'res-031' => ['fill' => ['forms.res-031.sign'], 'sign' => ['forms.res-031.sign']],
         'res-032' => ['fill' => ['forms.res-032.fill'], 'sign' => ['forms.res-032.fill']],
@@ -67,9 +85,24 @@ class OfficialFormAuthorization
             'endorse' => 'program_coordinator',
             'approve' => 'dean',
         ],
-        'res-027' => ['respond' => 'adviser'],
-        'res-028' => ['respond' => 'panelist'],
-        'res-029' => ['respond' => 'language_editor'],
+        'res-027' => [
+            'endorse' => 'program_coordinator',
+            'respond' => 'adviser',
+            'conforme' => 'adviser',
+            'approve' => 'dean',
+        ],
+        'res-028' => [
+            'endorse' => 'program_coordinator',
+            'respond' => 'panelist',
+            'conforme' => 'panelist',
+            'approve' => 'dean',
+        ],
+        'res-029' => [
+            'endorse' => 'program_coordinator',
+            'respond' => 'language_editor',
+            'conforme' => 'language_editor',
+            'approve' => 'dean',
+        ],
         'res-030' => ['approve' => 'authorized_reviewer', 'reject' => 'authorized_reviewer'],
         'res-031' => ['fill' => 'adviser', 'sign' => 'adviser'],
         'res-032' => ['sign' => 'specialist'],
@@ -106,13 +139,22 @@ class OfficialFormAuthorization
             'approve' => ['from' => ['endorsed'], 'to' => 'approved'],
         ],
         'res-027' => [
-            'respond' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'approved'],
+            'endorse' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action', 'conformed', 'approved'], 'to' => 'endorsed'],
+            'respond' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action', 'endorsed', 'conformed', 'approved'], 'to' => 'conformed'],
+            'conforme' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action', 'endorsed', 'conformed', 'approved'], 'to' => 'conformed'],
+            'approve' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action', 'endorsed', 'conformed'], 'to' => 'approved'],
         ],
         'res-028' => [
-            'respond' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'approved'],
+            'endorse' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action', 'conformed', 'approved'], 'to' => 'endorsed'],
+            'respond' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action', 'endorsed', 'conformed', 'approved'], 'to' => 'conformed'],
+            'conforme' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action', 'endorsed', 'conformed', 'approved'], 'to' => 'conformed'],
+            'approve' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action', 'endorsed', 'conformed'], 'to' => 'approved'],
         ],
         'res-029' => [
-            'respond' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action'], 'to' => 'approved'],
+            'endorse' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action', 'conformed', 'approved'], 'to' => 'endorsed'],
+            'respond' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action', 'endorsed', 'conformed', 'approved'], 'to' => 'conformed'],
+            'conforme' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action', 'endorsed', 'conformed', 'approved'], 'to' => 'conformed'],
+            'approve' => ['from' => ['draft', 'submitted', 'in_progress', 'pending_action', 'endorsed', 'conformed'], 'to' => 'approved'],
         ],
         'res-030' => [
             'approve' => ['from' => ['submitted'], 'to' => 'approved'],
@@ -367,6 +409,29 @@ class OfficialFormAuthorization
             }
         }
 
+        if (in_array($code, ['res-027', 'res-028', 'res-029'], true) && $action === 'approve') {
+            $version = $instance->currentVersion;
+            if ($version === null) {
+                return false;
+            }
+            $version->loadMissing('signatures');
+
+            $hasCoordinatorSignature = $version->signatures->contains(
+                fn ($s) => in_array($s->actor_type, ['program_coordinator', 'program_head'], true) || $s->academic_action === 'endorse'
+            );
+
+            $hasInviteeSignature = match ($code) {
+                'res-027' => $version->signatures->contains(fn ($s) => $s->actor_type === 'adviser' || in_array($s->academic_action, ['respond', 'conforme'], true)),
+                'res-028' => $version->signatures->contains(fn ($s) => $s->actor_type === 'panelist' || in_array($s->academic_action, ['respond', 'conforme'], true)),
+                'res-029' => $version->signatures->contains(fn ($s) => $s->actor_type === 'language_editor' || in_array($s->academic_action, ['respond', 'conforme'], true)),
+                default => false,
+            };
+
+            if (! $hasCoordinatorSignature || ! $hasInviteeSignature) {
+                return false;
+            }
+        }
+
         if ($requiredActorType !== null) {
             return $this->checkSpecificActorTypeContext($user, $instance, $requiredActorType);
         }
@@ -386,9 +451,40 @@ class OfficialFormAuthorization
     /** @return array{from: list<string>, to: string}|null */
     public function transitionFor(OfficialFormInstance $instance, string $action): ?array
     {
-        $code = strtolower($instance->definition->code);
+        $code = strtolower($instance->definition->code ?? '');
+
+        if (in_array($code, ['res-027', 'res-028', 'res-029'], true)) {
+            return $this->invitationTransitionFor($instance, $action);
+        }
 
         return self::FORM_WORKFLOWS[$code][$action] ?? null;
+    }
+
+    /** @return array{from: list<string>, to: string}|null */
+    public function invitationTransitionFor(OfficialFormInstance $instance, string $action): ?array
+    {
+        $version = $instance->currentVersion;
+        $version?->loadMissing('signatures');
+        $hasInviteeSigned = $version?->signatures?->contains(
+            fn ($s) => in_array($s->actor_type, ['panelist', 'adviser', 'language_editor'], true)
+                || in_array($s->academic_action, ['respond', 'conforme'], true)
+        ) ?? false;
+
+        return match ($action) {
+            'endorse' => [
+                'from' => ['draft', 'submitted', 'in_progress', 'pending_action', 'endorsed', 'conformed', 'approved'],
+                'to' => $hasInviteeSigned ? 'conformed' : 'endorsed',
+            ],
+            'respond', 'conforme' => [
+                'from' => ['draft', 'submitted', 'in_progress', 'pending_action', 'endorsed', 'conformed', 'approved'],
+                'to' => 'conformed',
+            ],
+            'approve' => [
+                'from' => ['draft', 'submitted', 'in_progress', 'pending_action', 'endorsed', 'conformed'],
+                'to' => 'approved',
+            ],
+            default => null,
+        };
     }
 
     public function requiredActorType(OfficialFormInstance $instance, string $action): ?string

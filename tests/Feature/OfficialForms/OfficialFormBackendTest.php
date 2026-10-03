@@ -1451,7 +1451,7 @@ class OfficialFormBackendTest extends TestCase
         (new AssignOfficialFormActor)->handle($group->creator, $res029, $editor->id, 'language_editor');
 
         // Execute transition to conformed
-        (new TransitionOfficialForm)->handle($editor, $res029, 'respond', 'approved');
+        (new TransitionOfficialForm)->handle($editor, $res029, 'respond', 'conformed');
 
         $assignment = OfficialFormActorAssignment::query()
             ->where('official_form_instance_id', $res029->id)

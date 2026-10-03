@@ -224,6 +224,56 @@
         </form>
 
         <section class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-slate-900 shadow-sm">
+            @if (in_array(strtoupper($instance->definition->code), ['RES-027', 'RES-028', 'RES-029'], true))
+                @php
+                    $currVer = $instance->currentVersion;
+                    $hasCoordSig = $currVer?->signatures?->contains(fn ($s) => in_array($s->actor_type, ['program_coordinator', 'program_head'], true) || $s->academic_action === 'endorse') ?? false;
+                    $hasInvSig = $currVer?->signatures?->contains(fn ($s) => in_array($s->actor_type, ['panelist', 'adviser', 'language_editor'], true) || in_array($s->academic_action, ['respond', 'conforme'], true)) ?? false;
+                    $hasDeanSig = $currVer?->signatures?->contains(fn ($s) => $s->actor_type === 'dean' || $s->academic_action === 'approve') ?? false;
+                @endphp
+                <div class="w-full rounded-xl border border-sky-200 bg-sky-50/70 p-4 text-xs text-sky-950 mb-2">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-black text-sky-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                            <i class="ph ph-shield-check text-sm text-sky-700"></i> Official Signature &amp; Approval Sequence
+                        </span>
+                        <span class="rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider {{ $instance->status === 'approved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : ($instance->status === 'conformed' ? 'bg-teal-100 text-teal-800 border border-teal-300' : 'bg-amber-100 text-amber-800 border border-amber-300') }}">
+                            {{ str($instance->status)->headline() }}
+                        </span>
+                    </div>
+                    <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="rounded-lg p-2.5 border {{ $hasCoordSig ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-white border-slate-200 text-slate-600' }}">
+                            <div class="font-bold flex items-center gap-1.5">
+                                <span class="inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] {{ $hasCoordSig ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700' }}">{!! $hasCoordSig ? '✓' : '1' !!}</span>
+                                <span>Program Coordinator</span>
+                            </div>
+                            <p class="mt-1 text-[11px] {{ $hasCoordSig ? 'text-emerald-700' : 'text-slate-500' }}">
+                                {{ $hasCoordSig ? 'Signed & Endorsed' : 'Pending Endorsement' }}
+                            </p>
+                        </div>
+                        <div class="rounded-lg p-2.5 border {{ $hasInvSig ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-white border-slate-200 text-slate-600' }}">
+                            <div class="font-bold flex items-center gap-1.5">
+                                <span class="inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] {{ $hasInvSig ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700' }}">{!! $hasInvSig ? '✓' : '2' !!}</span>
+                                <span>Invitee (Conforme)</span>
+                            </div>
+                            <p class="mt-1 text-[11px] {{ $hasInvSig ? 'text-emerald-700' : 'text-slate-500' }}">
+                                {{ $hasInvSig ? 'Signed (Conformed)' : 'Pending Acceptance' }}
+                            </p>
+                        </div>
+                        <div class="rounded-lg p-2.5 border {{ $hasDeanSig ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-white border-slate-200 text-slate-600' }}">
+                            <div class="font-bold flex items-center gap-1.5">
+                                <span class="inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] {{ $hasDeanSig ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700' }}">{!! $hasDeanSig ? '✓' : '3' !!}</span>
+                                <span>College Dean</span>
+                            </div>
+                            <p class="mt-1 text-[11px] {{ $hasDeanSig ? 'text-emerald-700' : 'text-slate-500' }}">
+                                {{ $hasDeanSig ? 'Noted & Approved' : (!$hasCoordSig || !$hasInvSig ? 'Awaiting prior signatures' : 'Ready for Dean approval') }}
+                            </p>
+                        </div>
+                    </div>
+                    @if (!$hasDeanSig && (!$hasCoordSig || !$hasInvSig))
+                        <p class="mt-2.5 text-[11px] text-sky-800">Note: Per university policy, final Dean approval is only unlocked once both the Program Coordinator and Invitee have signed.</p>
+                    @endif
+                </div>
+            @endif
             @php
                 $isRes036 = strtoupper($instance->definition->code) === 'RES-036';
                 $isRes036Owner = ! $isRes036 || (int) $instance->initiated_by === (int) auth()->id();
@@ -282,6 +332,8 @@
                             'sign_member_1' => 'Sign as Panel Member 1',
                             'sign_member_2' => 'Sign as Panel Member 2',
                             'respond' => in_array(strtoupper($instance->definition->code), ['RES-027', 'RES-028'], true) ? 'Sign & Accept Invitation' : 'Sign & Respond',
+                            'endorse' => in_array(strtoupper($instance->definition->code), ['RES-027', 'RES-028', 'RES-029'], true) ? 'Sign as Program Coordinator' : 'Sign & Endorse',
+                            'approve' => in_array(strtoupper($instance->definition->code), ['RES-027', 'RES-028', 'RES-029'], true) ? 'Note & Approve as Dean' : 'Sign & Approve',
                             default => 'Sign & '.str($action)->headline(),
                         } }}
                     </button>
