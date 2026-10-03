@@ -54,12 +54,25 @@ class OfficialFormInstancePolicy
             && $user->can('evaluations.create')
             && $instance->titlePresentation !== null
             && $this->hasActivePanelAssignment($instance, $user);
+        $isAssignedGroupPanelist = $instance->group !== null
+            && in_array($code, ['res-036', 'res-037', 'res-039'], true)
+            && ($instance->group->defenses()
+                ->whereHas('activePanelAssignments', fn ($q) => $q->where('user_id', $user->id))
+                ->exists()
+                || $instance->group->panelCommittees()
+                    ->whereHas('members', fn ($q) => $q->where('user_id', $user->id))
+                    ->exists()
+                || OfficialFormInstance::query()
+                    ->where('research_class_group_id', $instance->group->id)
+                    ->whereHas('actorAssignments', fn ($q) => $q->where('user_id', $user->id)->where('actor_type', 'panelist')->where('status', 'active'))
+                    ->exists());
         $isClassFacilitator = ($instance->researchClass !== null && (int) $instance->researchClass->facilitator_id === (int) $user->id)
             || ($instance->group?->researchClass !== null && (int) $instance->group->researchClass->facilitator_id === (int) $user->id);
 
         $hasViewPermission = $user->can("forms.{$code}.view")
             || $user->getAllPermissions()->contains(fn ($p) => str_starts_with($p->name, "forms.{$code}."))
             || $isAssignedRes026Panelist
+            || $isAssignedGroupPanelist
             || $isClassFacilitator
             || $user->can('dashboards.dean.view')
             || $user->hasRole('college-dean')

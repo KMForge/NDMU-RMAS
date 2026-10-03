@@ -285,6 +285,7 @@ class OfficialFormWorkspaceController extends Controller
         $this->rejectUnexpectedInput($request, ['context_key']);
         $sourceModel = match ($sourceKind) {
             'consultation-record' => ConsultationRecord::query()->findOrFail($source),
+            'document' => Document::query()->findOrFail($source),
             'document-review' => DocumentReview::query()->with('document')->findOrFail($source),
             'revision-request' => RevisionRequest::query()->findOrFail($source),
             'res-042' => OfficialFormInstance::query()->with('definition')->findOrFail($source),
@@ -293,6 +294,7 @@ class OfficialFormWorkspaceController extends Controller
         };
 
         $groupId = match (true) {
+            $sourceModel instanceof Document => $sourceModel->research_class_group_id,
             $sourceModel instanceof DocumentReview => $sourceModel->research_class_group_id ?? $sourceModel->document?->research_class_group_id,
             $sourceModel instanceof DefenseSchedule => $sourceModel->defense?->research_class_group_id,
             default => $sourceModel->research_class_group_id,
@@ -300,14 +302,25 @@ class OfficialFormWorkspaceController extends Controller
 
         $existing = OfficialFormInstance::query()
             ->where('official_form_definition_id', $definition->id)
-            ->where('source_type', $sourceModel::class)
-            ->where('source_id', $sourceModel->getKey())
-            ->where(function ($query) use ($request) {
-                $query->where('initiated_by', $request->user()->id)
-                    ->orWhereHas('actorAssignments', function ($aq) use ($request) {
-                        $aq->where('user_id', $request->user()->id)->where('status', 'active');
-                    });
+            ->where(function ($query) use ($sourceModel, $groupId, $request, $definition) {
+                if ($definition->code === 'RES-039') {
+                    $query->where('research_class_group_id', (int) $groupId)
+                        ->orWhere(function ($sq) use ($sourceModel) {
+                            $sq->where('source_type', $sourceModel::class)
+                                ->where('source_id', $sourceModel->getKey());
+                        });
+                } else {
+                    $query->where('source_type', $sourceModel::class)
+                        ->where('source_id', $sourceModel->getKey())
+                        ->where(function ($sub) use ($request) {
+                            $sub->where('initiated_by', $request->user()->id)
+                                ->orWhereHas('actorAssignments', function ($aq) use ($request) {
+                                    $aq->where('user_id', $request->user()->id)->where('status', 'active');
+                                });
+                        });
+                }
             })
+            ->latest('id')
             ->first();
 
         if ($existing) {
@@ -330,11 +343,13 @@ class OfficialFormWorkspaceController extends Controller
             $fallback = OfficialFormInstance::query()
                 ->where('official_form_definition_id', $definition->id)
                 ->where('research_class_group_id', (int) $groupId)
-                ->where(function ($query) use ($request) {
-                    $query->where('initiated_by', $request->user()->id)
-                        ->orWhereHas('actorAssignments', function ($aq) use ($request) {
-                            $aq->where('user_id', $request->user()->id)->where('status', 'active');
-                        });
+                ->when($definition->code !== 'RES-039', function ($query) use ($request) {
+                    $query->where(function ($sub) use ($request) {
+                        $sub->where('initiated_by', $request->user()->id)
+                            ->orWhereHas('actorAssignments', function ($aq) use ($request) {
+                                $aq->where('user_id', $request->user()->id)->where('status', 'active');
+                            });
+                    });
                 })
                 ->latest('id')
                 ->first();

@@ -61,6 +61,7 @@
     $source = $officialFormInstance?->source;
     $isDocReview = $source instanceof \App\Models\DocumentReview;
     $isRevRequest = $source instanceof \App\Models\RevisionRequest;
+    $isDoc = $source instanceof \App\Models\Document;
 
     // 7. Defense Stage Selection
     $isProposalDefense = ! empty($payload['defense_stage_proposal'])
@@ -145,6 +146,33 @@
                     'pages' => '',
                     'approval' => '',
                 ];
+            }
+        }
+
+        if ($secKey === 'others' && $group) {
+            $existingSuggestions = collect($rows)->pluck('suggestions')->filter()->map(fn ($s) => trim((string) $s))->all();
+            $docComments = \App\Models\DocumentReviewComment::query()
+                ->whereHas('document', fn ($q) => $q->where('research_class_group_id', $group->id))
+                ->with('author')
+                ->latest()
+                ->get();
+
+            $newCommentRows = [];
+            foreach ($docComments as $dc) {
+                if (! in_array(trim($dc->comment), $existingSuggestions, true)) {
+                    $newCommentRows[] = [
+                        'suggestions' => $dc->comment,
+                        'recommended_by' => $dc->author?->name ?? 'Panel Member',
+                        'revision_made' => '',
+                        'pages' => $dc->page_number ? 'Page '.$dc->page_number : '',
+                        'approval' => '',
+                    ];
+                }
+            }
+
+            if (! empty($newCommentRows)) {
+                $nonEmptyRows = array_values(array_filter($rows, fn ($r) => ! empty(trim((string) ($r['suggestions'] ?? '')))));
+                $rows = array_merge($nonEmptyRows, $newCommentRows);
             }
         }
 
@@ -333,6 +361,11 @@
             <div class="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs mt-3 no-print">
                 <p class="font-bold text-[#0e5c3a]">Source Revision Instructions ({{ $source->title }}):</p>
                 <p class="mt-1 text-gray-700">{{ $source->instructions }}</p>
+            </div>
+        @elseif ($isDoc)
+            <div class="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs mt-3 no-print">
+                <p class="font-bold text-[#0e5c3a]">Source Document Manuscript:</p>
+                <p class="mt-1 text-gray-700">{{ $source->original_filename }} ({{ $source->document_stage?->label() ?? 'Defense Manuscript' }})</p>
             </div>
         @endif
 

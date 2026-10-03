@@ -47,7 +47,7 @@ class CreateOfficialFormInstance
         'RES-031' => [ConsultationRecord::class],
         'RES-036' => [DefenseSchedule::class],
         'RES-037' => [DefenseEvaluationRound::class, DefenseSchedule::class],
-        'RES-039' => [DocumentReview::class, RevisionRequest::class],
+        'RES-039' => [DocumentReview::class, RevisionRequest::class, Document::class],
         'RES-043A' => [OfficialFormInstance::class],
         'RES-043B' => [OfficialFormInstance::class],
     ];
@@ -223,7 +223,7 @@ class CreateOfficialFormInstance
                 ResearchClass::query()->lockForUpdate()->find($classId);
             }
 
-            $this->validateSourceLinkage($initiator, $groupId, $sourceType, $sourceId);
+            $this->validateSourceLinkage($initiator, $groupId, $sourceType, $sourceId, $definition->code);
             $this->validateCardinality($definition, $groupId, $classId, $contextKey, $targetActorId, $sourceId);
 
             $instance = OfficialFormInstance::query()->create([
@@ -400,7 +400,7 @@ class CreateOfficialFormInstance
         }
     }
 
-    private function validateSourceLinkage(User $initiator, ?int $groupId, ?string $sourceType, ?int $sourceId): void
+    private function validateSourceLinkage(User $initiator, ?int $groupId, ?string $sourceType, ?int $sourceId, string $formCodeUpper): void
     {
         if ($sourceType === null || $sourceId === null) {
             return;
@@ -413,12 +413,16 @@ class CreateOfficialFormInstance
             }
         } elseif ($sourceType === Document::class) {
             $document = Document::query()->lockForUpdate()->find($sourceId);
-            if (! $document
-                || $document->document_stage !== DocumentStage::TitleProposal
-                || $document->status !== DocumentStatus::ApprovedForPresentation
-                || ! $document->is_current
-                || ($groupId !== null && (int) $document->research_class_group_id !== (int) $groupId)) {
-                throw new InvalidArgumentException('RES-026 requires the current approved Title Proposal document for this research group.');
+            if (! $document || ($groupId !== null && (int) $document->research_class_group_id !== (int) $groupId)) {
+                throw new InvalidArgumentException('Source Document does not belong to the specified group.');
+            }
+
+            if ($formCodeUpper === 'RES-026') {
+                if ($document->document_stage !== DocumentStage::TitleProposal
+                    || $document->status !== DocumentStatus::ApprovedForPresentation
+                    || ! $document->is_current) {
+                    throw new InvalidArgumentException('RES-026 requires the current approved Title Proposal document for this research group.');
+                }
             }
         } elseif ($sourceType === ResearchClassGroupAdviserRequest::class) {
             $adviserRequest = ResearchClassGroupAdviserRequest::query()->lockForUpdate()->find($sourceId);

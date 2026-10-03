@@ -9,6 +9,7 @@ use App\Enums\UserType;
 use App\Models\DefenseRoom;
 use App\Models\DefenseSchedule;
 use App\Models\Document;
+use App\Models\OfficialFormInstance;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
@@ -16,6 +17,7 @@ use App\Models\ResearchClassGroupMember;
 use App\Models\User;
 use App\Modules\DefenseScheduling\Actions\AssignGroupDefenseCommittee;
 use App\Modules\DefenseScheduling\Actions\ScheduleDefense;
+use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
 use Carbon\Carbon;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -47,6 +49,7 @@ class DefenseDashboardIntegrationTest extends TestCase
         parent::setUp();
 
         $this->seed(RolePermissionSeeder::class);
+        (new SyncOfficialFormCatalog)->handle();
 
         Permission::firstOrCreate(['name' => 'defenses.manage', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'dashboards.facilitator.view', 'guard_name' => 'web']);
@@ -54,6 +57,7 @@ class DefenseDashboardIntegrationTest extends TestCase
         Permission::firstOrCreate(['name' => 'dashboards.adviser.view', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'dashboards.panelist.view', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'forms.res-036.evaluate', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'forms.res-039.approve', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'evaluations.create', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'documents.download', 'guard_name' => 'web']);
 
@@ -246,16 +250,26 @@ class DefenseDashboardIntegrationTest extends TestCase
             ->assertSeeText('Download Annotated PDF')
             ->assertSee('Proposal For Panel Review.pdf');
 
-        $this->actingAs($this->panelist)
+        $response = $this->actingAs($this->panelist)
             ->post(route('panelist.documents.comments.store', $document), [
                 'comment' => 'Clarify the sampling method before the defense.',
                 'severity' => 'revision',
                 'page_number' => 8,
-            ])
-            ->assertRedirect(route('panelist.dashboard', [
-                'tab' => 'recommendations',
-                'document_id' => $document->id,
-            ]));
+            ]);
+
+        $res039 = OfficialFormInstance::query()
+            ->whereHas('definition', fn ($q) => $q->where('code', 'RES-039'))
+            ->where('research_class_group_id', $this->group->id)
+            ->first();
+
+        $this->assertNotNull($res039);
+        $response->assertRedirect(route('official-forms.workspace.show', $res039));
+        $this->assertStringContainsString('Clarify the sampling method before the defense.', json_encode($res039->fresh()->currentVersion->payload));
+
+        $this->actingAs($this->panelist)
+            ->get(route('official-forms.workspace.show', $res039))
+            ->assertOk()
+            ->assertSee('Clarify the sampling method before the defense.');
 
         $this->assertDatabaseHas('document_review_comments', [
             'document_id' => $document->id,

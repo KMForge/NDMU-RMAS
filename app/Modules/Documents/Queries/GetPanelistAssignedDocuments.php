@@ -4,6 +4,7 @@ namespace App\Modules\Documents\Queries;
 
 use App\Models\Defense;
 use App\Models\Document;
+use App\Models\OfficialFormInstance;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -75,6 +76,19 @@ class GetPanelistAssignedDocuments
             ?? $group?->name
             ?? $document->original_filename;
         $scheduleId = $defense?->current_schedule_id ?? $round?->defense_schedule_id ?? $defense?->currentSchedule?->id;
+        $res039Instance = $group ? OfficialFormInstance::query()
+            ->whereHas('definition', fn ($q) => $q->where('code', 'RES-039'))
+            ->where('research_class_group_id', $group->id)
+            ->latest('id')
+            ->first() : null;
+
+        $res039Url = $res039Instance
+            ? route('official-forms.workspace.show', $res039Instance)
+            : ($group ? route('official-forms.workspace.store-from-source', [
+                'definition' => 'res-039',
+                'sourceKind' => 'document',
+                'source' => $document->getKey(),
+            ]) : null);
 
         return [
             'id' => $document->getKey(),
@@ -115,6 +129,7 @@ class GetPanelistAssignedDocuments
                         ? 'proposal-eval'
                         : 'final-eval',
                 ]),
+            'res039Url' => $res039Url,
             'reviewUrl' => route('panelist.dashboard', [
                 'tab' => 'recommendations',
                 'document_id' => $document->getKey(),

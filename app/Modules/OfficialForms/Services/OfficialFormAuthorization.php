@@ -62,7 +62,7 @@ class OfficialFormAuthorization
         'res-036' => ['fill' => ['forms.res-036.evaluate'], 'evaluate' => ['forms.res-036.evaluate']],
         'res-037' => ['fill' => ['forms.res-037.sign'], 'sign' => ['forms.res-037.sign']],
         'res-038' => ['fill' => ['forms.res-038.endorse'], 'endorse' => ['forms.res-038.endorse'], 'conforme' => ['forms.res-038.endorse']],
-        'res-039' => ['fill' => ['forms.res-039.fill'], 'sign' => ['forms.res-039.fill']],
+        'res-039' => ['view' => ['forms.res-039.view', 'forms.res-039.approve'], 'fill' => ['forms.res-039.fill', 'forms.res-039.approve', 'evaluations.create'], 'sign' => ['forms.res-039.fill', 'forms.res-039.approve']],
         'res-040' => ['view' => ['forms.res-040.view'], 'fill' => ['forms.res-040.endorse'], 'endorse' => ['forms.res-040.endorse'], 'receive' => ['forms.res-040.receive', 'dashboards.facilitator.view']],
         'res-041' => ['view' => ['forms.res-041.view'], 'fill' => ['forms.res-041.fill'], 'endorse' => ['forms.res-041.endorse'], 'receive' => ['forms.res-041.receive']],
         'res-042' => ['fill' => ['forms.res-042.submit']],
@@ -280,12 +280,20 @@ class OfficialFormAuthorization
                 ->whereHas('actorAssignments', fn ($q) => $q->where('user_id', $user->id)->where('actor_type', $requiredActorType)->where('status', 'active'))
                 ->exists();
 
+            $isGroupPanelist = $group->defenses()
+                ->whereHas('activePanelAssignments', fn ($q) => $q->where('user_id', $user->id))
+                ->exists()
+                || $group->panelCommittees()
+                    ->whereHas('members', fn ($q) => $q->where('user_id', $user->id))
+                    ->exists();
+
             $isGroupContext = $this->isCurrentGroupMember($user, $group)
                 || (int) $group->leader_student_id === (int) $user->id
                 || (int) $group->adviser_id === (int) $user->id
                 || (int) $group->created_by === (int) $user->id
                 || $this->isSystemAdmin($user)
-                || $hasGroupActorAssignment;
+                || $hasGroupActorAssignment
+                || $isGroupPanelist;
 
             return $hasPerm && $isGroupContext;
         }
@@ -647,6 +655,21 @@ class OfficialFormAuthorization
                     if (DefensePanelAssignment::where('defense_id', $instance->source->defense_id)->where('user_id', $user->id)->exists()) {
                         return true;
                     }
+                }
+
+                $isAssignedGroupPanelist = $group->defenses()
+                    ->whereHas('activePanelAssignments', fn ($q) => $q->where('user_id', $user->id))
+                    ->exists()
+                    || $group->panelCommittees()
+                        ->whereHas('members', fn ($q) => $q->where('user_id', $user->id))
+                        ->exists()
+                    || OfficialFormInstance::query()
+                        ->where('research_class_group_id', $group->id)
+                        ->whereHas('actorAssignments', fn ($q) => $q->where('user_id', $user->id)->where('actor_type', 'panelist')->where('status', 'active'))
+                        ->exists();
+
+                if ($isAssignedGroupPanelist) {
+                    return true;
                 }
             }
         }

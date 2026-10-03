@@ -138,13 +138,19 @@ document.addEventListener('alpine:init', () => {
                     },
                 });
                 const data = await res.json();
-                if (res.ok && data.comment) {
-                    this.recommendationComments.unshift(data.comment);
-                    const txt = form.querySelector('textarea[name="comment"]');
-                    if (txt) txt.value = '';
+                if (res.ok) {
+                    if (data.redirect_url) {
+                        window.location.assign(data.redirect_url);
+                        return;
+                    }
+                    if (data.comment) {
+                        this.recommendationComments.unshift(data.comment);
+                        const txt = form.querySelector('textarea[name="comment"]');
+                        if (txt) txt.value = '';
 
-                    const targetPageNum = data.comment.page_number || this.activePageNumber || 1;
-                    window.appendDocumentComment?.(Object.assign({}, data.comment, { page_number: targetPageNum }));
+                        const targetPageNum = data.comment.page_number || this.activePageNumber || 1;
+                        window.appendDocumentComment?.(Object.assign({}, data.comment, { page_number: targetPageNum }));
+                    }
                 } else if (data.message) {
                     alert(data.message);
                 }
@@ -1985,7 +1991,7 @@ document.addEventListener('alpine:init', () => {
                     <div class="bg-white rounded-2xl border border-slate-200/60 shadow-xs p-5 space-y-3">
                         <span class="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Defense Review Actions</span>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                             <a
                                 href="{{ $selectedReviewPaper['evaluationUrl'] }}"
                                 class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#073823] text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
@@ -1993,6 +1999,15 @@ document.addEventListener('alpine:init', () => {
                                 <i class="ph ph-check-circle text-base"></i>
                                 <span>Open Official Scoring (RES-036)</span>
                             </a>
+                            @if (! empty($selectedReviewPaper['res039Url']))
+                                <a
+                                    href="{{ $selectedReviewPaper['res039Url'] }}"
+                                    class="px-5 py-3 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-900 text-xs font-bold rounded-xl shadow-2xs transition flex items-center justify-center gap-2 cursor-pointer"
+                                >
+                                    <i class="ph ph-table text-base"></i>
+                                    <span>Open Revision Chart (RES-039)</span>
+                                </a>
+                            @endif
                             <a
                                 href="{{ $selectedReviewPaper['downloadUrl'] }}"
                                 class="px-5 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl shadow-2xs transition flex items-center justify-center gap-2 cursor-pointer"
