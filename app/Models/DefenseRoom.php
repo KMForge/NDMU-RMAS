@@ -19,6 +19,11 @@ class DefenseRoom extends Model
         return $this->hasMany(DefenseSchedule::class, 'room_id');
     }
 
+    public function sessions(): HasMany
+    {
+        return $this->hasMany(DefenseSession::class, 'room_id');
+    }
+
     protected function casts(): array
     {
         return [

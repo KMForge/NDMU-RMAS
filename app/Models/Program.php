@@ -19,4 +19,16 @@ class Program extends Model
     {
         return $this->hasMany(StudentProfile::class);
     }
+
+    public function researchGroups(): HasMany
+    {
+        return $this->hasMany(ResearchGroup::class);
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
 }
