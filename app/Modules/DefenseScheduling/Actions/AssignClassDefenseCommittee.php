@@ -122,26 +122,20 @@ class AssignClassDefenseCommittee
                 ]
             );
 
-            // Sync class panel members
-            ResearchClassPanelMember::updateOrCreate(
-                [
-                    'committee_id' => $committee->id,
-                    'panel_position' => 'member_1',
-                ],
-                [
-                    'user_id' => $panelMember1Id,
-                ]
-            );
+            // Sync class panel members: delete existing first to prevent duplicate key collisions
+            ResearchClassPanelMember::where('committee_id', $committee->id)->delete();
 
-            ResearchClassPanelMember::updateOrCreate(
-                [
-                    'committee_id' => $committee->id,
-                    'panel_position' => 'member_2',
-                ],
-                [
-                    'user_id' => $panelMember2Id,
-                ]
-            );
+            ResearchClassPanelMember::create([
+                'committee_id' => $committee->id,
+                'panel_position' => 'member_1',
+                'user_id' => $panelMember1Id,
+            ]);
+
+            ResearchClassPanelMember::create([
+                'committee_id' => $committee->id,
+                'panel_position' => 'member_2',
+                'user_id' => $panelMember2Id,
+            ]);
 
             // 5. Query groups in the class
             $groupsQuery = ResearchClassGroup::where('research_class_id', $researchClass->id)
@@ -176,25 +170,19 @@ class AssignClassDefenseCommittee
                     ]
                 );
 
-                ResearchGroupPanelMember::updateOrCreate(
-                    [
-                        'committee_id' => $groupCommittee->id,
-                        'panel_position' => 'member_1',
-                    ],
-                    [
-                        'user_id' => $panelMember1Id,
-                    ]
-                );
+                ResearchGroupPanelMember::where('committee_id', $groupCommittee->id)->delete();
 
-                ResearchGroupPanelMember::updateOrCreate(
-                    [
-                        'committee_id' => $groupCommittee->id,
-                        'panel_position' => 'member_2',
-                    ],
-                    [
-                        'user_id' => $panelMember2Id,
-                    ]
-                );
+                ResearchGroupPanelMember::create([
+                    'committee_id' => $groupCommittee->id,
+                    'panel_position' => 'member_1',
+                    'user_id' => $panelMember1Id,
+                ]);
+
+                ResearchGroupPanelMember::create([
+                    'committee_id' => $groupCommittee->id,
+                    'panel_position' => 'member_2',
+                    'user_id' => $panelMember2Id,
+                ]);
             }
 
             return $committee->load('members.user', 'chairperson');

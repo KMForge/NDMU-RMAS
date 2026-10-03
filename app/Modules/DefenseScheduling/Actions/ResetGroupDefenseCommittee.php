@@ -74,16 +74,14 @@ class ResetGroupDefenseCommittee
                 ]
             );
 
+            ResearchGroupPanelMember::where('committee_id', $groupCommittee->id)->delete();
+
             foreach ($classCommittee->members as $member) {
-                ResearchGroupPanelMember::updateOrCreate(
-                    [
-                        'committee_id' => $groupCommittee->id,
-                        'panel_position' => $member->panel_position,
-                    ],
-                    [
-                        'user_id' => $member->user_id,
-                    ]
-                );
+                ResearchGroupPanelMember::create([
+                    'committee_id' => $groupCommittee->id,
+                    'panel_position' => $member->panel_position,
+                    'user_id' => $member->user_id,
+                ]);
             }
 
             return $groupCommittee->load('members.user', 'chairperson');

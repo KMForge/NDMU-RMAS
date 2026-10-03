@@ -9,10 +9,13 @@ use App\Modules\DefenseScheduling\Actions\AssignClassDefenseCommittee;
 use App\Modules\DefenseScheduling\Actions\AssignGroupDefenseCommittee;
 use App\Modules\DefenseScheduling\Actions\ResetGroupDefenseCommittee;
 use App\Modules\DefenseScheduling\Queries\GetClassCommitteeAssignments;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
+use Throwable;
 
 class ClassDefenseCommitteeController extends Controller
 {
@@ -53,12 +56,33 @@ class ClassDefenseCommitteeController extends Controller
                 $validated['group_ids'] ?? [],
                 (bool) ($validated['override_custom'] ?? false),
             );
+        } catch (ValidationException $e) {
+            $message = collect($e->errors())->flatten()->first() ?? $e->getMessage();
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message, 'errors' => $e->errors()], 422);
+            }
+
+            return back()->withErrors($e->errors())->withInput();
+        } catch (AuthorizationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 403);
+            }
+
+            return back()->withErrors(['defense_committee' => $e->getMessage()])->withInput();
         } catch (InvalidArgumentException $e) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => $e->getMessage()], 422);
             }
 
             return back()->withErrors(['defense_committee' => $e->getMessage()])->withInput();
+        } catch (Throwable $e) {
+            report($e);
+            $message = $e->getMessage() ?: 'Failed to assign class defense committee.';
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message], 422);
+            }
+
+            return back()->withErrors(['defense_committee' => $message])->withInput();
         }
 
         if ($request->expectsJson()) {
@@ -94,12 +118,33 @@ class ClassDefenseCommitteeController extends Controller
                 $validated['panel_user_ids'],
                 $validated['is_custom'] ?? true,
             );
+        } catch (ValidationException $e) {
+            $message = collect($e->errors())->flatten()->first() ?? $e->getMessage();
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message, 'errors' => $e->errors()], 422);
+            }
+
+            return back()->withErrors($e->errors())->withInput();
+        } catch (AuthorizationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 403);
+            }
+
+            return back()->withErrors(['group_defense_committee' => $e->getMessage()])->withInput();
         } catch (InvalidArgumentException $e) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => $e->getMessage()], 422);
             }
 
             return back()->withErrors(['group_defense_committee' => $e->getMessage()])->withInput();
+        } catch (Throwable $e) {
+            report($e);
+            $message = $e->getMessage() ?: 'Failed to update group defense committee.';
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message], 422);
+            }
+
+            return back()->withErrors(['group_defense_committee' => $message])->withInput();
         }
 
         if ($request->expectsJson()) {
@@ -124,12 +169,33 @@ class ClassDefenseCommitteeController extends Controller
 
         try {
             $committee = $action->handle($request->user(), $group, $validated['defense_type']);
+        } catch (ValidationException $e) {
+            $message = collect($e->errors())->flatten()->first() ?? $e->getMessage();
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message, 'errors' => $e->errors()], 422);
+            }
+
+            return back()->withErrors($e->errors());
+        } catch (AuthorizationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 403);
+            }
+
+            return back()->withErrors(['group_defense_committee' => $e->getMessage()]);
         } catch (InvalidArgumentException $e) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => $e->getMessage()], 422);
             }
 
             return back()->withErrors(['group_defense_committee' => $e->getMessage()]);
+        } catch (Throwable $e) {
+            report($e);
+            $message = $e->getMessage() ?: 'Failed to reset group defense committee.';
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message], 422);
+            }
+
+            return back()->withErrors(['group_defense_committee' => $message]);
         }
 
         if ($request->expectsJson()) {

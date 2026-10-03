@@ -121,25 +121,20 @@ class AssignGroupDefenseCommittee
                 ]
             );
 
-            ResearchGroupPanelMember::updateOrCreate(
-                [
-                    'committee_id' => $groupCommittee->id,
-                    'panel_position' => 'member_1',
-                ],
-                [
-                    'user_id' => $panelMember1Id,
-                ]
-            );
+            // Delete existing members to prevent duplicate key violations when swapping or changing members
+            ResearchGroupPanelMember::where('committee_id', $groupCommittee->id)->delete();
 
-            ResearchGroupPanelMember::updateOrCreate(
-                [
-                    'committee_id' => $groupCommittee->id,
-                    'panel_position' => 'member_2',
-                ],
-                [
-                    'user_id' => $panelMember2Id,
-                ]
-            );
+            ResearchGroupPanelMember::create([
+                'committee_id' => $groupCommittee->id,
+                'panel_position' => 'member_1',
+                'user_id' => $panelMember1Id,
+            ]);
+
+            ResearchGroupPanelMember::create([
+                'committee_id' => $groupCommittee->id,
+                'panel_position' => 'member_2',
+                'user_id' => $panelMember2Id,
+            ]);
 
             return $groupCommittee->load('members.user', 'chairperson');
         });

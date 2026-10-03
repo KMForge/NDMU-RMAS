@@ -292,4 +292,35 @@ class DefenseCommitteeAssignmentTest extends TestCase
         $this->assertSame('rejected', $statuses['member_1_invitation_status']);
         $this->assertSame('pending', $statuses['member_2_invitation_status']);
     }
+
+    public function test_swapping_group_panel_members_does_not_violate_unique_constraint(): void
+    {
+        // First assignment: member 1 = panel1, member 2 = panel2
+        $action = app(AssignGroupDefenseCommittee::class);
+        $action->execute(
+            researchClassGroupId: $this->classGroup1->id,
+            defenseType: 'proposal_defense',
+            chairpersonId: $this->chairperson->id,
+            panelMember1Id: $this->panel1->id,
+            panelMember2Id: $this->panel2->id,
+            assignedByUserId: $this->facilitator->id
+        );
+
+        // Now swap them: member 1 = panel2, member 2 = panel1
+        // Previously this threw Unique violation "rg_panel_members_user_unique"
+        $updated = $action->execute(
+            researchClassGroupId: $this->classGroup1->id,
+            defenseType: 'proposal_defense',
+            chairpersonId: $this->chairperson->id,
+            panelMember1Id: $this->panel2->id,
+            panelMember2Id: $this->panel1->id,
+            assignedByUserId: $this->facilitator->id
+        );
+
+        $member1 = $updated->members->firstWhere('panel_position', 'member_1');
+        $member2 = $updated->members->firstWhere('panel_position', 'member_2');
+
+        $this->assertSame($this->panel2->id, $member1->user_id);
+        $this->assertSame($this->panel1->id, $member2->user_id);
+    }
 }
