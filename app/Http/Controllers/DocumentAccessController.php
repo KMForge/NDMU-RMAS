@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Document;
+use App\Modules\Authorization\Services\ResolveUserDashboard;
 use App\Modules\Documents\Actions\RecordDocumentAccess;
 use App\Modules\Documents\Queries\GetDocumentVersionHistory;
 use Illuminate\Contracts\View\View;
@@ -15,8 +16,12 @@ use Throwable;
 
 class DocumentAccessController extends Controller
 {
-    public function view(Request $request, Document $document, RecordDocumentAccess $audit): Response|View
-    {
+    public function view(
+        Request $request,
+        Document $document,
+        RecordDocumentAccess $audit,
+        ResolveUserDashboard $dashboards,
+    ): Response|View {
         if (Gate::denies('view', $document)) {
             return $this->errorResponse($request, 'You are not allowed to view this document.', 403);
         }
@@ -51,6 +56,7 @@ class DocumentAccessController extends Controller
                     'researchClassGroup.researchGroup.currentProject',
                     'reviewComments' => fn ($query) => $query->with('author.roles')->latest(),
                 ]),
+                'returnUrl' => $this->documentReturnUrl($request, $dashboards),
             ]);
         } catch (Throwable $exception) {
             report($exception);
@@ -90,6 +96,7 @@ class DocumentAccessController extends Controller
         Request $request,
         Document $document,
         GetDocumentVersionHistory $history,
+        ResolveUserDashboard $dashboards,
     ): View|Response {
         if (Gate::denies('view', $document)) {
             return $this->errorResponse($request, 'You are not allowed to view this document.', 403);
@@ -98,7 +105,48 @@ class DocumentAccessController extends Controller
         return view('pages.document-history', [
             'document' => $document->loadMissing(['researchClassGroup:id,name', 'user:id,name,email']),
             'versions' => $history->for($document),
+            'returnUrl' => $this->documentReturnUrl($request, $dashboards),
         ]);
+    }
+
+    private function documentReturnUrl(Request $request, ResolveUserDashboard $dashboards): string
+    {
+        $candidates = [
+            $request->query('return_to'),
+            $request->headers->get('referer'),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && $this->isSafeDocumentReturnUrl($request, $candidate)) {
+                return str_starts_with($candidate, '/') ? url($candidate) : $candidate;
+            }
+        }
+
+        $user = $request->user();
+        $workspace = $request->session()->get('active_workspace');
+        $route = is_string($workspace)
+            ? $dashboards->routeForWorkspace($user, $workspace)
+            : null;
+        $route ??= $dashboards->routeFor($user);
+
+        return $route === null ? route('dashboard') : route($route);
+    }
+
+    private function isSafeDocumentReturnUrl(Request $request, string $candidate): bool
+    {
+        $parts = parse_url($candidate);
+        if ($parts === false) {
+            return false;
+        }
+
+        if (isset($parts['host']) && strcasecmp($parts['host'], $request->getHost()) !== 0) {
+            return false;
+        }
+
+        $path = $parts['path'] ?? '';
+
+        return str_starts_with($path, '/')
+            && preg_match('#^/documents/\d+/(?:view|history|download)/?$#', $path) !== 1;
     }
 
     private function documentDisk(Document $document): FilesystemAdapter

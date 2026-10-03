@@ -10,7 +10,9 @@ use App\Modules\Documents\Actions\RecordDocumentUploadAttempt;
 use App\Modules\Notifications\Services\UnreadNotificationCount;
 use App\Modules\OfficialForms\Services\InstitutionalActorResolver;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
+use App\Modules\SystemSettings\Services\DocumentUploadLimit;
 use App\Modules\SystemSettings\Services\RateLimitSettings;
+use App\Modules\SystemSettings\Services\ServiceAvailability;
 use App\Support\PortableSchemaBlueprint;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Schema\Blueprint;
@@ -40,6 +42,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(InstitutionalActorResolver::class);
         $this->app->scoped(OfficialFormAuthorization::class);
         $this->app->scoped(UnreadNotificationCount::class);
+        $this->app->scoped(DocumentUploadLimit::class);
+        $this->app->scoped(ServiceAvailability::class);
     }
 
     /**
@@ -47,6 +51,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        config([
+            'livewire.temporary_file_upload.rules' => [
+                'required',
+                'file',
+                'max:'.(max(1, (int) config('backups.max_import_limit_mb', 1024)) * 1024),
+            ],
+        ]);
+
         if (request()->hasHeader('x-forwarded-proto') && request()->header('x-forwarded-proto') === 'https') {
             URL::forceScheme('https');
         }

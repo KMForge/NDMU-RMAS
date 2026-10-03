@@ -7,7 +7,6 @@
     <title>{{ $title ?? config('app.name') }} - Authentication</title>
     <x-favicon />
 
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>

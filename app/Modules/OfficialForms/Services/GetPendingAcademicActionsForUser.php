@@ -16,7 +16,18 @@ class GetPendingAcademicActionsForUser
     /** @return Collection<int, array<string, mixed>> */
     public function execute(User $user): Collection
     {
+        $actionableStatuses = collect(OfficialResearchWorkflowRegistry::FORMS)
+            ->flatMap(static fn (array $form): array => collect($form['actions'] ?? [])
+                ->flatMap(static fn (array $action): array => $action['from_states'] ?? [])
+                ->all())
+            ->merge(['submitted', 'in_review'])
+            ->filter(static fn (mixed $status): bool => is_string($status) && $status !== '')
+            ->unique()
+            ->values()
+            ->all();
+
         $visibleInstances = OfficialFormInstance::query()
+            ->whereIn('status', $actionableStatuses)
             ->with([
                 'definition',
                 'currentVersion.signatures.verification',

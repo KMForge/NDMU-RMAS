@@ -285,6 +285,50 @@ async function downloadAnnotatedPdf({ downloadUrl, filename, comments = [] }) {
 
 window.downloadAnnotatedPdf = downloadAnnotatedPdf;
 
+async function waitForDocxImages(contentEl, timeoutMilliseconds = 5000) {
+    const images = Array.from(contentEl.querySelectorAll('img'));
+    if (images.length === 0) {
+        return 0;
+    }
+
+    const settleImage = (image) => new Promise((resolve) => {
+        if (image.complete) {
+            resolve(image.naturalWidth > 0);
+            return;
+        }
+
+        const finish = (loaded) => {
+            window.clearTimeout(timer);
+            image.removeEventListener('load', handleLoad);
+            image.removeEventListener('error', handleError);
+            resolve(loaded);
+        };
+        const handleLoad = () => finish(image.naturalWidth > 0);
+        const handleError = () => finish(false);
+        const timer = window.setTimeout(() => finish(false), timeoutMilliseconds);
+
+        image.addEventListener('load', handleLoad, { once: true });
+        image.addEventListener('error', handleError, { once: true });
+    });
+
+    const results = await Promise.all(images.map(settleImage));
+
+    return results.filter((loaded) => !loaded).length;
+}
+
+function showDocxImageWarning(container, failedImageCount) {
+    container.querySelector('[data-docx-image-warning]')?.remove();
+    if (failedImageCount === 0) {
+        return;
+    }
+
+    const warning = document.createElement('div');
+    warning.dataset.docxImageWarning = 'true';
+    warning.className = 'mb-4 w-full rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800';
+    warning.innerHTML = `<strong>${failedImageCount} embedded image${failedImageCount === 1 ? '' : 's'} could not be displayed.</strong> The original file is unchanged; download it to view unsupported Word image formats.`;
+    container.prepend(warning);
+}
+
 function initializeDocxViewers(root = document) {
     root.querySelectorAll('[data-docx-viewer]').forEach((container) => {
         if (container.dataset.docxReady === 'true') {
@@ -299,8 +343,15 @@ function initializeDocxViewers(root = document) {
             return;
         }
 
+        // DOCX drawings are measured while rendering. `display: none` gives the
+        // renderer zero-sized geometry, so keep the element in layout but hide
+        // it visually until all document resources have settled.
+        contentEl.classList.remove('hidden');
+        contentEl.classList.add('invisible');
+        contentEl.setAttribute('aria-busy', 'true');
+
         Promise.all([
-            fetch(url).then((res) => {
+            fetch(url, { credentials: 'same-origin' }).then((res) => {
                 if (!res.ok) {
                     throw new Error(`HTTP error ${res.status}`);
                 }
@@ -320,16 +371,24 @@ function initializeDocxViewers(root = document) {
                     experimental: false,
                     trimXmlDeclaration: true,
                     useBase64URL: true,
+                    renderHeaders: true,
+                    renderFooters: true,
+                    renderFootnotes: true,
+                    renderEndnotes: true,
                 });
             })
-            .then(() => {
+            .then(async () => {
+                const failedImageCount = await waitForDocxImages(contentEl);
+
                 if (statusEl) {
                     statusEl.classList.add('hidden');
                 }
-                contentEl.classList.remove('hidden');
+                contentEl.classList.remove('invisible');
+                contentEl.removeAttribute('aria-busy');
+                showDocxImageWarning(container, failedImageCount);
 
                 // 1. Tag each page element
-                const pages = contentEl.querySelectorAll('section.docx, .docx-wrapper > section, .docx-rendered-document > section');
+                const pages = contentEl.querySelectorAll('section.docx-rendered-document, .docx-rendered-document-wrapper > section');
                 const pageElements = pages.length > 0 ? Array.from(pages) : [contentEl];
 
                 pageElements.forEach((pageEl, idx) => {
@@ -412,6 +471,9 @@ function initializeDocxViewers(root = document) {
             })
             .catch((err) => {
                 console.error('Error rendering DOCX preview:', err);
+                contentEl.classList.add('hidden');
+                contentEl.classList.remove('invisible');
+                contentEl.removeAttribute('aria-busy');
                 if (statusEl) {
                     statusEl.innerHTML = `
                         <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center text-amber-800">

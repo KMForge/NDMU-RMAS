@@ -138,9 +138,18 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     border: 1px solid #e2e8f0;
 }
 
-.docx-rendered-document section.docx-wrapper {
+.docx-rendered-document-wrapper {
     background: transparent !important;
     padding: 0 !important;
+}
+
+.docx-rendered-document img {
+    max-width: 100%;
+    visibility: visible;
+}
+
+.docx-rendered-document svg image {
+    visibility: visible;
 }
 
 .docx-rendered-document table {
