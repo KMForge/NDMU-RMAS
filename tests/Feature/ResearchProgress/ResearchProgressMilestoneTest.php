@@ -5,6 +5,8 @@ namespace Tests\Feature\ResearchProgress;
 use App\Enums\DocumentStage;
 use App\Enums\DocumentStatus;
 use App\Enums\ResearchMilestoneStatus;
+use App\Models\AcademicTerm;
+use App\Models\AcademicYear;
 use App\Models\Defense;
 use App\Models\Document;
 use App\Models\MilestoneDefinition;
@@ -14,13 +16,16 @@ use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupMember;
 use App\Models\ResearchClassGroupMemberHistory;
+use App\Models\ResearchGroup;
 use App\Models\ResearchGroupMilestone;
 use App\Models\ResearchGroupMilestoneEvent;
+use App\Models\ResearchProject;
 use App\Models\StudentProfile;
 use App\Models\User;
 use App\Modules\Classes\Actions\CreateResearchClassGroup;
 use App\Modules\Research\Queries\GetStudentDashboardData;
 use App\Modules\ResearchProgress\Actions\SyncResearchMilestoneDefinitions;
+use App\Modules\ResearchProgress\Queries\GetAdviserProgressData;
 use App\Modules\ResearchProgress\Queries\GetFacilitatorProgressData;
 use App\Modules\ResearchProgress\Queries\GetResearchGroupProgress;
 use App\Modules\ResearchProgress\Services\ResearchJourneyService;
@@ -144,6 +149,45 @@ class ResearchProgressMilestoneTest extends TestCase
         $this->assertSame(4, $group->progress_summary['completed_count']);
         $this->assertSame(13, $group->progress_summary['applicable_count']);
         $this->assertSame(5, $group->progress_summary['journey']['current_stage']);
+    }
+
+    public function test_progress_queries_eager_load_the_latest_project_with_qualified_columns(): void
+    {
+        $this->seed(AcademicStructureSeeder::class);
+        $year = AcademicYear::query()->create([
+            'name' => '2026–2027',
+            'starts_at' => '2026-08-01',
+            'ends_at' => '2027-05-31',
+        ]);
+        $term = AcademicTerm::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => 'First Semester',
+            'starts_at' => '2026-08-01',
+            'ends_at' => '2026-12-20',
+        ]);
+        $researchGroup = ResearchGroup::query()->create([
+            'program_id' => Program::query()->where('code', 'BSIT')->value('id'),
+            'academic_term_id' => $term->id,
+            'name' => 'Canonical Progress Group',
+            'created_by' => $this->facilitator->id,
+        ]);
+        ResearchProject::query()->create([
+            'research_group_id' => $researchGroup->id,
+            'title' => 'Qualified Latest Project',
+            'status' => 'active',
+            'created_by' => $this->facilitator->id,
+        ]);
+        $this->group->update(['research_group_id' => $researchGroup->id]);
+
+        $facilitatorGroup = app(GetFacilitatorProgressData::class)
+            ->for($this->facilitator)['progressGroups']
+            ->firstWhere('id', $this->group->id);
+        $adviserGroup = app(GetAdviserProgressData::class)
+            ->for($this->adviser)['progressGroups']
+            ->firstWhere('id', $this->group->id);
+
+        $this->assertSame('Qualified Latest Project', $facilitatorGroup->researchGroup->currentProject->title);
+        $this->assertSame('Qualified Latest Project', $adviserGroup->researchGroup->currentProject->title);
     }
 
     public function test_bsit_auto_completion_is_identical_across_shared_student_and_facilitator_progress(): void
