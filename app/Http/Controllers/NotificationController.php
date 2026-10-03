@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Modules\Authorization\Actions\SwitchWorkspace;
+use App\Modules\Authorization\Services\ResolveUserDashboard;
 use App\Modules\Notifications\Queries\GetNotificationsForUser;
 use App\Modules\Notifications\Services\NotificationDestinationResolver;
+use App\Modules\Notifications\Services\NotificationWorkspaceResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -63,9 +66,22 @@ class NotificationController extends Controller
         Request $request,
         string $notification,
         NotificationDestinationResolver $resolver,
+        NotificationWorkspaceResolver $workspaceResolver,
+        ResolveUserDashboard $dashboards,
+        SwitchWorkspace $switchWorkspace,
     ): RedirectResponse {
         $owned = $this->ownedNotification($request, $notification);
         $owned->markAsRead();
+
+        /** @var User $user */
+        $user = $request->user();
+        $targetWorkspace = $workspaceResolver->fromData($owned->data);
+
+        if ($targetWorkspace !== null
+            && $request->session()->get('active_workspace') !== $targetWorkspace
+            && $dashboards->routeForWorkspace($user, $targetWorkspace) !== null) {
+            $switchWorkspace->handle($user, $targetWorkspace, $request);
+        }
 
         return redirect()->to($resolver->resolve($owned));
     }

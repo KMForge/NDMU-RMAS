@@ -25,6 +25,7 @@ class WorkflowNotificationDispatcher
         ?string $contextLabel = null,
         ?string $actingAs = null,
         ?string $occurrence = null,
+        ?string $targetWorkspace = null,
     ): void {
         $logicalKey = hash('sha256', implode('|', [
             $eventKey,
@@ -48,6 +49,7 @@ class WorkflowNotificationDispatcher
             $actor,
             $sourceType,
             $sourceId,
+            $targetWorkspace,
         ): void {
             $freshRecipient = User::query()->find($recipient->getKey());
 
@@ -63,6 +65,9 @@ class WorkflowNotificationDispatcher
                 return;
             }
 
+            $workspaceResolver = new NotificationWorkspaceResolver;
+            $resolvedWorkspace = $workspaceResolver->resolve($routeName, $actingAs, $targetWorkspace);
+
             $freshRecipient->notify(new AcademicWorkflowNotification(
                 eventKey: $eventKey,
                 title: $title,
@@ -76,6 +81,10 @@ class WorkflowNotificationDispatcher
                 actorName: $actor?->name,
                 sourceType: $sourceType,
                 sourceId: $sourceId,
+                targetWorkspace: $resolvedWorkspace,
+                workspaceLabel: $resolvedWorkspace === null
+                    ? $actingAs
+                    : config("notifications.workspace_labels.{$resolvedWorkspace}"),
             ));
         };
 
@@ -106,6 +115,7 @@ class WorkflowNotificationDispatcher
         ?string $contextLabel = null,
         ?string $actingAs = null,
         ?string $occurrence = null,
+        ?string $targetWorkspace = null,
     ): void {
         collect($recipients)
             ->unique(fn (User $recipient): int|string => $recipient->getKey())
@@ -123,6 +133,7 @@ class WorkflowNotificationDispatcher
                 $contextLabel,
                 $actingAs,
                 $occurrence,
+                $targetWorkspace,
             ));
     }
 

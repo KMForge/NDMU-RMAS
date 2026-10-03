@@ -157,6 +157,7 @@ class NotificationCenterTest extends TestCase
 
         $this->assertStringContainsString('Your document was reviewed', $html);
         $this->assertStringContainsString('1 unread', $html);
+        $this->assertStringContainsString('For: Student Researcher', $html);
         $this->assertStringContainsString('View all notifications', $html);
         $this->assertStringNotContainsString('Another user notification', $html);
     }
@@ -199,6 +200,37 @@ class NotificationCenterTest extends TestCase
         $this->assertStringNotContainsString('storage_path', $payload);
         $this->assertStringNotContainsString('signature_path', $payload);
         $this->assertStringNotContainsString('private/', $payload);
+        $this->assertSame('student', $recipient->notifications()->firstOrFail()->data['target_workspace']);
+        $this->assertSame('Student Researcher', $recipient->notifications()->firstOrFail()->data['workspace_label']);
+    }
+
+    public function test_generic_workflow_destination_uses_acting_role_as_its_workspace_label(): void
+    {
+        $recipient = $this->activeStudent();
+
+        app(WorkflowNotificationDispatcher::class)->send(
+            recipient: $recipient,
+            eventKey: 'official-form.adviser-action-required',
+            title: 'Adviser action required',
+            message: 'Please review the assigned form.',
+            category: 'form',
+            routeName: 'official-forms.workspace.show',
+            routeParameters: ['instance' => 27],
+            sourceType: 'official_form_instance',
+            sourceId: 27,
+            actingAs: 'Thesis Adviser',
+        );
+
+        $notification = $recipient->notifications()->firstOrFail();
+
+        $this->assertSame('adviser', $notification->data['target_workspace']);
+        $this->assertSame('Thesis Adviser', $notification->data['workspace_label']);
+
+        $this->actingAs($recipient);
+        $html = Blade::render('<x-notification-dropdown />');
+
+        $this->assertStringContainsString('For: Thesis Adviser', $html);
+        $this->assertStringContainsString('opens workspace', $html);
     }
 
     public function test_after_commit_dispatch_does_not_survive_a_rollback(): void

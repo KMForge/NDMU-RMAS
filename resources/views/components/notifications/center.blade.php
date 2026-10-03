@@ -50,9 +50,12 @@
             </div>
         </div>
 
+        @php($notificationWorkspaceResolver = app(\App\Modules\Notifications\Services\NotificationWorkspaceResolver::class))
         <div class="divide-y divide-slate-100">
             @forelse ($notifications as $notification)
                 @php($data = $notification->data)
+                @php($workspaceLabel = $notificationWorkspaceResolver->labelForData($data))
+                @php($targetWorkspace = $notificationWorkspaceResolver->fromData($data))
                 <article class="flex gap-4 p-5 sm:p-6 transition-colors {{ $notification->read_at === null ? 'bg-emerald-50/40 hover:bg-emerald-50/60' : 'bg-white hover:bg-slate-50/60' }}">
                     <div class="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl {{ $notification->read_at === null ? 'bg-gradient-to-br from-[#073823] to-[#0e5c3a] text-[#eebc3f] shadow-xs' : 'bg-slate-100 text-slate-500' }}">
                         <i class="ph {{ $notification->read_at === null ? 'ph-bell-ringing' : 'ph-bell' }} text-lg"></i>
@@ -61,7 +64,15 @@
                         <div class="flex flex-wrap items-start justify-between gap-2">
                             <div>
                                 <h2 class="font-black text-slate-900 text-sm sm:text-base">{{ $data['title'] ?? 'Notification' }}</h2>
-                                @if (! empty($data['acting_as']) || ! empty($data['context_label']))
+                                @if ($workspaceLabel)
+                                    <span class="mt-1 inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-amber-800">
+                                        <i class="ph ph-identification-card"></i> For: {{ $workspaceLabel }}
+                                    </span>
+                                @endif
+                                @if ($targetWorkspace && session('active_workspace') !== $targetWorkspace)
+                                    <p class="mt-1 text-[9px] font-bold text-amber-700">Opening this switches to the {{ $workspaceLabel }} workspace.</p>
+                                @endif
+                                @if (! $workspaceLabel && (! empty($data['acting_as']) || ! empty($data['context_label'])))
                                     <p class="mt-0.5 text-[10px] font-black uppercase tracking-wider text-[#0e5c3a]">
                                         {{ $data['acting_as'] ?? '' }}{{ ! empty($data['acting_as']) && ! empty($data['context_label']) ? ' · ' : '' }}{{ $data['context_label'] ?? '' }}
                                     </p>
@@ -110,4 +121,3 @@
         @endif
     </div>
 </div>
-

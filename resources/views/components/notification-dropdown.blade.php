@@ -44,9 +44,12 @@
             @endif
         </header>
 
+        @php($notificationWorkspaceResolver = app(\App\Modules\Notifications\Services\NotificationWorkspaceResolver::class))
         <div class="max-h-96 divide-y divide-slate-100 overflow-y-auto">
             @forelse ($recentNotifications as $notification)
                 @php($data = $notification->data)
+                @php($workspaceLabel = $notificationWorkspaceResolver->labelForData($data))
+                @php($targetWorkspace = $notificationWorkspaceResolver->fromData($data))
                 <a
                     href="{{ route('notifications.open', $notification->id) }}"
                     role="menuitem"
@@ -63,8 +66,17 @@
                             @endif
                         </span>
                         <span class="mt-1 line-clamp-2 block text-[11px] leading-4 text-slate-600">{{ $data['message'] ?? '' }}</span>
+                        @if ($workspaceLabel)
+                            <span class="mt-2 inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-amber-800">
+                                <i class="ph ph-identification-card"></i>
+                                For: {{ $workspaceLabel }}
+                                @if ($targetWorkspace && session('active_workspace') !== $targetWorkspace)
+                                    <span class="normal-case tracking-normal text-amber-600">&middot; opens workspace</span>
+                                @endif
+                            </span>
+                        @endif
                         <span class="mt-1.5 flex items-center justify-between gap-2 text-[9px] text-slate-400">
-                            <span class="truncate font-bold text-emerald-700">{{ $data['context_label'] ?? $data['acting_as'] ?? 'NDMU-RMAS' }}</span>
+                            <span class="truncate font-bold text-emerald-700">{{ $data['context_label'] ?? 'NDMU-RMAS' }}</span>
                             <time class="shrink-0">{{ $notification->created_at->diffForHumans() }}</time>
                         </span>
                     </span>

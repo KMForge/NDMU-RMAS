@@ -25,6 +25,8 @@ class AcademicWorkflowNotification extends Notification
         public readonly ?string $actorName = null,
         public readonly ?string $sourceType = null,
         public readonly int|string|null $sourceId = null,
+        public readonly ?string $targetWorkspace = null,
+        public readonly ?string $workspaceLabel = null,
     ) {}
 
     /** @return array<int, string> */
@@ -49,6 +51,8 @@ class AcademicWorkflowNotification extends Notification
             'actor_name' => $this->actorName,
             'source_type' => $this->sourceType,
             'source_id' => $this->sourceId,
+            'target_workspace' => $this->targetWorkspace,
+            'workspace_label' => $this->workspaceLabel,
             'occurred_at' => now()->toIso8601String(),
         ], static fn (mixed $value): bool => $value !== null && $value !== '');
     }
