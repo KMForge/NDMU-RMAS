@@ -4,24 +4,27 @@ namespace App\Modules\Registration\Actions;
 
 use App\Enums\AccountStatus;
 use App\Enums\UserType;
-use App\Models\SystemSetting;
 use App\Models\User;
 use App\Modules\AuditLogs\Services\AuditLogWriter;
 use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
+use App\Modules\SystemSettings\Services\ServiceAvailability;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 
 class RegisterStudent
 {
-    public function __construct(private readonly AuditLogWriter $auditLogs) {}
+    public function __construct(
+        private readonly AuditLogWriter $auditLogs,
+        private readonly ServiceAvailability $serviceAvailability,
+    ) {}
 
     /**
      * @param  array{student_id: string, name: string, first_name?: ?string, middle_name?: ?string, last_name?: ?string, suffix?: ?string, email: string, program: string, year_level: int, password: string}  $attributes
      */
     public function handle(array $attributes, ?AuditRequestContext $requestContext = null): User
     {
-        if (! SystemSetting::query()->value('student_registration_enabled')) {
+        if (! $this->serviceAvailability->studentRegistrationAvailable()) {
             throw ValidationException::withMessages([
                 'email' => 'Student registration is currently unavailable.',
             ]);

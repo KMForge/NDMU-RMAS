@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureServiceIsAvailable;
 use App\Http\Middleware\ThrottleRequestsUnlessHighTrafficMode;
 use App\Http\Middleware\TrackActiveWorkspace;
 use Illuminate\Console\Scheduling\Schedule;
@@ -32,9 +33,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Trust only loopback proxies so signed URLs are validated against the
         // public HTTPS URL without accepting spoofed headers from remote peers.
         $middleware->trustProxies(at: ['127.0.0.1', '::1']);
+        $middleware->appendToGroup('web', EnsureServiceIsAvailable::class);
 
         $middleware->alias([
             'active' => EnsureAccountIsActive::class,
+            'service.available' => EnsureServiceIsAvailable::class,
             'throttle' => ThrottleRequestsUnlessHighTrafficMode::class,
             'workspace.context' => TrackActiveWorkspace::class,
             'role' => RoleMiddleware::class,

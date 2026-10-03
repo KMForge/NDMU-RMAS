@@ -4,11 +4,13 @@ namespace Tests\Feature\Authentication;
 
 use App\Enums\AccountStatus;
 use App\Enums\UserType;
+use App\Models\SystemSetting;
 use App\Models\User;
 use App\Notifications\SendNDMUEmailVerification;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
@@ -47,6 +49,40 @@ class StudentRegistrationTest extends TestCase
         $this->assertNull($student->email_verified_at);
         $this->assertTrue($student->hasExactRoles(['student']));
         Notification::assertSentTo($student, SendNDMUEmailVerification::class);
+    }
+
+    public function test_registration_routes_show_maintenance_screen_when_service_is_disabled(): void
+    {
+        SystemSetting::query()->update([
+            'student_registration_enabled' => false,
+            'maintenance_services' => ['student-registration'],
+        ]);
+
+        $this->get(route('register'))
+            ->assertStatus(503)
+            ->assertHeader('Retry-After', '300')
+            ->assertSee('Student Registration')
+            ->assertSee('temporarily unavailable');
+
+        $this->post(route('register.store'), [])
+            ->assertStatus(503)
+            ->assertSee('temporarily unavailable');
+
+        $this->get(route('login'))->assertOk();
+    }
+
+    public function test_named_module_routes_are_blocked_independently(): void
+    {
+        SystemSetting::query()->update(['maintenance_services' => ['consultations']]);
+        Route::middleware('web')->get('/test-consultation-maintenance', fn () => response('available'))
+            ->name('student.consultations.maintenance-test');
+
+        $this->get('/test-consultation-maintenance')
+            ->assertStatus(503)
+            ->assertSee('Consultations')
+            ->assertSee('Other NDMU-RMAS services remain available');
+
+        $this->get(route('register'))->assertOk();
     }
 
     public function test_signed_verification_link_verifies_and_activates_pending_student(): void

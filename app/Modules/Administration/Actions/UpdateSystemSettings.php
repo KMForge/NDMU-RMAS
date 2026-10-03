@@ -18,7 +18,7 @@ class UpdateSystemSettings
     public function __construct(private readonly AuditLogWriter $auditLogs) {}
 
     /**
-     * @param  array{system_name: string, support_email: string, student_registration_enabled: bool, email_notifications_enabled: bool, turnstile_enabled: bool, defense_high_traffic_mode_enabled: bool, maintenance_notice: string|null, academic_year_id: int|null, academic_term_id: int|null}  $values
+     * @param  array{system_name: string, support_email: string, email_notifications_enabled: bool, document_max_upload_mb: int, turnstile_enabled: bool, defense_high_traffic_mode_enabled: bool, academic_year_id: int|null, academic_term_id: int|null}  $values
      */
     public function handle(User $actor, array $values): SystemSetting
     {
@@ -29,21 +29,19 @@ class UpdateSystemSettings
             $oldValues = $settings->only([
                 'system_name',
                 'support_email',
-                'student_registration_enabled',
                 'email_notifications_enabled',
+                'document_max_upload_mb',
                 'turnstile_enabled',
                 'defense_high_traffic_mode_enabled',
-                'maintenance_notice',
             ]);
 
             $settings->update([
                 'system_name' => $values['system_name'],
                 'support_email' => $values['support_email'],
-                'student_registration_enabled' => $values['student_registration_enabled'],
                 'email_notifications_enabled' => $values['email_notifications_enabled'],
+                'document_max_upload_mb' => $values['document_max_upload_mb'],
                 'turnstile_enabled' => $values['turnstile_enabled'],
                 'defense_high_traffic_mode_enabled' => $values['defense_high_traffic_mode_enabled'],
-                'maintenance_notice' => $values['maintenance_notice'],
                 'updated_by' => $actor->getKey(),
             ]);
 
