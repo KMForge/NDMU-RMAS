@@ -11,7 +11,6 @@ use App\Support\CachesDatabaseSchema;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class GetStudentDashboardData
@@ -252,9 +251,9 @@ class GetStudentDashboardData
                 ->count();
         }
 
-        $notifications = $this->tableExists('notifications')
-            ? $user->notifications()->latest()->limit(25)->get()
-            : $empty;
+        // The controller and shared header own notification retrieval. Loading a
+        // second copy here made every student page pay for unused notification data.
+        $notifications = $empty;
 
         $classes = ($isDashboard || $activeTab === 'classes')
             ? $this->classesFor($user)
@@ -289,7 +288,7 @@ class GetStudentDashboardData
             $classes,
         );
 
-        $groupDocuments = $groupDocumentQuery !== null
+        $groupDocuments = $activeTab === 'proposal' && $groupDocumentQuery !== null
             ? (clone $groupDocumentQuery)
                 ->orderByDesc('version_number')
                 ->get()
@@ -408,7 +407,7 @@ class GetStudentDashboardData
         $query = DB::table('consultation_records as consultations')
             ->leftJoin('users as facilitators', 'facilitators.id', '=', 'consultations.conducted_by');
 
-        if (Schema::hasColumn('consultation_records', 'research_project_id')) {
+        if ($this->columnExists('consultation_records', 'research_project_id')) {
             $query->where('consultations.research_project_id', $researchProjectId);
         } else {
             $query->where('consultations.is_superseded', false);
@@ -431,7 +430,7 @@ class GetStudentDashboardData
         $query = DB::table('consultation_requests as requests')
             ->leftJoin('users as advisers', 'advisers.id', '=', 'requests.assigned_adviser_id');
 
-        if (Schema::hasColumn('consultation_requests', 'research_project_id')) {
+        if ($this->columnExists('consultation_requests', 'research_project_id')) {
             $query->where('requests.research_project_id', $researchProjectId);
         }
 

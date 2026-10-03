@@ -345,10 +345,10 @@
             ]" />
             <!-- Alert / Success Notification Banner -->
             @if ($successMessage)
-                <div class="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-center gap-3 shadow-sm animate-fade-in relative" x-data="{ show: true }" x-show="show">
+                <div class="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-center gap-3 shadow-sm animate-fade-in relative">
                     <i class="ph ph-check-circle text-2xl text-emerald-600"></i>
                     <div class="text-sm font-semibold">{{ $successMessage }}</div>
-                    <button type="button" @click="show = false" class="absolute right-4 text-emerald-600 hover:text-emerald-800">
+                    <button type="button" wire:click="$set('successMessage', null)" class="absolute right-4 text-emerald-600 hover:text-emerald-800" aria-label="Dismiss notification">
                         <i class="ph ph-x text-lg"></i>
                     </button>
                 </div>
@@ -1172,7 +1172,9 @@
                                                             'rejected' => 'bg-red-100 text-red-800',
                                                             default => 'bg-gray-100 text-gray-800',
                                                         };
-                                                        $deptCode = match(true) {
+                                                        $facultyDepartments = $user->facultyProfile?->departments ?? collect();
+                                                        $primaryFacultyDepartment = $user->facultyProfile?->department;
+                                                        $deptCode = $primaryFacultyDepartment?->code ?? match(true) {
                                                             str_contains((string)$user->department, 'Computer') || in_array($user->program, ['BSCS', 'BSIT', 'BLIS']) => 'CSD',
                                                             str_contains((string)$user->department, 'Electrical') || in_array($user->program, ['BSEE', 'BSECE', 'BSCPE', 'BSCpE']) => 'EECE',
                                                             str_contains((string)$user->department, 'Civil') || in_array($user->program, ['BSCE']) => 'CED',
@@ -1222,12 +1224,28 @@
                                                         <!-- Department & Program -->
                                                         <td class="px-6 py-4">
                                                             <div class="space-y-1">
-                                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black border {{ $deptBadgeClass }}">
-                                                                    {{ $deptCode }}
-                                                                </span>
-                                                                <div class="text-xs font-semibold text-slate-700 truncate max-w-[170px]" title="{{ $user->department ?? $user->program }}">
-                                                                    {{ $user->program ?: ($user->department ?: 'Institutional') }}
-                                                                </div>
+                                                                @if ($facultyDepartments->isNotEmpty())
+                                                                    <div class="flex max-w-[220px] flex-wrap gap-1">
+                                                                        @foreach ($facultyDepartments as $assignedDepartment)
+                                                                            <span class="inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[10px] font-black {{ (int) $assignedDepartment->id === (int) $user->facultyProfile?->department_id ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-sky-200 bg-sky-50 text-sky-800' }}" title="{{ $assignedDepartment->name }}{{ (int) $assignedDepartment->id === (int) $user->facultyProfile?->department_id ? ' (primary)' : ' (teaching assignment)' }}">
+                                                                                {{ $assignedDepartment->code }}
+                                                                                @if ((int) $assignedDepartment->id === (int) $user->facultyProfile?->department_id)
+                                                                                    <span class="font-semibold">Primary</span>
+                                                                                @endif
+                                                                            </span>
+                                                                        @endforeach
+                                                                    </div>
+                                                                    <div class="max-w-[220px] truncate text-xs font-semibold text-slate-700" title="{{ $facultyDepartments->pluck('name')->join(', ') }}">
+                                                                        {{ $facultyDepartments->pluck('name')->join(', ') }}
+                                                                    </div>
+                                                                @else
+                                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black border {{ $deptBadgeClass }}">
+                                                                        {{ $deptCode }}
+                                                                    </span>
+                                                                    <div class="text-xs font-semibold text-slate-700 truncate max-w-[170px]" title="{{ $user->department ?? $user->program }}">
+                                                                        {{ $user->program ?: ($user->department ?: 'Institutional') }}
+                                                                    </div>
+                                                                @endif
                                                             </div>
                                                         </td>
 
@@ -1273,6 +1291,16 @@
                                                                 <span class="text-xs font-bold text-gray-400">Current account</span>
                                                             @else
                                                                 <div class="flex flex-nowrap items-center gap-1.5">
+                                                                    @if ($user->facultyProfile)
+                                                                        <button
+                                                                            type="button"
+                                                                            wire:click="openFacultyDepartmentsEditor({{ $user->id }})"
+                                                                            class="flex shrink-0 items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-800 transition-colors hover:bg-emerald-100"
+                                                                            title="Manage primary and teaching departments"
+                                                                        >
+                                                                            <i class="ph ph-buildings text-xs"></i> Departments
+                                                                        </button>
+                                                                    @endif
                                                                     <!-- Assign Button -->
                                                                     <button 
                                                                         type="button" 
@@ -1502,6 +1530,21 @@
                                                 </div>
                                                 <p class="text-[11px] text-gray-500">Choose the academic department this faculty member belongs to, or check College Dean if college-level.</p>
                                                 @error('department') <span class="text-xs font-bold text-red-500 block mt-1">{{ $message }}</span> @enderror
+
+                                                <fieldset class="mt-4 space-y-2 border-t border-slate-200 pt-4">
+                                                    <legend class="text-xs font-bold uppercase tracking-wider text-slate-700">Additional teaching departments</legend>
+                                                    <p class="text-[11px] text-slate-500">Optional. Use this when the faculty member teaches or serves outside their primary department.</p>
+                                                    <div class="grid gap-2 sm:grid-cols-2">
+                                                        @foreach ($this->teachingDepartmentOptions() as $departmentId => $departmentLabel)
+                                                            <label class="flex cursor-pointer items-start gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs font-semibold text-slate-700 hover:border-emerald-300">
+                                                                <input type="checkbox" wire:model="additionalDepartmentIds" value="{{ $departmentId }}" class="mt-0.5 rounded border-slate-300 text-emerald-700 focus:ring-emerald-600">
+                                                                <span>{{ $departmentLabel }}</span>
+                                                            </label>
+                                                        @endforeach
+                                                    </div>
+                                                    @error('additionalDepartmentIds') <span class="block text-xs font-bold text-red-500">{{ $message }}</span> @enderror
+                                                    @error('additionalDepartmentIds.*') <span class="block text-xs font-bold text-red-500">{{ $message }}</span> @enderror
+                                                </fieldset>
                                             @endif
                                         </div>
 
@@ -1543,6 +1586,60 @@
                         </div>
                     </div>
             </div>
+            @endif
+
+            @if ($showFacultyDepartmentsEditor)
+                <div class="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="faculty-departments-title">
+                    <button type="button" wire:click="closeFacultyDepartmentsEditor" class="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" aria-label="Close department editor"></button>
+                    <form wire:submit.prevent="saveFacultyDepartments" class="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
+                        <div class="flex items-start justify-between bg-[#0e5c3a] p-6 text-white">
+                            <div>
+                                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-200">Faculty assignment</p>
+                                <h2 id="faculty-departments-title" class="mt-1 text-xl font-black">Primary & Teaching Departments</h2>
+                                <p class="mt-1 text-xs text-emerald-100">Primary identifies the home department. Checked departments control where this teacher may serve.</p>
+                            </div>
+                            <button type="button" wire:click="closeFacultyDepartmentsEditor" class="rounded-xl p-2 text-emerald-100 hover:bg-white/10 hover:text-white" aria-label="Close">
+                                <i class="ph ph-x text-xl"></i>
+                            </button>
+                        </div>
+
+                        <div class="space-y-5 p-6">
+                            <div class="space-y-1.5">
+                                <label for="faculty_primary_department" class="text-xs font-black uppercase tracking-wider text-slate-700">Primary department</label>
+                                <select id="faculty_primary_department" wire:model="primaryDepartmentId" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-emerald-700 focus:ring-emerald-700">
+                                    <option value="">Select primary department</option>
+                                    @foreach ($this->teachingDepartmentOptions() as $departmentId => $departmentLabel)
+                                        <option value="{{ $departmentId }}">{{ $departmentLabel }}</option>
+                                    @endforeach
+                                </select>
+                                @error('primaryDepartmentId') <span class="text-xs font-bold text-red-600">{{ $message }}</span> @enderror
+                            </div>
+
+                            <fieldset class="space-y-2">
+                                <legend class="text-xs font-black uppercase tracking-wider text-slate-700">Authorized teaching departments</legend>
+                                <p class="text-xs text-slate-500">Select every department where this faculty member teaches, advises, facilitates, coordinates, or serves on a panel.</p>
+                                <div class="grid gap-2 sm:grid-cols-2">
+                                    @foreach ($this->teachingDepartmentOptions() as $departmentId => $departmentLabel)
+                                        <label class="flex cursor-pointer items-start gap-2 rounded-xl border border-slate-200 p-3 text-xs font-semibold text-slate-700 hover:border-emerald-300">
+                                            <input type="checkbox" wire:model="facultyDepartmentIds" value="{{ $departmentId }}" class="mt-0.5 rounded border-slate-300 text-emerald-700 focus:ring-emerald-600">
+                                            <span>{{ $departmentLabel }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                                @error('facultyDepartmentIds') <span class="block text-xs font-bold text-red-600">{{ $message }}</span> @enderror
+                                @error('facultyDepartmentIds.*') <span class="block text-xs font-bold text-red-600">{{ $message }}</span> @enderror
+                            </fieldset>
+                        </div>
+
+                        <div class="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+                            <button type="button" wire:click="closeFacultyDepartmentsEditor" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100">Cancel</button>
+                            <button type="submit" wire:loading.attr="disabled" wire:target="saveFacultyDepartments" class="rounded-xl bg-[#0e5c3a] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#0a4a2e] disabled:opacity-50">
+                                <span wire:loading.remove wire:target="saveFacultyDepartments">Save Departments</span>
+                                <span wire:loading wire:target="saveFacultyDepartments">Saving...</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
             @endif
 
             @if ($tab === 'assign-roles')
@@ -3040,20 +3137,6 @@
                     @endif
                 </div>
 
-                @if ($successMessage)
-                    <div class="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-900 shadow-sm animate-fade-in">
-                        <div class="flex items-center gap-3">
-                            <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-600 text-white text-base">
-                                <i class="ph ph-check-bold"></i>
-                            </div>
-                            <span>{{ $successMessage }}</span>
-                        </div>
-                        <button type="button" wire:click="$set('successMessage', null)" class="text-emerald-700 hover:text-emerald-900">
-                            <i class="ph ph-x text-lg"></i>
-                        </button>
-                    </div>
-                @endif
-
                 <form wire:submit="saveSystemSettings" class="space-y-6">
                     <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
                         <section class="rounded-[2rem] border border-gray-100 bg-white p-7 shadow-sm">
@@ -3144,14 +3227,84 @@
                         </div>
 
                         <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
-                            <label class="flex cursor-pointer items-start justify-between gap-4 rounded-2xl border border-gray-200 p-5">
-                                <span><span class="block text-sm font-bold text-gray-800">Student Registration</span><span class="mt-1 block text-xs leading-5 text-gray-500">Allow new student registration requests.</span></span>
-                                <input type="checkbox" wire:model="settingsStudentRegistrationEnabled" class="mt-1 h-5 w-5 rounded border-gray-300 text-[#0e5c3a] focus:ring-[#0e5c3a]">
-                            </label>
+                            <div class="lg:col-span-2">
+                                <div class="mb-3 flex items-center justify-between gap-3">
+                                    <div><h3 class="text-sm font-black text-gray-800">Service Maintenance</h3><p class="mt-1 text-xs text-gray-500">Pause only the affected module; authentication and administration remain available.</p></div>
+                                    <span class="rounded-full bg-gray-100 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-gray-600">{{ $maintenanceServices->where('available', false)->count() }} under maintenance</span>
+                                </div>
+                                <div class="grid gap-3 xl:grid-cols-2">
+                                    @foreach ($maintenanceServices as $service)
+                                        <div @class(['rounded-2xl border p-4', 'border-emerald-200 bg-emerald-50/50' => $service['available'], 'border-amber-300 bg-amber-50' => ! $service['available']])>
+                                            <div class="flex h-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                                <div class="flex min-w-0 items-start gap-3">
+                                                    <span @class(['flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg text-white', 'bg-emerald-600' => $service['available'], 'bg-amber-500' => ! $service['available']])><i class="ph {{ $service['available'] ? 'ph-check-circle' : $service['icon'] }}"></i></span>
+                                                    <div class="min-w-0"><div class="flex flex-wrap items-center gap-2"><span class="text-sm font-bold text-gray-800">{{ $service['label'] }}</span><span @class(['rounded-full px-2 py-1 text-[8px] font-black uppercase tracking-wider', 'bg-emerald-100 text-emerald-800' => $service['available'], 'bg-amber-100 text-amber-800' => ! $service['available']])>{{ $service['available'] ? 'Normal' : 'Maintenance' }}</span></div><p class="mt-1 text-xs leading-5 text-gray-600">{{ $service['description'] }}</p></div>
+                                                </div>
+                                                @if ($service['available'])
+                                                    <button type="button" wire:click="prepareServiceAvailability('{{ $service['key'] }}', false)" wire:loading.attr="disabled" wire:target="prepareServiceAvailability('{{ $service['key'] }}', false)" class="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-[10px] font-black text-amber-950 hover:bg-amber-400 disabled:opacity-60"><i class="ph ph-wrench"></i> Maintain</button>
+                                                @else
+                                                    <button type="button" wire:click="prepareServiceAvailability('{{ $service['key'] }}', true)" wire:loading.attr="disabled" wire:target="prepareServiceAvailability('{{ $service['key'] }}', true)" class="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-emerald-700 px-3 py-2 text-[10px] font-black text-white hover:bg-emerald-800 disabled:opacity-60"><i class="ph ph-play-circle"></i> Restore</button>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+
+                                @if ($pendingServiceAvailabilityDetails)
+                                    <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6" wire:key="service-availability-modal-{{ $pendingServiceAvailabilityKey }}-{{ (int) $pendingServiceAvailability }}" role="dialog" aria-modal="true" aria-labelledby="service-availability-title">
+                                        <button type="button" wire:click="cancelServiceAvailability" class="absolute inset-0 bg-slate-950/65 backdrop-blur-sm" aria-label="Cancel service status change"></button>
+                                        <section class="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] bg-white shadow-2xl shadow-black/30">
+                                            <div @class(['px-6 py-6 text-white sm:px-7', 'bg-gradient-to-br from-emerald-700 to-emerald-900' => $pendingServiceAvailability, 'bg-gradient-to-br from-amber-500 to-orange-600' => ! $pendingServiceAvailability])>
+                                                <div class="flex items-start gap-4">
+                                                    <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-2xl"><i class="ph {{ $pendingServiceAvailability ? 'ph-play-circle' : 'ph-wrench' }}"></i></span>
+                                                    <div>
+                                                        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Confirm service status</p>
+                                                        <h2 id="service-availability-title" class="mt-1 font-heading text-2xl font-black">{{ $pendingServiceAvailability ? 'Restore this service?' : 'Start maintenance?' }}</h2>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="space-y-5 p-6 sm:p-7">
+                                                <div>
+                                                    <p class="text-base font-black text-gray-900">{{ $pendingServiceAvailabilityDetails['label'] }}</p>
+                                                    <p class="mt-2 text-sm leading-6 text-gray-600">{{ $pendingServiceAvailability ? 'Users will regain access to this module immediately.' : 'Users will be blocked from this module until an administrator restores it. Authentication and administration will remain available.' }}</p>
+                                                </div>
+                                                <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                                                    <button type="button" wire:click="cancelServiceAvailability" class="rounded-xl border border-gray-200 px-5 py-3 text-xs font-bold text-gray-700 hover:bg-gray-50">Cancel</button>
+                                                    <button type="button" wire:click="confirmServiceAvailability" wire:loading.attr="disabled" wire:target="confirmServiceAvailability" @class(['inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-xs font-black text-white disabled:cursor-wait disabled:opacity-60', 'bg-emerald-700 hover:bg-emerald-800' => $pendingServiceAvailability, 'bg-amber-600 hover:bg-amber-700' => ! $pendingServiceAvailability])>
+                                                        <i class="ph {{ $pendingServiceAvailability ? 'ph-play-circle' : 'ph-wrench' }}" wire:loading.remove wire:target="confirmServiceAvailability"></i>
+                                                        <i class="ph ph-spinner-gap animate-spin" wire:loading wire:target="confirmServiceAvailability"></i>
+                                                        <span wire:loading.remove wire:target="confirmServiceAvailability">{{ $pendingServiceAvailability ? 'Yes, restore service' : 'Yes, start maintenance' }}</span>
+                                                        <span wire:loading wire:target="confirmServiceAvailability">Applying...</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </section>
+                                    </div>
+                                @endif
+                            </div>
                             <label class="flex cursor-pointer items-start justify-between gap-4 rounded-2xl border border-gray-200 p-5">
                                 <span><span class="block text-sm font-bold text-gray-800">Email Notifications</span><span class="mt-1 block text-xs leading-5 text-gray-500">Allow workflow notifications to be delivered by email.</span></span>
                                 <input type="checkbox" wire:model="settingsEmailNotificationsEnabled" class="mt-1 h-5 w-5 rounded border-gray-300 text-[#0e5c3a] focus:ring-[#0e5c3a]">
                             </label>
+                            <div class="rounded-2xl border border-gray-200 p-5 lg:col-span-2">
+                                <div class="grid gap-4 md:grid-cols-[1fr_12rem] md:items-start">
+                                    <div>
+                                        <label for="settings-document-max-upload" class="block text-sm font-bold text-gray-800">Research Document Upload Limit</label>
+                                        <p class="mt-1 text-xs leading-5 text-gray-500">Maximum size for student manuscript and revision uploads. PDF and DOCX validation remains enforced.</p>
+                                        @if ($documentServerUploadLimitMb && $documentServerUploadLimitMb < $settingsDocumentMaxUploadMb)
+                                            <p class="mt-2 text-xs font-semibold text-amber-700">PHP currently accepts only {{ number_format($documentServerUploadLimitMb) }} MB. Increase <code>upload_max_filesize</code> and <code>post_max_size</code> before using this value.</p>
+                                        @endif
+                                    </div>
+                                    <div>
+                                        <div class="relative">
+                                            <input id="settings-document-max-upload" type="number" min="1" max="{{ $documentUploadLimitCeilingMb }}" step="1" wire:model="settingsDocumentMaxUploadMb" class="w-full rounded-2xl border border-gray-200 px-4 py-3 pr-12 text-sm focus:border-[#0e5c3a] focus:outline-none focus:ring-4 focus:ring-[#0e5c3a]/5">
+                                            <span class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-xs font-bold text-gray-500">MB</span>
+                                        </div>
+                                        <p class="mt-1 text-xs text-gray-500">Allowed: 1–{{ number_format($documentUploadLimitCeilingMb) }} MB</p>
+                                        @error('settingsDocumentMaxUploadMb') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                    </div>
+                                </div>
+                            </div>
                             <label class="flex cursor-pointer items-start justify-between gap-4 rounded-2xl border border-gray-200 p-5 lg:col-span-2">
                                 <span class="pr-3">
                                     <span class="block text-sm font-bold text-gray-800">Enable CAPTCHA (Cloudflare Turnstile)</span>
@@ -3180,11 +3333,6 @@
                             </label>
                         </div>
 
-                        <div class="mt-5">
-                            <label for="settings-maintenance-notice" class="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-600">Maintenance Notice</label>
-                            <textarea id="settings-maintenance-notice" wire:model="settingsMaintenanceNotice" maxlength="500" rows="3" placeholder="Leave blank when there is no maintenance announcement." class="w-full resize-none rounded-2xl border border-gray-200 px-4 py-3 text-sm focus:border-[#0e5c3a] focus:outline-none focus:ring-4 focus:ring-[#0e5c3a]/5"></textarea>
-                            @error('settingsMaintenanceNotice') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                        </div>
                     </section>
 
                     <div class="flex justify-end">
@@ -3618,22 +3766,23 @@
                         <form wire:submit="createAcademicYear" class="p-6 space-y-4">
                             <div>
                                 <label for="new-academic-year-name" class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-600">Academic Year Name *</label>
-                                <input id="new-academic-year-name" type="text" wire:model="newAcademicYearName" placeholder="e.g., 2026–2027" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all">
+                                <input id="new-academic-year-name" type="text" wire:model="newAcademicYearName" maxlength="9" pattern="[0-9]{4}[–-][0-9]{4}" inputmode="numeric" placeholder="e.g., 2027–2028" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all">
+                                <p class="mt-1 text-[10px] text-gray-500">Required format: YYYY–YYYY with consecutive years.</p>
                                 @error('newAcademicYearName') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label for="new-academic-year-start" class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-600">Start Date *</label>
-                                    <input id="new-academic-year-start" type="date" wire:model="newAcademicYearStartDate" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all">
+                                    <input id="new-academic-year-start" type="date" wire:model.live="newAcademicYearStartDate" min="{{ now()->subYear()->startOfYear()->toDateString() }}" max="{{ now()->addYears(5)->endOfYear()->toDateString() }}" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all">
                                     @error('newAcademicYearStartDate') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
                                     <label for="new-academic-year-end" class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-600">End Date *</label>
-                                    <input id="new-academic-year-end" type="date" wire:model="newAcademicYearEndDate" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all">
+                                    <input id="new-academic-year-end" type="date" wire:model="newAcademicYearEndDate" min="{{ $newAcademicYearStartDate ?: now()->subYear()->startOfYear()->toDateString() }}" max="{{ now()->addYears(7)->endOfYear()->toDateString() }}" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#0e5c3a] focus:ring-4 focus:ring-[#0e5c3a]/5 transition-all">
                                     @error('newAcademicYearEndDate') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                                 </div>
                             </div>
-                            <p class="text-[11px] text-gray-500">Creating an Academic Year automatically initializes standard First and Second Semester terms.</p>
+                            <p class="text-[11px] leading-5 text-gray-500">The dates must match the academic-year name, span 240–400 days, and not overlap another academic year. Valid First and Second Semester terms are created automatically inside this period.</p>
                             <div class="pt-4 flex items-center justify-end gap-3 border-t border-gray-100">
                                 <button type="button" wire:click="closeAcademicYearModal" class="px-5 py-2.5 border border-gray-200 text-gray-500 hover:text-gray-700 text-xs font-bold rounded-2xl transition-all">
                                     Cancel

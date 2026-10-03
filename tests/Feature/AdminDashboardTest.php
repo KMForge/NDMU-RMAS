@@ -6,16 +6,23 @@ use App\Enums\AccountStatus;
 use App\Enums\DocumentStatus;
 use App\Enums\UserType;
 use App\Livewire\AdminDashboard;
+use App\Models\AcademicTerm;
+use App\Models\AcademicYear;
 use App\Models\AuditLog;
 use App\Models\College;
 use App\Models\Defense;
 use App\Models\DefensePanelAssignment;
 use App\Models\DefenseRoom;
 use App\Models\DefenseSchedule;
+use App\Models\Department;
 use App\Models\Document;
+use App\Models\FacultyProfile;
 use App\Models\OfficialFormDefinition;
+use App\Models\OfficialFormInstance;
+use App\Models\Program;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
+use App\Models\StudentProfile;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Modules\Dashboard\Queries\GetAdminDashboardData;
@@ -310,11 +317,10 @@ class AdminDashboardTest extends TestCase
             ->assertSee('System Settings')
             ->set('settingsSystemName', 'NDMU Research Portal')
             ->set('settingsSupportEmail', 'support@ndmu.edu.ph')
-            ->set('settingsStudentRegistrationEnabled', false)
             ->set('settingsEmailNotificationsEnabled', true)
+            ->set('settingsDocumentMaxUploadMb', 25)
             ->set('settingsTurnstileEnabled', false)
             ->set('settingsDefenseHighTrafficModeEnabled', true)
-            ->set('settingsMaintenanceNotice', '<b>Scheduled maintenance</b>')
             ->set('settingsAcademicYearId', $academicYearId)
             ->set('settingsAcademicTermId', $academicTermId)
             ->call('saveSystemSettings')
@@ -325,13 +331,44 @@ class AdminDashboardTest extends TestCase
 
         $this->assertSame('NDMU Research Portal', $settings->system_name);
         $this->assertSame('support@ndmu.edu.ph', $settings->support_email);
-        $this->assertFalse($settings->student_registration_enabled);
+        $this->assertTrue($settings->student_registration_enabled);
+        $this->assertSame(25, $settings->document_max_upload_mb);
         $this->assertFalse($settings->turnstile_enabled);
         $this->assertTrue($settings->defense_high_traffic_mode_enabled);
-        $this->assertSame('Scheduled maintenance', $settings->maintenance_notice);
+        $this->assertNull($settings->maintenance_notice);
         $this->assertSame($admin->id, $settings->updated_by);
         $this->assertDatabaseHas('academic_years', ['id' => $academicYearId, 'is_current' => true]);
         $this->assertDatabaseHas('academic_terms', ['id' => $academicTermId, 'is_current' => true]);
+    }
+
+    public function test_admin_can_put_registration_under_maintenance_and_restore_it(): void
+    {
+        $admin = User::factory()->create(['user_type' => UserType::Admin]);
+        $admin->assignRole('system-administrator');
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->set('tab', 'settings')
+            ->assertSee('Service Maintenance')
+            ->call('prepareServiceAvailability', 'student-registration', false)
+            ->assertSet('pendingServiceAvailabilityKey', 'student-registration')
+            ->assertSee('Start maintenance?')
+            ->assertSeeHtml('role="dialog"')
+            ->call('confirmServiceAvailability')
+            ->assertHasNoErrors()
+            ->assertSet('settingsStudentRegistrationEnabled', false)
+            ->assertSee('Maintenance')
+            ->call('prepareServiceAvailability', 'student-registration', true)
+            ->assertSee('Restore this service?')
+            ->call('confirmServiceAvailability')
+            ->assertHasNoErrors()
+            ->assertSet('settingsStudentRegistrationEnabled', true);
+
+        $this->assertTrue(SystemSetting::query()->value('student_registration_enabled'));
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'system-service.availability-updated',
+            'subject_name' => 'Student Registration',
+        ]);
     }
 
     public function test_high_traffic_mode_disables_authenticated_route_limits_but_keeps_guest_limits(): void
@@ -414,6 +451,85 @@ class AdminDashboardTest extends TestCase
             ->assertSet('successMessage', 'Academic Year 2027–2028 created successfully.');
 
         $this->assertDatabaseHas('academic_years', ['name' => '2027–2028']);
+    }
+
+    public function test_academic_year_creation_rejects_malformed_historical_and_nonconsecutive_values(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->call('openAcademicYearModal')
+            ->set('newAcademicYearName', '555')
+            ->set('newAcademicYearStartDate', '1995-08-01')
+            ->set('newAcademicYearEndDate', '1996-05-31')
+            ->call('createAcademicYear')
+            ->assertHasErrors(['newAcademicYearName', 'newAcademicYearStartDate']);
+
+        Livewire::test(AdminDashboard::class)
+            ->call('openAcademicYearModal')
+            ->set('newAcademicYearName', '2027-2029')
+            ->set('newAcademicYearStartDate', '2027-08-01')
+            ->set('newAcademicYearEndDate', '2029-05-31')
+            ->call('createAcademicYear')
+            ->assertHasErrors(['newAcademicYearName']);
+
+        $this->assertDatabaseMissing('academic_years', ['name' => '555']);
+        $this->assertDatabaseMissing('academic_years', ['name' => '2027–2029']);
+    }
+
+    public function test_invalid_academic_year_and_term_cannot_be_activated(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+        $invalidYear = AcademicYear::query()->create([
+            'name' => '555',
+            'starts_at' => '1995-08-01',
+            'ends_at' => '1996-05-31',
+            'is_current' => false,
+        ]);
+        $invalidTerm = AcademicTerm::query()->create([
+            'academic_year_id' => $invalidYear->id,
+            'name' => 'Invalid Semester',
+            'starts_at' => '1995-08-01',
+            'ends_at' => '1996-05-31',
+            'is_current' => false,
+        ]);
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->set('tab', 'settings')
+            ->set('settingsAcademicYearId', $invalidYear->id)
+            ->set('settingsAcademicTermId', $invalidTerm->id)
+            ->call('saveSystemSettings')
+            ->assertHasErrors(['settingsAcademicYearId']);
+
+        $this->assertFalse($invalidYear->fresh()->is_current);
+        $this->assertFalse($invalidTerm->fresh()->is_current);
+
+        $validYear = AcademicYear::query()->create([
+            'name' => '2027–2028',
+            'starts_at' => '2027-08-01',
+            'ends_at' => '2028-05-31',
+            'is_current' => false,
+        ]);
+        $outOfRangeTerm = AcademicTerm::query()->create([
+            'academic_year_id' => $validYear->id,
+            'name' => 'Out of Range Semester',
+            'starts_at' => '2027-07-01',
+            'ends_at' => '2028-06-30',
+            'is_current' => false,
+        ]);
+
+        Livewire::test(AdminDashboard::class)
+            ->set('tab', 'settings')
+            ->set('settingsAcademicYearId', $validYear->id)
+            ->set('settingsAcademicTermId', $outOfRangeTerm->id)
+            ->call('saveSystemSettings')
+            ->assertHasErrors(['settingsAcademicTermId']);
+
+        $this->assertFalse($outOfRangeTerm->fresh()->is_current);
     }
 
     public function test_admin_dashboard_does_not_render_sample_records(): void
@@ -641,6 +757,75 @@ class AdminDashboardTest extends TestCase
         $this->assertSame('faculty', $newUser->user_type->value);
     }
 
+    public function test_admin_can_create_faculty_with_multiple_teaching_departments(): void
+    {
+        $this->seed(AcademicStructureSeeder::class);
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+        $csd = Department::query()->where('code', 'CSD')->firstOrFail();
+        $eece = Department::query()->where('code', 'EECE')->firstOrFail();
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->set('name', 'Engr. Cross Department')
+            ->set('email', 'cross.department@ndmu.edu.ph')
+            ->set('department', 'EECE')
+            ->set('additionalDepartmentIds', [$csd->id])
+            ->set('password', 'SecurePassword123!')
+            ->call('createStaffAccount')
+            ->assertHasNoErrors();
+
+        $profile = FacultyProfile::query()
+            ->with('departments')
+            ->whereHas('user', fn ($users) => $users->where('email', 'cross.department@ndmu.edu.ph'))
+            ->firstOrFail();
+
+        $this->assertSame($eece->id, $profile->department_id);
+        $this->assertEqualsCanonicalizing([$csd->id, $eece->id], $profile->departments->modelKeys());
+    }
+
+    public function test_admin_can_update_existing_faculty_department_assignments(): void
+    {
+        $this->seed(AcademicStructureSeeder::class);
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+        $faculty = User::factory()->create([
+            'user_type' => UserType::Faculty,
+            'department' => 'Electrical, Electronics, and Computer Engineering',
+        ]);
+        $csd = Department::query()->where('code', 'CSD')->firstOrFail();
+        $eece = Department::query()->where('code', 'EECE')->firstOrFail();
+        $profile = FacultyProfile::query()->create([
+            'user_id' => $faculty->id,
+            'department_id' => $eece->id,
+            'employee_number' => 'EMP-MULTI-001',
+        ]);
+        $profile->departments()->sync([$eece->id]);
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->set('tab', 'users')
+            ->call('openFacultyDepartmentsEditor', $faculty->id)
+            ->assertSet('showFacultyDepartmentsEditor', true)
+            ->set('primaryDepartmentId', $eece->id)
+            ->set('facultyDepartmentIds', [$eece->id, $csd->id])
+            ->call('saveFacultyDepartments')
+            ->assertHasNoErrors()
+            ->assertSet('showFacultyDepartmentsEditor', false);
+
+        $this->assertEqualsCanonicalizing(
+            [$csd->id, $eece->id],
+            $profile->refresh()->departments()->pluck('departments.id')->all(),
+        );
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'event' => 'user.access-updated',
+            'auditable_id' => $faculty->id,
+        ]);
+    }
+
     public function test_create_faculty_account_as_college_dean(): void
     {
         $admin = User::factory()->create();
@@ -808,10 +993,189 @@ class AdminDashboardTest extends TestCase
         Livewire::test(AdminDashboard::class)
             ->call('editRole', $builtInRole->id)
             ->assertSet('editingRoleId', $builtInRole->id)
-            ->call('deleteRole', $administratorRole->id)
+            ->call('prepareRoleDelete', $administratorRole->id)
             ->assertHasErrors(['roleName']);
 
         $this->assertDatabaseHas('roles', ['id' => $builtInRole->id]);
         $this->assertDatabaseHas('roles', ['id' => $administratorRole->id]);
+    }
+
+    public function test_assigned_role_is_labeled_in_use_and_cannot_be_deleted(): void
+    {
+        $admin = User::factory()->create(['user_type' => UserType::Admin]);
+        $admin->assignRole('system-administrator');
+        $faculty = User::factory()->create(['user_type' => UserType::Faculty]);
+        $role = Role::query()->create([
+            'name' => 'laboratory-reviewer',
+            'display_name' => 'Laboratory Reviewer',
+            'guard_name' => 'web',
+            'is_assignable' => true,
+        ]);
+        $faculty->assignRole($role);
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->set('tab', 'permissions')
+            ->assertSee('Laboratory Reviewer')
+            ->assertSee('In use')
+            ->assertSeeHtml('disabled title="Remove this role from all 1 assigned user(s) before deleting it."')
+            ->call('prepareRoleDelete', $role->id)
+            ->assertHasErrors(['roleName']);
+
+        $this->assertDatabaseHas('roles', ['id' => $role->id]);
+        $this->assertTrue($faculty->fresh()->hasRole($role->name));
+    }
+
+    public function test_unused_custom_role_requires_the_application_confirmation_modal_before_deletion(): void
+    {
+        $admin = User::factory()->create(['user_type' => UserType::Admin]);
+        $admin->assignRole('system-administrator');
+        $role = Role::query()->create([
+            'name' => 'temporary-reviewer',
+            'display_name' => 'Temporary Reviewer',
+            'guard_name' => 'web',
+            'is_assignable' => true,
+        ]);
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->set('tab', 'permissions')
+            ->call('prepareRoleDelete', $role->id)
+            ->assertSet('pendingRoleDeleteId', $role->id)
+            ->assertSee('Delete this role?')
+            ->assertSeeHtml('role="dialog"')
+            ->call('deleteRole')
+            ->assertHasNoErrors()
+            ->assertSet('pendingRoleDeleteId', null);
+
+        $this->assertDatabaseMissing('roles', ['id' => $role->id]);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'role.deleted',
+            'subject_name' => 'Temporary Reviewer',
+        ]);
+    }
+
+    public function test_active_official_form_record_blocks_definition_deactivation(): void
+    {
+        $admin = User::factory()->create(['user_type' => UserType::Admin]);
+        $admin->assignRole('system-administrator');
+        $definition = OfficialFormDefinition::query()->create([
+            'code' => 'RES-099',
+            'title' => 'Dependency Test Form',
+            'default_category' => 'Test',
+            'ownership_scope' => 'research_group',
+            'cardinality' => 'single_per_group',
+            'template_view' => 'pages.facilitator.forms.res-099',
+            'is_active' => true,
+            'sort_order' => 999,
+        ]);
+        $instance = OfficialFormInstance::query()->create([
+            'official_form_definition_id' => $definition->id,
+            'initiated_by' => $admin->id,
+            'status' => 'in_progress',
+        ]);
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->set('tab', 'configuration')
+            ->assertSee('RES-099')
+            ->assertSee('1 active')
+            ->call('setOfficialFormActive', $definition->id, false)
+            ->assertHasErrors(['configuration']);
+
+        $this->assertTrue($definition->fresh()->is_active);
+
+        $instance->update(['status' => 'completed']);
+
+        Livewire::test(AdminDashboard::class)
+            ->set('tab', 'configuration')
+            ->call('setOfficialFormActive', $definition->id, false)
+            ->assertHasNoErrors();
+
+        $this->assertFalse($definition->fresh()->is_active);
+    }
+
+    public function test_program_with_active_student_is_labeled_in_use_and_cannot_be_disabled(): void
+    {
+        $this->seed(AcademicStructureSeeder::class);
+        $admin = User::factory()->create(['user_type' => UserType::Admin]);
+        $admin->assignRole('system-administrator');
+        $student = User::factory()->create([
+            'user_type' => UserType::Student,
+            'status' => AccountStatus::Active,
+        ]);
+        $program = Program::query()->where('code', 'BSIT')->firstOrFail();
+        StudentProfile::query()->create([
+            'user_id' => $student->id,
+            'program_id' => $program->id,
+            'student_number' => '202699999',
+            'year_level' => 4,
+        ]);
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->set('tab', 'configuration')
+            ->assertSee('1 active student(s)')
+            ->call('setProgramActive', $program->id, false)
+            ->assertHasErrors(['configuration']);
+
+        $this->assertTrue($program->fresh()->is_active);
+    }
+
+    public function test_room_with_upcoming_defense_is_labeled_in_use_and_cannot_be_disabled(): void
+    {
+        $admin = User::factory()->create(['user_type' => UserType::Admin]);
+        $admin->assignRole('system-administrator');
+        $facilitator = User::factory()->create(['user_type' => UserType::Faculty]);
+        $researchClass = new ResearchClass([
+            'facilitator_id' => $facilitator->id,
+            'creation_token' => (string) Str::uuid(),
+            'name' => 'Dependency Test Class',
+            'max_students' => 40,
+            'is_active' => true,
+        ]);
+        $researchClass->setJoinCode('DEPENDENCY1');
+        $researchClass->save();
+        $group = ResearchClassGroup::query()->create([
+            'research_class_id' => $researchClass->id,
+            'creation_token' => (string) Str::uuid(),
+            'name' => 'Dependency Test Group',
+            'created_by' => $facilitator->id,
+            'status' => 'active',
+        ]);
+        $defense = Defense::query()->create([
+            'research_class_group_id' => $group->id,
+            'defense_type' => 'proposal_defense',
+            'status' => 'scheduled',
+            'created_by' => $facilitator->id,
+        ]);
+        $room = DefenseRoom::query()->create([
+            'code' => 'LOCK-101',
+            'name' => 'Protected Defense Room',
+            'is_active' => true,
+        ]);
+        DefenseSchedule::query()->create([
+            'defense_id' => $defense->id,
+            'room_id' => $room->id,
+            'starts_at' => now()->addDay(),
+            'ends_at' => now()->addDay()->addHour(),
+            'status' => 'scheduled',
+            'scheduled_by' => $facilitator->id,
+        ]);
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->set('tab', 'configuration')
+            ->assertSee('Protected Defense Room')
+            ->assertSee('1 upcoming/active')
+            ->call('setDefenseRoomActive', $room->id, false)
+            ->assertHasErrors(['configuration']);
+
+        $this->assertTrue($room->fresh()->is_active);
     }
 }

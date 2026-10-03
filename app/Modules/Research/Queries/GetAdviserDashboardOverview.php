@@ -12,7 +12,6 @@ use App\Support\CachesDatabaseSchema;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class GetAdviserDashboardOverview
@@ -83,7 +82,7 @@ class GetAdviserDashboardOverview
         }
 
         $selects = ['students.id', 'students.name', 'groups.id as group_id', 'groups.name as group_name'];
-        if (Schema::hasColumn('research_class_groups', 'research_title')) {
+        if ($this->columnExists('research_class_groups', 'research_title')) {
             $selects[] = 'groups.research_title';
         }
 

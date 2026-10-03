@@ -490,7 +490,11 @@ class GetAdminDashboardData
                 'group.adviser:id,name',
                 'group.leader:id,name',
                 'group.members.student:id,name',
-                'group.researchGroup.currentProject:id,research_group_id,title',
+                'group.researchGroup.currentProject' => fn ($query) => $query->select([
+                    'research_projects.id',
+                    'research_projects.research_group_id',
+                    'research_projects.title',
+                ]),
                 'activePanelAssignments.user:id,name',
             ])
             ->latest('updated_at')

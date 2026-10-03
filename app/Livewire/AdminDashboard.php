@@ -18,15 +18,21 @@ use App\Models\SystemSetting;
 use App\Models\User;
 use App\Modules\Administration\Actions\CreateSystemBackup;
 use App\Modules\Administration\Actions\DeleteSystemBackup;
+use App\Modules\Administration\Actions\ImportSystemBackup;
 use App\Modules\Administration\Actions\ManageAcademicConfiguration;
+use App\Modules\Administration\Actions\RestoreSystemBackup;
+use App\Modules\Administration\Actions\SetServiceAvailability;
 use App\Modules\Administration\Actions\UpdateSystemSettings;
 use App\Modules\Administration\Actions\VerifySystemBackup;
+use App\Modules\Administration\Services\BackupImportLimit;
 use App\Modules\AuditLogs\Queries\GetAuditLogsForAdmin;
 use App\Modules\AuditLogs\Services\AuditLogWriter;
 use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Dashboard\Queries\GetAdminDashboardData;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\Notifications\Services\UnreadNotificationCount;
+use App\Modules\SystemSettings\Services\DocumentUploadLimit;
+use App\Modules\UserManagement\Actions\ManageFacultyDepartmentAssignments;
 use App\Modules\UserManagement\Actions\ManageRoleAccess;
 use App\Modules\UserManagement\Actions\ManageUserAccount;
 use Illuminate\Support\Carbon;
@@ -38,13 +44,15 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use Spatie\Permission\Models\Role;
 
 class AdminDashboard extends Component
 {
-    use WithPagination;
+    use WithFileUploads, WithPagination;
 
     // Search and filter inputs
     public string $searchQuery = '';
@@ -70,7 +78,19 @@ class AdminDashboard extends Component
 
     public string $department = '';
 
+    /** @var list<int|string> */
+    public array $additionalDepartmentIds = [];
+
     public bool $isCollegeDean = false;
+
+    public bool $showFacultyDepartmentsEditor = false;
+
+    public ?int $facultyDepartmentUserId = null;
+
+    public ?int $primaryDepartmentId = null;
+
+    /** @var list<int|string> */
+    public array $facultyDepartmentIds = [];
 
     public string $password = '';
 
@@ -79,6 +99,8 @@ class AdminDashboard extends Component
     public ?int $editingRoleId = null;
 
     public bool $showRoleEditor = false;
+
+    public ?int $pendingRoleDeleteId = null;
 
     public string $roleName = '';
 
@@ -112,6 +134,8 @@ class AdminDashboard extends Component
 
     public bool $settingsEmailNotificationsEnabled = true;
 
+    public int $settingsDocumentMaxUploadMb = 10;
+
     public bool $settingsTurnstileEnabled = true;
 
     public bool $settingsDefenseHighTrafficModeEnabled = false;
@@ -124,7 +148,21 @@ class AdminDashboard extends Component
 
     public int $backupRetentionCount = 14;
 
-    public string $settingsMaintenanceNotice = '';
+    public int $backupMaxImportMb = 10;
+
+    public $backupImportFile;
+
+    public ?int $backupPendingRestoreId = null;
+
+    public string $backupRestoreConfirmation = '';
+
+    public ?int $backupPendingDeleteId = null;
+
+    public string $backupDeleteConfirmation = '';
+
+    public ?string $pendingServiceAvailabilityKey = null;
+
+    public bool $pendingServiceAvailability = false;
 
     public ?int $settingsAcademicYearId = null;
 
@@ -324,6 +362,7 @@ class AdminDashboard extends Component
     {
         if ($value) {
             $this->department = (string) config('academic.college.name');
+            $this->additionalDepartmentIds = [];
         } else {
             $this->department = '';
         }
@@ -356,6 +395,23 @@ class AdminDashboard extends Component
         return $options;
     }
 
+    /** @return array<int, string> */
+    public function teachingDepartmentOptions(): array
+    {
+        if (! Schema::hasTable('departments')) {
+            return [];
+        }
+
+        return Department::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'code', 'name'])
+            ->mapWithKeys(fn (Department $department): array => [
+                (int) $department->getKey() => "{$department->name} ({$department->code})",
+            ])
+            ->all();
+    }
+
     public function createStaffAccount(ManageUserAccount $manageUserAccount): void
     {
         Gate::authorize('create', User::class);
@@ -381,6 +437,12 @@ class AdminDashboard extends Component
             $validDeptCodes = array_keys($deptOptions);
             $validDeptNames = collect(config('academic.departments', []))->pluck('name')->all();
             $rules['department'] = ['required', 'string', Rule::in(array_merge($validDeptCodes, $validDeptNames))];
+            $rules['additionalDepartmentIds'] = ['array'];
+            $rules['additionalDepartmentIds.*'] = [
+                'integer',
+                'distinct',
+                Rule::exists('departments', 'id')->where(fn ($query) => $query->where('is_active', true)),
+            ];
         }
 
         $this->validate($rules, [
@@ -400,6 +462,21 @@ class AdminDashboard extends Component
             $departmentId = Schema::hasTable('departments')
                 ? Department::query()->where('code', $deptConfig['code'] ?? $this->department)->orWhere('name', $finalDepartment)->value('id')
                 : null;
+
+            if ($departmentId !== null && $this->additionalDepartmentIds !== []) {
+                $primaryCollegeId = Department::query()->whereKey($departmentId)->value('college_id');
+                $validAdditionalCount = Department::query()
+                    ->whereIn('id', $this->additionalDepartmentIds)
+                    ->where('is_active', true)
+                    ->where('college_id', $primaryCollegeId)
+                    ->count();
+
+                if ($validAdditionalCount !== count(array_unique(array_map('intval', $this->additionalDepartmentIds)))) {
+                    $this->addError('additionalDepartmentIds', 'Teaching departments must be active departments in the same college.');
+
+                    return;
+                }
+            }
         }
 
         $user = $manageUserAccount->createStaff([
@@ -408,13 +485,83 @@ class AdminDashboard extends Component
             'password' => $this->password,
             'department' => $finalDepartment,
             'department_id' => $departmentId,
+            'department_ids' => $isDean ? [] : array_map('intval', $this->additionalDepartmentIds),
         ], $this->administrator());
 
         $this->clearDashboardCache();
         $this->successMessage = "Faculty account for {$user->name} created. Assign a role when access is required.";
 
-        $this->reset(['name', 'email', 'password', 'department', 'isCollegeDean']);
+        $this->reset(['name', 'email', 'password', 'department', 'additionalDepartmentIds', 'isCollegeDean']);
         $this->dispatch('staff-account-created');
+    }
+
+    public function openFacultyDepartmentsEditor(int $userId): void
+    {
+        $subject = User::query()
+            ->with('facultyProfile.departments:id')
+            ->findOrFail($userId);
+        Gate::authorize('update', $subject);
+        abort_if($subject->facultyProfile === null, 422, 'This account does not have a faculty profile.');
+
+        $this->facultyDepartmentUserId = (int) $subject->getKey();
+        $this->primaryDepartmentId = (int) $subject->facultyProfile->department_id;
+        $this->facultyDepartmentIds = $subject->facultyProfile->departments
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->push($this->primaryDepartmentId)
+            ->unique()
+            ->values()
+            ->all();
+        $this->showFacultyDepartmentsEditor = true;
+        $this->resetValidation();
+    }
+
+    public function saveFacultyDepartments(ManageFacultyDepartmentAssignments $manageDepartments): void
+    {
+        abort_if($this->facultyDepartmentUserId === null, 404);
+        $subject = User::query()->findOrFail($this->facultyDepartmentUserId);
+        Gate::authorize('update', $subject);
+
+        $departmentIds = array_values(array_unique(array_map('intval', $this->facultyDepartmentIds)));
+        $this->validate([
+            'primaryDepartmentId' => [
+                'required',
+                'integer',
+                Rule::exists('departments', 'id')->where(fn ($query) => $query->where('is_active', true)),
+            ],
+            'facultyDepartmentIds' => ['array'],
+            'facultyDepartmentIds.*' => [
+                'integer',
+                'distinct',
+                Rule::exists('departments', 'id')->where(fn ($query) => $query->where('is_active', true)),
+            ],
+        ]);
+
+        if (! in_array((int) $this->primaryDepartmentId, $departmentIds, true)) {
+            $departmentIds[] = (int) $this->primaryDepartmentId;
+        }
+
+        $manageDepartments->handle(
+            $subject,
+            (int) $this->primaryDepartmentId,
+            $departmentIds,
+            $this->administrator(),
+        );
+
+        $this->successMessage = "Department assignments for {$subject->name} updated successfully.";
+        $this->closeFacultyDepartmentsEditor();
+        $this->clearDashboardCache();
+    }
+
+    public function closeFacultyDepartmentsEditor(): void
+    {
+        $this->reset([
+            'showFacultyDepartmentsEditor',
+            'facultyDepartmentUserId',
+            'primaryDepartmentId',
+            'facultyDepartmentIds',
+        ]);
+        $this->resetValidation();
     }
 
     public function editRole(int $roleId): void
@@ -494,11 +641,40 @@ class AdminDashboard extends Component
         $this->resetRoleEditor();
     }
 
-    public function deleteRole(int $roleId, ManageRoleAccess $manageRoleAccess): void
+    public function prepareRoleDelete(int $roleId): void
     {
-        $role = Role::query()->findOrFail($roleId);
+        $this->authorizeRoleManagement();
+        $role = Role::query()->withCount('users')->findOrFail($roleId);
+
+        if (in_array($role->name, config('access-control.protected_roles', []), true)) {
+            $this->addError('roleName', 'This protected role cannot be deleted.');
+
+            return;
+        }
+
+        if ((int) $role->users_count > 0) {
+            $this->addError('roleName', 'Remove this role from every assigned user before deleting it.');
+
+            return;
+        }
+
+        $this->pendingRoleDeleteId = (int) $role->getKey();
+        $this->resetValidation('roleName');
+    }
+
+    public function cancelRoleDelete(): void
+    {
+        $this->pendingRoleDeleteId = null;
+        $this->resetValidation('roleName');
+    }
+
+    public function deleteRole(ManageRoleAccess $manageRoleAccess): void
+    {
+        abort_if($this->pendingRoleDeleteId === null, 404);
+        $role = Role::query()->findOrFail($this->pendingRoleDeleteId);
         $name = $role->name;
         $manageRoleAccess->deleteCustomRole($this->administrator(), $role);
+        $this->pendingRoleDeleteId = null;
         $this->successMessage = "Role {$name} deleted successfully.";
         $this->resetRoleEditor();
     }
@@ -611,16 +787,18 @@ class AdminDashboard extends Component
 
         $this->settingsSystemName = trim(strip_tags($this->settingsSystemName));
         $this->settingsSupportEmail = mb_strtolower(trim($this->settingsSupportEmail));
-        $this->settingsMaintenanceNotice = trim(strip_tags($this->settingsMaintenanceNotice));
-
         $this->validate([
             'settingsSystemName' => ['required', 'string', 'min:3', 'max:150'],
             'settingsSupportEmail' => ['required', 'email:rfc', 'max:255'],
-            'settingsStudentRegistrationEnabled' => ['boolean'],
             'settingsEmailNotificationsEnabled' => ['boolean'],
+            'settingsDocumentMaxUploadMb' => [
+                'required',
+                'integer',
+                'min:1',
+                'max:'.app(DocumentUploadLimit::class)->hardLimitMegabytes(),
+            ],
             'settingsTurnstileEnabled' => ['boolean'],
             'settingsDefenseHighTrafficModeEnabled' => ['boolean'],
-            'settingsMaintenanceNotice' => ['nullable', 'string', 'max:500'],
             'settingsAcademicYearId' => ['nullable', 'integer', Rule::exists('academic_years', 'id')],
             'settingsAcademicTermId' => [
                 'nullable',
@@ -637,20 +815,71 @@ class AdminDashboard extends Component
             return;
         }
 
+        if ($this->settingsAcademicYearId !== null && $this->settingsAcademicTermId !== null) {
+            $academicYear = AcademicYear::query()->find($this->settingsAcademicYearId);
+            $academicTerm = AcademicTerm::query()->find($this->settingsAcademicTermId);
+
+            if ($academicYear === null || ! $this->academicYearIsValid($academicYear)) {
+                $this->addError('settingsAcademicYearId', 'Select a valid academic year using the YYYY–YYYY format and approved date range.');
+
+                return;
+            }
+
+            if ($academicTerm === null || ! $this->academicTermIsValid($academicTerm, $academicYear)) {
+                $this->addError('settingsAcademicTermId', 'The academic term dates must be inside the selected academic year and the end date must follow the start date.');
+
+                return;
+            }
+        }
+
         $updateSystemSettings->handle($this->administrator(), [
             'system_name' => $this->settingsSystemName,
             'support_email' => $this->settingsSupportEmail,
-            'student_registration_enabled' => $this->settingsStudentRegistrationEnabled,
             'email_notifications_enabled' => $this->settingsEmailNotificationsEnabled,
+            'document_max_upload_mb' => $this->settingsDocumentMaxUploadMb,
             'turnstile_enabled' => $this->settingsTurnstileEnabled,
             'defense_high_traffic_mode_enabled' => $this->settingsDefenseHighTrafficModeEnabled,
-            'maintenance_notice' => $this->settingsMaintenanceNotice !== '' ? $this->settingsMaintenanceNotice : null,
             'academic_year_id' => $this->settingsAcademicYearId,
             'academic_term_id' => $this->settingsAcademicTermId,
         ]);
 
         $this->successMessage = 'System settings saved successfully.';
         $this->resetValidation();
+    }
+
+    public function setServiceAvailability(string $service, bool $available, SetServiceAvailability $setAvailability): void
+    {
+        $settings = $setAvailability->handle($this->administrator(), $service, $available);
+        $this->settingsStudentRegistrationEnabled = $settings->student_registration_enabled;
+        $label = config("service-maintenance.services.{$service}.label", 'Service');
+        $this->successMessage = $available
+            ? "{$label} is operating normally again."
+            : "{$label} is now under maintenance.";
+    }
+
+    public function prepareServiceAvailability(string $service, bool $available): void
+    {
+        abort_unless(array_key_exists($service, config('service-maintenance.services', [])), 404);
+        abort_unless($this->administrator()->can('settings.manage'), 403);
+
+        $this->pendingServiceAvailabilityKey = $service;
+        $this->pendingServiceAvailability = $available;
+    }
+
+    public function cancelServiceAvailability(): void
+    {
+        $this->pendingServiceAvailabilityKey = null;
+        $this->pendingServiceAvailability = false;
+    }
+
+    public function confirmServiceAvailability(SetServiceAvailability $setAvailability): void
+    {
+        abort_if($this->pendingServiceAvailabilityKey === null, 404);
+
+        $service = $this->pendingServiceAvailabilityKey;
+        $available = $this->pendingServiceAvailability;
+        $this->setServiceAvailability($service, $available, $setAvailability);
+        $this->cancelServiceAvailability();
     }
 
     public function runSystemBackup(CreateSystemBackup $createBackup): void
@@ -676,6 +905,12 @@ class AdminDashboard extends Component
             'backupFrequency' => ['required', Rule::in(['daily', 'weekly', 'monthly'])],
             'backupRunTime' => ['required', 'date_format:H:i'],
             'backupRetentionCount' => ['required', 'integer', 'min:1', 'max:365'],
+            'backupMaxImportMb' => [
+                'required',
+                'integer',
+                'min:1',
+                'max:'.max(1, (int) config('backups.max_import_limit_mb', 1024)),
+            ],
         ]);
 
         $settings = DB::transaction(function () use ($validated): SystemBackupSetting {
@@ -685,6 +920,7 @@ class AdminDashboard extends Component
                 'frequency' => $validated['backupFrequency'],
                 'run_time' => $validated['backupRunTime'],
                 'retention_count' => $validated['backupRetentionCount'],
+                'max_import_mb' => $validated['backupMaxImportMb'],
                 'last_scheduled_for' => null,
                 'updated_by' => $this->administrator()->getKey(),
             ]);
@@ -699,22 +935,42 @@ class AdminDashboard extends Component
             requestContext: AuditRequestContext::fromRequest(request()),
             auditable: $settings,
             subjectName: 'System Backup Schedule',
-            newValues: $settings->only(['enabled', 'frequency', 'run_time', 'retention_count']),
+            newValues: $settings->only(['enabled', 'frequency', 'run_time', 'retention_count', 'max_import_mb']),
             actorContext: 'administrator',
         );
 
         $this->successMessage = 'Backup schedule saved successfully.';
     }
 
-    public function deleteSystemBackup(int $backupId, DeleteSystemBackup $deleteBackup): void
+    public function prepareSystemBackupDelete(int $backupId): void
     {
         abort_unless($this->administrator()->can('settings.manage'), 403);
-        $backup = SystemBackup::query()->findOrFail($backupId);
+        $backup = SystemBackup::query()->where('status', '!=', 'running')->findOrFail($backupId);
+
+        $this->backupPendingDeleteId = (int) $backup->getKey();
+        $this->backupDeleteConfirmation = '';
+        $this->resetErrorBag(['backup', 'backupDeleteConfirmation']);
+    }
+
+    public function cancelSystemBackupDelete(): void
+    {
+        $this->reset('backupPendingDeleteId', 'backupDeleteConfirmation');
+        $this->resetErrorBag('backupDeleteConfirmation');
+    }
+
+    public function deleteSystemBackup(DeleteSystemBackup $deleteBackup): void
+    {
+        abort_unless($this->administrator()->can('settings.manage'), 403);
+        abort_if($this->backupPendingDeleteId === null, 404);
+        $backup = SystemBackup::query()->findOrFail($this->backupPendingDeleteId);
 
         try {
             $filename = $backup->filename;
-            $deleteBackup->handle($this->administrator(), $backup);
+            $deleteBackup->handle($this->administrator(), $backup, $this->backupDeleteConfirmation);
+            $this->reset('backupPendingDeleteId', 'backupDeleteConfirmation');
             $this->successMessage = "Backup {$filename} was deleted.";
+        } catch (ValidationException $exception) {
+            throw $exception;
         } catch (\Throwable $exception) {
             report($exception);
             $this->addError('backup', $exception->getMessage());
@@ -730,6 +986,73 @@ class AdminDashboard extends Component
         try {
             $verifyBackup->handle($this->administrator(), $backup);
             $this->successMessage = "Backup {$backup->filename} passed integrity verification.";
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->addError('backup', $exception->getMessage());
+        }
+    }
+
+    public function importSystemBackup(ImportSystemBackup $importBackup, BackupImportLimit $importLimit): void
+    {
+        abort_unless($this->administrator()->can('settings.manage'), 403);
+        $this->resetErrorBag(['backup', 'backupImportFile']);
+
+        $maxKilobytes = $importLimit->megabytes() * 1024;
+        $this->validate([
+            'backupImportFile' => ['required', 'file', 'mimes:zip', 'max:'.$maxKilobytes],
+        ], [
+            'backupImportFile.mimes' => 'Select a ZIP archive created by NDMU-RMAS Backup Management.',
+        ]);
+
+        try {
+            $backup = $importBackup->handle(
+                $this->administrator(),
+                $this->backupImportFile->getRealPath(),
+                $this->backupImportFile->getClientOriginalName(),
+            );
+            $this->reset('backupImportFile');
+            $this->successMessage = "Backup {$backup->filename} was imported and verified. It has not been restored yet.";
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->addError('backupImportFile', $exception->getMessage());
+        }
+    }
+
+    public function prepareSystemBackupRestore(int $backupId): void
+    {
+        abort_unless($this->administrator()->can('settings.manage'), 403);
+        $backup = SystemBackup::query()
+            ->where('status', 'completed')
+            ->where('verification_status', 'verified')
+            ->findOrFail($backupId);
+
+        $this->backupPendingRestoreId = $backup->getKey();
+        $this->backupRestoreConfirmation = '';
+        $this->resetErrorBag(['backup', 'backupRestoreConfirmation']);
+    }
+
+    public function cancelSystemBackupRestore(): void
+    {
+        $this->reset('backupPendingRestoreId', 'backupRestoreConfirmation');
+        $this->resetErrorBag('backupRestoreConfirmation');
+    }
+
+    public function restoreSystemBackup(RestoreSystemBackup $restoreBackup): void
+    {
+        abort_unless($this->administrator()->can('settings.manage'), 403);
+        $backup = SystemBackup::query()->findOrFail($this->backupPendingRestoreId);
+        $requiredConfirmation = 'RESTORE '.$backup->filename;
+
+        if (! hash_equals($requiredConfirmation, trim($this->backupRestoreConfirmation))) {
+            $this->addError('backupRestoreConfirmation', "Type {$requiredConfirmation} exactly to continue.");
+
+            return;
+        }
+
+        try {
+            $restored = $restoreBackup->handle($this->administrator(), $backup);
+            $this->reset('backupPendingRestoreId', 'backupRestoreConfirmation');
+            $this->successMessage = "Backup {$restored->filename} was restored successfully. A pre-restore safety backup was also created.";
         } catch (\Throwable $exception) {
             report($exception);
             $this->addError('backup', $exception->getMessage());
@@ -797,34 +1120,69 @@ class AdminDashboard extends Component
     {
         abort_unless($this->administrator()->can('settings.manage'), 403);
 
-        $this->newAcademicYearName = trim(strip_tags($this->newAcademicYearName));
+        $this->newAcademicYearName = str_replace('-', '–', trim(strip_tags($this->newAcademicYearName)));
+        $minimumStart = now()->subYear()->startOfYear()->toDateString();
+        $maximumStart = now()->addYears(5)->endOfYear()->toDateString();
         $this->validate([
-            'newAcademicYearName' => ['required', 'string', 'max:50', 'unique:academic_years,name'],
-            'newAcademicYearStartDate' => ['required', 'date'],
-            'newAcademicYearEndDate' => ['required', 'date', 'after:newAcademicYearStartDate'],
+            'newAcademicYearName' => ['required', 'string', 'regex:/^\d{4}–\d{4}$/u', 'unique:academic_years,name'],
+            'newAcademicYearStartDate' => ['required', 'date_format:Y-m-d', "after_or_equal:{$minimumStart}", "before_or_equal:{$maximumStart}"],
+            'newAcademicYearEndDate' => ['required', 'date_format:Y-m-d', 'after:newAcademicYearStartDate'],
+        ], [
+            'newAcademicYearName.regex' => 'Use the academic year format YYYY–YYYY, for example 2027–2028.',
+            'newAcademicYearStartDate.after_or_equal' => 'The academic year cannot begin more than one calendar year in the past.',
+            'newAcademicYearStartDate.before_or_equal' => 'The academic year cannot begin more than five years in the future.',
         ]);
 
-        $ay = AcademicYear::query()->create([
-            'name' => $this->newAcademicYearName,
-            'starts_at' => $this->newAcademicYearStartDate,
-            'ends_at' => $this->newAcademicYearEndDate,
-            'is_current' => false,
-        ]);
+        [$nameStartYear, $nameEndYear] = array_map('intval', explode('–', $this->newAcademicYearName));
+        $start = Carbon::createFromFormat('Y-m-d', $this->newAcademicYearStartDate)->startOfDay();
+        $end = Carbon::createFromFormat('Y-m-d', $this->newAcademicYearEndDate)->startOfDay();
 
-        $term1 = AcademicTerm::query()->create([
-            'academic_year_id' => $ay->id,
-            'name' => 'First Semester',
-            'starts_at' => $ay->starts_at,
-            'ends_at' => Carbon::parse($ay->starts_at)->addMonths(4)->endOfMonth(),
-            'is_current' => false,
-        ]);
-        AcademicTerm::query()->create([
-            'academic_year_id' => $ay->id,
-            'name' => 'Second Semester',
-            'starts_at' => Carbon::parse($ay->starts_at)->addMonths(5)->startOfMonth(),
-            'ends_at' => $ay->ends_at,
-            'is_current' => false,
-        ]);
+        if ($nameEndYear !== $nameStartYear + 1) {
+            $this->addError('newAcademicYearName', 'The second year must immediately follow the first year.');
+
+            return;
+        }
+        if ($start->year !== $nameStartYear || $end->year !== $nameEndYear) {
+            $this->addError('newAcademicYearName', 'The name must match the years of the selected start and end dates.');
+
+            return;
+        }
+        if ($start->diffInDays($end) < 240 || $start->diffInDays($end) > 400) {
+            $this->addError('newAcademicYearEndDate', 'An academic year must be between 240 and 400 days long.');
+
+            return;
+        }
+        if (AcademicYear::query()->whereDate('starts_at', '<=', $end)->whereDate('ends_at', '>=', $start)->exists()) {
+            $this->addError('newAcademicYearStartDate', 'These dates overlap an existing academic year.');
+
+            return;
+        }
+
+        [$ay, $term1] = DB::transaction(function () use ($start, $end): array {
+            $ay = AcademicYear::query()->create([
+                'name' => $this->newAcademicYearName,
+                'starts_at' => $start,
+                'ends_at' => $end,
+                'is_current' => false,
+            ]);
+
+            $term1 = AcademicTerm::query()->create([
+                'academic_year_id' => $ay->id,
+                'name' => 'First Semester',
+                'starts_at' => $ay->starts_at,
+                'ends_at' => $start->copy()->addMonths(4)->endOfMonth(),
+                'is_current' => false,
+            ]);
+            AcademicTerm::query()->create([
+                'academic_year_id' => $ay->id,
+                'name' => 'Second Semester',
+                'starts_at' => $start->copy()->addMonths(5)->startOfMonth(),
+                'ends_at' => $ay->ends_at,
+                'is_current' => false,
+            ]);
+
+            return [$ay, $term1];
+        });
 
         $this->settingsAcademicYearId = $ay->id;
         $this->settingsAcademicTermId = $term1->id;
@@ -854,11 +1212,6 @@ class AdminDashboard extends Component
     public function setDepartmentActive(int $departmentId, bool $active, ManageAcademicConfiguration $configuration): void
     {
         $department = Department::query()->findOrFail($departmentId);
-        if (! $active && $department->programs()->where('is_active', true)->exists()) {
-            $this->addError('configuration', 'Deactivate the department’s active programs first.');
-
-            return;
-        }
         $configuration->setDepartmentActive($this->administrator(), $department, $active);
         $this->successMessage = "Department {$department->code} ".($active ? 'activated.' : 'deactivated.');
         $this->clearDashboardCache();
@@ -920,11 +1273,6 @@ class AdminDashboard extends Component
     public function setDefenseRoomActive(int $roomId, bool $active, ManageAcademicConfiguration $configuration): void
     {
         $room = DefenseRoom::query()->findOrFail($roomId);
-        if (! $active && $room->schedules()->where('starts_at', '>=', now())->whereIn('status', ['current', 'scheduled'])->exists()) {
-            $this->addError('configuration', 'This room has an upcoming defense. Reschedule it before deactivating the room.');
-
-            return;
-        }
         $configuration->setDefenseRoomActive($this->administrator(), $room, $active);
         $this->successMessage = "Defense room {$room->code} ".($active ? 'activated.' : 'deactivated.');
         $this->clearDashboardCache();
@@ -933,11 +1281,6 @@ class AdminDashboard extends Component
     public function setOfficialFormActive(int $definitionId, bool $active, ManageAcademicConfiguration $configuration): void
     {
         $definition = OfficialFormDefinition::query()->findOrFail($definitionId);
-        if (! $active && $definition->instances()->whereNotIn('status', ['approved', 'completed', 'rejected', 'cancelled'])->exists()) {
-            $this->addError('configuration', "{$definition->code} has active records and cannot be disabled yet.");
-
-            return;
-        }
         $configuration->setOfficialFormActive($this->administrator(), $definition, $active);
         $this->successMessage = "Official form {$definition->code} ".($active ? 'enabled.' : 'disabled.');
         $this->clearDashboardCache();
@@ -1131,10 +1474,12 @@ class AdminDashboard extends Component
                 'programs' => 'BSCS, BSIT, BLIS',
                 'student_org' => 'Course-specific computing/library organizations',
                 'coordinator' => User::role('program-coordinator')->where(function ($q) {
-                    $q->where('department', 'like', '%Computer Studies%')->orWhere('department', 'CSD');
+                    $q->where('department', 'like', '%Computer Studies%')->orWhere('department', 'CSD')
+                        ->orWhereHas('facultyProfile.departments', fn ($departments) => $departments->where('departments.code', 'CSD'));
                 })->first()?->name ?? 'Engr. Jose Montero',
                 'faculty_count' => User::where(fn ($q) => $q->where('user_type', 'faculty')->orWhere('user_type', 'faculty_member'))->where(function ($q) {
-                    $q->where('department', 'like', '%Computer Studies%')->orWhere('department', 'CSD');
+                    $q->where('department', 'like', '%Computer Studies%')->orWhere('department', 'CSD')
+                        ->orWhereHas('facultyProfile.departments', fn ($departments) => $departments->where('departments.code', 'CSD'));
                 })->count(),
                 'student_count' => User::where('user_type', 'student')->where(function ($q) {
                     $q->where('department', 'like', '%Computer Studies%')
@@ -1157,10 +1502,12 @@ class AdminDashboard extends Component
                 'programs' => 'BSEE, BSECE, BSCpE',
                 'student_org' => 'IIEE, JIECEP and ICpEP.SE',
                 'coordinator' => User::role('program-coordinator')->where(function ($q) {
-                    $q->where('department', 'like', '%Electrical%')->orWhere('department', 'EECE');
+                    $q->where('department', 'like', '%Electrical%')->orWhere('department', 'EECE')
+                        ->orWhereHas('facultyProfile.departments', fn ($departments) => $departments->where('departments.code', 'EECE'));
                 })->first()?->name ?? 'Engr. Michael Diaz',
                 'faculty_count' => User::where(fn ($q) => $q->where('user_type', 'faculty')->orWhere('user_type', 'faculty_member'))->where(function ($q) {
-                    $q->where('department', 'like', '%Electrical%')->orWhere('department', 'EECE');
+                    $q->where('department', 'like', '%Electrical%')->orWhere('department', 'EECE')
+                        ->orWhereHas('facultyProfile.departments', fn ($departments) => $departments->where('departments.code', 'EECE'));
                 })->count(),
                 'student_count' => User::where('user_type', 'student')->where(function ($q) {
                     $q->where('department', 'like', '%Electrical%')
@@ -1185,10 +1532,12 @@ class AdminDashboard extends Component
                 'programs' => 'BSCE',
                 'student_org' => 'PICE–NDMU Student Chapter',
                 'coordinator' => User::role('program-coordinator')->where(function ($q) {
-                    $q->where('department', 'like', '%Civil%')->orWhere('department', 'CED');
+                    $q->where('department', 'like', '%Civil%')->orWhere('department', 'CED')
+                        ->orWhereHas('facultyProfile.departments', fn ($departments) => $departments->where('departments.code', 'CED'));
                 })->first()?->name ?? 'Engr. Sarah Reyes',
                 'faculty_count' => User::where(fn ($q) => $q->where('user_type', 'faculty')->orWhere('user_type', 'faculty_member'))->where(function ($q) {
-                    $q->where('department', 'like', '%Civil%')->orWhere('department', 'CED');
+                    $q->where('department', 'like', '%Civil%')->orWhere('department', 'CED')
+                        ->orWhereHas('facultyProfile.departments', fn ($departments) => $departments->where('departments.code', 'CED'));
                 })->count(),
                 'student_count' => User::where('user_type', 'student')->where(function ($q) {
                     $q->where('department', 'like', '%Civil%')
@@ -1207,10 +1556,12 @@ class AdminDashboard extends Component
                 'programs' => 'BSArch',
                 'student_org' => 'UAPSA–NDMU Chapter',
                 'coordinator' => User::role('program-coordinator')->where(function ($q) {
-                    $q->where('department', 'like', '%Architecture%')->orWhere('department', 'AD');
+                    $q->where('department', 'like', '%Architecture%')->orWhere('department', 'AD')
+                        ->orWhereHas('facultyProfile.departments', fn ($departments) => $departments->where('departments.code', 'AD'));
                 })->first()?->name ?? 'Ar. Jonathan Tan',
                 'faculty_count' => User::where(fn ($q) => $q->where('user_type', 'faculty')->orWhere('user_type', 'faculty_member'))->where(function ($q) {
-                    $q->where('department', 'like', '%Architecture%')->orWhere('department', 'AD');
+                    $q->where('department', 'like', '%Architecture%')->orWhere('department', 'AD')
+                        ->orWhereHas('facultyProfile.departments', fn ($departments) => $departments->where('departments.code', 'AD'));
                 })->count(),
                 'student_count' => User::where('user_type', 'student')->where(function ($q) {
                     $q->where('department', 'like', '%Architecture%')
@@ -1251,7 +1602,7 @@ class AdminDashboard extends Component
         ];
 
         $usersList = User::query()
-            ->with('roles:id,name,display_name')
+            ->with(['roles:id,name,display_name', 'facultyProfile.department:id,code,name', 'facultyProfile.departments:id,code,name'])
             ->when($this->searchQuery, function ($query) {
                 $query->where(function ($query) {
                     $query->where('name', 'like', '%'.$this->searchQuery.'%')
@@ -1265,6 +1616,7 @@ class AdminDashboard extends Component
                     'CSD' => $query->where(function ($q) {
                         $q->where('department', 'like', '%Computer Studies%')
                             ->orWhere('department', 'CSD')
+                            ->orWhereHas('facultyProfile.departments', fn ($departments) => $departments->where('departments.code', 'CSD'))
                             ->orWhere('program', 'like', '%BSCS%')
                             ->orWhere('program', 'like', '%BSIT%')
                             ->orWhere('program', 'like', '%BLIS%');
@@ -1272,6 +1624,7 @@ class AdminDashboard extends Component
                     'EECE' => $query->where(function ($q) {
                         $q->where('department', 'like', '%Electrical%')
                             ->orWhere('department', 'EECE')
+                            ->orWhereHas('facultyProfile.departments', fn ($departments) => $departments->where('departments.code', 'EECE'))
                             ->orWhere('program', 'like', '%BSEE%')
                             ->orWhere('program', 'like', '%BSECE%')
                             ->orWhere('program', 'like', '%BSCPE%')
@@ -1280,11 +1633,13 @@ class AdminDashboard extends Component
                     'CED' => $query->where(function ($q) {
                         $q->where('department', 'like', '%Civil%')
                             ->orWhere('department', 'CED')
+                            ->orWhereHas('facultyProfile.departments', fn ($departments) => $departments->where('departments.code', 'CED'))
                             ->orWhere('program', 'like', '%BSCE%');
                     }),
                     'AD' => $query->where(function ($q) {
                         $q->where('department', 'like', '%Architecture%')
                             ->orWhere('department', 'AD')
+                            ->orWhereHas('facultyProfile.departments', fn ($departments) => $departments->where('departments.code', 'AD'))
                             ->orWhere('program', 'like', '%BSARCH%')
                             ->orWhere('program', 'like', '%BSArch%');
                     }),
@@ -1385,6 +1740,9 @@ class AdminDashboard extends Component
             'roleAssignmentUser' => $this->roleAssignmentUserId === null
                 ? null
                 : User::query()->select(['id', 'name', 'email'])->find($this->roleAssignmentUserId),
+            'pendingRoleDelete' => $this->pendingRoleDeleteId === null
+                ? null
+                : Role::query()->select(['id', 'name', 'display_name'])->find($this->pendingRoleDeleteId),
         ];
     }
 
@@ -1423,11 +1781,15 @@ class AdminDashboard extends Component
         $this->settingsSupportEmail = $settings->support_email;
         $this->settingsStudentRegistrationEnabled = $settings->student_registration_enabled;
         $this->settingsEmailNotificationsEnabled = $settings->email_notifications_enabled;
+        $this->settingsDocumentMaxUploadMb = $settings->document_max_upload_mb;
         $this->settingsTurnstileEnabled = $settings->turnstile_enabled;
         $this->settingsDefenseHighTrafficModeEnabled = $settings->defense_high_traffic_mode_enabled;
-        $this->settingsMaintenanceNotice = $settings->maintenance_notice ?? '';
-        $this->settingsAcademicYearId = AcademicYear::query()->where('is_current', true)->value('id');
-        $this->settingsAcademicTermId = AcademicTerm::query()->where('is_current', true)->value('id');
+        $currentYear = AcademicYear::query()->where('is_current', true)->first();
+        $this->settingsAcademicYearId = $currentYear && $this->academicYearIsValid($currentYear) ? $currentYear->id : null;
+        $currentTerm = $this->settingsAcademicYearId
+            ? AcademicTerm::query()->where('is_current', true)->where('academic_year_id', $this->settingsAcademicYearId)->first()
+            : null;
+        $this->settingsAcademicTermId = $currentTerm && $this->academicTermIsValid($currentTerm, $currentYear) ? $currentTerm->id : null;
     }
 
     private function loadBackupSettings(): void
@@ -1445,18 +1807,28 @@ class AdminDashboard extends Component
         $this->backupFrequency = $settings->frequency;
         $this->backupRunTime = substr((string) $settings->run_time, 0, 5);
         $this->backupRetentionCount = $settings->retention_count;
+        $this->backupMaxImportMb = $settings->max_import_mb;
     }
 
     /** @return array<string, mixed> */
     private function systemBackupData(): array
     {
         if (! Schema::hasTable('system_backups')) {
-            return ['systemBackups' => collect(), 'lastSuccessfulBackup' => null];
+            return [
+                'systemBackups' => collect(),
+                'lastSuccessfulBackup' => null,
+                'pendingRestoreBackup' => null,
+                'pendingDeleteBackup' => null,
+                'backupImportLimitMb' => $this->backupMaxImportMb,
+                'backupServerUploadLimitMb' => null,
+            ];
         }
+
+        $importLimit = app(BackupImportLimit::class);
 
         return [
             'systemBackups' => SystemBackup::query()
-                ->with(['triggeredBy:id,name', 'verifiedBy:id,name'])
+                ->with(['triggeredBy:id,name', 'verifiedBy:id,name', 'restoredBy:id,name'])
                 ->latest('started_at')
                 ->latest('id')
                 ->limit(50)
@@ -1465,19 +1837,81 @@ class AdminDashboard extends Component
                 ->where('status', 'completed')
                 ->latest('completed_at')
                 ->first(),
+            'pendingRestoreBackup' => $this->backupPendingRestoreId
+                ? SystemBackup::query()->find($this->backupPendingRestoreId)
+                : null,
+            'pendingDeleteBackup' => $this->backupPendingDeleteId
+                ? SystemBackup::query()->find($this->backupPendingDeleteId)
+                : null,
+            'backupImportLimitMb' => $importLimit->megabytes(),
+            'backupServerUploadLimitMb' => $importLimit->serverLimitMegabytes(),
         ];
     }
 
     /** @return array<string, mixed> */
     private function systemSettingsData(): array
     {
+        $documentLimit = app(DocumentUploadLimit::class);
+        $disabledServices = SystemSetting::query()->value('maintenance_services') ?? [];
+
         return [
             'academicYears' => AcademicYear::query()
                 ->with(['terms' => fn ($query) => $query->orderBy('starts_at')])
                 ->orderByDesc('starts_at')
-                ->get(),
+                ->get()
+                ->filter(fn (AcademicYear $year): bool => $this->academicYearIsValid($year))
+                ->map(function (AcademicYear $year): AcademicYear {
+                    $year->setRelation('terms', $year->terms
+                        ->filter(fn (AcademicTerm $term): bool => $this->academicTermIsValid($term, $year))
+                        ->values());
+
+                    return $year;
+                })
+                ->values(),
             'systemSettingsUpdatedAt' => SystemSetting::query()->value('updated_at'),
+            'documentUploadLimitCeilingMb' => $documentLimit->hardLimitMegabytes(),
+            'documentServerUploadLimitMb' => $documentLimit->serverLimitMegabytes(),
+            'maintenanceServices' => collect(config('service-maintenance.services', []))
+                ->map(fn (array $service, string $key): array => [
+                    ...$service,
+                    'key' => $key,
+                    'available' => ! in_array($key, $disabledServices, true)
+                        && ($key !== 'student-registration' || $this->settingsStudentRegistrationEnabled),
+                ])
+                ->values(),
+            'pendingServiceAvailabilityDetails' => $this->pendingServiceAvailabilityKey === null
+                ? null
+                : collect(config('service-maintenance.services', []))->get($this->pendingServiceAvailabilityKey),
         ];
+    }
+
+    private function academicYearIsValid(AcademicYear $year): bool
+    {
+        if (preg_match('/^(\d{4})–(\d{4})$/u', $year->name, $matches) !== 1) {
+            return false;
+        }
+
+        $nameStart = (int) $matches[1];
+        $nameEnd = (int) $matches[2];
+        $minimumYear = now()->year - 1;
+        $maximumYear = now()->year + 5;
+
+        return $nameEnd === $nameStart + 1
+            && $nameStart >= $minimumYear
+            && $nameStart <= $maximumYear
+            && $year->starts_at->year === $nameStart
+            && $year->ends_at->year === $nameEnd
+            && $year->starts_at->lt($year->ends_at)
+            && $year->starts_at->diffInDays($year->ends_at) >= 240
+            && $year->starts_at->diffInDays($year->ends_at) <= 400;
+    }
+
+    private function academicTermIsValid(AcademicTerm $term, AcademicYear $year): bool
+    {
+        return (int) $term->academic_year_id === (int) $year->id
+            && $term->starts_at->gte($year->starts_at)
+            && $term->ends_at->lte($year->ends_at)
+            && $term->starts_at->lt($term->ends_at);
     }
 
     /** @return array<string, mixed> */
@@ -1486,10 +1920,39 @@ class AdminDashboard extends Component
         return [
             'configurationCollege' => College::query()
                 ->where('code', config('academic.college.code'))
-                ->with(['departments' => fn ($query) => $query->with('programs')->orderBy('name')])
+                ->with(['departments' => fn ($query) => $query
+                    ->withCount([
+                        'programs as active_programs_count' => fn ($programs) => $programs->where('is_active', true),
+                        'assignedFacultyProfiles as active_faculty_count' => fn ($faculty) => $faculty->whereHas('user', fn ($users) => $users->where('status', AccountStatus::Active)),
+                    ])
+                    ->with(['programs' => fn ($programs) => $programs
+                        ->withCount([
+                            'studentProfiles as active_students_count' => fn ($students) => $students->whereHas('user', fn ($users) => $users->where('status', AccountStatus::Active)),
+                            'researchGroups',
+                        ])
+                        ->orderBy('name')])
+                    ->orderBy('name')])
                 ->first(),
-            'configurationDefenseRooms' => DefenseRoom::query()->withCount('schedules')->orderBy('name')->get(),
-            'configurationFormDefinitions' => OfficialFormDefinition::query()->withCount('instances')->orderBy('sort_order')->get(),
+            'configurationDefenseRooms' => DefenseRoom::query()
+                ->withCount([
+                    'schedules',
+                    'schedules as upcoming_schedules_count' => fn ($schedules) => $schedules
+                        ->whereIn('status', ManageAcademicConfiguration::ACTIVE_DEFENSE_STATUSES)
+                        ->where(fn ($dates) => $dates->where('starts_at', '>=', now())->orWhere('ends_at', '>=', now())),
+                    'sessions as upcoming_sessions_count' => fn ($sessions) => $sessions
+                        ->whereIn('status', ManageAcademicConfiguration::ACTIVE_DEFENSE_STATUSES)
+                        ->whereDate('session_date', '>=', today()),
+                ])
+                ->orderBy('name')
+                ->get(),
+            'configurationFormDefinitions' => OfficialFormDefinition::query()
+                ->withCount([
+                    'instances',
+                    'instances as active_instances_count' => fn ($instances) => $instances
+                        ->whereNotIn('status', ManageAcademicConfiguration::TERMINAL_FORM_STATUSES),
+                ])
+                ->orderBy('sort_order')
+                ->get(),
         ];
     }
 
