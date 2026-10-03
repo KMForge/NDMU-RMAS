@@ -12,6 +12,6 @@
             <x-student-empty-state message="No previous versions are available." />
         @endforelse
     </div>
-    <a href="{{ url()->previous() }}" class="inline-flex rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-bold">Back to Repository</a>
+    <a href="{{ $returnUrl }}" class="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-bold"><i class="ph ph-arrow-left"></i> Back to Dashboard</a>
 </div>
 @endsection

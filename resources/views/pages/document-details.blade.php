@@ -34,7 +34,7 @@
     <!-- Document Viewer Header & Navigation -->
     <div class="sticky top-2 z-20 rounded-2xl bg-white/95 backdrop-blur-md p-4 sm:p-5 shadow-md border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex items-center gap-3.5 min-w-0">
-            <a href="{{ url()->previous() !== url()->current() ? url()->previous() : route('dashboard') }}" class="h-10 w-10 shrink-0 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-700 transition shadow-2xs">
+            <a href="{{ $returnUrl }}" title="Back to dashboard" aria-label="Back to dashboard" class="h-10 w-10 shrink-0 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-700 transition shadow-2xs">
                 <i class="ph ph-arrow-left text-lg font-bold"></i>
             </a>
             <div class="min-w-0">
@@ -103,7 +103,7 @@
                 <span x-text="showDetails ? 'Hide Details' : 'Details'">Details</span>
             </button>
 
-            <a href="{{ route('documents.history', $document) }}" class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-2xs">
+            <a href="{{ route('documents.history', ['document' => $document, 'return_to' => $returnUrl]) }}" class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-2xs">
                 <i class="ph ph-clock-counter-clockwise text-sm"></i>
                 <span>History</span>
             </a>

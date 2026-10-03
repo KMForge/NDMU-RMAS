@@ -13,6 +13,7 @@ use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupMember;
 use App\Models\RevisionRequest;
+use App\Models\SystemSetting;
 use App\Models\User;
 use App\Modules\Documents\Actions\CorrectDocumentReviewDecision;
 use App\Modules\Documents\Actions\ReviewDocument;
@@ -410,7 +411,8 @@ class RevisionWorkflowTest extends TestCase
 
     public function test_oversized_revision_file_is_rejected(): void
     {
-        $fakeFile = UploadedFile::fake()->create('huge_proposal.pdf', 11 * 1024, 'application/pdf');
+        SystemSetting::query()->update(['document_max_upload_mb' => 1]);
+        $fakeFile = UploadedFile::fake()->create('huge_proposal.pdf', 2 * 1024, 'application/pdf');
 
         $request = new StoreRevisionDocumentRequest;
         $validator = validator([
@@ -419,6 +421,7 @@ class RevisionWorkflowTest extends TestCase
         ], $request->rules());
 
         $this->assertTrue($validator->fails());
+        $this->assertSame('The document field must not be greater than 1024 kilobytes.', $validator->errors()->first('document'));
     }
 
     public function test_invalid_submission_token_is_rejected(): void

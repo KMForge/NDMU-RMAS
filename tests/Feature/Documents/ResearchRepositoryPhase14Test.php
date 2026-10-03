@@ -288,6 +288,46 @@ class ResearchRepositoryPhase14Test extends TestCase
         $this->actingAs($leader)->get('/documents/999999999/view')->assertNotFound();
     }
 
+    public function test_document_view_and_history_use_a_stable_role_dashboard_return_url(): void
+    {
+        [$group, $facilitator, $leader] = $this->group();
+        $document = $this->document($leader, $group, 'Loop Safe.docx', DocumentStage::ProposalDefense, DocumentStatus::Accepted, true, 1, now(), 'docx');
+        Storage::disk('local')->put($document->storage_path, 'private-docx');
+        $dashboardUrl = route('student.dashboard');
+
+        $viewer = $this->actingAs($leader)
+            ->withSession(['active_workspace' => 'student'])
+            ->withHeader('referer', route('documents.history', $document))
+            ->get(route('documents.view', $document));
+
+        $viewer->assertOk()
+            ->assertSee('aria-label="Back to dashboard"', false)
+            ->assertSee('href="'.$dashboardUrl.'"', false)
+            ->assertSee('return_to='.urlencode($dashboardUrl), false);
+
+        $history = $this->actingAs($leader)
+            ->withSession(['active_workspace' => 'student'])
+            ->withHeader('referer', route('documents.view', $document))
+            ->get(route('documents.history', $document));
+
+        $history->assertOk()
+            ->assertSee('Back to Dashboard')
+            ->assertSee('href="'.$dashboardUrl.'"', false);
+    }
+
+    public function test_document_return_url_rejects_external_hosts(): void
+    {
+        [$group, $facilitator, $leader] = $this->group();
+        $document = $this->document($leader, $group, 'Safe Return.pdf');
+        Storage::disk('local')->put($document->storage_path, "%PDF-1.4\n%%EOF\n");
+
+        $this->actingAs($leader)
+            ->withSession(['active_workspace' => 'student'])
+            ->get(route('documents.view', ['document' => $document, 'return_to' => 'https://example.com/trap']))
+            ->assertOk()
+            ->assertSee('href="'.route('student.dashboard').'"', false);
+    }
+
     /** @return array{ResearchClassGroup, User, User, ResearchClass} */
     private function group(?User $adviser = null): array
     {

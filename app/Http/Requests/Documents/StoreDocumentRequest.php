@@ -5,6 +5,7 @@ namespace App\Http\Requests\Documents;
 use App\Enums\DocumentStage;
 use App\Modules\Documents\Actions\RecordDocumentUploadAttempt;
 use App\Modules\Documents\Rules\SecureDocumentFile;
+use App\Modules\SystemSettings\Services\DocumentUploadLimit;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -32,7 +33,7 @@ class StoreDocumentRequest extends FormRequest
                 'bail',
                 'required',
                 'file',
-                'max:'.config('ndmu-rmas.document.max_upload_kilobytes', 10240),
+                'max:'.app(DocumentUploadLimit::class)->kilobytes(),
                 new SecureDocumentFile,
             ],
         ];
@@ -50,7 +51,7 @@ class StoreDocumentRequest extends FormRequest
             'document_stage.enum' => 'The selected document stage is invalid.',
             'document.required' => 'Please choose a PDF or DOCX document.',
             'document.file' => 'The selected upload is not a valid file.',
-            'document.max' => 'The document must not be larger than 10 MB.',
+            'document.max' => 'The document must not be larger than '.app(DocumentUploadLimit::class)->megabytes().' MB.',
         ];
     }
 

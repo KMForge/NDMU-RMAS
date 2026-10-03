@@ -12,6 +12,7 @@ use App\Modules\Notifications\Queries\GetNotificationsForUser;
 use App\Modules\Notifications\Services\UnreadNotificationCount;
 use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use App\Modules\Research\Queries\GetStudentDashboardData;
+use App\Modules\SystemSettings\Services\DocumentUploadLimit;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -27,6 +28,7 @@ class DashboardController extends Controller
         GetEvaluationRoundData $evaluationQuery,
         GetPendingAcademicActionsForUser $pendingActionsService,
         GetNotificationsForUser $notificationQuery,
+        DocumentUploadLimit $documentUploadLimit,
     ): View {
         $allowedTabs = [
             'dashboard',
@@ -87,7 +89,7 @@ class DashboardController extends Controller
             ? $evaluationQuery->forStudent($request->user())
             : ['rounds' => []];
         $data['releasedEvaluations'] = $evaluationData['rounds'] ?? [];
-        $defenseBadgeCount = $activeTab === 'defense'
+        $defenseBadgeCount = in_array($activeTab, ['dashboard', 'defense'], true)
             ? collect($data['defenses'])
                 ->whereNotIn('defense_status', ['completed', 'cancelled'])
                 ->whereNotIn('schedule_status', ['completed', 'cancelled'])
@@ -130,6 +132,7 @@ class DashboardController extends Controller
             'activeDashboardTab' => $activeTab,
             'journey' => $journey,
             'pendingAcademicActions' => $pendingAcademicActions,
+            'documentMaxUploadMb' => $documentUploadLimit->megabytes(),
             ...$data,
         ]);
     }

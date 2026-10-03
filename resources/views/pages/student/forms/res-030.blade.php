@@ -65,7 +65,7 @@
         @if ($isEditable)
             <label class="block font-bold">Supporting document <span class="font-normal text-slate-500">(optional unless required by the reviewer)</span>
                 <input type="file" name="supporting_document" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="mt-2 block w-full rounded-lg border border-slate-300 p-2 text-sm">
-                <span class="mt-1 block text-xs font-normal text-slate-500">PDF, Word, JPG, or PNG; maximum 10 MB. Stored privately.</span>
+                <span class="mt-1 block text-xs font-normal text-slate-500">PDF, Word, JPG, or PNG; maximum {{ number_format($documentMaxUploadMb) }} MB. Stored privately.</span>
             </label>
         @elseif ($changeRequest?->supporting_document_path)
             <a href="{{ route('official-forms.workspace.adviser-change-supporting-document', $officialFormInstance) }}" class="inline-flex rounded-lg border border-emerald-300 px-4 py-2 text-sm font-bold text-emerald-800">Download supporting document</a>

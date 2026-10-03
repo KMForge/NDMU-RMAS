@@ -34,6 +34,7 @@ use App\Modules\OfficialForms\Actions\SubmitAdviserChangeRequest;
 use App\Modules\OfficialForms\Actions\SubmitOfficialFormVersion;
 use App\Modules\OfficialForms\Services\InstitutionalActorResolver;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
+use App\Modules\SystemSettings\Services\DocumentUploadLimit;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -212,6 +213,7 @@ class OfficialFormWorkspaceController extends Controller
                     ->get(['id', 'name', 'email'])
                 : collect(),
             'defenseRooms' => $isOwningFacilitator ? DefenseRoom::query()->where('is_active', true)->orderBy('name')->get() : collect(),
+            'documentMaxUploadMb' => app(DocumentUploadLimit::class)->megabytes(),
             'availableActions' => collect(['sign_chairperson', 'sign_member_1', 'sign_member_2', 'endorse', 'receive', 'approve', 'reject', 'certify', 'validate', 'review', 'sign', 'respond'])
                 ->filter(function (string $action) use ($request, $instance): bool {
                     $transition = app(OfficialFormAuthorization::class)->transitionFor($instance, $action);
@@ -378,7 +380,7 @@ class OfficialFormWorkspaceController extends Controller
         $validated = $request->validate([
             'payload' => ['present', 'array'],
             'supporting_document' => $isAdviserChange
-                ? ['nullable', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:10240']
+                ? ['nullable', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:'.app(DocumentUploadLimit::class)->kilobytes()]
                 : ['prohibited'],
         ]);
         $payload = $validated['payload'];

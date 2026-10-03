@@ -5,6 +5,7 @@ namespace App\Http\Requests\Revisions;
 use App\Models\RevisionRequest;
 use App\Modules\Documents\Actions\RecordDocumentUploadAttempt;
 use App\Modules\Documents\Rules\SecureDocumentFile;
+use App\Modules\SystemSettings\Services\DocumentUploadLimit;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -33,7 +34,7 @@ class StoreRevisionDocumentRequest extends FormRequest
                 'bail',
                 'required',
                 'file',
-                'max:'.config('ndmu-rmas.document.max_upload_kilobytes', 10240),
+                'max:'.app(DocumentUploadLimit::class)->kilobytes(),
                 new SecureDocumentFile,
             ],
         ];
@@ -49,7 +50,7 @@ class StoreRevisionDocumentRequest extends FormRequest
             'submission_token.uuid' => 'The revision upload session is invalid.',
             'document.required' => 'Please choose a revised PDF or DOCX document.',
             'document.file' => 'The selected revision is not a valid file.',
-            'document.max' => 'The revised document must not be larger than 10 MB.',
+            'document.max' => 'The revised document must not be larger than '.app(DocumentUploadLimit::class)->megabytes().' MB.',
         ];
     }
 

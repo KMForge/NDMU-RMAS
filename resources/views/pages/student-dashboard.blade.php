@@ -1017,7 +1017,7 @@
                                     <span>Submit Research Document</span>
                                 </h3>
                                 <p class="text-xs text-slate-500 font-medium mt-1">
-                                    Only PDF and DOCX formats are accepted (max 10 MB). Submitting a new file will automatically mark the prior submission as VOID.
+                                    Only PDF and DOCX formats are accepted (max {{ number_format($documentMaxUploadMb) }} MB). Submitting a new file will automatically mark the prior submission as VOID.
                                 </p>
                             </div>
 
