@@ -210,14 +210,16 @@ class ResearchProgressMilestoneTest extends TestCase
             ->for($this->facilitator)['progressGroups']
             ->first();
 
-        $this->assertSame(31, $shared['progress_percentage']);
-        $this->assertSame(4, $shared['completed_count']);
-        $this->assertSame(13, $shared['applicable_count']);
+        $this->assertSame(0, $shared['progress_percentage']);
+        $this->assertSame(0, $shared['completed_count']);
+        $this->assertSame(9, $shared['applicable_count']);
         $this->assertSame($shared['progress_percentage'], $student['dashboardOverview']['progress_percentage']);
         $this->assertSame($shared['progress_percentage'], $facilitatorGroup->progress_summary['progress_percentage']);
 
         foreach ([5, 7, 8, 9, 13] as $stageNumber) {
-            $this->assertTrue($facilitatorGroup->progress_summary['journey']['stages'][$stageNumber]['is_auto_completed']);
+            $this->assertFalse($facilitatorGroup->progress_summary['journey']['stages'][$stageNumber]['is_auto_completed']);
+            $this->assertFalse($facilitatorGroup->progress_summary['journey']['stages'][$stageNumber]['is_completed']);
+            $this->assertTrue($facilitatorGroup->progress_summary['journey']['stages'][$stageNumber]['is_optional']);
         }
     }
 
@@ -232,12 +234,16 @@ class ResearchProgressMilestoneTest extends TestCase
             ->for($this->facilitator)['progressGroups']
             ->first();
 
-        $this->assertSame(31, $shared['progress_percentage']);
+        $this->assertSame(0, $shared['progress_percentage']);
+        $this->assertSame(0, $shared['completed_count']);
+        $this->assertSame(9, $shared['applicable_count']);
         $this->assertSame($shared['progress_percentage'], $student['dashboardOverview']['progress_percentage']);
         $this->assertSame($shared['progress_percentage'], $facilitatorGroup->progress_summary['progress_percentage']);
 
         foreach ([5, 7, 8, 9, 13] as $stageNumber) {
-            $this->assertTrue($facilitatorGroup->progress_summary['journey']['stages'][$stageNumber]['is_auto_completed']);
+            $this->assertFalse($facilitatorGroup->progress_summary['journey']['stages'][$stageNumber]['is_auto_completed']);
+            $this->assertFalse($facilitatorGroup->progress_summary['journey']['stages'][$stageNumber]['is_completed']);
+            $this->assertTrue($facilitatorGroup->progress_summary['journey']['stages'][$stageNumber]['is_optional']);
         }
     }
 
@@ -301,14 +307,14 @@ class ResearchProgressMilestoneTest extends TestCase
         $journey = app(ResearchJourneyService::class)->getJourneyForGroup($this->group->fresh(), $this->student);
 
         foreach ([5, 7, 8, 9, 13] as $stageNumber) {
-            $this->assertTrue($journey['stages'][$stageNumber]['is_auto_completed']);
-            $this->assertTrue($journey['stages'][$stageNumber]['is_completed']);
-            $this->assertEmpty($journey['stages'][$stageNumber]['pending_requirements']);
+            $this->assertFalse($journey['stages'][$stageNumber]['is_auto_completed']);
+            $this->assertFalse($journey['stages'][$stageNumber]['is_completed']);
+            $this->assertTrue($journey['stages'][$stageNumber]['is_optional']);
         }
 
         $this->assertSame(6, $journey['current_stage']);
         $this->assertSame('Submission of Complete Research Proposal Paper', $journey['current_stage_name']);
-        $this->assertSame(62, $journey['percentage']);
+        $this->assertSame(44, $journey['percentage']);
         $this->assertNotSame('res-042', $journey['next_action']['form_code'] ?? null);
         $this->assertSame('Upload Complete Research Proposal Paper', $journey['next_action']['label']);
         $this->assertSame('document', $journey['next_action']['action_type']);
@@ -323,8 +329,17 @@ class ResearchProgressMilestoneTest extends TestCase
         $this->assertTrue($journeyAfterSubmission['stages'][6]['is_completed']);
         $this->assertSame(10, $journeyAfterSubmission['current_stage']);
         $this->assertSame('Research Pre-Final Defense', $journeyAfterSubmission['current_stage_name']);
-        $this->assertSame(69, $journeyAfterSubmission['percentage']);
+        $this->assertSame(56, $journeyAfterSubmission['percentage']);
         $this->assertNotNull($journeyAfterSubmission['next_action']);
+
+        // Test that facilitator can manually finish/complete stage 5 directly
+        $milestone5 = $this->milestones()->firstWhere('definition.sequence', 5);
+        $this->actingAs($this->facilitator)
+            ->patchJson(route('facilitator.progress.complete', $milestone5))
+            ->assertOk();
+
+        $journeyAfterFacilitator = app(ResearchJourneyService::class)->getJourneyForGroup($this->group->fresh(), $this->student);
+        $this->assertTrue($journeyAfterFacilitator['stages'][5]['is_completed']);
     }
 
     public function test_order_is_enforced_and_controlled_override_requires_reason(): void
@@ -645,6 +660,29 @@ class ResearchProgressMilestoneTest extends TestCase
         $summary = app(GetResearchGroupProgress::class)->for($this->group);
         $this->assertCount(14, $summary['milestones']);
         $this->assertSame(0, $summary['progress_percentage']);
+    }
+
+    public function test_facilitator_can_manually_complete_pending_milestone_via_web_form(): void
+    {
+        $milestone5 = $this->milestones()->firstWhere('definition.sequence', 5);
+        $this->assertSame(ResearchMilestoneStatus::Pending, $milestone5->status);
+
+        $response = $this->actingAs($this->facilitator)
+            ->from(route('facilitator.dashboard', ['tab' => 'monitoring', 'progress_group_id' => $this->group->getKey()]))
+            ->patch(route('facilitator.progress.complete', $milestone5), [
+                'override_order' => '1',
+                'direct_completion' => '1',
+                'reason' => 'Completed manually by research facilitator.',
+            ]);
+
+        $response->assertRedirect(route('facilitator.dashboard', ['tab' => 'monitoring', 'progress_group_id' => $this->group->getKey()]));
+        $response->assertSessionHas('success', 'Milestone status updated.');
+
+        $milestone5->refresh();
+        $this->assertSame(ResearchMilestoneStatus::Completed, $milestone5->status);
+
+        $journey = app(ResearchJourneyService::class)->getJourneyForGroup($this->group->fresh(), $this->student);
+        $this->assertTrue($journey['stages'][5]['is_completed']);
     }
 
     private function milestones()

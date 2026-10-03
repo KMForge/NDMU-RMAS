@@ -19,7 +19,7 @@ use Illuminate\Support\Collection;
 class ResearchJourneyService
 {
     /** @var list<int> */
-    private const BSIT_AUTOMATIC_STAGE_NUMBERS = [5, 7, 8, 9, 13];
+    private const BSIT_AUTOMATIC_STAGE_NUMBERS = [];
 
     /** @var array<string, string|null> */
     private array $resolvedProgramCodes = [];
@@ -34,6 +34,7 @@ class ResearchJourneyService
         ]);
 
         $automaticStageNumbers = $this->automaticStageNumbersFor($group);
+        $optionalStageNumbers = $this->optionalStageNumbersFor($group);
 
         $instanceRecords = OfficialFormInstance::query()
             ->where(function ($q) use ($group) {
@@ -77,13 +78,15 @@ class ResearchJourneyService
 
         for ($stageNum = 1; $stageNum <= $stageCount; $stageNum++) {
             $stageDetails = $this->evaluateStage($stageNum, $group, $instances, $instanceGroups, $milestones);
-            $stageDetails['is_optional'] = (bool) ($this->getStageConfig($stageNum)['optional'] ?? false);
+            $stageDetails['is_optional'] = in_array($stageNum, $optionalStageNumbers, true);
             $stageDetails['is_not_applicable'] = $milestones->get($stageDetails['code'])?->status === ResearchMilestoneStatus::NotApplicable;
+            $isExplicitlyCompleted = $milestones->get($stageDetails['code'])?->status === ResearchMilestoneStatus::Completed;
             $stageDetails['is_auto_completed'] = in_array($stageNum, $automaticStageNumbers, true);
             $stageDetails['is_inferred_complete'] = ! $stageDetails['is_optional']
                 && ! $stageDetails['is_not_applicable']
                 && $stageNum < $furthestReachedStage;
-            $stageDetails['is_completed'] = $stageDetails['is_auto_completed']
+            $stageDetails['is_completed'] = $isExplicitlyCompleted
+                || $stageDetails['is_auto_completed']
                 || $stageDetails['is_inferred_complete']
                 || ($previousStagesCompleted && $stageDetails['is_completed']);
 
@@ -96,16 +99,22 @@ class ResearchJourneyService
                 $stageDetails['completed_requirements'] = [
                     $stageDetails['name'].' is marked not applicable for this research group.',
                 ];
-            } elseif ($stageDetails['is_auto_completed'] || $stageDetails['is_inferred_complete']) {
+            } elseif ($stageDetails['is_auto_completed'] || $stageDetails['is_inferred_complete'] || $isExplicitlyCompleted) {
                 $stageDetails['waiting_on'] = null;
                 $stageDetails['next_action'] = null;
                 $stageDetails['blockers'] = [];
                 $stageDetails['pending_requirements'] = [];
-                $stageDetails['completed_requirements'] = [
-                    $stageDetails['is_auto_completed']
-                        ? $stageDetails['name'].' is automatically completed for the BSIT curriculum.'
-                        : $stageDetails['name'].' is complete because the group has reached a later verified workflow stage.',
-                ];
+                if ($isExplicitlyCompleted && empty($stageDetails['completed_requirements'])) {
+                    $stageDetails['completed_requirements'] = [
+                        $stageDetails['name'].' has been completed.',
+                    ];
+                } elseif ($stageDetails['is_auto_completed'] || $stageDetails['is_inferred_complete']) {
+                    $stageDetails['completed_requirements'] = [
+                        $stageDetails['is_auto_completed']
+                            ? $stageDetails['name'].' is automatically completed for the BSIT curriculum.'
+                            : $stageDetails['name'].' is complete because the group has reached a later verified workflow stage.',
+                    ];
+                }
             }
 
             $stages[$stageNum] = $stageDetails;
@@ -773,9 +782,27 @@ class ResearchJourneyService
     /** @return list<int> */
     public function automaticStageNumbersFor(ResearchClassGroup $group): array
     {
+        return [];
+    }
+
+    /** @return list<int> */
+    public function optionalStageNumbersFor(ResearchClassGroup $group): array
+    {
         return $this->resolveProgramCode($group) === 'BSIT'
-            ? self::BSIT_AUTOMATIC_STAGE_NUMBERS
-            : [];
+            ? [5, 7, 8, 9, 13]
+            : [13];
+    }
+
+    /** @return list<string> */
+    public function optionalMilestoneCodesFor(ResearchClassGroup $group): array
+    {
+        $optionalNumbers = $this->optionalStageNumbersFor($group);
+
+        return collect(config('research-progress.milestones', []))
+            ->filter(fn (array $definition): bool => in_array($definition['sequence'], $optionalNumbers, true))
+            ->pluck('code')
+            ->values()
+            ->all();
     }
 
     private function resolveProgramCode(ResearchClassGroup $group): ?string

@@ -59,7 +59,7 @@ class ResearchProgressController extends Controller
         Gate::authorize('manage', $milestone);
         $updated = $action->execute($request->user(), $milestone, $request->validated('due_at'), $request->validated('reason'), $request->ip());
 
-        return $this->respond($request, 'Milestone due date updated.', $updated);
+        return $this->respond($request, 'Milestone due date updated.', $updated, $milestone);
     }
 
     public function evidence(LinkMilestoneEvidenceRequest $request, ResearchGroupMilestone $milestone, LinkMilestoneEvidence $action): RedirectResponse|JsonResponse
@@ -70,7 +70,7 @@ class ResearchProgressController extends Controller
             (int) $request->validated('evidence_id'), $request->validated('summary'), $request->ip(),
         );
 
-        return $this->respond($request, 'Milestone evidence linked.', $link);
+        return $this->respond($request, 'Milestone evidence linked.', $link, $milestone);
     }
 
     private function transition(Request $request, ResearchGroupMilestone $milestone, TransitionResearchGroupMilestone $action, ResearchMilestoneStatus $target): RedirectResponse|JsonResponse
@@ -81,16 +81,21 @@ class ResearchProgressController extends Controller
             $request->boolean('override_order'), $request->boolean('direct_completion'), $request->ip(),
         );
 
-        return $this->respond($request, 'Milestone status updated.', $updated);
+        return $this->respond($request, 'Milestone status updated.', $updated, $milestone);
     }
 
-    private function respond(Request $request, string $message, mixed $resource): RedirectResponse|JsonResponse
+    private function respond(Request $request, string $message, mixed $resource, ?ResearchGroupMilestone $milestone = null): RedirectResponse|JsonResponse
     {
         if ($request->expectsJson()) {
             return response()->json(['message' => $message, 'data' => $resource]);
         }
 
-        return to_route('facilitator.dashboard', ['tab' => 'monitoring'])->with('success', $message);
+        $fallback = route('facilitator.dashboard', array_filter([
+            'tab' => 'monitoring',
+            'progress_group_id' => $milestone?->research_class_group_id,
+        ]));
+
+        return redirect()->back(fallback: $fallback)->with('success', $message);
     }
 
     /** @param array<string, mixed> $data */

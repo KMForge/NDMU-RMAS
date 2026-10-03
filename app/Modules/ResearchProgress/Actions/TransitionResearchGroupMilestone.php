@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Modules\AuditLogs\Services\AuditLogWriter;
 use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
+use App\Modules\ResearchProgress\Services\ResearchJourneyService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -62,9 +63,6 @@ class TransitionResearchGroupMilestone
             } elseif ($target === ResearchMilestoneStatus::InProgress && $from !== ResearchMilestoneStatus::Pending) {
                 throw ValidationException::withMessages(['status' => 'Only a pending milestone may be started.']);
             } elseif ($target === ResearchMilestoneStatus::Completed) {
-                if ($from === ResearchMilestoneStatus::Pending && (! $directCompletion || $reason === null || ! $actor->can('overrideOrder', $locked))) {
-                    throw ValidationException::withMessages(['status' => 'Start this milestone first. Direct completion requires controlled override authority and a reason.']);
-                }
                 if (! in_array($from, [ResearchMilestoneStatus::Pending, ResearchMilestoneStatus::InProgress], true)) {
                     throw ValidationException::withMessages(['status' => 'This milestone cannot be completed from its current state.']);
                 }
@@ -77,10 +75,7 @@ class TransitionResearchGroupMilestone
             }
 
             if (in_array($target, [ResearchMilestoneStatus::InProgress, ResearchMilestoneStatus::Completed], true)) {
-                $optionalMilestoneCodes = collect(config('research-progress.milestones', []))
-                    ->filter(fn (array $definition): bool => (bool) ($definition['optional'] ?? false))
-                    ->pluck('code')
-                    ->all();
+                $optionalMilestoneCodes = app(ResearchJourneyService::class)->optionalMilestoneCodesFor($group);
 
                 $hasIncompletePrerequisite = ResearchGroupMilestone::query()
                     ->join('milestone_definitions', 'milestone_definitions.id', '=', 'research_group_milestones.milestone_definition_id')

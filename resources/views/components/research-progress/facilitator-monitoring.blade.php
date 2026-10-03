@@ -16,6 +16,27 @@
         </p>
     </div>
 
+    @if (session('success'))
+        <div class="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 text-xs font-bold text-emerald-900 flex items-center gap-2 shadow-2xs">
+            <i class="ph ph-check-circle text-emerald-600 text-base"></i>
+            <span>{{ session('success') }}</span>
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="rounded-2xl border border-rose-200 bg-rose-50/90 p-4 text-xs font-bold text-rose-900 space-y-1 shadow-2xs">
+            <div class="flex items-center gap-2">
+                <i class="ph ph-warning-circle text-rose-600 text-base"></i>
+                <span>Action could not be completed:</span>
+            </div>
+            <ul class="list-disc list-inside font-medium text-rose-800 pl-4 space-y-0.5">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <!-- Search & Filters Bar -->
     <form method="GET" action="{{ $formAction ?? route('facilitator.dashboard') }}" class="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-5 shadow-sm flex flex-wrap items-center gap-3">
         <input type="hidden" name="tab" value="monitoring">
@@ -210,23 +231,22 @@
                             @php
                                 $persistedStatusVal = $milestone->status->value;
                                 $journeyStage = $summary['journey']['stages'][$milestone->definition->sequence] ?? null;
-                                $statusVal = $journeyStage
-                                    ? (($journeyStage['is_not_applicable'] ?? false)
+                                $statusVal = $persistedStatusVal === 'completed'
+                                    ? 'completed'
+                                    : ($persistedStatusVal === 'not_applicable'
                                         ? 'not_applicable'
-                                        : (($journeyStage['is_optional'] ?? false) && ! $journeyStage['is_completed']
-                                        ? 'optional'
-                                        : ($journeyStage['is_completed']
-                                            ? 'completed'
-                                            : (($summary['journey']['current_stage'] ?? null) === $milestone->definition->sequence ? 'in_progress' : 'pending'))))
-                                    : $persistedStatusVal;
-                                $statusLabel = ($journeyStage['is_auto_completed'] ?? false)
-                                    ? 'Auto-completed'
-                                    : str($statusVal)->replace('_', ' ')->title();
+                                        : ($journeyStage
+                                            ? (($journeyStage['is_not_applicable'] ?? false)
+                                                ? 'not_applicable'
+                                                : ($journeyStage['is_completed']
+                                                    ? 'completed'
+                                                    : (($summary['journey']['current_stage'] ?? null) === $milestone->definition->sequence ? 'in_progress' : 'pending')))
+                                            : $persistedStatusVal));
+                                $statusLabel = str($statusVal)->replace('_', ' ')->title();
                                 $statusBadgeClass = match($statusVal) {
                                     'completed' => 'bg-emerald-50 text-[#0e5c3a] border-emerald-200',
                                     'in_progress' => 'bg-amber-50 text-amber-800 border-amber-200',
                                     'not_applicable' => 'bg-slate-100 text-slate-500 border-slate-200',
-                                    'optional' => 'bg-violet-50 text-violet-700 border-violet-200',
                                     default => 'bg-slate-50 text-slate-600 border-slate-200',
                                 };
                             @endphp
@@ -236,7 +256,6 @@
                                 'border-amber-200 bg-amber-50/40 ring-2 ring-amber-400/20' => $statusVal === 'in_progress',
                                 'border-slate-200/80 bg-white hover:border-slate-300' => $statusVal === 'pending',
                                 'border-slate-200 bg-slate-50/60' => $statusVal === 'not_applicable',
-                                'border-violet-200 bg-violet-50/30' => $statusVal === 'optional',
                             ])>
                                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div class="space-y-1">
@@ -296,14 +315,29 @@
                                                 <p class="text-xs font-bold text-amber-900">Manual Status Adjustment</p>
                                                 <p class="text-[10px] text-amber-800 leading-tight">Milestones automatically sync via verified forms, submissions, and defenses.</p>
                                                 @if ($milestone->status->value === 'pending')
-                                                    <form method="POST" action="{{ route('facilitator.progress.start', $milestone) }}">
-                                                        @csrf @method('PATCH')
-                                                        <button class="text-xs font-black text-amber-900 hover:underline cursor-pointer">Start Manually</button>
-                                                    </form>
+                                                    <div class="flex items-center gap-2">
+                                                        <form method="POST" action="{{ route('facilitator.progress.complete', $milestone) }}">
+                                                            @csrf @method('PATCH')
+                                                            <input type="hidden" name="override_order" value="1">
+                                                            <input type="hidden" name="direct_completion" value="1">
+                                                            <input type="hidden" name="reason" value="Completed manually by research facilitator.">
+                                                            <button type="submit" class="text-xs font-black text-emerald-800 hover:underline cursor-pointer">Complete Manually</button>
+                                                        </form>
+                                                        <span class="text-slate-300">·</span>
+                                                        <form method="POST" action="{{ route('facilitator.progress.start', $milestone) }}">
+                                                            @csrf @method('PATCH')
+                                                            <input type="hidden" name="override_order" value="1">
+                                                            <input type="hidden" name="reason" value="Started manually by research facilitator.">
+                                                            <button type="submit" class="text-xs font-black text-amber-900 hover:underline cursor-pointer">Start Manually</button>
+                                                        </form>
+                                                    </div>
                                                 @elseif ($milestone->status->value === 'in_progress')
                                                     <form method="POST" action="{{ route('facilitator.progress.complete', $milestone) }}">
                                                         @csrf @method('PATCH')
-                                                        <button class="text-xs font-black text-emerald-800 hover:underline cursor-pointer">Complete Manually</button>
+                                                        <input type="hidden" name="override_order" value="1">
+                                                        <input type="hidden" name="direct_completion" value="1">
+                                                        <input type="hidden" name="reason" value="Completed manually by research facilitator.">
+                                                        <button type="submit" class="text-xs font-black text-emerald-800 hover:underline cursor-pointer">Complete Manually</button>
                                                     </form>
                                                 @else
                                                     <p class="text-[10px] text-slate-500 font-medium">No manual transition required.</p>
