@@ -38,7 +38,7 @@ class ManageUserAccount
     }
 
     /**
-     * @param  array{name: string, email: string, password: string, department: string, department_id?: int|null}  $attributes
+     * @param  array{name: string, email: string, password: string, department: string, department_id?: int|null, department_ids?: list<int>}  $attributes
      */
     public function createStaff(array $attributes, User $actor): User
     {
@@ -56,7 +56,7 @@ class ManageUserAccount
 
             $departmentId = $attributes['department_id'] ?? null;
             if ($departmentId !== null && Schema::hasTable('faculty_profiles')) {
-                FacultyProfile::query()->updateOrCreate(
+                $profile = FacultyProfile::query()->updateOrCreate(
                     ['user_id' => $user->id],
                     [
                         'department_id' => $departmentId,
@@ -64,6 +64,17 @@ class ManageUserAccount
                         'specialization' => $attributes['department'],
                     ],
                 );
+
+                if (Schema::hasTable('faculty_profile_departments')) {
+                    $departmentIds = collect($attributes['department_ids'] ?? [])
+                        ->map(fn ($id): int => (int) $id)
+                        ->push((int) $departmentId)
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->all();
+                    $profile->departments()->sync($departmentIds);
+                }
             }
 
             $this->audit($actor, $user, 'user.created', null, [

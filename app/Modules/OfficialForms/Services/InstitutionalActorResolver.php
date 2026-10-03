@@ -54,14 +54,14 @@ class InstitutionalActorResolver
             return null;
         }
 
-        // 1. Resolve department through class facilitator
-        $deptId = $class->facilitator?->facultyProfile?->department_id;
+        // A class belongs to the students' academic program even when its
+        // facilitator's home department is elsewhere.
+        $student = $class->groups->first()?->members->first()?->student;
+        $deptId = $student?->studentProfile?->program?->department_id;
 
-        // 2. Resolve department through enrolled students' program if not on facilitator
-        if ($deptId === null) {
-            $student = $class->groups->first()?->members->first()?->student;
-            $deptId = $student?->studentProfile?->program?->department_id;
-        }
+        // Classes without an enrolled group fall back to the facilitator's
+        // primary department until a program can establish class scope.
+        $deptId ??= $class->facilitator?->facultyProfile?->department_id;
 
         if ($deptId !== null) {
             return $this->programCoordinatorForDepartmentId($deptId);
@@ -159,7 +159,9 @@ class InstitutionalActorResolver
             ->where('status', AccountStatus::Active)
             ->whereNotNull('approved_at')
             ->whereNotNull('email_verified_at')
-            ->whereHas('facultyProfile', fn ($fp) => $fp->where('department_id', $departmentId))
+            ->whereHas('facultyProfile', fn ($fp) => $fp
+                ->where('department_id', $departmentId)
+                ->orWhereHas('departments', fn ($departments) => $departments->whereKey($departmentId)))
             ->whereHas('roles', fn ($query) => $query->whereIn('name', ['program-coordinator', 'department-chair']))
             ->orderByDesc('updated_at')
             ->orderByDesc('id')

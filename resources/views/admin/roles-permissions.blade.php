@@ -45,6 +45,11 @@
             </div>
         </div>
 
+        <div class="flex gap-3 rounded-2xl border border-blue-200 bg-blue-50/70 p-4 text-xs text-blue-900">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700"><i class="ph ph-shield-check text-lg"></i></span>
+            <div><p class="font-extrabold">Safe role changes</p><p class="mt-1 leading-5 text-blue-900/75">A role assigned to one or more users cannot be deleted. You may still edit it, but permission changes immediately affect every assigned user.</p></div>
+        </div>
+
         <div class="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
             <div class="flex flex-col gap-4 border-b border-gray-100 p-5 md:flex-row md:items-center md:justify-between md:px-6">
                 <div>
@@ -89,6 +94,9 @@
                                                 @if ($availableRole['protected'])
                                                     <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold uppercase text-slate-600">Protected</span>
                                                 @endif
+                                                @if ($availableRole['users_count'] > 0)
+                                                    <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold uppercase text-amber-800"><i class="ph ph-lock-key mr-1"></i>In use</span>
+                                                @endif
                                             </div>
                                             <p class="mt-1 max-w-xs text-[11px] leading-4 text-gray-500">{{ $availableRole['description'] ?: 'Custom access role configured by an administrator.' }}</p>
                                         </div>
@@ -114,7 +122,11 @@
                                     <div class="flex justify-end gap-2">
                                         <button type="button" wire:click="editRole({{ $availableRole['id'] }})" wire:loading.attr="disabled" wire:target="editRole({{ $availableRole['id'] }})" @click="activeTab = 'permissions'" class="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] font-bold text-blue-700 hover:bg-blue-100 disabled:cursor-wait disabled:opacity-60">Edit</button>
                                         @unless ($availableRole['protected'])
-                                            <button type="button" wire:click="deleteRole({{ $availableRole['id'] }})" wire:confirm="Delete this role? It must not be assigned to any user." class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] font-bold text-red-600 hover:bg-red-100">Delete</button>
+                                            @if ($availableRole['users_count'] > 0)
+                                                <button type="button" disabled title="Remove this role from all {{ $availableRole['users_count'] }} assigned user(s) before deleting it." class="cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-[11px] font-bold text-slate-400">In use</button>
+                                            @else
+                                                <button type="button" wire:click="prepareRoleDelete({{ $availableRole['id'] }})" wire:loading.attr="disabled" wire:target="prepareRoleDelete({{ $availableRole['id'] }})" class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] font-bold text-red-600 hover:bg-red-100 disabled:cursor-wait disabled:opacity-60">Delete</button>
+                                            @endif
                                         @endunless
                                     </div>
                                 </td>
@@ -126,7 +138,41 @@
                 </table>
             </div>
         </div>
+
+        @if ($pendingRoleDelete)
+            <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6" wire:key="delete-role-modal-{{ $pendingRoleDelete->id }}" role="dialog" aria-modal="true" aria-labelledby="delete-role-title">
+                <button type="button" wire:click="cancelRoleDelete" class="absolute inset-0 bg-slate-950/65 backdrop-blur-sm" aria-label="Cancel role deletion"></button>
+                <section class="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] bg-white shadow-2xl shadow-black/30">
+                    <div class="bg-gradient-to-br from-red-700 to-red-900 px-6 py-6 text-white sm:px-7">
+                        <div class="flex items-start gap-4">
+                            <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-2xl"><i class="ph ph-warning"></i></span>
+                            <div>
+                                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-red-100">Permanent action</p>
+                                <h2 id="delete-role-title" class="mt-1 font-heading text-2xl font-black">Delete this role?</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-5 p-6 sm:p-7">
+                        <p class="text-sm leading-6 text-gray-600">You are about to permanently delete <strong class="text-gray-900">{{ $pendingRoleDelete->display_name ?: \Illuminate\Support\Str::headline($pendingRoleDelete->name) }}</strong>. This cannot be undone.</p>
+                        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-900">
+                            <i class="ph ph-shield-check mr-1 text-base"></i>
+                            The server will check again that the role is not protected and is not assigned to any user before deletion.
+                        </div>
+                        <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                            <button type="button" wire:click="cancelRoleDelete" class="rounded-xl border border-gray-200 px-5 py-3 text-xs font-bold text-gray-700 hover:bg-gray-50">Cancel</button>
+                            <button type="button" wire:click="deleteRole" wire:loading.attr="disabled" wire:target="deleteRole" class="inline-flex items-center justify-center gap-2 rounded-xl bg-red-700 px-5 py-3 text-xs font-black text-white hover:bg-red-800 disabled:cursor-wait disabled:opacity-60">
+                                <i class="ph ph-trash" wire:loading.remove wire:target="deleteRole"></i>
+                                <i class="ph ph-spinner-gap animate-spin" wire:loading wire:target="deleteRole"></i>
+                                <span wire:loading.remove wire:target="deleteRole">Yes, delete role</span>
+                                <span wire:loading wire:target="deleteRole">Deleting...</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        @endif
     @else
+        @php($editingRoleUsage = $editingRoleId ? (int) (collect($rolesList)->firstWhere('id', $editingRoleId)['users_count'] ?? 0) : 0)
         <form wire:submit="saveRole" class="space-y-6">
             <div class="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
                 <div class="flex flex-col gap-4 border-b border-gray-100 bg-gradient-to-r from-[#0e5c3a] to-[#0a4a2e] p-6 text-white md:flex-row md:items-center md:justify-between">
@@ -141,6 +187,9 @@
                 </div>
 
                 <div class="p-6 md:p-8">
+                    @if ($editingRoleUsage > 0)
+                        <div class="mb-5 flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900"><i class="ph ph-warning mt-0.5 text-lg"></i><p><strong>This role is in use by {{ $editingRoleUsage }} user(s).</strong> Saving permission changes will affect their access immediately.</p></div>
+                    @endif
                     <label for="role-name" class="block text-[11px] font-extrabold uppercase tracking-wide text-gray-600">Role name <span class="text-red-500">*</span></label>
                     <input id="role-name" wire:model="roleName" type="text" maxlength="80" placeholder="e.g. Capstone Coordinator" autocomplete="off" class="mt-2 w-full rounded-xl border-gray-200 px-4 py-3 text-sm focus:border-[#0e5c3a] focus:ring-[#0e5c3a]">
                     <p class="mt-2 text-[10px] text-gray-400">Use a clear responsibility name. It will be stored securely as a lowercase slug.</p>

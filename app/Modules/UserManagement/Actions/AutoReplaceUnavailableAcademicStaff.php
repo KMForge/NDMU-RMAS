@@ -282,7 +282,7 @@ class AutoReplaceUnavailableAcademicStaff
     {
         return User::query()
             ->permission($permission)
-            ->with('facultyProfile')
+            ->with('facultyProfile.departments:id')
             ->where('user_type', UserType::Faculty)
             ->where('status', AccountStatus::Active)
             ->whereNotNull('approved_at')
@@ -302,12 +302,20 @@ class AutoReplaceUnavailableAcademicStaff
 
     private function sameDepartment(User $candidate, User $unavailable): bool
     {
-        $candidateDepartmentId = $candidate->facultyProfile?->department_id;
-        $unavailable->loadMissing('facultyProfile');
-        $unavailableDepartmentId = $unavailable->facultyProfile?->department_id;
+        $unavailable->loadMissing('facultyProfile.departments:id');
+        $candidateDepartments = collect([$candidate->facultyProfile?->department_id])
+            ->merge($candidate->facultyProfile?->departments->pluck('id') ?? [])
+            ->filter()
+            ->map(fn ($id): int => (int) $id)
+            ->unique();
+        $unavailableDepartments = collect([$unavailable->facultyProfile?->department_id])
+            ->merge($unavailable->facultyProfile?->departments->pluck('id') ?? [])
+            ->filter()
+            ->map(fn ($id): int => (int) $id)
+            ->unique();
 
-        if ($candidateDepartmentId && $unavailableDepartmentId) {
-            return (int) $candidateDepartmentId === (int) $unavailableDepartmentId;
+        if ($candidateDepartments->isNotEmpty() && $unavailableDepartments->isNotEmpty()) {
+            return $candidateDepartments->intersect($unavailableDepartments)->isNotEmpty();
         }
 
         return filled($candidate->department)

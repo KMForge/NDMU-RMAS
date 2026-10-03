@@ -68,25 +68,28 @@ class ManageRoleAccess
     {
         $this->authorizeManager($actor);
 
-        if ($this->isProtected($role->name)) {
-            throw ValidationException::withMessages([
-                'roleName' => 'Built-in portal roles cannot be deleted.',
-            ]);
-        }
-
-        if ($role->users()->exists()) {
-            throw ValidationException::withMessages([
-                'roleName' => 'Remove this role from every user before deleting it.',
-            ]);
-        }
-
         DB::transaction(function () use ($actor, $role): void {
+            $locked = Role::query()->lockForUpdate()->findOrFail($role->getKey());
+
+            if ($this->isProtected($locked->name)) {
+                throw ValidationException::withMessages([
+                    'roleName' => 'Built-in portal roles cannot be deleted.',
+                ]);
+            }
+
+            $assignedUsers = $locked->users()->count();
+            if ($assignedUsers > 0) {
+                throw ValidationException::withMessages([
+                    'roleName' => "This role is in use by {$assignedUsers} user(s). Remove every assignment before deleting it.",
+                ]);
+            }
+
             $oldValues = [
-                'name' => $role->name,
-                'permissions' => $role->permissions()->pluck('name')->sort()->values()->all(),
+                'name' => $locked->name,
+                'permissions' => $locked->permissions()->pluck('name')->sort()->values()->all(),
             ];
-            $this->audit($actor, $role, 'role.deleted', $oldValues, null);
-            $role->delete();
+            $this->audit($actor, $locked, 'role.deleted', $oldValues, null);
+            $locked->delete();
             app(PermissionRegistrar::class)->forgetCachedPermissions();
         });
     }
