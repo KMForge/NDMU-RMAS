@@ -1747,4 +1747,34 @@ class OfficialFormBackendTest extends TestCase
             }
         }
     }
+
+    public function test_res039_payload_accepts_null_or_empty_research_title_line2_as_optional(): void
+    {
+        $validator = new OfficialFormPayloadValidator;
+
+        // When submitted with research_title_line2 as empty string or null (from browser or API)
+        $payloadWithNull = $validator->validate('RES-039', [
+            'research_title' => 'Dog Eating Building',
+            'research_title_line2' => null,
+            'course' => null,
+            'panel_chair' => null,
+            'adviser' => null,
+            'date_reviewed' => null,
+            'revisions' => [],
+        ]);
+
+        $this->assertSame('Dog Eating Building', $payloadWithNull['research_title']);
+        $this->assertNull($payloadWithNull['research_title_line2']);
+        $this->assertNull($payloadWithNull['course']);
+        $this->assertNull($payloadWithNull['panel_chair']);
+        $this->assertNull($payloadWithNull['adviser']);
+
+        $payloadWithEmpty = $validator->validate('RES-039', [
+            'research_title' => 'Dog Eating Building',
+            'research_title_line2' => '   ',
+        ]);
+
+        $this->assertSame('Dog Eating Building', $payloadWithEmpty['research_title']);
+        $this->assertNull($payloadWithEmpty['research_title_line2']);
+    }
 }

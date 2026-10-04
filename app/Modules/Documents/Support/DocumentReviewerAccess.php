@@ -25,18 +25,18 @@ class DocumentReviewerAccess
 
     public function canCommentAsAssignedPanelist(User $reviewer, Document $document): bool
     {
-        $stage = $document->document_stage?->value;
+        $defenseType = $document->document_stage?->defenseType();
 
         if (! $reviewer->can('evaluations.create')
             || $document->research_class_group_id === null
-            || $stage === null) {
+            || $defenseType === null) {
             return false;
         }
 
         return DB::table('defenses')
             ->join('defense_panel_assignments', 'defense_panel_assignments.defense_id', '=', 'defenses.id')
             ->where('defenses.research_class_group_id', $document->research_class_group_id)
-            ->where('defenses.defense_type', $stage)
+            ->where('defenses.defense_type', $defenseType)
             ->whereIn('defenses.status', ['scheduled', 'completed'])
             ->where('defense_panel_assignments.user_id', $reviewer->getKey())
             ->whereNull('defense_panel_assignments.ended_at')

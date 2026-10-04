@@ -20,4 +20,15 @@ enum DocumentStage: string
             self::FinalManuscript => 'Final Manuscript',
         };
     }
+
+    public function defenseType(): ?string
+    {
+        return match ($this) {
+            self::TitleProposal => 'title_presentation',
+            self::ProposalDefense => 'proposal_defense',
+            self::PreFinalDefense => 'pre_final_defense',
+            self::FinalDefense => 'final_defense',
+            self::FinalManuscript => null,
+        };
+    }
 }

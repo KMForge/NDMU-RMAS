@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Modules\Classes\Actions\DisbandResearchClassGroup;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\Documents\Queries\GetPanelistAssignedDocuments;
+use App\Modules\Documents\Support\DocumentReviewerAccess;
 use App\Policies\DocumentPolicy;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -181,6 +182,46 @@ class ResearchRepositoryPhase14Test extends TestCase
 
         $this->assertFalse(app(DocumentPolicy::class)->view($panelist, $proposal));
         $this->assertTrue(app(GetPanelistAssignedDocuments::class)->for($panelist)->isEmpty());
+    }
+
+    public function test_title_presentation_panelist_can_access_the_current_title_proposal_document(): void
+    {
+        [$group, $facilitator, $leader] = $this->group();
+        $titlePaper = $this->document(
+            $leader,
+            $group,
+            'Title Presentation.docx',
+            DocumentStage::TitleProposal,
+            DocumentStatus::ApprovedForPresentation,
+            true,
+            1,
+            now(),
+            'docx',
+        );
+        $panelist = User::factory()->create();
+        $panelist->assignRole('panel-member');
+        $defense = Defense::query()->create([
+            'research_class_group_id' => $group->id,
+            'defense_type' => 'title_presentation',
+            'status' => 'completed',
+            'created_by' => $facilitator->id,
+            'completed_at' => now(),
+            'completed_by' => $facilitator->id,
+        ]);
+        DefensePanelAssignment::query()->create([
+            'defense_id' => $defense->id,
+            'user_id' => $panelist->id,
+            'panel_position' => 'member_1',
+            'assigned_by' => $facilitator->id,
+            'assigned_at' => now(),
+        ]);
+
+        $assignedPapers = app(GetPanelistAssignedDocuments::class)->for($panelist);
+
+        $this->assertSame([$titlePaper->id], $assignedPapers->pluck('id')->all());
+        $this->assertSame($defense->id, $assignedPapers->first()['defenseId']);
+        $this->assertTrue(app(DocumentPolicy::class)->view($panelist, $titlePaper));
+        $this->assertTrue(app(DocumentReviewerAccess::class)->canReview($panelist, $titlePaper));
     }
 
     public function test_leader_change_keeps_group_ownership_and_historical_uploader_identity(): void

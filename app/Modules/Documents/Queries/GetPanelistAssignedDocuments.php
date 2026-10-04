@@ -23,7 +23,13 @@ class GetPanelistAssignedDocuments
             ->where('is_current', true)
             ->whereNotNull('research_class_group_id')
             ->whereHas('researchClassGroup.defenses', fn (Builder $defense) => $defense
-                ->whereColumn('defenses.defense_type', 'documents.document_stage')
+                ->where(function (Builder $stage): void {
+                    $stage->whereColumn('defenses.defense_type', 'documents.document_stage')
+                        ->orWhere(function (Builder $title): void {
+                            $title->where('defenses.defense_type', 'title_presentation')
+                                ->where('documents.document_stage', 'title_proposal');
+                        });
+                })
                 ->whereIn('defenses.status', ['scheduled', 'completed'])
                 ->whereHas('activePanelAssignments', fn (Builder $assignment) => $assignment
                     ->where('user_id', $panelist->getKey())))
@@ -60,9 +66,10 @@ class GetPanelistAssignedDocuments
     {
         $group = $document->researchClassGroup;
         $stage = $document->document_stage?->value;
+        $defenseType = $document->document_stage?->defenseType();
         /** @var Defense|null $defense */
         $defense = $group?->defenses->first(
-            fn (Defense $candidate): bool => $candidate->defense_type === $stage,
+            fn (Defense $candidate): bool => $candidate->defense_type === $defenseType,
         );
         $round = $defense?->evaluationRounds->first();
         $evaluation = $round?->evaluations->first();

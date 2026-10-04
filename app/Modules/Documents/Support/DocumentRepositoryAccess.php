@@ -95,7 +95,13 @@ class DocumentRepositoryAccess
                             ->orWhereHas('researchClassGroup.researchClass', fn (Builder $class) => $class
                                 ->where('facilitator_id', $user->getKey()))
                             ->orWhereHas('researchClassGroup.defenses', fn (Builder $defense) => $defense
-                                ->whereColumn('defenses.defense_type', 'documents.document_stage')
+                                ->where(function (Builder $stage): void {
+                                    $stage->whereColumn('defenses.defense_type', 'documents.document_stage')
+                                        ->orWhere(function (Builder $title): void {
+                                            $title->where('defenses.defense_type', 'title_presentation')
+                                                ->where('documents.document_stage', 'title_proposal');
+                                        });
+                                })
                                 ->whereIn('defenses.status', ['scheduled', 'completed'])
                                 ->whereHas('activePanelAssignments', fn (Builder $assignment) => $assignment
                                     ->where('user_id', $user->getKey())));
@@ -123,7 +129,7 @@ class DocumentRepositoryAccess
 
         return Defense::query()
             ->where('research_class_group_id', $document->research_class_group_id)
-            ->where('defense_type', $document->document_stage->value)
+            ->where('defense_type', $document->document_stage->defenseType())
             ->whereIn('status', ['scheduled', 'completed'])
             ->whereHas('activePanelAssignments', fn (Builder $assignment) => $assignment
                 ->where('user_id', $user->getKey()))
