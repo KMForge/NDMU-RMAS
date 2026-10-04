@@ -85,10 +85,9 @@ class DashboardController extends Controller
         $data['defenses'] = $activeTab === 'defense'
             ? $defenseCalendar->execute($request->user())
             : collect();
-        $evaluationData = $activeTab === 'evaluations'
-            ? $evaluationQuery->forStudent($request->user())
-            : ['rounds' => []];
+        $evaluationData = $evaluationQuery->forStudent($request->user());
         $data['releasedEvaluations'] = $evaluationData['rounds'] ?? [];
+        $data['evaluations'] = $data['releasedEvaluations'];
         $defenseBadgeCount = in_array($activeTab, ['dashboard', 'defense'], true)
             ? collect($data['defenses'])
                 ->whereNotIn('defense_status', ['completed', 'cancelled'])

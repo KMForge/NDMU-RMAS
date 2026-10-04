@@ -1544,14 +1544,111 @@
             @if ($initialTab === 'evaluations')
             <section class="space-y-8 animate-fade-in">
                 <x-student-section-heading title="Evaluation Results" description="Released evaluation records for your defenses." />
-                <div class="space-y-4">
-                    @forelse ($evaluations as $evaluation)
-                        <x-student-record-card
-                            :title="\Illuminate\Support\Str::headline($evaluation->defense_type)"
-                            :status="$evaluation->status"
-                            :date="$evaluation->submitted_at"
-                            :description="$evaluation->recommendation ?: $evaluation->comments"
-                        />
+                @php
+                    $evaluationRecords = collect($evaluations ?? ($releasedEvaluations ?? []));
+                @endphp
+                <div class="space-y-6">
+                    @forelse ($evaluationRecords as $evaluation)
+                        @php
+                            $eval = (object) $evaluation;
+                            $title = $eval->defense_type_label ?? (isset($eval->defense_type) ? \Illuminate\Support\Str::headline($eval->defense_type) : 'Defense Evaluation');
+                            $releasedDate = $eval->formatted_date ?? (isset($eval->released_at) ? \Illuminate\Support\Carbon::parse($eval->released_at)->format('M j, Y g:i A') : null);
+                            $paperScore = isset($eval->research_paper_average) && $eval->research_paper_average !== null ? number_format((float) $eval->research_paper_average, 2) : null;
+                            $presentationScore = isset($eval->own_presentation_average) && $eval->own_presentation_average !== null ? number_format((float) $eval->own_presentation_average, 2) : null;
+                            $recs = is_array($eval->recommendations ?? null) ? $eval->recommendations : [];
+                        @endphp
+                        <article class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-2xs transition-all duration-200 hover:shadow-md hover:border-slate-300 relative overflow-hidden group">
+                            <!-- Top Header Row -->
+                            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                                <div class="min-w-0 space-y-1.5">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h2 class="font-black text-lg text-slate-900 leading-snug">{{ $title }}</h2>
+                                        @if (!empty($eval->group_name))
+                                            <span class="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200/60">
+                                                {{ $eval->group_name }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                    @if (!empty($eval->research_title))
+                                        <p class="text-xs font-semibold text-slate-700 italic">
+                                            "{{ $eval->research_title }}"
+                                        </p>
+                                    @endif
+                                    @if ($releasedDate)
+                                        <p class="text-xs font-semibold text-slate-500 flex items-center gap-1.5 pt-1">
+                                            <i class="ph ph-calendar-check text-emerald-600 text-sm"></i>
+                                            <span>Released on {{ $releasedDate }}</span>
+                                        </p>
+                                    @endif
+                                </div>
+                                <span class="shrink-0 px-3.5 py-1.5 rounded-full bg-emerald-50 text-[#0e5c3a] text-[10px] font-black uppercase tracking-wider border border-emerald-200 shadow-2xs flex items-center gap-1.5">
+                                    <i class="ph ph-check-circle-fill text-xs text-emerald-600"></i>
+                                    <span>Released</span>
+                                </span>
+                            </div>
+
+                            <!-- Score Breakdown Cards -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5 pt-5 border-t border-slate-100">
+                                <div class="rounded-2xl bg-emerald-50/50 border border-emerald-100/80 p-4">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-900">Research Paper Average</span>
+                                        <i class="ph ph-file-text text-emerald-700 text-base"></i>
+                                    </div>
+                                    <p class="mt-2 text-2xl font-black text-emerald-950 font-heading">
+                                        {{ $paperScore !== null ? $paperScore.'%' : '—' }}
+                                    </p>
+                                    <span class="text-[10px] text-emerald-800 font-medium">Group Manuscript Score</span>
+                                </div>
+
+                                <div class="rounded-2xl bg-amber-50/50 border border-amber-100/80 p-4">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[11px] font-bold uppercase tracking-wider text-amber-900">Your Presentation Score</span>
+                                        <i class="ph ph-user-check text-amber-700 text-base"></i>
+                                    </div>
+                                    <p class="mt-2 text-2xl font-black text-amber-950 font-heading">
+                                        {{ $presentationScore !== null ? $presentationScore.'%' : '—' }}
+                                    </p>
+                                    <span class="text-[10px] text-amber-800 font-medium">Individual Oral Performance</span>
+                                </div>
+                            </div>
+
+                            <!-- Panel Observations & Feedback (if any) -->
+                            @if (!empty($recs))
+                                <div class="mt-5 pt-4 border-t border-slate-100 space-y-3">
+                                    <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                                        <i class="ph ph-chat-centered-text text-sm text-[#0e5c3a]"></i>
+                                        <span>Panel Observations & Recommendations</span>
+                                    </h4>
+                                    <div class="space-y-2">
+                                        @foreach ($recs as $rec)
+                                            @if (!empty($rec['recommendations']) || !empty($rec['general_comments']))
+                                                <div class="rounded-xl bg-slate-50 border border-slate-200/70 p-3 text-xs text-slate-700 space-y-1">
+                                                    @if (!empty($rec['general_comments']))
+                                                        <p class="font-medium text-slate-800">{{ $rec['general_comments'] }}</p>
+                                                    @endif
+                                                    @if (!empty($rec['recommendations']))
+                                                        <p class="text-slate-600 font-normal italic"><span class="font-bold text-slate-700 not-italic">Recommendations:</span> {{ $rec['recommendations'] }}</p>
+                                                    @endif
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                            <!-- Official Form Link -->
+                            @if (!empty($eval->res037_url))
+                                <div class="mt-5 pt-4 border-t border-slate-100 flex justify-end">
+                                    <a
+                                        href="{{ $eval->res037_url }}"
+                                        class="inline-flex items-center gap-2 px-4 py-2 bg-[#0e5c3a] hover:bg-[#073823] text-white text-xs font-black rounded-xl shadow-2xs transition-colors"
+                                    >
+                                        <i class="ph ph-file-text text-sm"></i>
+                                        <span>View Evaluation Summary (RES-037)</span>
+                                    </a>
+                                </div>
+                            @endif
+                        </article>
                     @empty
                         <x-student-empty-state message="No evaluation results have been released." />
                     @endforelse

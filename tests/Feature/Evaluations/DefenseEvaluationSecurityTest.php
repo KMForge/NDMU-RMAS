@@ -259,6 +259,47 @@ class DefenseEvaluationSecurityTest extends TestCase
         $this->assertEquals(95.0, $s2Rounds[0]['own_presentation_average']);
     }
 
+    public function test_student_dashboard_evaluations_tab_displays_released_evaluation_results_and_badge(): void
+    {
+        $openAction = new OpenDefenseEvaluationRound;
+        $round = $openAction->handle($this->facilitator, $this->defense, $this->panelist1->id);
+
+        $submitAction = new SubmitDefenseEvaluation;
+        $payload = fn ($s1Score, $s2Score) => [
+            'research_quality_score' => 90,
+            'originality_score' => 90,
+            'relevance_score' => 90,
+            'general_comments' => 'Commendable thesis presentation.',
+            'recommendations' => 'Incorporate statistical testing.',
+            'student_scores' => [
+                $this->student1->id => ['communication_score' => $s1Score, 'organization_score' => $s1Score, 'effectiveness_score' => $s1Score],
+                $this->student2->id => ['communication_score' => $s2Score, 'organization_score' => $s2Score, 'effectiveness_score' => $s2Score],
+            ],
+        ];
+
+        $submitAction->handle($this->panelist1, $round, $payload(85, 95));
+        $submitAction->handle($this->panelist2, $round, $payload(85, 95));
+        $submitAction->handle($this->panelist3, $round, $payload(85, 95));
+
+        $round->update(['status' => 'released', 'released_at' => now()]);
+
+        $this->actingAs($this->student1)
+            ->get(route('student.dashboard', ['tab' => 'evaluations']))
+            ->assertOk()
+            ->assertSee('Evaluation Results')
+            ->assertSee('90.00%')
+            ->assertSee('85.00%')
+            ->assertSee('Commendable thesis presentation.')
+            ->assertSee('Incorporate statistical testing.')
+            ->assertDontSee('No evaluation results have been released.');
+
+        $dashResponse = $this->actingAs($this->student1)
+            ->get(route('student.dashboard'))
+            ->assertOk();
+
+        $this->assertEquals(1, $dashResponse->viewData('sidebarBadges')['evaluations']);
+    }
+
     public function test_defense_scheduling_mutations_are_blocked_once_evaluation_round_exists(): void
     {
         $openAction = new OpenDefenseEvaluationRound;

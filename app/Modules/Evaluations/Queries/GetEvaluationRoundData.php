@@ -5,6 +5,7 @@ namespace App\Modules\Evaluations\Queries;
 use App\Models\Defense;
 use App\Models\DefenseEvaluationRound;
 use App\Models\OfficialFormInstance;
+use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupMember;
 use App\Models\User;
 use App\Modules\Evaluations\Services\Res036Rubric;
@@ -292,11 +293,18 @@ class GetEvaluationRoundData
      */
     public function forStudent(User $student, ?Defense $defense = null): array
     {
-        // Get student's group IDs via ResearchClassGroupMember
-        $groupIds = ResearchClassGroupMember::query()
+        // Get student's group IDs via ResearchClassGroupMember, leader assignment, or direct foreign key
+        $memberGroupIds = ResearchClassGroupMember::query()
             ->where('student_id', $student->id)
-            ->pluck('research_class_group_id')
-            ->all();
+            ->pluck('research_class_group_id');
+
+        $leaderGroupIds = ResearchClassGroup::query()
+            ->where('leader_student_id', $student->id)
+            ->pluck('id');
+
+        $directGroupId = $student->research_class_group_id ? collect([$student->research_class_group_id]) : collect();
+
+        $groupIds = $memberGroupIds->concat($leaderGroupIds)->concat($directGroupId)->unique()->filter()->all();
 
         if (empty($groupIds)) {
             return ['rounds' => []];
@@ -304,10 +312,11 @@ class GetEvaluationRoundData
 
         $query = DefenseEvaluationRound::query()
             ->with([
-                'defense.group',
+                'defense.group.researchGroup.currentProject',
                 'summary.studentSummaries' => function ($q) use ($student) {
                     $q->where('student_id', $student->id);
                 },
+                'evaluations',
             ])
             ->whereIn('research_class_group_id', $groupIds)
             ->where('status', 'released');
@@ -318,19 +327,48 @@ class GetEvaluationRoundData
 
         $rounds = $query->latest('released_at')->get();
 
+        $res037Instances = OfficialFormInstance::query()
+            ->where('source_type', DefenseEvaluationRound::class)
+            ->whereIn('source_id', $rounds->pluck('id'))
+            ->get()
+            ->keyBy('source_id');
+
         return [
-            'rounds' => $rounds->map(function ($round) use ($student) {
+            'rounds' => $rounds->map(function ($round) use ($student, $res037Instances) {
                 $ownSummary = $round->summary?->studentSummaries->firstWhere('student_id', $student->id);
+                $res037 = $res037Instances->get($round->id);
+
+                $recommendations = $round->evaluations
+                    ->filter(fn ($e) => ! empty($e->recommendations) || ! empty($e->general_comments))
+                    ->map(fn ($e) => [
+                        'recommendations' => $e->recommendations,
+                        'general_comments' => $e->general_comments,
+                    ])->values()->all();
+
+                $defenseTypeLabel = match ($round->defense?->defense_type) {
+                    'title_presentation' => 'Title Proposal Defense',
+                    'proposal_defense' => 'Proposal Defense',
+                    'pre_final_defense' => 'Pre-Final Defense',
+                    'final_defense' => 'Final Oral Defense',
+                    default => str($round->defense?->defense_type ?? 'defense')->headline()->toString(),
+                };
 
                 return [
                     'id' => $round->id,
                     'defense_id' => $round->defense_id,
-                    'defense_type' => $round->defense->defense_type,
-                    'group_name' => $round->defense->group?->name,
-                    'research_title' => $round->defense->group?->title ?? $round->defense->group?->name,
+                    'defense_type' => $round->defense?->defense_type,
+                    'defense_type_label' => $defenseTypeLabel,
+                    'group_name' => $round->defense?->group?->name,
+                    'research_title' => $round->defense?->group?->researchGroup?->currentProject?->title
+                        ?? $round->defense?->group?->title
+                        ?? $round->defense?->group?->name,
+                    'status' => 'released',
                     'released_at' => $round->released_at?->toIso8601String(),
+                    'formatted_date' => $round->released_at?->format('M j, Y g:i A'),
                     'research_paper_average' => $round->summary?->research_paper_average,
                     'own_presentation_average' => $ownSummary?->presentation_average,
+                    'res037_url' => $res037 ? route('official-forms.workspace.show', $res037) : null,
+                    'recommendations' => $recommendations,
                 ];
             })->values()->all(),
         ];
