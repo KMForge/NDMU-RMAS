@@ -138,24 +138,25 @@
                     <i class="ph ph-squares-four text-sm text-[#eebc3f]"></i>
                     <span>Dashboard</span>
                 </a>
+            @else
+                @if(Route::has('login'))
+                    <a
+                        href="{{ route('login') }}"
+                        class="px-2 py-2.5 text-[11px] font-black text-[#073823] transition duration-200 hover:text-[#0e5c3a] sm:px-4 sm:text-xs"
+                    >
+                        Log in
+                    </a>
+                @endif
+                @if(Route::has('register'))
+                    <a
+                        href="{{ route('register') }}"
+                        class="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#eebc3f] to-[#f4c542] px-3 py-2.5 text-[11px] font-black text-[#073823] shadow-md shadow-amber-950/15 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 sm:gap-2 sm:rounded-2xl sm:px-4.5 sm:text-xs"
+                    >
+                        <i class="ph ph-user-plus text-sm"></i>
+                        <span>Register</span>
+                    </a>
+                @endif
             @endauth
-            @if(Route::has('login'))
-                <a
-                    href="{{ route('login') }}"
-                    class="px-2 py-2.5 text-[11px] font-black text-[#073823] transition duration-200 hover:text-[#0e5c3a] sm:px-4 sm:text-xs"
-                >
-                    Log in
-                </a>
-            @endif
-            @if(Route::has('register'))
-                <a
-                    href="{{ route('register') }}"
-                    class="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#eebc3f] to-[#f4c542] px-3 py-2.5 text-[11px] font-black text-[#073823] shadow-md shadow-amber-950/15 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 sm:gap-2 sm:rounded-2xl sm:px-4.5 sm:text-xs"
-                >
-                    <i class="ph ph-user-plus text-sm"></i>
-                    <span>Register</span>
-                </a>
-            @endif
         </div>
     </div>
 </header>

@@ -32,5 +32,7 @@ class WelcomeTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Dashboard');
+        $response->assertDontSee('Log in');
+        $response->assertDontSee('Register');
     }
 }

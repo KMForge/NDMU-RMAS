@@ -76,7 +76,7 @@ class DashboardRedirectTest extends TestCase
             ->assertSessionHas('active_workspace', 'student');
     }
 
-    public function test_welcome_page_always_shows_login_and_register_navigation(): void
+    public function test_welcome_page_shows_authentication_navigation_only_to_guests(): void
     {
         $this->get(route('home'))
             ->assertOk()
@@ -89,8 +89,9 @@ class DashboardRedirectTest extends TestCase
         $this->actingAs($student)
             ->get(route('home'))
             ->assertOk()
-            ->assertSee('Log in')
-            ->assertSee('Register');
+            ->assertSee('Dashboard')
+            ->assertDontSee('Log in')
+            ->assertDontSee('Register');
     }
 
     public function test_public_dashboard_preview_routes_are_not_available(): void
