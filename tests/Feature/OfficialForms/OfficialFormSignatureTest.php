@@ -430,6 +430,54 @@ class OfficialFormSignatureTest extends TestCase
         $this->assertSame('student_researcher', $sigRecord->actor_type);
     }
 
+    public function test_res049_student_can_sign_through_workspace_without_submitting_system_managed_actor_type(): void
+    {
+        $student = User::factory()->create([
+            'user_type' => UserType::Student,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+        $student->assignRole('student');
+        Permission::findOrCreate('forms.res-049.sign');
+        $student->givePermissionTo('forms.res-049.sign');
+
+        $group = $this->createGroup(leader: $student);
+        $instance = app(CreateOfficialFormInstance::class)->handle(
+            $student,
+            'RES-049',
+            $group->id,
+            null,
+            'general'
+        );
+        $this->enrollSignature($student);
+
+        $this->actingAs($student)
+            ->post(route('official-forms.workspace.sign-action', [$instance, 'sign_authorship']), [
+                'expected_version_id' => $instance->current_version_id,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('official_form_success', 'Digital signature attestation recorded.');
+
+        $this->assertDatabaseHas('official_form_signatures', [
+            'official_form_instance_id' => $instance->id,
+            'official_form_version_id' => $instance->current_version_id,
+            'signer_user_id' => $student->id,
+            'academic_action' => 'sign_authorship',
+            'actor_type' => 'student_researcher',
+        ]);
+
+        $this->actingAs($student)
+            ->get(route('official-forms.workspace.show', $instance))
+            ->assertOk()
+            ->assertSee($student->name)
+            ->assertSee('Signed & Digital Attestation Verified', false)
+            ->assertSee('data-digital-signature-status="verified"', false)
+            ->assertSee('Authorship Signed by You')
+            ->assertDontSee('Sign Authorship Attestation');
+    }
+
     public function test_non_member_cannot_sign_res049(): void
     {
         $student1 = User::factory()->create([

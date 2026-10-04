@@ -20,9 +20,10 @@ class OfficialFormController extends Controller
 
         $instance->load([
             'definition',
-            'currentVersion',
+            'currentVersion.signatures.verification',
             'versions.creator',
             'group.leader',
+            'group.members.student',
             'group.adviser',
             'researchClass.facilitator',
             'actorAssignments.user',

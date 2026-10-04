@@ -6,6 +6,8 @@
     'academicAction' => null,
     'signature' => null,
     'instance' => null,
+    'authoritativeName' => null,
+    'signerUserId' => null,
 ])
 
 <div
@@ -23,7 +25,8 @@
         $appliedSignature = $signature;
         if (! $appliedSignature && $formInstance instanceof \App\Models\OfficialFormInstance && $formInstance->currentVersion) {
             $appliedSignature = $formInstance->currentVersion->signatures
-                ->first(function ($sig) use ($actorType, $academicAction, $label) {
+                ->first(function ($sig) use ($actorType, $academicAction, $label, $signerUserId) {
+                    if ($signerUserId && (int) $sig->signer_user_id !== (int) $signerUserId) return false;
                     if ($actorType && $sig->actor_type !== $actorType) return false;
                     if ($academicAction && $sig->academic_action !== $academicAction) return false;
                     if (! $actorType && ! $academicAction) {
@@ -36,10 +39,10 @@
                 });
         }
 
-        $authoritativeName = null;
+        $resolvedAuthoritativeName = $authoritativeName;
         if ($appliedSignature) {
-            $authoritativeName = $appliedSignature->signer_name_snapshot;
-        } elseif ($formInstance instanceof \App\Models\OfficialFormInstance) {
+            $resolvedAuthoritativeName = $appliedSignature->signer_name_snapshot;
+        } elseif (! $resolvedAuthoritativeName && $formInstance instanceof \App\Models\OfficialFormInstance) {
             $effectiveActorType = $actorType ?? \Illuminate\Support\Str::snake(\Illuminate\Support\Str::lower($label));
             $classAssignments = $formInstance->researchClass?->officialFormActorAssignments
                 ?? $formInstance->group?->researchClass?->officialFormActorAssignments;
@@ -49,7 +52,7 @@
             $institutionalProgramCoordinator = $institutionalActors->programCoordinatorForGroup($formInstance->group)
                 ?? $institutionalActors->programCoordinatorForClass($formInstance->researchClass);
 
-            $authoritativeName = match ($effectiveActorType) {
+            $resolvedAuthoritativeName = match ($effectiveActorType) {
                 'research_adviser', 'adviser' => $formInstance->group?->adviser?->name,
                 'facilitator' => $formInstance->researchClass?->facilitator?->name
                     ?? $formInstance->group?->researchClass?->facilitator?->name,
@@ -104,8 +107,10 @@
             <div class="w-full truncate border-b border-[#173c30] px-2 py-0.5 font-bold text-emerald-950">
                 {{ $appliedSignature->signer_name_snapshot }}
             </div>
+        @elseif ($resolvedAuthoritativeName)
+            <div class="w-full truncate border-b border-[#173c30] px-2 py-1 font-bold">{{ $resolvedAuthoritativeName }}</div>
         @elseif ($nameField && $formInstance instanceof \App\Models\OfficialFormInstance)
-            <div class="w-full truncate border-b border-[#173c30] px-2 py-1 font-bold">{{ $authoritativeName ?: 'Authorized actor pending assignment' }}</div>
+            <div class="w-full truncate border-b border-[#173c30] px-2 py-1 font-bold">{{ 'Authorized actor pending assignment' }}</div>
         @elseif ($nameField)
             <label class="block w-full">
                 <span class="sr-only">Printed name</span>
@@ -118,7 +123,7 @@
                 >
             </label>
         @else
-            <div class="w-full truncate border-b border-[#173c30] px-2 py-1 font-bold">{{ $authoritativeName ?: 'Authorized signer pending' }}</div>
+            <div class="w-full truncate border-b border-[#173c30] px-2 py-1 font-bold">{{ 'Authorized signer pending' }}</div>
         @endif
     </div>
 

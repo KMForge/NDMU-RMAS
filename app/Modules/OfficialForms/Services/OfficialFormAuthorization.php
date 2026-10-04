@@ -718,6 +718,10 @@ class OfficialFormAuthorization
 
     public function isCurrentGroupMember(User $user, ResearchClassGroup $group): bool
     {
+        if ($group->leader_student_id !== null && (int) $group->leader_student_id === (int) $user->id) {
+            return true;
+        }
+
         if ($group->relationLoaded('members')) {
             return $group->members->contains(fn (ResearchClassGroupMember $member): bool => (int) $member->student_id === (int) $user->id
             );

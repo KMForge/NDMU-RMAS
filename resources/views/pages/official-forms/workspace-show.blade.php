@@ -346,12 +346,23 @@
                 </form>
             @endif
             @if (strtoupper($instance->definition->code) === 'RES-049' && auth()->user()->hasPermissionTo('forms.res-049.sign'))
-                <form method="POST" action="{{ route('official-forms.workspace.sign-action', [$instance, 'sign_authorship']) }}">
-                    @csrf
-                    <input type="hidden" name="expected_version_id" value="{{ $instance->current_version_id }}">
-                    <input type="hidden" name="actor_type" value="student_researcher">
-                    <button type="submit" class="rounded-xl bg-emerald-700 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-600">Sign Authorship Attestation</button>
-                </form>
+                @php
+                    $hasSignedAuthorship = $instance->currentVersion?->signatures->contains(
+                        fn ($sig) => (int) $sig->signer_user_id === (int) auth()->id() && $sig->academic_action === 'sign_authorship'
+                    );
+                @endphp
+                @if ($hasSignedAuthorship)
+                    <div class="inline-flex items-center gap-2 rounded-xl bg-emerald-100 px-4 py-2.5 text-xs font-black text-emerald-800 border border-emerald-200" role="status">
+                        <i class="ph ph-check-circle text-base text-emerald-700" aria-hidden="true"></i>
+                        <span>Authorship Signed by You</span>
+                    </div>
+                @else
+                    <form method="POST" action="{{ route('official-forms.workspace.sign-action', [$instance, 'sign_authorship']) }}">
+                        @csrf
+                        <input type="hidden" name="expected_version_id" value="{{ $instance->current_version_id }}">
+                        <button type="submit" class="rounded-xl bg-emerald-700 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-600">Sign Authorship Attestation</button>
+                    </form>
+                @endif
             @endif
             <a href="{{ route('official-forms.print', $instance) }}" target="_blank" rel="noopener" class="ml-auto rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 shadow-sm hover:border-[#2b7659] hover:text-[#164b38]">Print saved version</a>
         </section>
