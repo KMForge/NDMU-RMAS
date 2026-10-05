@@ -26,7 +26,7 @@
     staffList: @js($staffList),
     adviserOptions: @js($adviserOptions),
     panelistOptions: @js($panelistOptions),
-    adminTabAnchor(tab) {
+    adminTabAnchor(tab) { 
         const sidebarTab = tab === 'assign-roles' ? 'users' : tab;
         return `admin-nav-${String(sidebarTab).toLowerCase().replace(/[^a-z0-9_-]/g, '-')}`;
     }

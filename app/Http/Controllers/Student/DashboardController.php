@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConsultationRequest;
+use App\Models\Document;
+use App\Models\ResearchClassGroupMember;
 use App\Modules\Consultations\Queries\GetStudentConsultationData;
 use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
+use App\Modules\Documents\Services\ExtractPaperMetadata;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
 use App\Modules\Notifications\Queries\GetNotificationsForUser;
 use App\Modules\Notifications\Services\UnreadNotificationCount;
@@ -14,6 +17,7 @@ use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use App\Modules\Research\Queries\GetStudentDashboardData;
 use App\Modules\SystemSettings\Services\DocumentUploadLimit;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 
@@ -136,5 +140,42 @@ class DashboardController extends Controller
             'documentMaxUploadMb' => $documentUploadLimit->megabytes(),
             ...$data,
         ]);
+    }
+
+    public function fetchPaperMetadata(Request $request, ExtractPaperMetadata $extractor): RedirectResponse
+    {
+        $user = $request->user();
+        $groupMember = ResearchClassGroupMember::query()
+            ->where('student_id', $user->getKey())
+            ->whereHas('researchClassGroup', fn ($q) => $q->where('status', 'active'))
+            ->whereHas('researchClassEnrollment', fn ($q) => $q->where('status', 'active'))
+            ->with('researchClassGroup')
+            ->first();
+
+        if ($groupMember === null || $groupMember->researchClassGroup === null) {
+            return to_route('student.dashboard', ['tab' => 'research'])
+                ->with('research_error', 'No active research group found.');
+        }
+
+        $document = Document::query()
+            ->where('research_class_group_id', $groupMember->research_class_group_id)
+            ->where('is_current', true)
+            ->latest('submitted_at')
+            ->first();
+
+        if ($document === null) {
+            return to_route('student.dashboard', ['tab' => 'research'])
+                ->with('research_error', 'No current research paper found to extract metadata from.');
+        }
+
+        $project = $extractor->extractAndSync($document);
+
+        if ($project !== null && (! empty($project->abstract) || ! empty($project->keywords))) {
+            return to_route('student.dashboard', ['tab' => 'research'])
+                ->with('research_success', 'Abstract and keywords successfully fetched from your research paper.');
+        }
+
+        return to_route('student.dashboard', ['tab' => 'research'])
+            ->with('research_error', 'Could not detect an "Abstract" or "Keywords" section in the paper.');
     }
 }

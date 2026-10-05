@@ -123,6 +123,8 @@ document.addEventListener('alpine:init', () => {
         recommendationComments: config.selectedReviewPaper?.comments || [],
         activePageNumber: 1,
         isSubmittingCritique: false,
+        critiqueMessage: '',
+        critiqueError: '',
         isDownloadingAnnotated: false,
         async downloadAnnotatedCopy() {
             if (!this.selectedReviewPaper || this.isDownloadingAnnotated) return;
@@ -140,9 +142,12 @@ document.addEventListener('alpine:init', () => {
             }
         },
         async submitCritique(event) {
+            if (this.isSubmittingCritique) return;
             const form = event.target;
             const formData = new FormData(form);
             this.isSubmittingCritique = true;
+            this.critiqueMessage = '';
+            this.critiqueError = '';
 
             try {
                 const res = await fetch(form.action, {
@@ -155,9 +160,8 @@ document.addEventListener('alpine:init', () => {
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    if (data.redirect_url) {
-                        window.location.assign(data.redirect_url);
-                        return;
+                    if (data.revision_chart_url) {
+                        this.selectedReviewPaper.res039Url = data.revision_chart_url;
                     }
                     if (data.comment) {
                         this.recommendationComments.unshift(data.comment);
@@ -166,12 +170,15 @@ document.addEventListener('alpine:init', () => {
 
                         const targetPageNum = data.comment.page_number || this.activePageNumber || 1;
                         window.appendDocumentComment?.(Object.assign({}, data.comment, { page_number: targetPageNum }));
+                        this.critiqueMessage = data.message;
+                        txt?.focus();
                     }
-                } else if (data.message) {
-                    alert(data.message);
+                } else {
+                    this.critiqueError = Object.values(data.errors || {}).flat().join(' ') || data.message || 'Unable to save your critique. Please try again.';
                 }
             } catch (err) {
                 console.error('Error posting critique:', err);
+                this.critiqueError = 'Unable to confirm that your critique was saved. Check the comments before trying again.';
             } finally {
                 this.isSubmittingCritique = false;
             }
@@ -2088,8 +2095,10 @@ document.addEventListener('alpine:init', () => {
                                     <div class="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent" x-show="isSubmittingCritique" x-cloak></div>
                                     <span x-text="isSubmittingCritique ? 'Posting Critique...' : 'Post Critique'"></span>
                                 </button>
+                                <p x-show="critiqueMessage" x-text="critiqueMessage" role="status" class="text-xs text-emerald-700" x-cloak></p>
+                                <p x-show="critiqueError" x-text="critiqueError" role="alert" class="text-xs text-red-700" x-cloak></p>
                                 <p class="text-[10px] leading-relaxed text-slate-400">
-                                    Panel comments are permanently stamped with your digital ID. You can also record formal scoring via the defense evaluation sheet.
+                                    Each posted critique is saved immediately. Continue adding critiques, then use Finish Critiques to open RES-039. Posting does not submit or sign the official form.
                                 </p>
                             </form>
                         </aside>
@@ -2107,15 +2116,17 @@ document.addEventListener('alpine:init', () => {
                                 <i class="ph ph-check-circle text-base"></i>
                                 <span>Open Official Scoring (RES-036)</span>
                             </a>
-                            @if (! empty($selectedReviewPaper['res039Url']))
                                 <a
-                                    href="{{ $selectedReviewPaper['res039Url'] }}"
+                                    x-show="selectedReviewPaper?.res039Url"
+                                    :href="selectedReviewPaper?.res039Url"
+                                    :class="isSubmittingCritique ? 'pointer-events-none opacity-50' : ''"
+                                    :aria-disabled="isSubmittingCritique"
+                                    x-cloak
                                     class="px-5 py-3 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-900 text-xs font-bold rounded-xl shadow-2xs transition flex items-center justify-center gap-2 cursor-pointer"
                                 >
                                     <i class="ph ph-table text-base"></i>
-                                    <span>Open Revision Chart (RES-039)</span>
+                                    <span>Finish Critiques &amp; Open RES-039</span>
                                 </a>
-                            @endif
                             <a
                                 href="{{ $selectedReviewPaper['downloadUrl'] }}"
                                 class="px-5 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl shadow-2xs transition flex items-center justify-center gap-2 cursor-pointer"

@@ -1411,6 +1411,7 @@
                         @else
                             @php
                                 $selDoc = $selectedReviewDocument;
+                                $canReviewDocument = $selDoc->document_stage !== \App\Enums\DocumentStage::TitleProposal && auth()->user()->can('review', $selDoc);
                                 $unresolvedBlocking = isset($documentReviewComments) && $documentReviewComments->whereNull('resolved_at')->whereIn('severity', ['revision', 'critical'])->count() > 0;
                             @endphp
 
@@ -1439,7 +1440,7 @@
                                 </div>
 
                                 <!-- Add Finding Comment Form -->
-                                @if ($selDoc->is_current)
+                                @if ($selDoc->is_current && $canReviewDocument)
                                     <form method="POST" action="{{ route('adviser.documents.comments.store', $selDoc) }}" class="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-200">
                                         @csrf
                                         <h4 class="text-xs font-extrabold uppercase tracking-wider text-gray-700">Add Finding / Annotate Comment</h4>
@@ -1472,6 +1473,10 @@
                                             </button>
                                         </div>
                                     </form>
+                                @elseif (! $canReviewDocument)
+                                    <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-800 text-xs font-semibold">
+                                        Read-only title proposal. Screening and approval are handled by the research facilitator. You can view the paper and its findings here.
+                                    </div>
                                 @else
                                     <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs font-semibold">
                                         This document version is VOID (superseded). New comments and review decisions are disabled.
@@ -1502,7 +1507,7 @@
                                                             <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                                                                 Resolved by {{ $comm->resolver?->name ?? 'Adviser' }}
                                                             </span>
-                                                        @elseif ($selDoc->is_current)
+                                                        @elseif ($selDoc->is_current && $canReviewDocument)
                                                             <form method="POST" action="{{ route('adviser.documents.comments.resolve', [$selDoc, $comm]) }}">
                                                                 @csrf
                                                                 @method('PATCH')
@@ -1520,7 +1525,7 @@
                                 @endif
 
                                 <!-- Record Final Review Decision Form -->
-                                @if ($selDoc->is_current && !in_array($selDoc->status->value, ['accepted', 'rejected', 'revision_requested'], true))
+                                @if ($canReviewDocument && $selDoc->is_current && !in_array($selDoc->status->value, ['accepted', 'rejected', 'revision_requested'], true))
                                     <div class="space-y-3 pt-3 border-t border-gray-200">
                                         <h4 class="text-xs font-extrabold uppercase tracking-wider text-gray-800">Record Final Review Decision</h4>
 
@@ -1551,7 +1556,7 @@
                                             </button>
                                         </form>
                                     </div>
-                                @elseif ($selDoc->is_current && in_array($selDoc->status->value, ['accepted', 'rejected', 'revision_requested'], true))
+                                @elseif ($canReviewDocument && $selDoc->is_current && in_array($selDoc->status->value, ['accepted', 'rejected', 'revision_requested'], true))
                                     <!-- Decision Banner & Correction Button -->
                                     <div class="space-y-3 pt-3 border-t border-gray-200">
                                         <div class="p-4 rounded-xl border flex items-center justify-between gap-3
@@ -1600,6 +1605,7 @@
                             </div>
 
                             <!-- Decision Correction Modal -->
+                            @if ($canReviewDocument)
                             <div x-show="showCorrectionModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
                                 <div class="absolute inset-0 bg-black/50" @click="showCorrectionModal = false"></div>
                                 <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 space-y-5 text-left" @click.stop>
@@ -1643,6 +1649,7 @@
                                     </form>
                                 </div>
                             </div>
+                            @endif
                         @endif
                     </div>
                 </div>

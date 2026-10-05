@@ -14,7 +14,7 @@
             <div class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2">
                 <label class="text-[11px] font-black uppercase tracking-wider text-slate-600">Research Class
                     <select x-model="classCommitteeForm.classId" @change="onClassCommitteeClassChange()" class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-bold normal-case text-slate-800 outline-none focus:border-emerald-600">
-                        <template x-for="rc in facilitatorClasses" :key="rc.id"><option :value="rc.id" x-text="rc.name + ' (' + rc.code + ')' "></option></template>
+                        <template x-for="rc in facilitatorClasses" :key="rc.id"><option :value="rc.id" x-text="rc.name + (rc.code ? ' (' + rc.code + ')' : '')"></option></template>
                     </select>
                 </label>
                 <label class="text-[11px] font-black uppercase tracking-wider text-slate-600">Defense Stage
@@ -42,7 +42,12 @@
                             <template x-for="slot in [{key:'chairperson',label:'Chairperson',model:'editChairpersonId',status:'chairperson_invitation_status'},{key:'member_1',label:'Panel Member 1',model:'editMember1Id',status:'member_1_invitation_status'},{key:'member_2',label:'Panel Member 2',model:'editMember2Id',status:'member_2_invitation_status'}]" :key="slot.key">
                                 <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
                                     <div class="mb-2 flex items-center justify-between gap-2"><label class="text-[10px] font-black uppercase tracking-wider text-slate-600" x-text="slot.label"></label><span x-show="group[slot.status]" class="rounded-full border px-2 py-0.5 text-[9px] font-black uppercase" :class="{'border-amber-200 bg-amber-50 text-amber-700':group[slot.status]==='pending','border-emerald-200 bg-emerald-50 text-emerald-700':group[slot.status]==='accepted','border-rose-200 bg-rose-50 text-rose-700':group[slot.status]==='rejected'}" x-text="group[slot.status]"></span></div>
-                                    <select x-model="group[slot.model]" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-emerald-600"><option value="" x-text="'Select ' + slot.label"></option><template x-for="candidate in candidateFacultyList" :key="slot.key+'-'+candidate.id"><option :value="String(candidate.id)" x-text="candidate.name + ' (' + (candidate.department || 'Faculty') + ')' "></option></template></select>
+                                    <select x-model="group[slot.model]" x-effect="const selectedId = String(group[slot.model] || ''); $nextTick(() => { $el.value = selectedId; })" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-emerald-600">
+                                        <option value="" x-text="'Select ' + slot.label"></option>
+                                        <template x-for="candidate in committeeSlotCandidates(group, slot)" :key="group.id+'-'+slot.key+'-'+candidate.id">
+                                            <option :value="String(candidate.id)" :selected="String(candidate.id) === String(group[slot.model])" x-text="candidate.name + ' (' + (candidate.department || 'Faculty') + ')' "></option>
+                                        </template>
+                                    </select>
                                 </div>
                             </template>
                             <p x-show="group.saveError" class="rounded-lg bg-rose-50 px-3 py-2 text-[11px] font-bold text-rose-700" x-text="group.saveError"></p>

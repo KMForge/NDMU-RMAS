@@ -13,6 +13,9 @@ Route::prefix('student')->name('student.')->middleware([
     'auth', 'verified', 'active', 'permission:dashboards.student.view', 'workspace.context',
 ])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::post('/research/fetch-metadata', [DashboardController::class, 'fetchPaperMetadata'])
+        ->middleware('throttle:30,1')
+        ->name('research.fetch-metadata');
 
     Route::get('/official-forms/{form}/source', DisabledFeatureController::class)
         ->where('form', 'RES-[0-9]{3}')

@@ -56,6 +56,41 @@ class AdviserDocumentReviewTest extends TestCase
             ->assertSee(route('documents.download', $visibleDoc));
     }
 
+    public function test_assigned_title_proposals_are_visible_without_granting_adviser_screening_authority(): void
+    {
+        $adviser = $this->adviser();
+        [$group, $leader] = $this->createGroupWithAdviser($adviser, 'Title Group');
+        [$otherGroup, $otherLeader] = $this->createGroupWithAdviser($this->adviser(), 'Other Title Group');
+        $document = $this->document($leader, $group, 'assigned-title.pdf');
+        $document->update(['document_stage' => DocumentStage::TitleProposal, 'status' => DocumentStatus::Submitted]);
+        $this->document($otherLeader, $otherGroup, 'unassigned-title.pdf')
+            ->update(['document_stage' => DocumentStage::TitleProposal]);
+
+        $this->actingAs($adviser)
+            ->get(route('adviser.dashboard', ['tab' => 'docreview']))
+            ->assertOk()
+            ->assertSee('assigned-title.pdf')
+            ->assertDontSee('unassigned-title.pdf')
+            ->assertSeeText('Read-only title proposal.')
+            ->assertDontSeeText('Post Finding')
+            ->assertDontSeeText('Submit Authoritative Decision')
+            ->assertDontSeeText('Save Correction');
+
+        $this->assertTrue($adviser->can('view', $document));
+        $this->assertFalse($adviser->can('review', $document));
+        $this->actingAs($adviser)
+            ->postJson(route('adviser.documents.comments.store', $document), [
+                'comment' => 'Cannot screen this title proposal.',
+                'severity' => 'comment',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($adviser)
+            ->get(route('adviser.dashboard', ['tab' => 'docreview', 'document_status' => 'needs_attention']))
+            ->assertOk()
+            ->assertDontSee('assigned-title.pdf');
+    }
+
     public function test_adviser_sidebar_badge_counts_only_current_documents_awaiting_review(): void
     {
         $adviser = $this->adviser();
@@ -68,6 +103,8 @@ class AdviserDocumentReviewTest extends TestCase
             ->update(['status' => DocumentStatus::Accepted]);
         $this->document($leader, $group, 'old-version.pdf')
             ->update(['is_current' => false]);
+        $this->document($leader, $group, 'title-proposal.pdf')
+            ->update(['document_stage' => DocumentStage::TitleProposal]);
 
         $this->actingAs($adviser)
             ->get(route('adviser.dashboard'))
