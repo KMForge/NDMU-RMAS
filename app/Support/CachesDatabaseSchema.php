@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
 trait CachesDatabaseSchema
@@ -15,9 +16,13 @@ trait CachesDatabaseSchema
     protected function tableExists(string $table): bool
     {
         if ($this->knownDatabaseTables === null) {
-            $this->knownDatabaseTables = array_fill_keys(
-                array_map('strtolower', Schema::getTableListing(schemaQualified: false)),
-                true,
+            $this->knownDatabaseTables = Cache::remember(
+                $this->schemaCacheKey('tables'),
+                now()->addMinutes(5),
+                fn (): array => array_fill_keys(
+                    array_map('strtolower', Schema::getTableListing(schemaQualified: false)),
+                    true,
+                ),
             );
         }
 
@@ -55,9 +60,13 @@ trait CachesDatabaseSchema
                 return false;
             }
 
-            $this->knownDatabaseColumns[$key] = array_fill_keys(
-                array_map('strtolower', Schema::getColumnListing($table)),
-                true,
+            $this->knownDatabaseColumns[$key] = Cache::remember(
+                $this->schemaCacheKey('columns:'.$key),
+                now()->addMinutes(5),
+                fn (): array => array_fill_keys(
+                    array_map('strtolower', Schema::getColumnListing($table)),
+                    true,
+                ),
             );
         }
 
@@ -68,5 +77,17 @@ trait CachesDatabaseSchema
         }
 
         return true;
+    }
+
+    private function schemaCacheKey(string $suffix): string
+    {
+        $connection = Schema::getConnection();
+
+        return 'database-schema:'.hash('sha256', implode(':', [
+            $connection->getName(),
+            $connection->getDatabaseName(),
+            $connection->getTablePrefix(),
+            $suffix,
+        ]));
     }
 }

@@ -74,7 +74,7 @@ class DashboardController extends Controller
             $data['notificationFilter'] = 'all';
         }
 
-        $pendingConsultationsCount = Schema::hasTable('consultation_requests')
+        $pendingConsultationsCount = (! app()->environment('testing') || Schema::hasTable('consultation_requests'))
             ? ConsultationRequest::query()
                 ->where('requested_by', $request->user()->getKey())
                 ->whereIn('status', ['pending', 'reschedule_proposed'])
@@ -85,9 +85,13 @@ class DashboardController extends Controller
         $data['defenses'] = $activeTab === 'defense'
             ? $defenseCalendar->execute($request->user())
             : collect();
-        $evaluationData = $evaluationQuery->forStudent($request->user());
-        $data['releasedEvaluations'] = $evaluationData['rounds'] ?? [];
+        $data['releasedEvaluations'] = $activeTab === 'evaluations'
+            ? ($evaluationQuery->forStudent($request->user())['rounds'] ?? [])
+            : [];
         $data['evaluations'] = $data['releasedEvaluations'];
+        $releasedEvaluationCount = $activeTab === 'evaluations'
+            ? count($data['releasedEvaluations'])
+            : $evaluationQuery->releasedCountForStudent($request->user());
         $defenseBadgeCount = in_array($activeTab, ['dashboard', 'defense'], true)
             ? collect($data['defenses'])
                 ->whereNotIn('defense_status', ['completed', 'cancelled'])
@@ -118,11 +122,9 @@ class DashboardController extends Controller
                 ->whereIn('status', ['open', 'in_progress'])
                 ->count() + (int) ($data['documentFeedbackCount'] ?? 0),
             'defense' => $defenseBadgeCount,
-            'evaluations' => is_countable($data['releasedEvaluations'] ?? null) ? count($data['releasedEvaluations']) : 0,
+            'evaluations' => $releasedEvaluationCount,
             'forms' => $pendingAcademicActions->count(),
-            'notifications' => Schema::hasTable('notifications')
-                ? $unreadNotificationCount
-                : 0,
+            'notifications' => $unreadNotificationCount,
         ];
 
         return view('pages.student-dashboard', [

@@ -16,19 +16,30 @@ class GetFacilitatorClassData
     ) {}
 
     /** @return array<string, mixed> */
-    public function for(User $facilitator, mixed $search = null, mixed $status = null): array
+    public function for(User $facilitator, mixed $search = null, mixed $status = null, string $activeTab = 'dashboard'): array
     {
-        $classes = ResearchClass::query()
-            ->when(! $facilitator->can('classes.assign-advisers'), fn ($query) => $query->where('facilitator_id', $facilitator->getKey()))
-            ->with(['facilitator.facultyProfile', 'groups.members.student.studentProfile.program'])
-            ->withCount([
+        $canAssignAdvisers = $facilitator->can('classes.assign-advisers');
+        $classesQuery = ResearchClass::query()
+            ->when(! $canAssignAdvisers, fn ($query) => $query->where('facilitator_id', $facilitator->getKey()));
+        if (in_array($activeTab, ['dashboard', 'classes'], true)) {
+            if ($canAssignAdvisers) {
+                $classesQuery->with(['facilitator.facultyProfile', 'groups.members.student.studentProfile.program']);
+            }
+            $classesQuery->withCount([
                 'enrollments as active_students_count' => fn ($query) => $query->where('status', 'active'),
                 'groups as active_groups_count' => fn ($query) => $query->where('status', 'active'),
             ])
-            ->latest()
+                ->latest();
+        } else {
+            $classesQuery->select(['id', 'facilitator_id']);
+            if ($canAssignAdvisers) {
+                $classesQuery->with(['facilitator.facultyProfile', 'groups.members.student.studentProfile.program']);
+            }
+        }
+        $classes = $classesQuery
             ->get()
             ->filter(fn (ResearchClass $class): bool => (int) $class->facilitator_id === (int) $facilitator->getKey()
-                || ($facilitator->can('classes.assign-advisers')
+                || ($canAssignAdvisers
                     && $this->institutionalActors->isProgramCoordinator($facilitator, $class)))
             ->values();
 
@@ -51,45 +62,52 @@ class GetFacilitatorClassData
                 ->whereIn('research_class_id', $ownedClassIds)
                 ->whereIn('status', ['pending', 'active', 'rejected']);
 
+            $counts = (clone $baseRequestQuery)
+                ->selectRaw("COUNT(*) AS total, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending, SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS approved, SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS rejected")
+                ->first();
             $classRequestStats = [
-                'pending' => (clone $baseRequestQuery)->where('status', 'pending')->count(),
-                'approved' => (clone $baseRequestQuery)->where('status', 'active')->count(),
-                'rejected' => (clone $baseRequestQuery)->where('status', 'rejected')->count(),
-                'total' => (clone $baseRequestQuery)->count(),
+                'pending' => (int) ($counts?->pending ?? 0),
+                'approved' => (int) ($counts?->approved ?? 0),
+                'rejected' => (int) ($counts?->rejected ?? 0),
+                'total' => (int) ($counts?->total ?? 0),
             ];
 
-            $joinRequests = (clone $baseRequestQuery)
-                ->with([
-                    'researchClass:id,name,facilitator_id',
-                    'student:id,name,email,student_id,program,year_level',
-                ])
-                ->when($requestStatus !== 'all', fn ($query) => $query->where('status', $requestStatus))
-                ->when($requestSearch !== '', function ($query) use ($requestSearch): void {
-                    $query->where(function ($query) use ($requestSearch): void {
-                        $query
-                            ->whereHas('student', function ($query) use ($requestSearch): void {
-                                $query
-                                    ->where('name', 'like', "%{$requestSearch}%")
-                                    ->orWhere('email', 'like', "%{$requestSearch}%")
-                                    ->orWhere('student_id', 'like', "%{$requestSearch}%");
-                            })
-                            ->orWhereHas('researchClass', function ($query) use ($requestSearch): void {
-                                $query->where('name', 'like', "%{$requestSearch}%");
-                            });
-                    });
-                })
-                ->orderByRaw("CASE status WHEN 'pending' THEN 0 WHEN 'active' THEN 1 WHEN 'rejected' THEN 2 ELSE 3 END")
-                ->latest('requested_at')
-                ->limit(100)
-                ->get();
+            if ($activeTab === 'join-requests') {
+                $joinRequests = (clone $baseRequestQuery)
+                    ->with([
+                        'researchClass:id,name,facilitator_id',
+                        'student:id,name,email,student_id,program,year_level',
+                    ])
+                    ->when($requestStatus !== 'all', fn ($query) => $query->where('status', $requestStatus))
+                    ->when($requestSearch !== '', function ($query) use ($requestSearch): void {
+                        $query->where(function ($query) use ($requestSearch): void {
+                            $query
+                                ->whereHas('student', function ($query) use ($requestSearch): void {
+                                    $query
+                                        ->where('name', 'like', "%{$requestSearch}%")
+                                        ->orWhere('email', 'like', "%{$requestSearch}%")
+                                        ->orWhere('student_id', 'like', "%{$requestSearch}%");
+                                })
+                                ->orWhereHas('researchClass', function ($query) use ($requestSearch): void {
+                                    $query->where('name', 'like', "%{$requestSearch}%");
+                                });
+                        });
+                    })
+                    ->orderByRaw("CASE status WHEN 'pending' THEN 0 WHEN 'active' THEN 1 WHEN 'rejected' THEN 2 ELSE 3 END")
+                    ->latest('requested_at')
+                    ->limit(100)
+                    ->get();
+            }
         }
 
-        $advisers = User::query()
-            ->permission('classes.serve-as-adviser')
-            ->where('status', AccountStatus::Active)
-            ->whereNotNull('approved_at')
-            ->orderBy('name')
-            ->get(['id', 'name', 'email', 'department']);
+        $advisers = $activeTab === 'dashboard'
+            ? User::query()
+                ->permission('classes.serve-as-adviser')
+                ->where('status', AccountStatus::Active)
+                ->whereNotNull('approved_at')
+                ->orderBy('name')
+                ->get(['id', 'name', 'email', 'department'])
+            : collect();
 
         return [
             'researchClasses' => $classes,

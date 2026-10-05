@@ -40,6 +40,7 @@ DB::listen(function (QueryExecuted $query) use (&$current, &$queries): void {
 });
 
 $results = [];
+$tab = $argv[1] ?? 'dashboard';
 foreach ($targets as $workspace => $target) {
     $user = User::permission($target['permission'])->orderBy('id')->first();
     if ($user === null) {
@@ -58,7 +59,7 @@ foreach ($targets as $workspace => $target) {
         $current = $key;
         Auth::setUser($user);
 
-        $request = Request::create($target['path'], 'GET', ['tab' => 'dashboard']);
+        $request = Request::create($target['path'], 'GET', ['tab' => $tab]);
         $request->setUserResolver(fn (): User => $user);
         $app->instance('request', $request);
         $startedAt = hrtime(true);

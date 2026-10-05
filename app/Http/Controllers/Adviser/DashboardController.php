@@ -68,27 +68,34 @@ class DashboardController extends Controller
         $unreadNotificationCount = app(UnreadNotificationCount::class)->for($user);
         $viewData = $this->emptyViewData();
 
-        $pendingAdviserRequests = ResearchClassGroupAdviserRequest::query()
+        $pendingAdviserRequestsQuery = ResearchClassGroupAdviserRequest::query()
             ->where('adviser_id', $user->getKey())
-            ->where('status', 'pending')
-            ->with([
+            ->where('status', 'pending');
+        $pendingAdviserRequests = in_array($activeTab, ['dashboard', 'classes'], true)
+            ? (clone $pendingAdviserRequestsQuery)->with([
                 'group' => fn ($query) => $query->where('status', 'active')->with(['researchClass:id,name', 'members']),
                 'requester:id,name,email',
             ])
-            ->latest()
-            ->get();
+                ->latest()
+                ->get()
+            : collect();
+        $pendingAdviserRequestsCount = in_array($activeTab, ['dashboard', 'classes'], true)
+            ? $pendingAdviserRequests->count()
+            : $pendingAdviserRequestsQuery->count();
 
-        $assignedGroups = ResearchClassGroup::query()
+        $assignedGroupsQuery = ResearchClassGroup::query()
             ->where('adviser_id', $user->getKey())
-            ->where('status', 'active')
-            ->with([
+            ->where('status', 'active');
+        $assignedGroups = in_array($activeTab, ['dashboard', 'classes', 'researchers'], true)
+            ? (clone $assignedGroupsQuery)->with([
                 'researchClass:id,name,facilitator_id',
                 'members' => fn ($query) => $query->with('student:id,name,email,student_id,program,year_level'),
             ])
-            ->latest()
-            ->get();
+                ->latest()
+                ->get()
+            : collect();
 
-        $pendingConsultationsCount = Schema::hasTable('consultation_requests')
+        $pendingConsultationsCount = (! app()->environment('testing') || Schema::hasTable('consultation_requests'))
             ? ConsultationRequest::query()
                 ->whereHas('researchClassGroup', fn ($g) => $g->where('adviser_id', $user->getKey())->where('status', 'active')->whereNull('disbanded_at'))
                 ->whereIn('status', ['pending', 'reschedule_proposed'])
@@ -104,7 +111,7 @@ class DashboardController extends Controller
                 DocumentStatus::UnderReview->value,
             ])
             ->count();
-        $pendingRevisionsCount = Schema::hasTable('revision_requests')
+        $pendingRevisionsCount = (! app()->environment('testing') || Schema::hasTable('revision_requests'))
             ? RevisionRequest::query()
                 ->whereHas('researchClassGroup', fn ($group) => $group
                     ->where('adviser_id', $user->getKey())
@@ -115,22 +122,22 @@ class DashboardController extends Controller
             : 0;
 
         $viewData['pendingAdviserRequests'] = $pendingAdviserRequests;
-        $viewData['pendingAdviserRequestsCount'] = $pendingAdviserRequests->count();
+        $viewData['pendingAdviserRequestsCount'] = $pendingAdviserRequestsCount;
         $viewData['pendingConsultationsCount'] = $pendingConsultationsCount;
         $viewData['pendingDocReviewsCount'] = $pendingDocReviewsCount;
         $viewData['pendingAcademicActions'] = app(GetPendingAcademicActionsForUser::class)->execute($user);
         $viewData['sidebarBadges'] = [
-            'classes' => $pendingAdviserRequests->count(),
+            'classes' => $pendingAdviserRequestsCount,
             'docreview' => $pendingDocReviewsCount,
             'consultation' => $pendingConsultationsCount,
             'revisions' => $pendingRevisionsCount,
             'forms' => $viewData['pendingAcademicActions']->count(),
-            'notifications' => Schema::hasTable('notifications')
-                ? $unreadNotificationCount
-                : 0,
+            'notifications' => $unreadNotificationCount,
         ];
         $viewData['assignedGroups'] = $assignedGroups;
-        $viewData['adviserDefenses'] = $defenseCalendar->execute($user);
+        $viewData['adviserDefenses'] = in_array($activeTab, ['dashboard', 'endorsement'], true)
+            ? $defenseCalendar->execute($user)
+            : [];
         $evalData = $activeTab === 'evaluations'
             ? app(GetEvaluationRoundData::class)->forAdviser($user)
             : ['rounds' => []];

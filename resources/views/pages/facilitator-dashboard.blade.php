@@ -95,14 +95,30 @@
         window.clearTimeout(this.persistTabTimer);
         this.persistTabTimer = window.setTimeout(() => this.persistTab(tab), 0);
     },
+    officialFormAnchor(form) {
+        return `official-form-${String(form).toLowerCase().replace(/[^a-z0-9_-]/g, '-')}`;
+    },
+    selectOfficialForm(form) {
+        this.activeTab = 'forms';
+        this.activeOfficialForm = form;
+
+        const anchor = this.officialFormAnchor(form);
+        const url = new URL(this.dashboardUrl, window.location.origin);
+        url.searchParams.set('tab', 'forms');
+        url.searchParams.set('form', form);
+        url.hash = anchor;
+        window.history.replaceState(window.history.state, '', url);
+        this.$nextTick(() => window.NDMUSidebarAnchors?.scrollTo(anchor));
+    },
     persistTab(tab) {
         const url = new URL(this.dashboardUrl, window.location.origin);
         url.searchParams.set('tab', tab);
         if (tab === 'forms' && this.activeOfficialForm) {
             url.searchParams.set('form', this.activeOfficialForm);
+            url.hash = this.officialFormAnchor(this.activeOfficialForm);
         }
 
-        if (`${url.pathname}${url.search}` === `${window.location.pathname}${window.location.search}`) return;
+        if (`${url.pathname}${url.search}${url.hash}` === `${window.location.pathname}${window.location.search}${window.location.hash}`) return;
 
         window.Livewire?.navigate
             ? window.Livewire.navigate(url.toString())
@@ -1269,9 +1285,6 @@
         this.$watch('activeTab', (tab, previousTab) => {
             if (tab !== previousTab) this.queuePersistTab(tab);
         });
-        this.$watch('activeOfficialForm', (form, previousForm) => {
-            if (this.activeTab === 'forms' && form !== previousForm) this.queuePersistTab('forms');
-        });
     }
 }));
     };
@@ -1315,7 +1328,7 @@
             <!-- Brand Logo Header -->
             <div class="p-6 pb-4 flex items-center gap-3.5">
                 <div class="p-2 bg-gradient-to-br from-white/15 to-white/5 rounded-2xl border border-white/20 shadow-lg backdrop-blur-md">
-                    <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto drop-shadow-sm">
+                    <x-app-logo variant="sidebar" />
                 </div>
                 <div class="flex flex-col leading-none">
                     <span class="font-heading font-black text-xl text-white tracking-tight">NDMU</span>
@@ -1415,9 +1428,8 @@
                 </button>
 
                 <!-- Research Monitoring -->
-                <button 
-                    type="button" 
-                    @click="activeTab = 'monitoring'"
+                <a
+                    href="{{ route('facilitator.dashboard', ['tab' => 'monitoring']) }}"
                     :class="activeTab === 'monitoring' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
                     class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
@@ -1425,7 +1437,7 @@
                         <span>Research Monitoring</span>
                     </div>
                     <span x-show="activeTab === 'monitoring'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
-                </button>
+                </a>
 
                 <!-- Research Screening -->
                 <button 
@@ -1529,10 +1541,10 @@
                             </button>
                             <div x-show="activeFormPhase === '{{ $phase }}'" x-cloak x-transition class="mt-0.5 space-y-0.5 pl-2">
                                 @foreach ($phaseForms as $code => $form)
-                                    <button type="button" @click="activeTab = 'forms'; activeOfficialForm = '{{ $code }}'" :class="activeOfficialForm === '{{ $code }}' ? 'bg-[#eebc3f] text-[#09472d] ring-1 ring-white font-bold' : 'text-white/75 hover:text-white hover:bg-white/10'" class="w-full flex items-start gap-2 rounded-xl px-3 py-2 text-left transition-colors duration-200">
+                                    <a id="official-form-{{ strtolower($code) }}" href="{{ route('facilitator.dashboard', ['tab' => 'forms', 'form' => $code]) }}#official-form-{{ strtolower($code) }}" data-sidebar-anchor @click.prevent="selectOfficialForm('{{ $code }}')" :class="activeOfficialForm === '{{ $code }}' ? 'bg-[#eebc3f] text-[#09472d] ring-1 ring-white font-bold' : 'text-white/75 hover:text-white hover:bg-white/10'" class="w-full flex items-start gap-2 rounded-xl px-3 py-2 text-left transition-colors duration-200">
                                         <i class="ph ph-file-plus mt-0.5 shrink-0 text-sm"></i>
                                         <span class="min-w-0"><span class="block text-[10px] font-bold">{{ $code }}</span><span class="block text-[10px] leading-3.5">{{ $form['title'] }}</span></span>
-                                    </button>
+                                    </a>
                                 @endforeach
                             </div>
                         </div>
@@ -1667,7 +1679,7 @@
                     <div class="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-[#eebc3f]/15 blur-3xl"></div>
                     <div class="pointer-events-none absolute -left-12 -bottom-20 h-48 w-48 rounded-full bg-emerald-400/15 blur-2xl"></div>
                     <div class="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 opacity-[0.08]">
-                        <img src="{{ asset('images/ndmu_logo.png') }}" alt="" class="h-36 md:h-44 w-auto object-contain">
+                        <x-app-logo variant="watermark" />
                     </div>
 
                     <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">

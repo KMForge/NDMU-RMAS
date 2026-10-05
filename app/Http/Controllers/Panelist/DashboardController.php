@@ -11,7 +11,6 @@ use App\Modules\Notifications\Services\UnreadNotificationCount;
 use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 
 class DashboardController extends Controller
 {
@@ -85,9 +84,7 @@ class DashboardController extends Controller
                 'final-eval' => $pendingEvaluations
                     ->whereIn('defense_type', ['pre_final_defense', 'final_defense'])
                     ->count(),
-                'notifications' => Schema::hasTable('notifications')
-                    ? $unreadNotificationCount
-                    : 0,
+                'notifications' => $unreadNotificationCount,
             ],
         ]);
     }

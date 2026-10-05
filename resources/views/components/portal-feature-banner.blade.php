@@ -13,7 +13,7 @@
     <div aria-hidden="true" class="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-[#eebc3f]/10 blur-3xl"></div>
     <div aria-hidden="true" class="pointer-events-none absolute -left-12 -bottom-20 h-48 w-48 rounded-full bg-emerald-400/10 blur-2xl"></div>
     <div aria-hidden="true" class="pointer-events-none absolute right-8 top-1/2 -translate-y-1/2 opacity-[0.08]">
-        <img src="{{ asset('images/ndmu_logo.png') }}" alt="" class="h-32 md:h-36 w-auto object-contain">
+        <x-app-logo variant="watermark" class="h-32 md:h-36" />
     </div>
 
     <div class="relative flex items-center gap-5 md:gap-6">

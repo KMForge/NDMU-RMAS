@@ -252,7 +252,7 @@
             <!-- Brand Logo Header -->
             <div class="p-6 pb-4 flex items-center gap-3.5">
                 <div class="p-2 bg-gradient-to-br from-white/15 to-white/5 rounded-2xl border border-white/20 shadow-lg backdrop-blur-md">
-                    <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto drop-shadow-sm">
+                    <x-app-logo variant="sidebar" />
                 </div>
                 <div class="flex flex-col leading-none">
                     <span class="font-heading font-black text-xl text-white tracking-tight">NDMU</span>
@@ -503,7 +503,7 @@
                     <div class="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-[#eebc3f]/15 blur-3xl"></div>
                     <div class="pointer-events-none absolute -left-12 -bottom-20 h-48 w-48 rounded-full bg-emerald-400/15 blur-2xl"></div>
                     <div class="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 opacity-[0.08]">
-                        <img src="{{ asset('images/ndmu_logo.png') }}" alt="" class="h-36 md:h-44 w-auto object-contain">
+                        <x-app-logo variant="watermark" />
                     </div>
 
                     <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">

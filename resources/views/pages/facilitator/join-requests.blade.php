@@ -53,23 +53,27 @@
     <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
         @php
             $stats = [
-                ['label' => 'Pending Review', 'value' => $classRequestStats['pending'] ?? 0, 'color' => 'from-amber-400 to-amber-600', 'badge' => 'bg-amber-50 border-amber-200 text-amber-800', 'icon' => 'ph-clock'],
-                ['label' => 'Approved Students', 'value' => $classRequestStats['approved'] ?? 0, 'color' => 'from-[#073823] to-[#0e5c3a]', 'badge' => 'bg-emerald-50 border-emerald-200 text-[#0e5c3a]', 'icon' => 'ph-check-circle'],
-                ['label' => 'Rejected Requests', 'value' => $classRequestStats['rejected'] ?? 0, 'color' => 'from-rose-500 to-rose-700', 'badge' => 'bg-rose-50 border-rose-200 text-rose-700', 'icon' => 'ph-x-circle'],
-                ['label' => 'Total Submissions', 'value' => $classRequestStats['total'] ?? 0, 'color' => 'from-slate-700 to-slate-900', 'badge' => 'bg-slate-100 border-slate-200 text-slate-700', 'icon' => 'ph-users-three'],
+                ['label' => 'Pending Review', 'value' => $classRequestStats['pending'] ?? 0, 'status' => 'pending', 'color' => 'from-amber-400 to-amber-600', 'badge' => 'bg-amber-50 border-amber-200 text-amber-800', 'icon' => 'ph-clock'],
+                ['label' => 'Approved Students', 'value' => $classRequestStats['approved'] ?? 0, 'status' => 'active', 'color' => 'from-[#073823] to-[#0e5c3a]', 'badge' => 'bg-emerald-50 border-emerald-200 text-[#0e5c3a]', 'icon' => 'ph-check-circle'],
+                ['label' => 'Rejected Requests', 'value' => $classRequestStats['rejected'] ?? 0, 'status' => 'rejected', 'color' => 'from-rose-500 to-rose-700', 'badge' => 'bg-rose-50 border-rose-200 text-rose-700', 'icon' => 'ph-x-circle'],
+                ['label' => 'Total Submissions', 'value' => $classRequestStats['total'] ?? 0, 'status' => 'all', 'color' => 'from-slate-700 to-slate-900', 'badge' => 'bg-slate-100 border-slate-200 text-slate-700', 'icon' => 'ph-users-three'],
             ];
         @endphp
 
         @foreach ($stats as $stat)
-            <div class="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm flex items-center justify-between transition-all hover:shadow-md">
+            <a
+                href="{{ route('facilitator.dashboard', array_filter(['tab' => 'join-requests', 'request_status' => $stat['status'], 'request_q' => $requestSearch])) }}"
+                class="rounded-3xl border {{ $requestStatus === $stat['status'] ? 'border-[#0e5c3a] ring-2 ring-[#0e5c3a]/25 bg-emerald-50/20' : 'border-slate-200/80 bg-white hover:border-slate-300' }} p-5 shadow-sm flex items-center justify-between transition-all hover:shadow-md cursor-pointer group"
+                title="Filter by {{ $stat['label'] }}"
+            >
                 <div>
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{{ $stat['label'] }}</span>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block group-hover:text-slate-600 transition-colors">{{ $stat['label'] }}</span>
                     <span class="mt-1 text-2xl sm:text-3xl font-black font-heading text-slate-900 block leading-none">{{ $stat['value'] }}</span>
                 </div>
-                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br {{ $stat['color'] }} text-white flex items-center justify-center text-2xl shadow-md shadow-slate-900/10 shrink-0">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br {{ $stat['color'] }} text-white flex items-center justify-center text-2xl shadow-md shadow-slate-900/10 shrink-0 group-hover:scale-105 transition-transform">
                     <i class="ph {{ $stat['icon'] }}"></i>
                 </div>
-            </div>
+            </a>
         @endforeach
     </div>
 
@@ -213,10 +217,34 @@
                 <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center text-3xl mx-auto">
                     <i class="ph ph-user-plus"></i>
                 </div>
-                <h2 class="text-base font-black text-slate-900">No Student Join Requests</h2>
-                <p class="text-xs text-slate-500 max-w-sm mx-auto">
-                    Student enrollment requests for your Capstone classes will appear here for verification.
+                <h2 class="text-base font-black text-slate-900">
+                    {{ $requestStatus === 'pending' ? 'No Pending Join Requests' : ($requestStatus === 'active' ? 'No Approved Students' : ($requestStatus === 'rejected' ? 'No Rejected Requests' : 'No Student Join Requests')) }}
+                </h2>
+                <p class="text-xs text-slate-500 max-w-md mx-auto">
+                    @if ($requestStatus === 'pending' && ($classRequestStats['approved'] ?? 0) > 0)
+                        All submitted join requests have been processed. To view approved or rejected students, click the metric cards above or switch the filter dropdown to <strong>Status: Approved</strong> or <strong>All Statuses</strong>.
+                    @else
+                        Student enrollment requests for your Capstone classes will appear here for verification.
+                    @endif
                 </p>
+                @if ($requestStatus === 'pending' && ($classRequestStats['approved'] ?? 0) > 0)
+                    <div class="pt-2 flex flex-wrap items-center justify-center gap-2.5">
+                        <a
+                            href="{{ route('facilitator.dashboard', ['tab' => 'join-requests', 'request_status' => 'active']) }}"
+                            class="inline-flex items-center gap-2 rounded-xl bg-[#0e5c3a] hover:bg-[#073823] px-4 py-2 text-xs font-black text-white shadow-sm transition-all"
+                        >
+                            <i class="ph ph-check-circle"></i>
+                            <span>View Approved Students ({{ $classRequestStats['approved'] }})</span>
+                        </a>
+                        <a
+                            href="{{ route('facilitator.dashboard', ['tab' => 'join-requests', 'request_status' => 'all']) }}"
+                            class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs transition-all"
+                        >
+                            <i class="ph ph-users-three"></i>
+                            <span>View All ({{ $classRequestStats['total'] }})</span>
+                        </a>
+                    </div>
+                @endif
             </div>
         @endforelse
     </div>

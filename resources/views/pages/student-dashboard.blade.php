@@ -69,14 +69,30 @@
             window.clearTimeout(this.persistTabTimer);
             this.persistTabTimer = window.setTimeout(() => this.persistTab(tab), 0);
         },
+        officialFormAnchor(form) {
+            return `official-form-${String(form).toLowerCase().replace(/[^a-z0-9_-]/g, '-')}`;
+        },
+        selectOfficialForm(form) {
+            this.activeTab = 'forms';
+            this.activeOfficialForm = form;
+
+            const anchor = this.officialFormAnchor(form);
+            const url = new URL(this.dashboardUrl, window.location.origin);
+            url.searchParams.set('tab', 'forms');
+            url.searchParams.set('form', form);
+            url.hash = anchor;
+            window.history.replaceState(window.history.state, '', url);
+            this.$nextTick(() => window.NDMUSidebarAnchors?.scrollTo(anchor));
+        },
         persistTab(tab) {
             const url = new URL(this.dashboardUrl, window.location.origin);
             url.searchParams.set('tab', tab);
             if (tab === 'forms' && this.activeOfficialForm) {
                 url.searchParams.set('form', this.activeOfficialForm);
+                url.hash = this.officialFormAnchor(this.activeOfficialForm);
             }
 
-            if (`${url.pathname}${url.search}` === `${window.location.pathname}${window.location.search}`) return;
+            if (`${url.pathname}${url.search}${url.hash}` === `${window.location.pathname}${window.location.search}${window.location.hash}`) return;
 
             window.Livewire?.navigate
                 ? window.Livewire.navigate(url.toString())
@@ -87,9 +103,6 @@
         $watch('activeTab', (tab, previousTab) => {
             if (tab !== previousTab) queuePersistTab(tab);
         });
-        $watch('activeOfficialForm', (form, previousForm) => {
-            if (activeTab === 'forms' && form !== previousForm) queuePersistTab('forms');
-        });
     "
 >
     <aside data-portal-sidebar class="fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-[#09472d] via-[#0e5c3a] to-[#073622] text-white flex flex-col justify-between z-20 border-r border-emerald-800/40 shadow-2xl overflow-y-auto">
@@ -97,7 +110,7 @@
             <!-- Brand Logo Header -->
             <div class="p-6 pb-4 flex items-center gap-3.5">
                 <div class="p-2 bg-gradient-to-br from-white/15 to-white/5 rounded-2xl border border-white/20 shadow-lg backdrop-blur-md">
-                    <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto drop-shadow-sm">
+                    <x-app-logo variant="sidebar" />
                 </div>
                 <div class="flex flex-col leading-none">
                     <span class="font-heading font-black text-xl text-white tracking-tight">NDMU</span>
@@ -224,9 +237,11 @@
                                 class="mt-0.5 space-y-0.5 pl-2"
                             >
                                 @foreach ($phaseForms as $code => $form)
-                                    <button
-                                        type="button"
-                                        @click="activeTab = 'forms'; activeOfficialForm = '{{ $code }}'"
+                                    <a
+                                        id="official-form-{{ strtolower($code) }}"
+                                        href="{{ route('student.dashboard', ['tab' => 'forms', 'form' => $code]) }}#official-form-{{ strtolower($code) }}"
+                                        data-sidebar-anchor
+                                        @click.prevent="selectOfficialForm('{{ $code }}')"
                                         :class="activeOfficialForm === '{{ $code }}' ? 'bg-[#eebc3f] text-[#09472d] ring-1 ring-white font-bold' : 'text-white/75 hover:text-white hover:bg-white/10'"
                                         class="w-full flex items-start gap-2 rounded-xl px-3 py-2 text-left transition-colors duration-200"
                                     >
@@ -235,7 +250,7 @@
                                             <span class="block text-[10px] font-bold">{{ $code }}</span>
                                             <span class="block text-[10px] leading-3.5">{{ $form['title'] }}</span>
                                         </span>
-                                    </button>
+                                    </a>
                                 @endforeach
                             </div>
                         </div>
@@ -375,7 +390,7 @@
                     <div class="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-[#eebc3f]/15 blur-3xl"></div>
                     <div class="pointer-events-none absolute -left-12 -bottom-20 h-48 w-48 rounded-full bg-emerald-400/15 blur-2xl"></div>
                     <div class="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 opacity-[0.08]">
-                        <img src="{{ asset('images/ndmu_logo.png') }}" alt="" class="h-36 md:h-44 w-auto object-contain">
+                        <x-app-logo variant="watermark" />
                     </div>
 
                     <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
@@ -1509,34 +1524,365 @@
             @endif
 
             @if ($initialTab === 'defense')
-            <section class="space-y-8 animate-fade-in">
-                <x-student-section-heading title="My Defense Schedule" description="Defense requests and confirmed schedules." />
-                @php
-                    $title = 'Research Defense';
-                    $status = 'Scheduled';
-                    $date = 'TBA';
-                    $venue = 'Venue not assigned';
-                @endphp
-                <div class="space-y-4">
-                    @forelse ($defenses as $defense)
+            <section class="space-y-8 animate-fade-in" x-data="{ defenseFilter: 'all' }">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <x-student-section-heading title="My Defense Schedule" description="View your approved defense schedule, venue, panel composition, and evaluation records." />
+
+                    @php
+                        $defensesCollection = collect($defenses);
+                        $upcomingCount = $defensesCollection->filter(fn ($d) => ! in_array(strtolower((string) (data_get($d, 'schedule_status') ?? data_get($d, 'defense_status'))), ['completed', 'finalized', 'released', 'cancelled'], true))->count();
+                        $completedCount = $defensesCollection->filter(fn ($d) => in_array(strtolower((string) (data_get($d, 'schedule_status') ?? data_get($d, 'defense_status'))), ['completed', 'finalized', 'released'], true))->count();
+                    @endphp
+
+                    @if ($defensesCollection->isNotEmpty())
+                    <!-- Status Filter Tabs -->
+                    <div class="flex items-center gap-1 rounded-2xl bg-slate-100 p-1 border border-slate-200/80 shrink-0">
+                        <button type="button" @click="defenseFilter = 'all'" :class="defenseFilter === 'all' ? 'bg-white text-slate-900 shadow-xs font-black' : 'text-slate-500 hover:text-slate-800 font-bold'" class="px-3.5 py-1.5 rounded-xl text-xs transition-all">
+                            All ({{ $defensesCollection->count() }})
+                        </button>
+                        <button type="button" @click="defenseFilter = 'upcoming'" :class="defenseFilter === 'upcoming' ? 'bg-white text-slate-900 shadow-xs font-black' : 'text-slate-500 hover:text-slate-800 font-bold'" class="px-3.5 py-1.5 rounded-xl text-xs transition-all flex items-center gap-1.5">
+                            <span class="h-2 w-2 rounded-full bg-blue-500"></span>
+                            Upcoming ({{ $upcomingCount }})
+                        </button>
+                        <button type="button" @click="defenseFilter = 'completed'" :class="defenseFilter === 'completed' ? 'bg-white text-slate-900 shadow-xs font-black' : 'text-slate-500 hover:text-slate-800 font-bold'" class="px-3.5 py-1.5 rounded-xl text-xs transition-all flex items-center gap-1.5">
+                            <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                            Completed ({{ $completedCount }})
+                        </button>
+                    </div>
+                    @endif
+                </div>
+
+                <div class="space-y-6">
+                    @forelse ($defensesCollection as $defense)
                         @php
                             $d = (object) $defense;
-                            $title = $d->defense_type_label ?? (isset($d->defense_type) ? \Illuminate\Support\Str::headline($d->defense_type) : 'Research Defense');
-                            $status = $d->schedule_status ?? ($d->defense_status ?? ($d->request_status ?? 'Scheduled'));
-                            $date = $d->formatted_date ?? ($d->starts_at ?? ($d->preferred_date ?? 'TBA'));
-                            $venue = ($d->room_name ?? $d->room_code)
-                                ? trim(($d->room_name ?? $d->room_code).' '.($d->location_notes ?? $d->building ?? ''))
-                                : ($d->meeting_url ?? 'Venue not assigned');
+                            $defenseType = data_get($defense, 'defense_type');
+                            $defenseTitle = data_get($defense, 'defense_type_label') ?? (isset($defenseType) ? \Illuminate\Support\Str::headline($defenseType) : 'Research Defense');
+                            $scheduleStatus = strtolower((string) (data_get($defense, 'schedule_status') ?? data_get($defense, 'defense_status') ?? 'scheduled'));
+                            $isCompleted = in_array($scheduleStatus, ['completed', 'finalized', 'released'], true);
+                            $isCurrent = (bool) data_get($defense, 'is_current') || in_array($scheduleStatus, ['current', 'in_progress'], true);
+
+                            $date = data_get($defense, 'formatted_date') ?? (data_get($defense, 'starts_at') ? \Illuminate\Support\Carbon::parse(data_get($defense, 'starts_at'))->format('M j, Y') : (data_get($defense, 'preferred_date') ?? 'TBA'));
+                            $time = data_get($defense, 'formatted_time') ?? (data_get($defense, 'starts_at') ? \Illuminate\Support\Carbon::parse(data_get($defense, 'starts_at'))->format('g:i A') . (data_get($defense, 'ends_at') ? ' - ' . \Illuminate\Support\Carbon::parse(data_get($defense, 'ends_at'))->format('g:i A') : '') : 'Time TBA');
+
+                            $roomCode = data_get($defense, 'room_code');
+                            $roomName = data_get($defense, 'room_name');
+                            $locationNotes = data_get($defense, 'location_notes');
+                            $venueName = $roomName ?? $roomCode ?? 'Assigned Venue';
+                            $venueLocation = $locationNotes ?? ($roomCode ? 'Room ' . $roomCode : 'Campus Conference Facility');
+
+                            $researchTitle = data_get($defense, 'research_title');
+                            $groupName = data_get($defense, 'group_name');
+                            $className = data_get($defense, 'class_name');
+                            $adviserName = data_get($defense, 'adviser_name');
+                            $facilitatorName = data_get($defense, 'facilitator_name');
+                            $orderLabel = data_get($defense, 'presentation_order_label');
+                            $panelists = data_get($defense, 'panelists', []);
+                            $res037Url = data_get($defense, 'res037_url');
+                            $paperScore = data_get($defense, 'paper_score');
+                            $titleRemarks = data_get($defense, 'title_presentation_remarks');
+
+                            $stageIcon = match ($defenseType) {
+                                'title_presentation' => 'ph-lightbulb',
+                                'proposal_defense' => 'ph-presentation-chart',
+                                'pre_final_defense' => 'ph-file-search',
+                                'final_defense' => 'ph-graduation-cap',
+                                default => 'ph-chalkboard-teacher',
+                            };
+                            $stageTone = match ($defenseType) {
+                                'title_presentation' => 'from-amber-600 to-amber-700',
+                                'proposal_defense' => 'from-[#0e5c3a] to-[#073823]',
+                                'pre_final_defense' => 'from-indigo-600 to-indigo-800',
+                                'final_defense' => 'from-emerald-700 to-emerald-900',
+                                default => 'from-slate-700 to-slate-900',
+                            };
                         @endphp
-                        <x-student-record-card
-                            :title="$title"
-                            :status="$status"
-                            :date="$date"
-                            :description="$venue"
-                        />
+
+                        <article
+                            x-show="defenseFilter === 'all' || (defenseFilter === 'completed' && {{ $isCompleted ? 'true' : 'false' }}) || (defenseFilter === 'upcoming' && {{ ! $isCompleted ? 'true' : 'false' }})"
+                            class="bg-white rounded-3xl border border-slate-200/90 shadow-2xs transition-all duration-200 hover:shadow-md hover:border-slate-300 overflow-hidden relative"
+                        >
+                            <!-- Top Highlight Stripe -->
+                            @if ($isCurrent)
+                                <div class="h-1.5 w-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-400 animate-pulse"></div>
+                            @elseif ($isCompleted)
+                                <div class="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-[#0e5c3a] to-emerald-600"></div>
+                            @else
+                                <div class="h-1.5 w-full bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600"></div>
+                            @endif
+
+                            <div class="p-6 sm:p-7 space-y-6">
+                                <!-- Header: Stage Icon, Title, Research Info, and Status Badge -->
+                                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                                    <div class="flex items-start gap-4 min-w-0">
+                                        <div class="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br {{ $stageTone }} text-white text-2xl shadow-sm">
+                                            <i class="ph {{ $stageIcon }}"></i>
+                                        </div>
+                                        <div class="min-w-0 space-y-1.5">
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <h3 class="font-heading font-black text-xl text-slate-900 leading-snug">
+                                                    {{ $defenseTitle }}
+                                                </h3>
+                                                @if ($orderLabel)
+                                                    <span class="inline-flex items-center gap-1 rounded-lg bg-blue-50 border border-blue-200 px-2 py-0.5 text-xs font-black text-blue-700">
+                                                        <i class="ph ph-sort-ascending"></i> {{ $orderLabel }}
+                                                    </span>
+                                                @endif
+                                            </div>
+
+                                            @if ($researchTitle)
+                                                <p class="text-sm font-bold text-slate-700 leading-snug italic line-clamp-2">
+                                                    "{{ $researchTitle }}"
+                                                </p>
+                                            @endif
+
+                                            <div class="flex flex-wrap items-center gap-2 pt-1 text-xs text-slate-500">
+                                                @if ($groupName)
+                                                    <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-100/90 border border-slate-200/80 px-2.5 py-1 font-bold text-slate-700">
+                                                        <i class="ph ph-users-three text-[#0e5c3a]"></i>
+                                                        {{ $groupName }}
+                                                    </span>
+                                                @endif
+                                                @if ($className)
+                                                    <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-100/90 border border-slate-200/80 px-2.5 py-1 font-semibold text-slate-600">
+                                                        <i class="ph ph-chalkboard text-[#0e5c3a]"></i>
+                                                        {{ $className }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Status Pill -->
+                                    <div class="shrink-0">
+                                        @if ($isCompleted)
+                                            <span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-50 text-[#0e5c3a] text-xs font-black uppercase tracking-wider border border-emerald-200 shadow-2xs">
+                                                <i class="ph ph-check-circle-fill text-emerald-600 text-sm"></i>
+                                                Completed
+                                            </span>
+                                        @elseif ($isCurrent)
+                                            <span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-50 text-amber-800 text-xs font-black uppercase tracking-wider border border-amber-200 shadow-2xs animate-pulse">
+                                                <i class="ph ph-broadcast text-amber-600 text-sm"></i>
+                                                In Session
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-black uppercase tracking-wider border border-blue-200 shadow-2xs">
+                                                <i class="ph ph-calendar-check text-blue-600 text-sm"></i>
+                                                {{ \Illuminate\Support\Str::headline($scheduleStatus) }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <!-- Key Defense Info: 3 Highlight Cards -->
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                                    <!-- Date & Time Box -->
+                                    <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 transition-all hover:bg-white hover:border-slate-300">
+                                        <div class="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                                            <i class="ph ph-calendar text-base text-[#0e5c3a]"></i>
+                                            <span>Schedule & Time</span>
+                                        </div>
+                                        <p class="mt-2.5 font-heading text-base font-black text-slate-900 leading-snug">
+                                            {{ $date }}
+                                        </p>
+                                        <p class="mt-0.5 text-xs font-semibold text-slate-600 flex items-center gap-1">
+                                            <i class="ph ph-clock text-slate-400"></i>
+                                            {{ $time }}
+                                        </p>
+                                    </div>
+
+                                    <!-- Venue & Location Box -->
+                                    <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 transition-all hover:bg-white hover:border-slate-300">
+                                        <div class="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                                            <i class="ph ph-map-pin text-base text-[#0e5c3a]"></i>
+                                            <span>Venue & Location</span>
+                                        </div>
+                                        <p class="mt-2.5 font-heading text-base font-black text-slate-900 leading-snug truncate" title="{{ $venueName }}">
+                                            {{ $venueName }}
+                                        </p>
+                                        <p class="mt-0.5 text-xs font-semibold text-slate-600 truncate" title="{{ $venueLocation }}">
+                                            {{ $venueLocation }}
+                                        </p>
+                                    </div>
+
+                                    <!-- Mentorship Box -->
+                                    <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 transition-all hover:bg-white hover:border-slate-300">
+                                        <div class="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                                            <i class="ph ph-user-check text-base text-[#0e5c3a]"></i>
+                                            <span>Academic Mentorship</span>
+                                        </div>
+                                        <p class="mt-2.5 text-xs font-bold text-slate-900 truncate">
+                                            <span class="text-slate-500 font-medium">Adviser:</span> {{ $adviserName ?? 'Not Assigned' }}
+                                        </p>
+                                        <p class="mt-1 text-xs font-bold text-slate-900 truncate">
+                                            <span class="text-slate-500 font-medium">Facilitator:</span> {{ $facilitatorName ?? 'Course Facilitator' }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Evaluation Panel Section -->
+                                <div class="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3.5">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-[#0e5c3a] text-sm">
+                                                <i class="ph ph-gavel"></i>
+                                            </span>
+                                            <h4 class="font-heading text-xs font-black uppercase tracking-wider text-slate-800">
+                                                Assigned Evaluation Panel
+                                            </h4>
+                                        </div>
+                                        <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-600 border border-slate-200">
+                                            {{ count($panelists) }} {{ Str::plural('Panelist', count($panelists)) }}
+                                        </span>
+                                    </div>
+
+                                    @if (!empty($panelists))
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                                            @foreach ($panelists as $panelist)
+                                                @php
+                                                    $isChair = strtolower((string) ($panelist['position'] ?? '')) === 'chairperson' || str_contains(strtolower((string) ($panelist['position_label'] ?? '')), 'chair');
+                                                @endphp
+                                                <div class="flex items-center gap-3 rounded-xl p-3 border {{ $isChair ? 'border-amber-200 bg-amber-50/40' : 'border-slate-200/70 bg-slate-50/50' }} transition-colors">
+                                                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-black text-xs {{ $isChair ? 'bg-amber-500 text-white shadow-xs' : 'bg-emerald-700 text-white shadow-xs' }}">
+                                                        {{ strtoupper(substr($panelist['name'] ?? 'P', 0, 1)) }}
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <p class="font-bold text-xs text-slate-900 truncate">
+                                                                {{ $panelist['name'] }}
+                                                            </p>
+                                                        </div>
+                                                        <div class="flex items-center gap-1.5 mt-0.5">
+                                                            <span class="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider {{ $isChair ? 'text-amber-800' : 'text-[#0e5c3a]' }}">
+                                                                @if ($isChair)
+                                                                    <i class="ph ph-crown-simple text-amber-600"></i>
+                                                                @endif
+                                                                {{ $panelist['position_label'] ?? 'Panel Member' }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-4 text-xs text-slate-500 flex items-center gap-2.5">
+                                            <i class="ph ph-info text-base text-slate-400 shrink-0"></i>
+                                            <span>Panelists are currently being appointed by your research facilitator and department chair.</span>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <!-- Outcome / Next Steps Card Footer -->
+                                <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                    <div class="min-w-0">
+                                        @if ($isCompleted)
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <span class="inline-flex items-center gap-1 text-xs font-bold text-emerald-800">
+                                                    <i class="ph ph-check-circle text-emerald-600 text-base"></i>
+                                                    Defense concluded & officially recorded
+                                                </span>
+                                                @if ($paperScore)
+                                                    <span class="inline-flex items-center gap-1 rounded-md bg-emerald-100/80 px-2 py-0.5 text-[11px] font-black text-emerald-950">
+                                                        Manuscript Score: {{ $paperScore }}%
+                                                    </span>
+                                                @endif
+                                            </div>
+                                            @if ($titleRemarks)
+                                                <p class="mt-1 text-xs text-slate-600 italic">
+                                                    <strong class="text-slate-700 not-italic">Panel Remarks:</strong> {{ $titleRemarks }}
+                                                </p>
+                                            @endif
+                                        @else
+                                            <div class="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                                                <i class="ph ph-lightbulb text-amber-600 text-sm"></i>
+                                                <span>Prepare presentation slide deck, physical manuscripts, and arrive 15 minutes before the scheduled time.</span>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <!-- Action Buttons -->
+                                    <div class="flex flex-wrap items-center gap-2 shrink-0">
+                                        @if ($isCompleted)
+                                            <button type="button" @click="activeTab = 'evaluations'" class="inline-flex items-center gap-1.5 rounded-xl bg-[#0e5c3a] hover:bg-[#073823] px-4 py-2 text-xs font-black text-white shadow-2xs transition-colors cursor-pointer">
+                                                <i class="ph ph-file-text"></i>
+                                                View Evaluation Results
+                                            </button>
+                                            @if ($res037Url)
+                                                <a href="{{ $res037Url }}" target="_blank" class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition-colors">
+                                                    <i class="ph ph-certificate text-emerald-700"></i>
+                                                    Official RES-037
+                                                </a>
+                                            @endif
+                                        @else
+                                            <button type="button" @click="activeTab = 'proposal'" class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-[#0e5c3a] hover:text-white px-3.5 py-2 text-xs font-bold text-[#0e5c3a] transition-all cursor-pointer">
+                                                <i class="ph ph-file-arrow-up"></i>
+                                                Review Submitted Manuscript
+                                            </button>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
                     @empty
-                        <x-student-empty-state message="No defense request or schedule is available." />
+                        <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center shadow-2xs space-y-4">
+                            <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-3xl text-[#0e5c3a]">
+                                <i class="ph ph-calendar-blank"></i>
+                            </div>
+                            <div class="space-y-1 max-w-md mx-auto">
+                                <h3 class="font-heading font-black text-lg text-slate-900">No Defense Schedules Available Yet</h3>
+                                <p class="text-xs text-slate-500 leading-relaxed">
+                                    Once your research class facilitator approves your proposal and schedules your defense session, your room assignment, panel members, and official defense date will appear here.
+                                </p>
+                            </div>
+                            <div class="pt-2 flex justify-center gap-3">
+                                <button type="button" @click="activeTab = 'proposal'" class="inline-flex items-center gap-2 rounded-xl bg-[#0e5c3a] hover:bg-[#073823] px-4 py-2.5 text-xs font-black text-white shadow-2xs transition-colors cursor-pointer">
+                                    <i class="ph ph-arrow-circle-up"></i> Check Proposal Status
+                                </button>
+                            </div>
+                        </div>
                     @endforelse
+                </div>
+
+                <!-- Defense Preparation Guide & Best Practices -->
+                <div class="rounded-3xl border border-slate-200/80 bg-gradient-to-br from-slate-50 to-emerald-50/30 p-6 sm:p-7 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100/80 text-[#0e5c3a] text-lg">
+                            <i class="ph ph-info"></i>
+                        </span>
+                        <div>
+                            <h4 class="font-heading font-black text-sm text-slate-900">Defense Day Guidelines & Protocols</h4>
+                            <p class="text-xs text-slate-500">Key reminders from the University Research Office for oral defense sessions.</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                        <div class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-1.5 shadow-2xs">
+                            <div class="flex items-center gap-2 text-xs font-black text-slate-800">
+                                <i class="ph ph-timer text-[#0e5c3a] text-base"></i>
+                                <span>Presentation Duration</span>
+                            </div>
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                Groups are allocated 15 minutes for their slide presentation, followed by 15–20 minutes of panel interpellation and Q&A.
+                            </p>
+                        </div>
+                        <div class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-1.5 shadow-2xs">
+                            <div class="flex items-center gap-2 text-xs font-black text-slate-800">
+                                <i class="ph ph-t-shirt text-[#0e5c3a] text-base"></i>
+                                <span>Attire & Punctuality</span>
+                            </div>
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                Formal business attire (or designated institutional uniform) is strictly required. All presenters must arrive 15 minutes prior.
+                            </p>
+                        </div>
+                        <div class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-1.5 shadow-2xs">
+                            <div class="flex items-center gap-2 text-xs font-black text-slate-800">
+                                <i class="ph ph-arrows-clockwise text-[#0e5c3a] text-base"></i>
+                                <span>Revisions & Evaluation</span>
+                            </div>
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                Following the defense, check the Revision Tracker to view required revisions and track approval from your panel and adviser.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </section>
             @endif

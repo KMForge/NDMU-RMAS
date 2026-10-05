@@ -27,7 +27,7 @@
     <div class="shrink-0">
         <div class="flex items-center gap-3.5 p-6 pb-4">
             <div class="rounded-2xl border border-white/20 bg-gradient-to-br from-white/15 to-white/5 p-2 shadow-lg backdrop-blur-md">
-                <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto drop-shadow-sm">
+                <x-app-logo variant="sidebar" />
             </div>
             <div class="flex flex-col leading-none">
                 <span class="font-heading text-xl font-black tracking-tight text-white">NDMU</span>

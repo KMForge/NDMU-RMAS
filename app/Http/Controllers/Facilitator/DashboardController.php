@@ -21,7 +21,6 @@ use App\Modules\ResearchProgress\Queries\GetFacilitatorProgressData;
 use App\Modules\ResearchStatistics\Queries\GetFacilitatorStatisticsData;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 
 class DashboardController extends Controller
 {
@@ -194,6 +193,7 @@ class DashboardController extends Controller
             $request->user(),
             $request->query('request_q'),
             $request->query('request_status'),
+            $activeTab,
         );
 
         return view('pages.facilitator-dashboard', [
@@ -225,9 +225,7 @@ class DashboardController extends Controller
                 'title-proposal-screening' => $titleProposalScreeningQueue->count(),
                 'defense-scheduling-ready' => $adviserApprovedDefenseDocuments->count(),
                 'defenses' => $defenses->filter(fn ($d) => ! in_array(data_get($d, 'defense_status') ?? data_get($d, 'schedule_status') ?? data_get($d, 'status'), ['completed', 'cancelled'], true))->count(),
-                'notifications' => Schema::hasTable('notifications')
-                    ? $unreadNotificationCount
-                    : 0,
+                'notifications' => $unreadNotificationCount,
             ],
             ...$classDashboardData,
             ...$repository,

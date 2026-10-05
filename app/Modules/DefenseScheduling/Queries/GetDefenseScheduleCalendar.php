@@ -25,11 +25,13 @@ class GetDefenseScheduleCalendar
         }
 
         $query->with([
-            'defense.group.researchClass',
+            'defense.group.researchClass.facilitator',
             'defense.group.researchGroup.currentProject',
+            'defense.group.adviser',
             'defense.activePanelAssignments.user',
             'defense.evaluationRounds.evaluations',
             'defense.evaluationRounds.summarySigner',
+            'defense.evaluationRounds.summary',
             'defense.titlePresentation',
             'room',
         ]);
@@ -147,6 +149,12 @@ class GetDefenseScheduleCalendar
                     'source' => $schedule->id,
                 ]),
                 'res037_url' => $res037Instance ? route('official-forms.workspace.show', $res037Instance) : null,
+                'adviser_name' => $group?->adviser?->name ?? $group?->researchGroup?->adviser?->name,
+                'facilitator_name' => $group?->researchClass?->facilitator?->name,
+                'class_name' => $group?->researchClass?->name,
+                'paper_score' => $round?->summary?->research_paper_average !== null ? number_format((float) $round->summary->research_paper_average, 2) : null,
+                'title_presentation_status' => $defense?->titlePresentation?->status,
+                'title_presentation_remarks' => $defense?->titlePresentation?->remarks,
             ];
         });
     }

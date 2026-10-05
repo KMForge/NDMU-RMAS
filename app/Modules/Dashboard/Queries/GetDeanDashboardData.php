@@ -31,14 +31,22 @@ class GetDeanDashboardData
             ->whereHas('researchClass.facilitator.facultyProfile.department', fn (Builder $department) => $department
                 ->where('college_id', $college->getKey()));
 
+        $groupsQuery = ResearchClassGroup::query()->tap($groupScope);
         $groups = $activeTab === 'dashboard'
-            ? ResearchClassGroup::query()
-                ->tap($groupScope)
+            ? (clone $groupsQuery)
                 ->with(['researchClass:id,name,facilitator_id', 'researchGroup.currentProject', 'adviser:id,name'])
                 ->withCount('members')
                 ->latest('id')
+                ->limit(6)
                 ->get()
             : collect();
+
+        $groupCounts = (clone $groupsQuery)
+            ->selectRaw("COUNT(*) AS total, COUNT(*) FILTER (WHERE status = 'active') AS active")
+            ->first();
+        $archivedResearchCount = (clone $groupsQuery)
+            ->whereHas('researchGroup.currentProject', fn (Builder $project) => $project->where('status', 'archived'))
+            ->count();
 
         $documentScope = Document::query()
             ->whereNotNull('research_class_group_id')
@@ -102,13 +110,12 @@ class GetDeanDashboardData
             'deanDefenseSchedules' => $schedules,
             'deanFilters' => $filters,
             'deanStats' => [
-                'groups' => $groups->count(),
-                'active_groups' => $groups->where('status', 'active')->count(),
+                'groups' => (int) ($groupCounts?->total ?? 0),
+                'active_groups' => (int) ($groupCounts?->active ?? 0),
                 'documents' => (int) $documentStatusCounts->sum(),
                 'pending_documents' => $pendingDocumentCount,
                 'upcoming_defenses' => $upcomingDefenseCount,
-                'archived_research' => $groups->filter(fn (ResearchClassGroup $group): bool => $group->researchGroup?->currentProject?->status === 'archived'
-                )->count(),
+                'archived_research' => $archivedResearchCount,
             ],
         ];
     }

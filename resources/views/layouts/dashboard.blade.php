@@ -8,7 +8,7 @@
             <!-- Brand Logo Header -->
             <div class="p-6 pb-4 flex items-center gap-3.5">
                 <div class="p-2 bg-gradient-to-br from-white/15 to-white/5 rounded-2xl border border-white/20 shadow-lg backdrop-blur-md">
-                    <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto drop-shadow-sm">
+                    <x-app-logo variant="sidebar" />
                 </div>
                 <div class="flex flex-col leading-none">
                     <span class="font-heading font-black text-xl text-white tracking-tight">NDMU</span>
