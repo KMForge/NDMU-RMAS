@@ -40,6 +40,8 @@ final class AuditEvent
         'auth.login.blocked',
         'auth.logout',
         'auth.password-reset.completed',
+        'auth.required-password-change.completed',
+        'user.temporary-password.issued',
         'auth.email-verified',
         'class.created',
         'class.updated',

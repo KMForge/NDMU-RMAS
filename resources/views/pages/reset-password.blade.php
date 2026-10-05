@@ -21,13 +21,13 @@
 
     <!-- Watermark University Crest -->
     <div class="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.04] select-none">
-        <img src="{{ asset('images/ndmu_logo.png') }}" alt="" class="h-[680px] w-auto object-contain">
+        <x-app-logo variant="watermark" class="h-[680px] opacity-[0.04]" />
     </div>
 
     <!-- Top Bar -->
     <header class="relative z-20 w-full max-w-7xl mx-auto flex items-center justify-between">
         <a href="{{ url('/') }}" class="flex items-center gap-3.5 group">
-            <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" class="h-11 sm:h-13 w-auto object-contain transition-transform group-hover:scale-105">
+            <x-app-logo variant="auth" />
             <div class="flex flex-col leading-none border-l border-white/25 pl-3.5">
                 <span class="font-heading font-black text-xl sm:text-2xl text-white tracking-wider">NDMU</span>
                 <span class="text-[9px] sm:text-[10px] font-black text-[#eebc3f] tracking-[0.25em] uppercase mt-1">Research Management</span>

@@ -32,6 +32,9 @@ class NewPasswordController extends Controller
             function (User $user, string $password) use (&$resetUser): void {
                 $user->forceFill([
                     'password' => $password,
+                    'must_change_password' => false,
+                    'temporary_password_expires_at' => null,
+                    'password_changed_at' => now(),
                     'remember_token' => Str::random(60),
                 ])->save();
 

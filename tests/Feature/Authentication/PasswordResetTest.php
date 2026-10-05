@@ -4,7 +4,7 @@ namespace Tests\Feature\Authentication;
 
 use App\Http\Middleware\ThrottleRequestsUnlessHighTrafficMode;
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
+use App\Notifications\SendNDMUPasswordReset;
 use Illuminate\Auth\Passwords\PasswordBroker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
@@ -36,7 +36,12 @@ class PasswordResetTest extends TestCase
         ])->assertRedirect()
             ->assertSessionHas('status');
 
-        Notification::assertSentTo($user, ResetPassword::class);
+        Notification::assertSentTo($user, SendNDMUPasswordReset::class, function (SendNDMUPasswordReset $notification) use ($user): bool {
+            $mail = $notification->toMail($user);
+
+            return str_starts_with((string) $mail->actionUrl, 'https://ndmu-rmas.uk/reset-password/')
+                && str_contains((string) $mail->actionUrl, rawurlencode($user->email));
+        });
     }
 
     public function test_password_reset_request_does_not_reveal_unknown_accounts(): void
@@ -82,6 +87,9 @@ class PasswordResetTest extends TestCase
         $this->assertTrue(Hash::check('NewPassword!2345', $user->getAuthPassword()));
         $this->assertNotSame($oldRememberToken, $user->getRememberToken());
         $this->assertDatabaseMissing('password_reset_tokens', ['email' => $email]);
+        $this->assertFalse($user->refresh()->must_change_password);
+        $this->assertNull($user->temporary_password_expires_at);
+        $this->assertNotNull($user->password_changed_at);
     }
 
     public function test_invalid_reset_token_is_rejected(): void

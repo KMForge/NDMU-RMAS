@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\AccountStatus;
 use App\Enums\UserType;
 use App\Notifications\SendNDMUEmailVerification;
+use App\Notifications\SendNDMUPasswordReset;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -16,7 +17,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'first_name', 'middle_name', 'last_name', 'suffix', 'email', 'password', 'status', 'approved_at', 'email_verified_at', 'user_type', 'student_id', 'program', 'year_level', 'department', 'profile_photo_disk', 'profile_photo_path', 'profile_photo_mime_type', 'profile_photo_size', 'profile_photo_updated_at'])]
+#[Fillable(['name', 'first_name', 'middle_name', 'last_name', 'suffix', 'email', 'password', 'status', 'approved_at', 'email_verified_at', 'user_type', 'student_id', 'program', 'year_level', 'department', 'profile_photo_disk', 'profile_photo_path', 'profile_photo_mime_type', 'profile_photo_size', 'profile_photo_updated_at', 'must_change_password', 'temporary_password_expires_at', 'password_changed_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -86,6 +87,11 @@ class User extends Authenticatable implements MustVerifyEmail
         $this->notify(new SendNDMUEmailVerification);
     }
 
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new SendNDMUPasswordReset($token));
+    }
+
     /**
      * Get the attributes that should be cast.
      *
@@ -97,6 +103,9 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'approved_at' => 'datetime',
             'profile_photo_updated_at' => 'datetime',
+            'must_change_password' => 'boolean',
+            'temporary_password_expires_at' => 'datetime',
+            'password_changed_at' => 'datetime',
             'password' => 'hashed',
             'status' => AccountStatus::class,
             'user_type' => UserType::class,

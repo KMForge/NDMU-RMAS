@@ -82,7 +82,9 @@ class AuthenticatedSessionController extends Controller
             subjectEmail: $user->email,
         );
 
-        $destination = route($route ?? 'access.pending');
+        $destination = $user->must_change_password
+            ? route('password.change-required')
+            : route($route ?? 'access.pending');
 
         if ($request->expectsJson()) {
             return response()->json([

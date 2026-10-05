@@ -4,6 +4,7 @@ use App\Http\Controllers\Authentication\AuthenticatedSessionController;
 use App\Http\Controllers\Authentication\NewPasswordController;
 use App\Http\Controllers\Authentication\PasswordResetLinkController;
 use App\Http\Controllers\Authentication\RegisteredStudentController;
+use App\Http\Controllers\Authentication\RequiredPasswordChangeController;
 use App\Http\Controllers\Authentication\VerifyStudentEmailController;
 use Illuminate\Support\Facades\Route;
 
@@ -30,6 +31,14 @@ Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])
 Route::post('/reset-password', [NewPasswordController::class, 'store'])
     ->middleware(['guest', 'throttle:password-resets'])
     ->name('password.update');
+
+Route::get('/change-password', [RequiredPasswordChangeController::class, 'edit'])
+    ->middleware(['auth', 'active'])
+    ->name('password.change-required');
+
+Route::put('/change-password', [RequiredPasswordChangeController::class, 'update'])
+    ->middleware(['auth', 'active', 'throttle:password-resets'])
+    ->name('password.change-required.update');
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')

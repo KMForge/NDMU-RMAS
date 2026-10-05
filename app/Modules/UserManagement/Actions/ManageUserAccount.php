@@ -10,6 +10,7 @@ use App\Modules\AuditLogs\Services\AuditLogWriter;
 use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class ManageUserAccount
@@ -38,20 +39,25 @@ class ManageUserAccount
     }
 
     /**
-     * @param  array{name: string, email: string, password: string, department: string, department_id?: int|null, department_ids?: list<int>}  $attributes
+     * @param  array{name: string, email: string, department: string, department_id?: int|null, department_ids?: list<int>}  $attributes
+     * @return array{user: User, temporary_password: string}
      */
-    public function createStaff(array $attributes, User $actor): User
+    public function createStaff(array $attributes, User $actor): array
     {
-        return DB::transaction(function () use ($attributes, $actor): User {
+        $temporaryPassword = $this->temporaryPassword();
+
+        return DB::transaction(function () use ($attributes, $actor, $temporaryPassword): array {
             $user = User::query()->create([
                 'name' => trim(strip_tags($attributes['name'])),
                 'email' => mb_strtolower(trim($attributes['email'])),
-                'password' => $attributes['password'],
+                'password' => $temporaryPassword,
                 'status' => AccountStatus::Active,
                 'approved_at' => now(),
                 'email_verified_at' => now(),
                 'user_type' => UserType::Faculty,
                 'department' => $attributes['department'],
+                'must_change_password' => true,
+                'temporary_password_expires_at' => now()->addHours($this->temporaryPasswordLifetimeHours()),
             ]);
 
             $departmentId = $attributes['department_id'] ?? null;
@@ -83,8 +89,39 @@ class ManageUserAccount
                 'roles' => [],
             ]);
 
-            return $user;
+            return [
+                'user' => $user,
+                'temporary_password' => $temporaryPassword,
+            ];
         });
+    }
+
+    public function issueTemporaryPassword(User $user, User $actor): string
+    {
+        if ($user->is($actor)) {
+            throw ValidationException::withMessages([
+                'account' => 'Use your own password settings to change the current administrator password.',
+            ]);
+        }
+
+        $temporaryPassword = $this->temporaryPassword();
+
+        DB::transaction(function () use ($user, $actor, $temporaryPassword): void {
+            $user->forceFill([
+                'password' => $temporaryPassword,
+                'must_change_password' => true,
+                'temporary_password_expires_at' => now()->addHours($this->temporaryPasswordLifetimeHours()),
+                'password_changed_at' => null,
+                'remember_token' => Str::random(60),
+            ])->save();
+
+            $this->audit($actor, $user, 'user.temporary-password.issued', null, [
+                'must_change_password' => true,
+                'temporary_password_expires_at' => $user->temporary_password_expires_at?->toIso8601String(),
+            ]);
+        });
+
+        return $temporaryPassword;
     }
 
     private function changeStatus(User $user, User $actor, AccountStatus $status, string $event): User
@@ -133,5 +170,15 @@ class ManageUserAccount
             newValues: $newValues,
             actorContext: 'administrator',
         );
+    }
+
+    private function temporaryPassword(): string
+    {
+        return Str::password(length: 16, letters: true, numbers: true, symbols: true, spaces: false);
+    }
+
+    private function temporaryPasswordLifetimeHours(): int
+    {
+        return max(1, (int) config('auth.temporary_password.expire_hours', 72));
     }
 }

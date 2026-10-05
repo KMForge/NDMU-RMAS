@@ -23,7 +23,7 @@
 
     <!-- Watermark University Crest Silhouette -->
     <div class="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.04] select-none">
-        <img src="{{ asset('images/ndmu_logo.png') }}" alt="" class="h-[680px] w-auto object-contain">
+        <x-app-logo variant="watermark" class="h-[680px] opacity-[0.04]" />
     </div>
 
     <!-- Top Bar: Brand Logo & Navigation -->
@@ -31,7 +31,7 @@
         <!-- University Logo & Brand -->
         <a href="{{ url('/') }}" class="flex items-center gap-3.5 group">
             <div class="relative">
-                <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" class="h-11 sm:h-13 w-auto object-contain transition-transform duration-300 group-hover:scale-105 drop-shadow-md">
+                <x-app-logo variant="auth" />
             </div>
             <div class="flex flex-col leading-none border-l border-white/25 pl-3.5">
                 <div class="flex items-center gap-2">
