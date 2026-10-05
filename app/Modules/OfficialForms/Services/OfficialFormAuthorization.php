@@ -18,9 +18,66 @@ use App\Models\User;
 
 class OfficialFormAuthorization
 {
+    /** @var array<string, bool> */
+    private array $groupPanelistCache = [];
+
+    /** @var array<string, bool> */
+    private array $groupMemberCache = [];
+
+    /** @var array<string, bool> */
+    private array $groupActorAssignmentCache = [];
+
+    /** @var array<int, bool> */
+    private array $evaluationRoundReleasedCache = [];
+
     public function __construct(
         private readonly InstitutionalActorResolver $institutionalActors = new InstitutionalActorResolver,
     ) {}
+
+    public function isAssignedGroupPanelist(User $user, ResearchClassGroup $group): bool
+    {
+        $cacheKey = "{$user->id}:{$group->id}";
+        if (array_key_exists($cacheKey, $this->groupPanelistCache)) {
+            return $this->groupPanelistCache[$cacheKey];
+        }
+
+        return $this->groupPanelistCache[$cacheKey] = ($group->defenses()
+            ->whereHas('activePanelAssignments', fn ($q) => $q->where('user_id', $user->id))
+            ->exists()
+            || $group->panelCommittees()
+                ->whereHas('members', fn ($q) => $q->where('user_id', $user->id))
+                ->exists()
+            || OfficialFormInstance::query()
+                ->where('research_class_group_id', $group->id)
+                ->whereHas('actorAssignments', fn ($q) => $q->where('user_id', $user->id)->where('actor_type', 'panelist')->where('status', 'active'))
+                ->exists());
+    }
+
+    public function hasGroupActorAssignment(User $user, ResearchClassGroup $group, string $actorType): bool
+    {
+        $cacheKey = "{$user->id}:{$group->id}:{$actorType}";
+        if (array_key_exists($cacheKey, $this->groupActorAssignmentCache)) {
+            return $this->groupActorAssignmentCache[$cacheKey];
+        }
+
+        return $this->groupActorAssignmentCache[$cacheKey] = OfficialFormInstance::query()
+            ->where('research_class_group_id', $group->id)
+            ->whereHas('actorAssignments', fn ($q) => $q->where('user_id', $user->id)->where('actor_type', $actorType)->where('status', 'active'))
+            ->exists();
+    }
+
+    public function isEvaluationRoundReleased(int|string $roundId): bool
+    {
+        $key = (int) $roundId;
+        if (array_key_exists($key, $this->evaluationRoundReleasedCache)) {
+            return $this->evaluationRoundReleasedCache[$key];
+        }
+
+        return $this->evaluationRoundReleasedCache[$key] = DefenseEvaluationRound::query()
+            ->where('id', $key)
+            ->where('status', 'released')
+            ->exists();
+    }
 
     /** @var array<string, array<string, list<string>>> */
     public const FORM_ACTION_PERMISSIONS = [
@@ -275,17 +332,9 @@ class OfficialFormAuthorization
                 return (int) $group->adviser_id === (int) $user->id;
             }
 
-            $hasGroupActorAssignment = $requiredActorType !== null && OfficialFormInstance::query()
-                ->where('research_class_group_id', $group->id)
-                ->whereHas('actorAssignments', fn ($q) => $q->where('user_id', $user->id)->where('actor_type', $requiredActorType)->where('status', 'active'))
-                ->exists();
+            $hasGroupActorAssignment = $requiredActorType !== null && $this->hasGroupActorAssignment($user, $group, $requiredActorType);
 
-            $isGroupPanelist = $group->defenses()
-                ->whereHas('activePanelAssignments', fn ($q) => $q->where('user_id', $user->id))
-                ->exists()
-                || $group->panelCommittees()
-                    ->whereHas('members', fn ($q) => $q->where('user_id', $user->id))
-                    ->exists();
+            $isGroupPanelist = $this->isAssignedGroupPanelist($user, $group);
 
             $isGroupContext = $this->isCurrentGroupMember($user, $group)
                 || (int) $group->leader_student_id === (int) $user->id
@@ -657,16 +706,7 @@ class OfficialFormAuthorization
                     }
                 }
 
-                $isAssignedGroupPanelist = $group->defenses()
-                    ->whereHas('activePanelAssignments', fn ($q) => $q->where('user_id', $user->id))
-                    ->exists()
-                    || $group->panelCommittees()
-                        ->whereHas('members', fn ($q) => $q->where('user_id', $user->id))
-                        ->exists()
-                    || OfficialFormInstance::query()
-                        ->where('research_class_group_id', $group->id)
-                        ->whereHas('actorAssignments', fn ($q) => $q->where('user_id', $user->id)->where('actor_type', 'panelist')->where('status', 'active'))
-                        ->exists();
+                $isAssignedGroupPanelist = $this->isAssignedGroupPanelist($user, $group);
 
                 if ($isAssignedGroupPanelist) {
                     return true;
@@ -727,7 +767,12 @@ class OfficialFormAuthorization
             );
         }
 
-        return ResearchClassGroupMember::query()
+        $cacheKey = "{$user->id}:{$group->id}";
+        if (array_key_exists($cacheKey, $this->groupMemberCache)) {
+            return $this->groupMemberCache[$cacheKey];
+        }
+
+        return $this->groupMemberCache[$cacheKey] = ResearchClassGroupMember::query()
             ->where('research_class_group_id', $group->id)
             ->where('student_id', $user->id)
             ->exists();

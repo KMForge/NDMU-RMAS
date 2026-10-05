@@ -29,7 +29,7 @@ class StudentOfficialFormsTest extends TestCase
             ->assertSee("activeTab: 'forms'", false)
             ->assertSee('queuePersistTab(tab)', false)
             ->assertSee('RES-026')
-            ->assertSee("activeOfficialForm = 'RES-026'", false)
+            ->assertSee("selectOfficialForm('RES-026')", false)
             ->assertSee('Research Title Approval')
             ->assertSee('RES-049')
             ->assertSee('Certificate of Authentic Authorship');

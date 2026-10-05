@@ -19,7 +19,7 @@
     <header class="sticky top-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur-md shadow-xs">
         <div class="mx-auto flex max-w-7xl flex-col items-stretch gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div class="flex min-w-0 items-center gap-3">
-                <img src="{{ asset('images/ndmu_logo.png') }}" alt="NDMU Logo" class="h-10 w-auto object-contain">
+                <x-app-logo variant="header" />
                 <div class="min-w-0">
                     <p class="text-[10px] font-black uppercase tracking-[.22em] text-amber-500">NDMU Research Management</p>
                     <h1 class="text-xl sm:text-2xl font-black font-heading text-[#0e5c3a]">Official Forms Archive & Workspace</h1>

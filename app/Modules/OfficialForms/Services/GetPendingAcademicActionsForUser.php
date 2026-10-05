@@ -16,6 +16,7 @@ class GetPendingAcademicActionsForUser
     /** @return Collection<int, array<string, mixed>> */
     public function execute(User $user): Collection
     {
+        $userId = (int) $user->getKey();
         $actionableStatuses = collect(OfficialResearchWorkflowRegistry::FORMS)
             ->flatMap(static fn (array $form): array => collect($form['actions'] ?? [])
                 ->flatMap(static fn (array $action): array => $action['from_states'] ?? [])
@@ -26,10 +27,33 @@ class GetPendingAcademicActionsForUser
             ->values()
             ->all();
 
-        $visibleInstances = OfficialFormInstance::query()
-            ->whereIn('status', $actionableStatuses)
+        $canViewAll = $user->can('users.manage')
+            || $user->can('dashboards.dean.view')
+            || $user->hasRole('college-dean')
+            || $user->hasRole('dean');
+
+        $query = OfficialFormInstance::query()
+            ->whereIn('status', $actionableStatuses);
+
+        if (! $canViewAll) {
+            $query->where(function ($q) use ($userId): void {
+                $q->where('initiated_by', $userId)
+                    ->orWhereHas('actorAssignments', fn ($sub) => $sub->where('user_id', $userId)->where('status', 'active'))
+                    ->orWhereHas('group', fn ($sub) => $sub
+                        ->where('adviser_id', $userId)
+                        ->orWhereHas('members', fn ($m) => $m->where('student_id', $userId))
+                        ->orWhereHas('researchClass', fn ($c) => $c->where('facilitator_id', $userId)
+                            ->orWhereHas('officialFormActorAssignments', fn ($actors) => $actors->where('user_id', $userId)->where('status', 'active'))))
+                    ->orWhereHas('researchClass', fn ($sub) => $sub->where('facilitator_id', $userId)
+                        ->orWhereHas('officialFormActorAssignments', fn ($actors) => $actors->where('user_id', $userId)->where('status', 'active')))
+                    ->orWhereHas('titlePresentation.defense.activePanelAssignments', fn ($panel) => $panel->where('user_id', $userId));
+            });
+        }
+
+        $visibleInstances = $query
             ->with([
                 'definition',
+                'defenseEvaluation:id,panelist_user_id',
                 'currentVersion.signatures.verification',
                 'group.researchClass.facilitator.facultyProfile',
                 'group.researchClass.officialFormActorAssignments',

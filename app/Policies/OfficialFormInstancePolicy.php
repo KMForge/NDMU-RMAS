@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Models\DefenseEvaluationRound;
 use App\Models\OfficialFormDefinition;
 use App\Models\OfficialFormInstance;
 use App\Models\ResearchClass;
@@ -12,8 +13,10 @@ use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 class OfficialFormInstancePolicy
 {
     public function __construct(
-        private readonly OfficialFormAuthorization $authorization = new OfficialFormAuthorization
-    ) {}
+        private ?OfficialFormAuthorization $authorization = null
+    ) {
+        $this->authorization = $authorization ?? app(OfficialFormAuthorization::class);
+    }
 
     public function viewAny(User $user): bool
     {
@@ -50,30 +53,63 @@ class OfficialFormInstancePolicy
             }
         }
 
+        // RES-037 is the defense evaluation summary. Students belonging to the evaluated
+        // group may only view it after the evaluation round has been officially released.
+        // Unrelated students or students viewing unreleased rounds must be denied.
+        if ($code === 'res-037') {
+            $isStudent = $user->hasRole('student')
+                || $user->hasRole('student-researcher')
+                || $user->user_type?->value === 'student'
+                || $user->user_type === 'student';
+
+            if ($isStudent) {
+                $isGroupStudent = $instance->group !== null
+                    && $this->authorization->isCurrentGroupMember($user, $instance->group);
+
+                if (! $isGroupStudent) {
+                    return false;
+                }
+
+                $round = $instance->source instanceof DefenseEvaluationRound
+                    ? $instance->source
+                    : ($instance->source_type === DefenseEvaluationRound::class && $instance->source_id
+                        ? DefenseEvaluationRound::query()->find($instance->source_id)
+                        : null);
+
+                if ($round === null || $round->status !== 'released') {
+                    return false;
+                }
+            }
+        }
+
         $isAssignedRes026Panelist = $code === 'res-026'
             && $user->can('evaluations.create')
             && $instance->titlePresentation !== null
             && $this->hasActivePanelAssignment($instance, $user);
         $isAssignedGroupPanelist = $instance->group !== null
             && in_array($code, ['res-036', 'res-037', 'res-039'], true)
-            && ($instance->group->defenses()
-                ->whereHas('activePanelAssignments', fn ($q) => $q->where('user_id', $user->id))
-                ->exists()
-                || $instance->group->panelCommittees()
-                    ->whereHas('members', fn ($q) => $q->where('user_id', $user->id))
-                    ->exists()
-                || OfficialFormInstance::query()
-                    ->where('research_class_group_id', $instance->group->id)
-                    ->whereHas('actorAssignments', fn ($q) => $q->where('user_id', $user->id)->where('actor_type', 'panelist')->where('status', 'active'))
-                    ->exists());
+            && $this->authorization->isAssignedGroupPanelist($user, $instance->group);
         $isClassFacilitator = ($instance->researchClass !== null && (int) $instance->researchClass->facilitator_id === (int) $user->id)
             || ($instance->group?->researchClass !== null && (int) $instance->group->researchClass->facilitator_id === (int) $user->id);
+        $isReleasedGroupStudentForRes037 = $code === 'res-037'
+            && $instance->group !== null
+            && $this->authorization->isCurrentGroupMember($user, $instance->group)
+            && (
+                ($instance->source instanceof DefenseEvaluationRound && $instance->source->status === 'released')
+                || ($instance->source_type === DefenseEvaluationRound::class && $instance->source_id && $this->authorization->isEvaluationRoundReleased($instance->source_id))
+            );
+        $isGroupAdviserForRes037 = $code === 'res-037'
+            && $instance->group !== null
+            && (int) $instance->group->adviser_id === (int) $user->id
+            && $user->can('evaluations.view-assigned');
 
         $hasViewPermission = $user->can("forms.{$code}.view")
             || $user->getAllPermissions()->contains(fn ($p) => str_starts_with($p->name, "forms.{$code}."))
             || $isAssignedRes026Panelist
             || $isAssignedGroupPanelist
             || $isClassFacilitator
+            || $isReleasedGroupStudentForRes037
+            || $isGroupAdviserForRes037
             || $user->can('dashboards.dean.view')
             || $user->hasRole('college-dean')
             || $user->hasRole('dean');

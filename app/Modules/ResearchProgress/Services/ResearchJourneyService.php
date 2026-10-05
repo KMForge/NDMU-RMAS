@@ -55,7 +55,10 @@ class ResearchJourneyService
 
         $milestones = ResearchGroupMilestone::query()
             ->where('research_class_group_id', $group->id)
-            ->with('definition:id,code')
+            ->with([
+                'definition:id,code',
+                'events:id,research_group_milestone_id,to_status,override_order',
+            ])
             ->get()
             ->filter(fn (ResearchGroupMilestone $milestone): bool => $milestone->definition !== null)
             ->keyBy(fn (ResearchGroupMilestone $milestone): string => $milestone->definition->code);
@@ -80,15 +83,20 @@ class ResearchJourneyService
             $stageDetails = $this->evaluateStage($stageNum, $group, $instances, $instanceGroups, $milestones);
             $stageDetails['is_optional'] = in_array($stageNum, $optionalStageNumbers, true);
             $stageDetails['is_not_applicable'] = $milestones->get($stageDetails['code'])?->status === ResearchMilestoneStatus::NotApplicable;
-            $isExplicitlyCompleted = $milestones->get($stageDetails['code'])?->status === ResearchMilestoneStatus::Completed;
+            $milestone = $milestones->get($stageDetails['code']);
+            $isExplicitlyCompleted = $milestone?->status === ResearchMilestoneStatus::Completed;
+            $hasAuthorizedOrderOverride = $isExplicitlyCompleted && $milestone->events->contains(
+                fn ($event): bool => $event->to_status === ResearchMilestoneStatus::Completed
+                    && $event->override_order,
+            );
             $stageDetails['is_auto_completed'] = in_array($stageNum, $automaticStageNumbers, true);
             $stageDetails['is_inferred_complete'] = ! $stageDetails['is_optional']
                 && ! $stageDetails['is_not_applicable']
                 && $stageNum < $furthestReachedStage;
-            $stageDetails['is_completed'] = $isExplicitlyCompleted
-                || $stageDetails['is_auto_completed']
+            $stageDetails['is_completed'] = $stageDetails['is_auto_completed']
                 || $stageDetails['is_inferred_complete']
-                || ($previousStagesCompleted && $stageDetails['is_completed']);
+                || $hasAuthorizedOrderOverride
+                || ($previousStagesCompleted && ($isExplicitlyCompleted || $stageDetails['is_completed']));
 
             if ($stageDetails['is_not_applicable']) {
                 $stageDetails['is_completed'] = false;
@@ -99,7 +107,7 @@ class ResearchJourneyService
                 $stageDetails['completed_requirements'] = [
                     $stageDetails['name'].' is marked not applicable for this research group.',
                 ];
-            } elseif ($stageDetails['is_auto_completed'] || $stageDetails['is_inferred_complete'] || $isExplicitlyCompleted) {
+            } elseif ($stageDetails['is_completed'] && ($stageDetails['is_auto_completed'] || $stageDetails['is_inferred_complete'] || $isExplicitlyCompleted)) {
                 $stageDetails['waiting_on'] = null;
                 $stageDetails['next_action'] = null;
                 $stageDetails['blockers'] = [];
@@ -818,7 +826,7 @@ class ResearchJourneyService
         // Some dashboards preload a reduced student column set for display. Force
         // this canonical curriculum relation to reload so progress never depends
         // on which screen happened to hydrate the group first.
-        $group->load('members.student.studentProfile.program');
+        $group->loadMissing('members.student.studentProfile.program');
 
         $programCodes = $group->members
             ->map(function ($member): ?string {

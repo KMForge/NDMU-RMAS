@@ -22,6 +22,7 @@ use App\Models\ResearchClassGroupMember;
 use App\Models\RevisionRequest;
 use App\Models\User;
 use App\Models\UserSignature;
+use App\Modules\Dashboard\Services\UserLiveStateService;
 use App\Modules\OfficialForms\Actions\ApplyOfficialFormSignature;
 use App\Modules\OfficialForms\Actions\ApproveOfficialForm;
 use App\Modules\OfficialForms\Actions\AssignOfficialFormActor;
@@ -477,6 +478,12 @@ class OfficialFormWorkspaceController extends Controller
             return back()->withErrors(['official_form' => $exception->getMessage()]);
         }
 
+        try {
+            app(UserLiveStateService::class)->broadcast($request->user());
+        } catch (\Throwable) {
+            // Non-blocking
+        }
+
         return back()->with('official_form_success', ucfirst($action).' action recorded.');
     }
 
@@ -500,8 +507,11 @@ class OfficialFormWorkspaceController extends Controller
                 $action,
                 $request
             );
+            app(UserLiveStateService::class)->broadcast($request->user());
         } catch (InvalidArgumentException $exception) {
             return back()->withErrors(['official_form' => $exception->getMessage()]);
+        } catch (\Throwable $e) {
+            // Non-blocking
         }
 
         return back()->with('official_form_success', 'Digital signature attestation recorded.');
@@ -674,7 +684,7 @@ class OfficialFormWorkspaceController extends Controller
                 'group.researchGroup.currentProject',
                 'researchClass.facilitator',
                 'actorAssignments.user',
-                'titlePresentation',
+                'titlePresentation.defense.activePanelAssignments',
                 'source',
                 'initiatedBy',
             ])

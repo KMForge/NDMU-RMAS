@@ -373,4 +373,16 @@ class GetEvaluationRoundData
             })->values()->all(),
         ];
     }
+
+    public function releasedCountForStudent(User $student): int
+    {
+        return DefenseEvaluationRound::query()
+            ->where('status', 'released')
+            ->whereHas('group', fn ($group) => $group
+                ->where('leader_student_id', $student->getKey())
+                ->orWhereHas('members', fn ($members) => $members->where('student_id', $student->getKey()))
+                ->when($student->research_class_group_id, fn ($query) => $query
+                    ->orWhereKey($student->research_class_group_id)))
+            ->count();
+    }
 }

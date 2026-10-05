@@ -21,6 +21,7 @@ use App\Modules\DefenseScheduling\Actions\AssignDefensePanel;
 use App\Modules\DefenseScheduling\Actions\CancelDefense;
 use App\Modules\DefenseScheduling\Actions\RescheduleDefense;
 use App\Modules\Evaluations\Actions\OpenDefenseEvaluationRound;
+use App\Modules\Evaluations\Actions\ReleaseDefenseEvaluationResults;
 use App\Modules\Evaluations\Actions\SaveDefenseEvaluationDraft;
 use App\Modules\Evaluations\Actions\SubmitDefenseEvaluation;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
@@ -754,5 +755,114 @@ class DefenseEvaluationSecurityTest extends TestCase
         }
 
         $this->assertEquals(0, DefenseEvaluationRound::count());
+    }
+
+    private function createSignedRes037Round(): array
+    {
+        $openAction = new OpenDefenseEvaluationRound;
+        $round = $openAction->handle($this->facilitator, $this->defense, $this->panelist1->id);
+
+        $submitAction = new SubmitDefenseEvaluation;
+        $payload = [
+            'research_quality_score' => 90,
+            'originality_score' => 90,
+            'relevance_score' => 90,
+            'general_comments' => 'Approved.',
+            'student_scores' => [
+                $this->student1->id => ['communication_score' => 90, 'organization_score' => 90, 'effectiveness_score' => 90],
+                $this->student2->id => ['communication_score' => 90, 'organization_score' => 90, 'effectiveness_score' => 90],
+            ],
+        ];
+
+        $submitAction->handle($this->panelist1, $round, $payload);
+        $submitAction->handle($this->panelist2, $round, $payload);
+        $submitAction->handle($this->panelist3, $round, $payload);
+
+        $res037 = OfficialFormInstance::where('source_type', DefenseEvaluationRound::class)
+            ->where('source_id', $round->id)
+            ->firstOrFail();
+
+        UserSignature::firstOrCreate(
+            ['user_id' => $this->panelist1->id],
+            [
+                'storage_disk' => 'local',
+                'storage_path' => 'signatures/p1.png',
+                'original_filename' => 'p1.png',
+                'content_sha256' => hash('sha256', 'fake-signature-p1'),
+                'file_size' => 100,
+                'mime_type' => 'image/png',
+                'registered_at' => now(),
+            ]
+        );
+        Storage::disk('local')->put('signatures/p1.png', 'fake-signature-p1');
+
+        $signerAction = app(ApplyOfficialFormSignature::class);
+        $signerAction->handle(
+            $this->panelist1,
+            $res037->id,
+            $res037->current_version_id,
+            'sign'
+        );
+
+        return [$round->fresh(), $res037->fresh()];
+    }
+
+    public function test_student_in_evaluated_group_can_view_res037_when_round_is_released(): void
+    {
+        [$round, $res037] = $this->createSignedRes037Round();
+
+        $releaseAction = new ReleaseDefenseEvaluationResults;
+        $releaseAction->handle($this->facilitator, $round);
+
+        // Group Leader can view RES-037
+        $this->actingAs($this->student1)
+            ->get(route('official-forms.workspace.show', $res037))
+            ->assertOk();
+
+        // Group Member can view RES-037
+        $this->actingAs($this->student2)
+            ->get(route('official-forms.workspace.show', $res037))
+            ->assertOk();
+
+        // Print view is also authorized
+        $this->actingAs($this->student1)
+            ->get(route('official-forms.print', $res037))
+            ->assertOk();
+    }
+
+    public function test_student_cannot_view_res037_before_round_is_released(): void
+    {
+        [$round, $res037] = $this->createSignedRes037Round();
+
+        // Round is finalized but not yet released by the facilitator
+        $this->assertSame('finalized', $round->status);
+
+        $this->actingAs($this->student1)
+            ->get(route('official-forms.workspace.show', $res037))
+            ->assertForbidden();
+
+        $this->actingAs($this->student2)
+            ->get(route('official-forms.workspace.show', $res037))
+            ->assertForbidden();
+    }
+
+    public function test_unrelated_student_cannot_view_res037_even_when_released(): void
+    {
+        [$round, $res037] = $this->createSignedRes037Round();
+
+        $releaseAction = new ReleaseDefenseEvaluationResults;
+        $releaseAction->handle($this->facilitator, $round);
+
+        $unrelatedStudent = User::factory()->create([
+            'user_type' => 'student',
+            'status' => 'active',
+            'email_verified_at' => now(),
+            'approved_at' => now(),
+        ]);
+        $unrelatedStudent->assignRole('student-researcher');
+
+        $this->actingAs($unrelatedStudent)
+            ->get(route('official-forms.workspace.show', $res037))
+            ->assertForbidden();
     }
 }

@@ -26,7 +26,7 @@ class AdviserOfficialFormsTest extends TestCase
         $response = $this->actingAs($adviser)
             ->get(route('adviser.dashboard', ['tab' => 'forms', 'form' => 'RES-027']))
             ->assertOk()
-            ->assertSee("activeOfficialForm = 'RES-027'", false);
+            ->assertSee("selectOfficialForm('RES-027')", false);
 
         foreach (array_keys(config('official-forms.adviser')) as $code) {
             $response->assertSee($code);
