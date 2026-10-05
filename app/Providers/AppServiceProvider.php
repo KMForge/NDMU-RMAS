@@ -8,16 +8,20 @@ use App\Integrations\Supabase\SupabaseRealtimeService;
 use App\Integrations\Supabase\SupabaseStorageService;
 use App\Modules\Documents\Actions\RecordDocumentUploadAttempt;
 use App\Modules\Notifications\Services\UnreadNotificationCount;
+use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use App\Modules\OfficialForms\Services\InstitutionalActorResolver;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use App\Modules\SystemSettings\Services\DocumentUploadLimit;
 use App\Modules\SystemSettings\Services\RateLimitSettings;
 use App\Modules\SystemSettings\Services\ServiceAvailability;
 use App\Support\PortableSchemaBlueprint;
+use App\Support\SlowRequestMetrics;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -42,6 +46,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(InstitutionalActorResolver::class);
         $this->app->scoped(OfficialFormAuthorization::class);
         $this->app->scoped(UnreadNotificationCount::class);
+        $this->app->scoped(GetPendingAcademicActionsForUser::class);
+        $this->app->scoped(SlowRequestMetrics::class);
         $this->app->scoped(DocumentUploadLimit::class);
         $this->app->scoped(ServiceAvailability::class);
     }
@@ -51,6 +57,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        DB::listen(static fn (QueryExecuted $query) => app(SlowRequestMetrics::class)->record($query));
+
         config([
             'livewire.temporary_file_upload.rules' => [
                 'required',

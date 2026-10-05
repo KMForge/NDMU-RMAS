@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsurePasswordHasBeenChanged;
 use App\Http\Middleware\EnsureServiceIsAvailable;
+use App\Http\Middleware\LogSlowRequests;
 use App\Http\Middleware\ThrottleRequestsUnlessHighTrafficMode;
 use App\Http\Middleware\TrackActiveWorkspace;
 use Illuminate\Console\Scheduling\Schedule;
@@ -20,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
+        channels: __DIR__.'/../routes/channels.php',
         health: '/up',
         then: function (): void {
             foreach (['student', 'adviser', 'panelist', 'facilitator', 'dean', 'admin'] as $area) {
@@ -33,7 +36,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Trust only loopback proxies so signed URLs are validated against the
         // public HTTPS URL without accepting spoofed headers from remote peers.
         $middleware->trustProxies(at: ['127.0.0.1', '::1']);
+        $middleware->append(LogSlowRequests::class);
         $middleware->appendToGroup('web', EnsureServiceIsAvailable::class);
+        $middleware->appendToGroup('web', EnsurePasswordHasBeenChanged::class);
+        $middleware->authenticateSessions();
 
         $middleware->alias([
             'active' => EnsureAccountIsActive::class,
