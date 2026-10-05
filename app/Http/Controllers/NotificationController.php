@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Modules\Authorization\Actions\SwitchWorkspace;
 use App\Modules\Authorization\Services\ResolveUserDashboard;
+use App\Modules\Dashboard\Services\UserLiveStateService;
 use App\Modules\Notifications\Queries\GetNotificationsForUser;
 use App\Modules\Notifications\Services\NotificationDestinationResolver;
 use App\Modules\Notifications\Services\NotificationWorkspaceResolver;
@@ -44,6 +45,12 @@ class NotificationController extends Controller
         $owned = $this->ownedNotification($request, $notification);
         $owned->markAsRead();
 
+        try {
+            app(UserLiveStateService::class)->broadcast($request->user());
+        } catch (\Throwable) {
+            // Non-blocking
+        }
+
         if ($request->expectsJson()) {
             return response()->json(['message' => 'Notification marked as read.']);
         }
@@ -54,6 +61,12 @@ class NotificationController extends Controller
     public function readAll(Request $request): JsonResponse|RedirectResponse
     {
         $request->user()->unreadNotifications()->update(['read_at' => now()]);
+
+        try {
+            app(UserLiveStateService::class)->broadcast($request->user());
+        } catch (\Throwable) {
+            // Non-blocking
+        }
 
         if ($request->expectsJson()) {
             return response()->json(['message' => 'All notifications marked as read.']);

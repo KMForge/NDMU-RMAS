@@ -11,6 +11,7 @@ use App\Http\Controllers\OfficialFormVerificationController;
 use App\Http\Controllers\OfficialFormWorkspaceController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProfilePhotoController;
+use App\Http\Controllers\UserLiveStateController;
 use App\Http\Controllers\UserSignatureController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Route;
@@ -47,6 +48,10 @@ Route::middleware(['auth', 'verified', 'active', 'throttle:120,1'])
         Route::patch('/{notification}/read', [NotificationController::class, 'read'])->whereUuid('notification')->name('read');
         Route::patch('/read-all', [NotificationController::class, 'readAll'])->name('read-all');
     });
+
+Route::middleware(['auth', 'verified', 'active'])
+    ->get('/user/live-state', [UserLiveStateController::class, 'show'])
+    ->name('user.live-state');
 
 Route::middleware(['auth', 'verified', 'active'])
     ->prefix('documents')

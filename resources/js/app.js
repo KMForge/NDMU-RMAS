@@ -1063,6 +1063,54 @@ window.addEventListener('portal:layout-changed', () => {
     });
 });
 
+function scrollSidebarAnchorIntoView(anchorId, behavior = 'auto') {
+    if (!anchorId) return false;
+
+    const target = document.getElementById(anchorId);
+    const sidebar = target?.closest('[data-portal-sidebar]');
+
+    if (!(target instanceof HTMLElement) || !(sidebar instanceof HTMLElement)) {
+        return false;
+    }
+
+    const sidebarRect = sidebar.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const targetTop = sidebar.scrollTop
+        + targetRect.top
+        - sidebarRect.top
+        - ((sidebar.clientHeight - targetRect.height) / 2);
+
+    sidebar.scrollTo({
+        top: Math.max(0, targetTop),
+        behavior,
+    });
+
+    return true;
+}
+
+function restoreSidebarAnchor() {
+    const anchorId = decodeURIComponent(window.location.hash.slice(1));
+
+    if (!anchorId) return;
+
+    window.requestAnimationFrame(() => {
+        if (!scrollSidebarAnchorIntoView(anchorId)) return;
+
+        // Alpine may still be finishing an expanded phase transition.
+        window.setTimeout(() => scrollSidebarAnchorIntoView(anchorId), 120);
+    });
+}
+
+window.NDMUSidebarAnchors = {
+    scrollTo(anchorId, behavior = 'smooth') {
+        window.requestAnimationFrame(() => scrollSidebarAnchorIntoView(anchorId, behavior));
+    },
+};
+
+document.addEventListener('livewire:init', () => {
+    window.Livewire?.hook('morphed', () => restoreSidebarAnchor());
+}, { once: true });
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initializeWelcomePage();
@@ -1071,6 +1119,7 @@ if (document.readyState === 'loading') {
         initializeSmartHeaderScroll();
         initializeDocxViewers();
         initializePdfViewers();
+        restoreSidebarAnchor();
     }, { once: true });
 } else {
     initializeWelcomePage();
@@ -1079,6 +1128,7 @@ if (document.readyState === 'loading') {
     initializeSmartHeaderScroll();
     initializeDocxViewers();
     initializePdfViewers();
+    restoreSidebarAnchor();
 }
 
 document.addEventListener('livewire:navigated', () => {
@@ -1087,4 +1137,7 @@ document.addEventListener('livewire:navigated', () => {
     initializeSmartHeaderScroll();
     initializeDocxViewers();
     initializePdfViewers();
+    restoreSidebarAnchor();
 });
+
+window.addEventListener('hashchange', restoreSidebarAnchor);

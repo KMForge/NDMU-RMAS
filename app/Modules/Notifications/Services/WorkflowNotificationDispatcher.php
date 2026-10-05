@@ -3,6 +3,7 @@
 namespace App\Modules\Notifications\Services;
 
 use App\Models\User;
+use App\Modules\Dashboard\Services\UserLiveStateService;
 use App\Notifications\AcademicWorkflowNotification;
 use Illuminate\Support\Facades\DB;
 
@@ -86,6 +87,19 @@ class WorkflowNotificationDispatcher
                     ? $actingAs
                     : config("notifications.workspace_labels.{$resolvedWorkspace}"),
             ));
+
+            try {
+                app(UserLiveStateService::class)->broadcast(
+                    $freshRecipient,
+                    toast: [
+                        'title' => $title,
+                        'message' => $message,
+                        'context' => $contextLabel ?? 'NDMU-RMAS',
+                    ],
+                );
+            } catch (\Throwable) {
+                // Non-blocking
+            }
         };
 
         if (DB::transactionLevel() > 0) {

@@ -10,6 +10,10 @@ $serverOut = Join-Path $logDirectory 'production-server.out.log'
 $serverError = Join-Path $logDirectory 'production-server.error.log'
 $schedulerOut = Join-Path $logDirectory 'production-scheduler.out.log'
 $schedulerError = Join-Path $logDirectory 'production-scheduler.error.log'
+$queueOut = Join-Path $logDirectory 'production-queue.out.log'
+$queueError = Join-Path $logDirectory 'production-queue.error.log'
+
+$env:PHP_CLI_SERVER_WORKERS = '8'
 
 function Start-NdmuProcess {
     param(
@@ -30,6 +34,7 @@ function Start-NdmuProcess {
 
 $server = Start-NdmuProcess -Arguments @('artisan', 'serve', '--host=127.0.0.1', '--port=8000') -StandardOutput $serverOut -StandardError $serverError
 $scheduler = Start-NdmuProcess -Arguments @('artisan', 'schedule:work') -StandardOutput $schedulerOut -StandardError $schedulerError
+$queue = Start-NdmuProcess -Arguments @('artisan', 'queue:work', '--tries=3', '--timeout=90') -StandardOutput $queueOut -StandardError $queueError
 
 while ($true) {
     if ($server.HasExited) {
@@ -37,6 +42,9 @@ while ($true) {
     }
     if ($scheduler.HasExited) {
         $scheduler = Start-NdmuProcess -Arguments @('artisan', 'schedule:work') -StandardOutput $schedulerOut -StandardError $schedulerError
+    }
+    if ($queue.HasExited) {
+        $queue = Start-NdmuProcess -Arguments @('artisan', 'queue:work', '--tries=3', '--timeout=90') -StandardOutput $queueOut -StandardError $queueError
     }
     Start-Sleep -Seconds 5
 }
