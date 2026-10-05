@@ -25,10 +25,17 @@
     proposalsList: @js($proposalsList),
     staffList: @js($staffList),
     adviserOptions: @js($adviserOptions),
-    panelistOptions: @js($panelistOptions)
+    panelistOptions: @js($panelistOptions),
+    adminTabAnchor(tab) {
+        const sidebarTab = tab === 'assign-roles' ? 'users' : tab;
+        return `admin-nav-${String(sidebarTab).toLowerCase().replace(/[^a-z0-9_-]/g, '-')}`;
+    }
 }"
     x-init="
-        $watch('activeTab', () => $nextTick(() => window.dispatchEvent(new CustomEvent('portal:layout-changed'))));
+        $watch('activeTab', (tab) => $nextTick(() => {
+            window.dispatchEvent(new CustomEvent('portal:layout-changed'));
+            window.NDMUSidebarAnchors?.scrollTo(adminTabAnchor(tab));
+        }));
         $watch('userManagementTab', () => $nextTick(() => window.dispatchEvent(new CustomEvent('portal:layout-changed'))));
     "
     @staff-account-created.window="activeTab = 'users'; userManagementTab = 'all-users'"
@@ -39,12 +46,14 @@
 >
     <style>[x-cloak] { display: none !important; }</style>
     <!-- Left Sidebar: Navigation -->
-    <aside id="admin-primary-navigation" data-portal-sidebar class="fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-[#09472d] via-[#0e5c3a] to-[#073622] text-white flex flex-col justify-between z-20 border-r border-emerald-800/40 shadow-2xl overflow-y-auto">
+    {{-- The sidebar is Alpine-driven and permission-filtered on the initial render. Keep it outside
+         subsequent Livewire morphs so tab requests cannot reset its scroll position. --}}
+    <aside id="admin-primary-navigation" wire:ignore data-portal-sidebar class="fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-[#09472d] via-[#0e5c3a] to-[#073622] text-white flex flex-col justify-between z-20 border-r border-emerald-800/40 shadow-2xl overflow-y-auto">
         <div class="flex-shrink-0">
             <!-- Brand Logo Header -->
             <div class="p-6 pb-4 flex items-center gap-3.5">
                 <div class="p-2 bg-gradient-to-br from-white/15 to-white/5 rounded-2xl border border-white/20 shadow-lg backdrop-blur-md">
-                    <img src="{{ asset('images/ndmu-logo-small.png') }}" alt="NDMU Logo" width="96" height="96" class="h-10 w-auto drop-shadow-sm">
+                    <x-app-logo variant="sidebar" />
                 </div>
                 <div class="flex flex-col leading-none">
                     <span class="font-heading font-black text-xl text-white tracking-tight">NDMU</span>
@@ -86,9 +95,10 @@
                 </div>
                 
                 <!-- Dashboard Link -->
-                <button
-                   type="button"
-                   @click="activeTab = 'dashboard'"
+                <a
+                   id="admin-nav-dashboard"
+                   href="{{ route('admin.dashboard', ['tab' => 'dashboard']) }}#admin-nav-dashboard"
+                   data-sidebar-anchor
                    :class="activeTab === 'dashboard' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
@@ -96,14 +106,15 @@
                         <span>Dashboard</span>
                     </div>
                     <span x-show="activeTab === 'dashboard'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
-                </button>
+                </a>
 
                 <div class="px-3 pt-4 pb-1 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-200/60">Identity &amp; access</div>
                 
                 <!-- User Management Link -->
-                <button
-                   type="button"
-                   @click="activeTab = 'users'"
+                <a
+                   id="admin-nav-users"
+                   href="{{ route('admin.dashboard', ['tab' => 'users']) }}#admin-nav-users"
+                   data-sidebar-anchor
                    :class="['users', 'assign-roles'].includes(activeTab) ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
@@ -114,11 +125,12 @@
                         <x-sidebar-count-badge :count="$sidebarBadges['users'] ?? 0" label="student registrations awaiting email verification" />
                         <span x-show="['users', 'assign-roles'].includes(activeTab)" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                     </div>
-                </button>
+                </a>
 
-                <button
-                   type="button"
-                   @click="activeTab = 'permissions'"
+                <a
+                   id="admin-nav-permissions"
+                   href="{{ route('admin.dashboard', ['tab' => 'permissions']) }}#admin-nav-permissions"
+                   data-sidebar-anchor
                    :class="activeTab === 'permissions' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
@@ -126,13 +138,14 @@
                         <span>Roles &amp; Permissions</span>
                     </div>
                     <span x-show="activeTab === 'permissions'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
-                </button>
+                </a>
 
                 <div class="px-3 pt-4 pb-1 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-200/60">Research oversight</div>
 
-                <button
-                   type="button"
-                   @click="activeTab = 'research'"
+                <a
+                   id="admin-nav-research"
+                   href="{{ route('admin.dashboard', ['tab' => 'research']) }}#admin-nav-research"
+                   data-sidebar-anchor
                    :class="activeTab === 'research' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
@@ -143,11 +156,12 @@
                         <x-sidebar-count-badge :count="$sidebarBadges['research'] ?? 0" label="active research studies" />
                         <span x-show="activeTab === 'research'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                     </div>
-                </button>
+                </a>
 
-                <button
-                   type="button"
-                   @click="activeTab = 'defenses'"
+                <a
+                   id="admin-nav-defenses"
+                   href="{{ route('admin.dashboard', ['tab' => 'defenses']) }}#admin-nav-defenses"
+                   data-sidebar-anchor
                    :class="activeTab === 'defenses' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group">
                     <div class="flex items-center gap-3">
@@ -158,11 +172,12 @@
                         <x-sidebar-count-badge :count="$sidebarBadges['defenses'] ?? 0" label="scheduled defenses" />
                         <span x-show="activeTab === 'defenses'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                     </div>
-                </button>
+                </a>
 
-                <button 
-                    type="button"
-                    @click="activeTab = 'repository'"
+                <a
+                    id="admin-nav-repository"
+                    href="{{ route('admin.dashboard', ['tab' => 'repository']) }}#admin-nav-repository"
+                    data-sidebar-anchor
                     :class="activeTab === 'repository' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
                     class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group"
                 >
@@ -171,11 +186,12 @@
                         <span>Research Repository</span>
                     </div>
                     <span x-show="activeTab === 'repository'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
-                </button>
+                </a>
 
-                <button 
-                    type="button"
-                    @click="activeTab = 'forms'"
+                <a
+                    id="admin-nav-forms"
+                    href="{{ route('admin.dashboard', ['tab' => 'forms']) }}#admin-nav-forms"
+                    data-sidebar-anchor
                     :class="activeTab === 'forms' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
                     class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group"
                 >
@@ -184,7 +200,7 @@
                         <span>Forms &amp; Proposals</span>
                     </div>
                     <span x-show="activeTab === 'forms'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
-                </button>
+                </a>
 
                 @can('reports.view')
                 <a href="{{ route('admin.reports.index') }}"
@@ -200,21 +216,23 @@
                 <div class="px-3 pt-4 pb-1 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-200/60">System operations</div>
 
                 @can('settings.manage')
-                <button
-                    type="button"
-                    @click="activeTab = 'configuration'"
+                <a
+                    id="admin-nav-configuration"
+                    href="{{ route('admin.dashboard', ['tab' => 'configuration']) }}#admin-nav-configuration"
+                    data-sidebar-anchor
                     :class="activeTab === 'configuration' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
                     class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group"
                 >
                     <div class="flex items-center gap-3"><i class="ph ph-sliders-horizontal text-lg"></i><span>Configuration</span></div>
                     <span x-show="activeTab === 'configuration'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
-                </button>
+                </a>
                 @endcan
 
                 @can('audit-logs.view')
-                <button 
-                    type="button"
-                    @click="activeTab = 'audit'"
+                <a
+                    id="admin-nav-audit"
+                    href="{{ route('admin.dashboard', ['tab' => 'audit']) }}#admin-nav-audit"
+                    data-sidebar-anchor
                     :class="activeTab === 'audit' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
                     class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group"
                 >
@@ -223,13 +241,14 @@
                         <span>Audit Logs</span>
                     </div>
                     <span x-show="activeTab === 'audit'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
-                </button>
+                </a>
                 @endcan
 
                 @can('settings.manage')
-                <button
-                    type="button"
-                    @click="activeTab = 'backups'"
+                <a
+                    id="admin-nav-backups"
+                    href="{{ route('admin.dashboard', ['tab' => 'backups']) }}#admin-nav-backups"
+                    data-sidebar-anchor
                     :class="activeTab === 'backups' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md shadow-amber-950/20 translate-x-1' : 'text-white/85 hover:text-white hover:bg-white/15 hover:translate-x-1 font-semibold'"
                     class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer group"
                 >
@@ -238,7 +257,7 @@
                         <span>Backup Management</span>
                     </div>
                     <span x-show="activeTab === 'backups'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
-                </button>
+                </a>
                 @endcan
             </div>
         </div>
@@ -251,9 +270,10 @@
             </div>
 
             <div class="space-y-1">
-                <button
-                    type="button"
-                    @click="activeTab = 'notifications'"
+                <a
+                    id="admin-nav-notifications"
+                    href="{{ route('admin.dashboard', ['tab' => 'notifications']) }}#admin-nav-notifications"
+                    data-sidebar-anchor
                     :class="activeTab === 'notifications' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md' : 'text-white/85 hover:text-white hover:bg-white/15 font-semibold'"
                     class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
                 >
@@ -265,11 +285,12 @@
                         <x-sidebar-count-badge :count="$sidebarBadges['notifications'] ?? 0" label="unread notifications" />
                         <span x-show="activeTab === 'notifications'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
                     </div>
-                </button>
+                </a>
 
-                <button 
-                    type="button"
-                    @click="activeTab = 'settings'"
+                <a
+                    id="admin-nav-settings"
+                    href="{{ route('admin.dashboard', ['tab' => 'settings']) }}#admin-nav-settings"
+                    data-sidebar-anchor
                     :class="activeTab === 'settings' ? 'bg-[#eebc3f] text-[#09472d] font-bold shadow-md' : 'text-white/85 hover:text-white hover:bg-white/15 font-semibold'"
                     class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 text-[13px] text-left cursor-pointer"
                 >
@@ -278,7 +299,7 @@
                         <span>System Settings</span>
                     </div>
                     <span x-show="activeTab === 'settings'" class="w-1.5 h-1.5 rounded-full bg-[#09472d]"></span>
-                </button>
+                </a>
                 
                 <!-- Real Logout Form -->
                 <form method="POST" action="{{ route('logout') }}" id="logout-form" class="hidden" data-confirm-logout>
@@ -368,7 +389,7 @@
                     <div class="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-[#eebc3f]/15 blur-3xl"></div>
                     <div class="pointer-events-none absolute -left-12 -bottom-20 h-48 w-48 rounded-full bg-emerald-400/15 blur-2xl"></div>
                     <div class="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 opacity-[0.08]">
-                        <img src="{{ asset('images/ndmu_logo.png') }}" alt="" class="h-36 md:h-44 w-auto object-contain">
+                        <x-app-logo variant="watermark" />
                     </div>
 
                     <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
@@ -1280,9 +1301,16 @@
 
                                                         <!-- Status Badge -->
                                                         <td class="px-6 py-4">
-                                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {{ $statusBadgeClass }}">
-                                                                {{ ucfirst($status) }}
-                                                            </span>
+                                                            <div class="space-y-1.5">
+                                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {{ $statusBadgeClass }}">
+                                                                    {{ ucfirst($status) }}
+                                                                </span>
+                                                                @if ($user->must_change_password)
+                                                                    <span class="block w-fit rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-amber-800">
+                                                                        Password change required
+                                                                    </span>
+                                                                @endif
+                                                            </div>
                                                         </td>
 
                                                         <!-- Actions -->
@@ -1319,6 +1347,15 @@
                                                                         title="Edit or unselect roles"
                                                                     >
                                                                         <i class="ph ph-pencil-simple text-xs"></i> Edit
+                                                                    </button>
+
+                                                                    <button
+                                                                        type="button"
+                                                                        wire:click="confirmPasswordReset({{ $user->id }})"
+                                                                        class="flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-100"
+                                                                        title="Issue a new one-time temporary password"
+                                                                    >
+                                                                        <i class="ph ph-key text-xs"></i> Reset password
                                                                     </button>
 
                                                                     <!-- Disable / Enable Button -->
@@ -1548,26 +1585,14 @@
                                             @endif
                                         </div>
 
-                                        <!-- Temporary Password -->
-                                        <div class="space-y-1.5">
-                                            <label for="new_password" class="text-xs font-bold text-gray-600 uppercase tracking-wider block">Temporary Password</label>
-                                            <div class="relative">
-                                                <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 pointer-events-none">
-                                                    <i class="ph ph-lock text-lg"></i>
-                                                </span>
-                                                <input 
-                                                    id="new_password"
-                                                    :type="showPassword ? 'text' : 'password'" 
-                                                    wire:model="password"
-                                                    placeholder="Temporary password for first login" 
-                                                    class="w-full pl-11 pr-11 py-3.5 bg-white border @error('password') border-red-300 focus:border-red-500 focus:ring-red-500/5 @else border-gray-200 focus:border-[#0e5c3a] focus:ring-[#0e5c3a]/5 @enderror rounded-2xl text-sm placeholder-gray-400 focus:outline-none focus:ring-4 transition-all duration-300"
-                                                >
-                                                <button type="button" @click="showPassword = !showPassword" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
-                                                    <i :class="showPassword ? 'ph ph-eye-slash' : 'ph ph-eye'" class="text-lg"></i>
-                                                </button>
+                                        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-900">
+                                            <div class="flex items-start gap-2.5">
+                                                <i class="ph ph-key mt-0.5 text-lg text-amber-700"></i>
+                                                <div>
+                                                    <p class="font-black">A secure temporary password will be generated automatically.</p>
+                                                    <p class="mt-1">It is shown only once after creation. Give it securely to the account owner; they must replace it on first login.</p>
+                                                </div>
                                             </div>
-                                            <p class="text-[10px] text-gray-400 font-light mt-1">Share this password securely with the user. They will be prompted to change it on first login.</p>
-                                            @error('password') <span class="text-xs font-bold text-red-500 block mt-1">{{ $message }}</span> @enderror
                                         </div>
 
                                         <!-- Submit button -->
@@ -1639,6 +1664,50 @@
                             </button>
                         </div>
                     </form>
+                </div>
+            @endif
+
+            @if ($pendingPasswordResetUserId !== null)
+                <div class="fixed inset-0 z-[70] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="password-reset-title">
+                    <button type="button" wire:click="cancelPasswordReset" class="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" aria-label="Cancel password reset"></button>
+                    <div class="relative z-10 w-full max-w-md overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+                        <div class="p-6">
+                            <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-800"><i class="ph ph-key text-2xl"></i></div>
+                            <h2 id="password-reset-title" class="text-xl font-black text-slate-900">Reset {{ $pendingPasswordResetUserName }}'s password?</h2>
+                            <p class="mt-2 text-sm leading-6 text-slate-600">Their current password and remembered sessions will stop working. A new one-time temporary password will be shown to you, and the user must create a new password at their next login.</p>
+                        </div>
+                        <div class="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+                            <button type="button" wire:click="cancelPasswordReset" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100">Cancel</button>
+                            <button type="button" wire:click="issueTemporaryPassword" wire:loading.attr="disabled" wire:target="issueTemporaryPassword" class="rounded-xl bg-amber-600 px-5 py-2.5 text-xs font-black text-white hover:bg-amber-700 disabled:opacity-50">
+                                <span wire:loading.remove wire:target="issueTemporaryPassword">Issue New Password</span>
+                                <span wire:loading wire:target="issueTemporaryPassword">Issuing...</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            @if ($issuedTemporaryPassword !== null)
+                <div class="fixed inset-0 z-[80] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="temporary-password-title">
+                    <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"></div>
+                    <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-2xl">
+                        <div class="bg-[#0e5c3a] p-6 text-white">
+                            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-200">Show once</p>
+                            <h2 id="temporary-password-title" class="mt-1 text-xl font-black">Temporary Password Issued</h2>
+                            <p class="mt-1 text-xs text-emerald-100">For {{ $issuedTemporaryPasswordFor }}</p>
+                        </div>
+                        <div class="space-y-4 p-6">
+                            <div class="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">Copy this password now. It is stored only as a secure hash and cannot be displayed again after you close this window.</div>
+                            <div class="flex items-center gap-2 rounded-2xl border-2 border-dashed border-emerald-200 bg-emerald-50 p-3">
+                                <code id="issued-temporary-password" class="min-w-0 flex-1 select-all break-all text-base font-black tracking-wider text-emerald-950">{{ $issuedTemporaryPassword }}</code>
+                                <button type="button" @click="navigator.clipboard.writeText(document.getElementById('issued-temporary-password').textContent.trim()); $el.textContent = 'Copied'" class="shrink-0 rounded-xl bg-white px-3 py-2 text-xs font-black text-emerald-800 shadow-sm">Copy</button>
+                            </div>
+                            <p class="text-xs leading-5 text-slate-500">The temporary password expires in {{ config('auth.temporary_password.expire_hours', 72) }} hours. The owner can also use Forgot Password with their registered email.</p>
+                        </div>
+                        <div class="flex justify-end border-t border-slate-200 bg-slate-50 px-6 py-4">
+                            <button type="button" wire:click="closeTemporaryPassword" class="rounded-xl bg-[#0e5c3a] px-5 py-2.5 text-xs font-black text-white hover:bg-[#0a4a2e]">I Have Copied It</button>
+                        </div>
+                    </div>
                 </div>
             @endif
 
@@ -2102,337 +2171,23 @@
             <!-- TAB 4: RESEARCH MANAGEMENT VIEW -->
             @if ($tab === 'research')
             <div class="space-y-8 animate-fade-in">
-                <!-- Section Action Header -->
-                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-2xs relative overflow-hidden">
-                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#073823] to-[#0e5c3a] text-[#eebc3f] flex items-center justify-center text-2xl shadow-xs shrink-0">
-                            <i class="ph ph-book-open"></i>
-                        </div>
-                        <div>
-                            <h2 class="text-xl sm:text-2xl font-black font-heading text-slate-900 flex items-center gap-2">
-                                <span>Research Lifecycle & Milestones</span>
-                                <span class="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-[10px] font-black uppercase text-[#0e5c3a]">
-                                    {{ $researchLifecycle['progress'] }}% Complete
-                                </span>
-                            </h2>
-                            <p class="text-xs text-slate-500 font-medium mt-0.5">Track research progress through all 13 milestone deliverables and panel reviews.</p>
-                        </div>
+                @if (isset($progressGroups))
+                    <x-research-progress.facilitator-monitoring
+                        :groups="$progressGroups"
+                        :search="$progressSearch"
+                        :group-status="$progressGroupStatus"
+                        :group-id="$progressGroupId ?? null"
+                        :all-filter-groups="$allFilterGroups ?? null"
+                        :read-only="true"
+                        :form-action="route('admin.dashboard')"
+                        :tab-value="'research'"
+                        portal-name="Administration Portal"
+                    />
+                @else
+                    <div class="rounded-3xl border border-gray-100 bg-white p-12 text-center text-gray-500">
+                        Open Research Management from the sidebar to load all institutional research groups.
                     </div>
-                </div>
-
-                <!-- Overall Progress Card -->
-                <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-2xs border border-slate-200/80 space-y-6 relative overflow-hidden">
-                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] via-[#eebc3f] to-[#0e5c3a]"></div>
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div class="space-y-1">
-                            <h3 class="text-lg font-black text-slate-900">Recently Updated Research Group</h3>
-                            <p class="text-xs text-slate-500 font-medium">{{ $researchLifecycle['title'] ?? 'Institutional research studies' }}</p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-3xl font-black text-[#0e5c3a] font-heading">{{ $researchLifecycle['progress'] }}%</span>
-                            <span class="text-[10px] text-slate-400 font-black uppercase tracking-wider">Group progress</span>
-                        </div>
-                    </div>
-
-                    <!-- Progress Bar -->
-                    <div class="w-full h-4 bg-slate-100 rounded-full overflow-hidden border border-slate-200/60 p-0.5">
-                        <div class="h-full bg-gradient-to-r from-[#073823] to-[#0e5c3a] rounded-full transition-all duration-500" x-init="$el.style.width = @js($researchLifecycle['progress']) + '%'"></div>
-                    </div>
-
-                    <!-- Counts -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                        <div class="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-100 text-center">
-                            <span class="text-2xl font-black text-[#0e5c3a] font-heading block">{{ $researchLifecycle['completed'] }}</span>
-                            <span class="text-[10px] text-emerald-800 font-black uppercase tracking-wider mt-1 block">Completed</span>
-                        </div>
-                        <div class="p-4 rounded-2xl bg-amber-50/70 border border-amber-100 text-center">
-                            <span class="text-2xl font-black text-amber-600 font-heading block">{{ $researchLifecycle['in_progress'] }}</span>
-                            <span class="text-[10px] text-amber-800 font-black uppercase tracking-wider mt-1 block">In Progress</span>
-                        </div>
-                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-center">
-                            <span class="text-2xl font-black text-slate-500 font-heading block">{{ $researchLifecycle['pending'] }}</span>
-                            <span class="text-[10px] text-slate-500 font-black uppercase tracking-wider mt-1 block">Pending</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Research Milestones Container -->
-                <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-2xs border border-slate-200/80 space-y-6 relative overflow-hidden">
-                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#073823] to-[#eebc3f]"></div>
-                    <h3 class="text-lg font-black text-slate-900">Research Milestones</h3>
-
-                    <!-- Timeline Vertical Container -->
-                    <div class="relative pl-10 border-l-2 border-gray-150 space-y-8 ml-6 py-2">
-
-                        @forelse ($researchLifecycle['milestones'] as $milestone)
-                            @php
-                                $milestoneCompleted = $milestone['status'] === 'completed';
-                                $milestoneInProgress = $milestone['status'] === 'in_progress';
-                            @endphp
-                            <div class="relative">
-                                <span @class([
-                                    'absolute -left-[57px] top-1.5 flex h-8 w-8 items-center justify-center rounded-full shadow-sm',
-                                    'bg-[#0fa47b] border border-[#0fa47b]' => $milestoneCompleted,
-                                    'bg-[#f59e0b] border border-[#f59e0b]' => $milestoneInProgress,
-                                    'bg-white border-2 border-gray-200' => ! $milestoneCompleted && ! $milestoneInProgress,
-                                ])>
-                                    @if ($milestoneCompleted)
-                                        <i class="ph-bold ph-check text-white text-xs"></i>
-                                    @elseif ($milestoneInProgress)
-                                        <i class="ph-bold ph-clock text-white text-xs"></i>
-                                    @else
-                                        <span class="w-2.5 h-2.5 bg-gray-200 rounded-full"></span>
-                                    @endif
-                                </span>
-                                <div @class([
-                                    'p-6 border rounded-3xl hover:shadow-sm transition-all duration-300 flex items-center justify-between',
-                                    'bg-[#f4faf7] border-emerald-100' => $milestoneCompleted,
-                                    'bg-[#fdfaf2] border-amber-100' => $milestoneInProgress,
-                                    'bg-white border-gray-150 opacity-70' => ! $milestoneCompleted && ! $milestoneInProgress,
-                                ])>
-                                    <div class="space-y-1.5">
-                                        <h4 class="font-extrabold text-gray-800 text-sm">{{ $milestone['name'] }}</h4>
-                                        <div class="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-                                            <i class="ph ph-calendar"></i>
-                                            <span>{{ $milestone['due_at'] ?? 'No due date' }}</span>
-                                        </div>
-                                        @if ($milestone['description'])
-                                            <p class="text-xs text-gray-500 font-medium">{{ $milestone['description'] }}</p>
-                                        @endif
-                                    </div>
-                                    <span @class([
-                                        'text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider',
-                                        'bg-[#0fa47b]' => $milestoneCompleted,
-                                        'bg-amber-500' => $milestoneInProgress,
-                                        'bg-gray-400' => ! $milestoneCompleted && ! $milestoneInProgress,
-                                    ])>{{ str($milestone['status'])->headline() }}</span>
-                                </div>
-                            </div>
-                        @empty
-                            <div class="p-10 bg-gray-50/60 border border-gray-100 rounded-3xl text-center text-sm text-gray-500">
-                                No research milestones found.
-                            </div>
-                        @endforelse
-
-                        {{-- Historical static milestone examples intentionally excluded from rendered output.
-                        <!-- Milestone 1: Research Title Presentation (Completed) -->
-                        <div class="relative">
-                            <span class="absolute -left-[57px] top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-[#0fa47b] border border-[#0fa47b] shadow-sm">
-                                <i class="ph-bold ph-check text-white text-xs"></i>
-                            </span>
-                            <div class="p-6 bg-[#f4faf7] border border-emerald-100 hover:border-emerald-200 rounded-3xl hover:shadow-sm transition-all duration-300 flex items-center justify-between">
-                                <div class="space-y-1.5">
-                                    <h4 class="font-extrabold text-gray-800 text-sm">Research Title Presentation</h4>
-                                    <div class="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-                                        <i class="ph ph-calendar"></i>
-                                        <span>Feb 15, 2026</span>
-                                    </div>
-                                    <p class="text-xs text-emerald-700 font-medium flex items-center gap-1">✓ All requirements met and approved</p>
-                                </div>
-                                <span class="bg-[#0fa47b] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Completed</span>
-                            </div>
-                        </div>
-
-                        <!-- Milestone 2: Proposal Approval (Completed) -->
-                        <div class="relative">
-                            <span class="absolute -left-[57px] top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-[#0fa47b] border border-[#0fa47b] shadow-sm">
-                                <i class="ph-bold ph-check text-white text-xs"></i>
-                            </span>
-                            <div class="p-6 bg-[#f4faf7] border border-emerald-100 hover:border-emerald-200 rounded-3xl hover:shadow-sm transition-all duration-300 flex items-center justify-between">
-                                <div class="space-y-1.5">
-                                    <h4 class="font-extrabold text-gray-800 text-sm">Proposal Approval</h4>
-                                    <div class="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-                                        <i class="ph ph-calendar"></i>
-                                        <span>Mar 10, 2026</span>
-                                    </div>
-                                    <p class="text-xs text-emerald-700 font-medium flex items-center gap-1">✓ All requirements met and approved</p>
-                                </div>
-                                <span class="bg-[#0fa47b] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Completed</span>
-                            </div>
-                        </div>
-
-                        <!-- Milestone 3: Adviser Endorsement (Completed) -->
-                        <div class="relative">
-                            <span class="absolute -left-[57px] top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-[#0fa47b] border border-[#0fa47b] shadow-sm">
-                                <i class="ph-bold ph-check text-white text-xs"></i>
-                            </span>
-                            <div class="p-6 bg-[#f4faf7] border border-emerald-100 hover:border-emerald-200 rounded-3xl hover:shadow-sm transition-all duration-300 flex items-center justify-between">
-                                <div class="space-y-1.5">
-                                    <h4 class="font-extrabold text-gray-800 text-sm">Adviser Endorsement</h4>
-                                    <div class="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-                                        <i class="ph ph-calendar"></i>
-                                        <span>Mar 20, 2026</span>
-                                    </div>
-                                    <p class="text-xs text-emerald-700 font-medium flex items-center gap-1">✓ All requirements met and approved</p>
-                                </div>
-                                <span class="bg-[#0fa47b] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Completed</span>
-                            </div>
-                        </div>
-
-                        <!-- Milestone 4: Instrument Validation (Completed) -->
-                        <div class="relative">
-                            <span class="absolute -left-[57px] top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-[#0fa47b] border border-[#0fa47b] shadow-sm">
-                                <i class="ph-bold ph-check text-white text-xs"></i>
-                            </span>
-                            <div class="p-6 bg-[#f4faf7] border border-emerald-100 hover:border-emerald-200 rounded-3xl hover:shadow-sm transition-all duration-300 flex items-center justify-between">
-                                <div class="space-y-1.5">
-                                    <h4 class="font-extrabold text-gray-800 text-sm">Instrument Validation</h4>
-                                    <div class="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-                                        <i class="ph ph-calendar"></i>
-                                        <span>Apr 5, 2026</span>
-                                    </div>
-                                    <p class="text-xs text-emerald-700 font-medium flex items-center gap-1">✓ All requirements met and approved</p>
-                                </div>
-                                <span class="bg-[#0fa47b] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Completed</span>
-                            </div>
-                        </div>
-
-                        <!-- Milestone 5: Data Gathering (In Progress) -->
-                        <div class="relative">
-                            <span class="absolute -left-[57px] top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-[#f59e0b] border border-[#f59e0b] shadow-sm">
-                                <i class="ph-bold ph-clock text-white text-xs"></i>
-                            </span>
-                            <div class="p-6 bg-[#fdfaf2] border border-amber-100 hover:border-amber-200 rounded-3xl hover:shadow-sm transition-all duration-300 flex items-center justify-between">
-                                <div class="space-y-1.5">
-                                    <h4 class="font-extrabold text-gray-800 text-sm">Data Gathering</h4>
-                                    <div class="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-                                        <i class="ph ph-calendar"></i>
-                                        <span>In Progress</span>
-                                    </div>
-                                    <p class="text-xs text-amber-600 font-medium">Currently working on this milestone</p>
-                                </div>
-                                <span class="bg-amber-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">In Progress</span>
-                            </div>
-                        </div>
-
-                        <!-- Milestone 6: Proposal Defense (Completed) -->
-                        <div class="relative">
-                            <span class="absolute -left-[57px] top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-[#0fa47b] border border-[#0fa47b] shadow-sm">
-                                <i class="ph-bold ph-check text-white text-xs"></i>
-                            </span>
-                            <div class="p-6 bg-[#f4faf7] border border-emerald-100 hover:border-emerald-200 rounded-3xl hover:shadow-sm transition-all duration-300 flex items-center justify-between">
-                                <div class="space-y-1.5">
-                                    <h4 class="font-extrabold text-gray-800 text-sm">Proposal Defense</h4>
-                                    <div class="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-                                        <i class="ph ph-calendar"></i>
-                                        <span>May 10, 2026</span>
-                                    </div>
-                                    <p class="text-xs text-emerald-700 font-medium flex items-center gap-1">✓ All requirements met and approved</p>
-                                </div>
-                                <span class="bg-[#0fa47b] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Completed</span>
-                            </div>
-                        </div>
-
-                        <!-- Milestone 7: Revisions (In Progress) -->
-                        <div class="relative">
-                            <span class="absolute -left-[57px] top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-[#f59e0b] border border-[#f59e0b] shadow-sm">
-                                <i class="ph-bold ph-clock text-white text-xs"></i>
-                            </span>
-                            <div class="p-6 bg-[#fdfaf2] border border-amber-100 hover:border-amber-250 rounded-3xl hover:shadow-sm transition-all duration-300 flex items-center justify-between">
-                                <div class="space-y-1.5">
-                                    <h4 class="font-extrabold text-gray-800 text-sm">Revisions</h4>
-                                    <div class="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-                                        <i class="ph ph-calendar"></i>
-                                        <span>May 18, 2026</span>
-                                    </div>
-                                    <p class="text-xs text-amber-600 font-medium">Currently working on this milestone</p>
-                                </div>
-                                <span class="bg-amber-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">In Progress</span>
-                            </div>
-                        </div>
-
-                        <!-- Milestone 8: Final Defense (Pending) -->
-                        <div class="relative">
-                            <span class="absolute -left-[57px] top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-white border-2 border-gray-200 shadow-sm">
-                                <span class="w-2.5 h-2.5 bg-gray-200 rounded-full"></span>
-                            </span>
-                            <div class="p-6 bg-white border border-gray-150 rounded-3xl hover:shadow-sm transition-all duration-300 flex items-center justify-between opacity-70">
-                                <div class="space-y-1.5">
-                                    <h4 class="font-extrabold text-gray-800 text-sm">Final Defense</h4>
-                                    <div class="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-                                        <i class="ph ph-calendar"></i>
-                                        <span>Jul 15, 2026</span>
-                                    </div>
-                                </div>
-                                <span class="bg-gray-400 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Pending</span>
-                            </div>
-                        </div>
-
-                        <!-- Milestone 9: Technical Editing (Pending) -->
-                        <div class="relative">
-                            <span class="absolute -left-[57px] top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-white border-2 border-gray-200 shadow-sm">
-                                <span class="w-2.5 h-2.5 bg-gray-200 rounded-full"></span>
-                            </span>
-                            <div class="p-6 bg-white border border-gray-150 rounded-3xl hover:shadow-sm transition-all duration-300 flex items-center justify-between opacity-70">
-                                <div class="space-y-1.5">
-                                    <h4 class="font-extrabold text-gray-800 text-sm">Technical Editing</h4>
-                                    <div class="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-                                        <i class="ph ph-calendar"></i>
-                                        <span>Not Started</span>
-                                    </div>
-                                </div>
-                                <span class="bg-gray-400 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Pending</span>
-                            </div>
-                        </div>
-
-                        <!-- Milestone 10: Language Editing (Pending) -->
-                        <div class="relative">
-                            <span class="absolute -left-[57px] top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-white border-2 border-gray-200 shadow-sm">
-                                <span class="w-2.5 h-2.5 bg-gray-200 rounded-full"></span>
-                            </span>
-                            <div class="p-6 bg-white border border-gray-150 rounded-3xl hover:shadow-sm transition-all duration-300 flex items-center justify-between opacity-70">
-                                <div class="space-y-1.5">
-                                    <h4 class="font-extrabold text-gray-800 text-sm">Language Editing</h4>
-                                    <div class="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-                                        <i class="ph ph-calendar"></i>
-                                        <span>Not Started</span>
-                                    </div>
-                                </div>
-                                <span class="bg-gray-400 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Pending</span>
-                            </div>
-                        </div>
-
-                        <!-- Milestone 11: Final Manuscript Approval (Pending) -->
-                        <div class="relative">
-                            <span class="absolute -left-[57px] top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-white border-2 border-gray-200 shadow-sm">
-                                <span class="w-2.5 h-2.5 bg-gray-200 rounded-full"></span>
-                            </span>
-                            <div class="p-6 bg-white border border-gray-150 rounded-3xl hover:shadow-sm transition-all duration-300 flex items-center justify-between opacity-70">
-                                <div class="space-y-1.5">
-                                    <h4 class="font-extrabold text-gray-800 text-sm">Final Manuscript Approval</h4>
-                                    <div class="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-                                        <i class="ph ph-calendar"></i>
-                                        <span>Not Started</span>
-                                    </div>
-                                </div>
-                                <span class="bg-gray-400 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Pending</span>
-                            </div>
-                        </div>
-
-                        <!-- Milestone 12: Certificate of Authentic Authorship (Pending) -->
-                        <div class="relative">
-                            <span class="absolute -left-[57px] top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-white border-2 border-gray-200 shadow-sm">
-                                <span class="w-2.5 h-2.5 bg-gray-200 rounded-full"></span>
-                            </span>
-                            <div class="p-6 bg-white border border-gray-150 rounded-3xl hover:shadow-sm transition-all duration-300 flex items-center justify-between opacity-70">
-                                <div class="space-y-1.5">
-                                    <h4 class="font-extrabold text-gray-800 text-sm">Certificate of Authentic Authorship</h4>
-                                    <div class="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-                                        <i class="ph ph-calendar"></i>
-                                        <span>Not Started</span>
-                                    </div>
-                                </div>
-                                <span class="bg-gray-400 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Pending</span>
-                            </div>
-                        </div>
-                        --}}
-                    </div>
-
-                    <p class="pt-4 text-xs font-medium text-slate-500">
-                        Progress is updated by the authorized research workflow. Administrators monitor records here without replacing facilitators or academic approvers.
-                    </p>
-                </div>
+                @endif
             </div>
             @endif
 

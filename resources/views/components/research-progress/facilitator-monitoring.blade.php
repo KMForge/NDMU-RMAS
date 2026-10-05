@@ -1,10 +1,10 @@
-@props(['groups', 'search' => '', 'groupStatus' => 'active', 'groupId' => null, 'allFilterGroups' => null, 'readOnly' => false, 'formAction' => null])
+@props(['groups', 'search' => '', 'groupStatus' => 'active', 'groupId' => null, 'allFilterGroups' => null, 'readOnly' => false, 'formAction' => null, 'tabValue' => 'monitoring', 'portalName' => null])
 
 <div class="space-y-8">
     <!-- Header -->
     <div class="flex flex-col gap-1">
         <div class="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-            <span>Facilitator Portal</span>
+            <span>{{ $portalName ?? ($readOnly ? 'Administration Portal' : 'Facilitator Portal') }}</span>
             <span>/</span>
             <span class="text-[#0e5c3a]">Research Monitoring</span>
         </div>
@@ -39,7 +39,7 @@
 
     <!-- Search & Filters Bar -->
     <form method="GET" action="{{ $formAction ?? route('facilitator.dashboard') }}" class="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-5 shadow-sm flex flex-wrap items-center gap-3">
-        <input type="hidden" name="tab" value="monitoring">
+        <input type="hidden" name="tab" value="{{ $tabValue }}">
         
         <div class="relative flex-1 min-w-64">
             <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
@@ -62,7 +62,7 @@
                 @foreach ($allFilterGroups as $fg)
                     @php $filterTitle = $fg->researchGroup?->currentProject?->title; @endphp
                     <option value="{{ $fg->id }}" @selected((int) (request()->query('progress_group_id') ?? $groupId) === (int) $fg->id)>
-                        {{ $fg->name }}{{ $filterTitle ? ' — '.\Illuminate\Support\Str::limit($filterTitle, 35) : '' }}
+                        {{ $fg->name }}{{ $fg->researchClass ? ' ('.$fg->researchClass->name.')' : '' }}{{ $filterTitle ? ' — '.\Illuminate\Support\Str::limit($filterTitle, 35) : '' }}
                     </option>
                 @endforeach
             </select>

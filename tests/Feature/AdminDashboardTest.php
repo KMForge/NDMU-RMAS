@@ -124,7 +124,7 @@ class AdminDashboardTest extends TestCase
             ->assertSeeHtml("@click=\"activeTab = 'permissions'\"")
             ->assertSeeHtml("@click=\"activeTab = 'research'\"")
             ->assertSeeHtml("@click=\"activeTab = 'repository'\"")
-            ->assertSeeHtml("@click=\"activeTab = 'notifications'\"")
+            ->assertSeeHtml('href="'.route('admin.dashboard', ['tab' => 'notifications']).'#admin-nav-notifications"')
             ->assertDontSeeHtml("activeTab = 'roles'")
             ->assertDontSeeHtml("activeTab = 'academic-years'")
             ->assertDontSeeHtml("switchTab('notifications')");
@@ -700,7 +700,6 @@ class AdminDashboardTest extends TestCase
             ->set('name', 'Dr. Lourdes Castillo')
             ->set('email', 'l.castillo@ndmu.edu.ph')
             ->set('department', 'Untrusted College Value')
-            ->set('password', 'SecurePassword123!')
             ->call('createStaffAccount')
             ->assertHasNoErrors()
             ->assertSet('successMessage', 'Faculty account for Dr. Lourdes Castillo created. Assign a role when access is required.');
@@ -712,6 +711,8 @@ class AdminDashboardTest extends TestCase
         $this->assertEquals(AccountStatus::Active, $newUser->status);
         $this->assertTrue($newUser->roles->isEmpty());
         $this->assertSame('faculty', $newUser->user_type->value);
+        $this->assertTrue($newUser->must_change_password);
+        $this->assertNotNull($newUser->temporary_password_expires_at);
     }
 
     public function test_create_staff_account_validation(): void
@@ -724,12 +725,10 @@ class AdminDashboardTest extends TestCase
         Livewire::test(AdminDashboard::class)
             ->set('name', '')
             ->set('email', 'not-an-email')
-            ->set('password', 'short')
             ->call('createStaffAccount')
             ->assertHasErrors([
                 'name' => 'required',
                 'email' => 'email',
-                'password',
                 'department' => 'required',
             ]);
     }
@@ -745,7 +744,6 @@ class AdminDashboardTest extends TestCase
             ->set('name', 'Engr. Jose Montero')
             ->set('email', 'j.montero@ndmu.edu.ph')
             ->set('department', 'CSD')
-            ->set('password', 'SecurePassword123!')
             ->call('createStaffAccount')
             ->assertHasNoErrors();
 
@@ -772,7 +770,6 @@ class AdminDashboardTest extends TestCase
             ->set('email', 'cross.department@ndmu.edu.ph')
             ->set('department', 'EECE')
             ->set('additionalDepartmentIds', [$csd->id])
-            ->set('password', 'SecurePassword123!')
             ->call('createStaffAccount')
             ->assertHasNoErrors();
 
@@ -837,7 +834,6 @@ class AdminDashboardTest extends TestCase
             ->set('name', 'Dr. Lourdes Castillo')
             ->set('email', 'dean.castillo@ndmu.edu.ph')
             ->set('isCollegeDean', true)
-            ->set('password', 'SecurePassword123!')
             ->call('createStaffAccount')
             ->assertHasNoErrors();
 
@@ -859,7 +855,6 @@ class AdminDashboardTest extends TestCase
         Livewire::test(AdminDashboard::class)
             ->set('name', 'Prof. Alan Turing')
             ->set('email', 'a.turing@ndmu.edu.ph')
-            ->set('password', 'SecurePassword123!')
             ->set('department', '')
             ->set('isCollegeDean', false)
             ->call('createStaffAccount')
@@ -869,7 +864,6 @@ class AdminDashboardTest extends TestCase
         Livewire::test(AdminDashboard::class)
             ->set('name', 'Prof. Alan Turing')
             ->set('email', 'a.turing@ndmu.edu.ph')
-            ->set('password', 'SecurePassword123!')
             ->set('isCollegeDean', true)
             ->call('createStaffAccount')
             ->assertHasNoErrors();
@@ -1177,5 +1171,61 @@ class AdminDashboardTest extends TestCase
             ->assertHasErrors(['configuration']);
 
         $this->assertTrue($room->fresh()->is_active);
+    }
+
+    public function test_admin_can_view_all_research_groups_in_research_management_tab(): void
+    {
+        $admin = User::factory()->create(['user_type' => UserType::Admin]);
+        $admin->assignRole('system-administrator');
+
+        $facilitator1 = User::factory()->create(['user_type' => UserType::Faculty, 'name' => 'Prof Alpha']);
+        $facilitator2 = User::factory()->create(['user_type' => UserType::Faculty, 'name' => 'Prof Beta']);
+
+        $class1 = new ResearchClass([
+            'facilitator_id' => $facilitator1->id,
+            'creation_token' => (string) Str::uuid(),
+            'name' => 'Alpha Research Class',
+            'max_students' => 30,
+            'is_active' => true,
+        ]);
+        $class1->setJoinCode('CLASSALPHA1');
+        $class1->save();
+
+        $class2 = new ResearchClass([
+            'facilitator_id' => $facilitator2->id,
+            'creation_token' => (string) Str::uuid(),
+            'name' => 'Beta Research Class',
+            'max_students' => 30,
+            'is_active' => true,
+        ]);
+        $class2->setJoinCode('CLASSBETA1');
+        $class2->save();
+
+        $group1 = ResearchClassGroup::query()->create([
+            'research_class_id' => $class1->id,
+            'creation_token' => (string) Str::uuid(),
+            'name' => 'Alpha Group Pioneers',
+            'created_by' => $facilitator1->id,
+            'status' => 'active',
+        ]);
+
+        $group2 = ResearchClassGroup::query()->create([
+            'research_class_id' => $class2->id,
+            'creation_token' => (string) Str::uuid(),
+            'name' => 'Beta Group Innovators',
+            'created_by' => $facilitator2->id,
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->set('tab', 'research')
+            ->assertOk()
+            ->assertSee('Research Lifecycle Monitoring')
+            ->assertSee('Alpha Group Pioneers')
+            ->assertSee('Beta Group Innovators')
+            ->assertSee('Alpha Research Class')
+            ->assertSee('Beta Research Class');
     }
 }

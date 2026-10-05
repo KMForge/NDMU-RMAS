@@ -23,10 +23,12 @@ class GetFacilitatorProgressData
         $search = Str::limit(strip_tags(trim(is_string($search) ? $search : '')), 100, '');
         $status = in_array($status, ['active', 'disbanded'], true) ? $status : 'active';
         $groupId = is_numeric($groupId) && (int) $groupId > 0 ? (int) $groupId : null;
+        $isGlobal = $facilitator->can('progress.view-all');
 
         $allFilterGroups = ResearchClassGroup::query()
-            ->whereHas('researchClass', fn ($query) => $query->where('facilitator_id', $facilitator->getKey()))
+            ->when(! $isGlobal, fn ($query) => $query->whereHas('researchClass', fn ($q) => $q->where('facilitator_id', $facilitator->getKey())))
             ->with([
+                'researchClass:id,name',
                 'researchGroup.currentProject' => fn ($query) => $query->select([
                     'research_projects.id',
                     'research_projects.research_group_id',
@@ -37,7 +39,7 @@ class GetFacilitatorProgressData
             ->get(['id', 'name', 'research_class_id', 'research_group_id']);
 
         $groups = ResearchClassGroup::query()
-            ->whereHas('researchClass', fn ($query) => $query->where('facilitator_id', $facilitator->getKey()))
+            ->when(! $isGlobal, fn ($query) => $query->whereHas('researchClass', fn ($q) => $q->where('facilitator_id', $facilitator->getKey())))
             ->when($status === 'active', fn ($query) => $query->where('status', 'active')->whereNull('disbanded_at'))
             ->when($status === 'disbanded', fn ($query) => $query->where('status', 'disbanded'))
             ->when($groupId !== null, fn ($query) => $query->where('id', $groupId))

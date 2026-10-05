@@ -31,6 +31,7 @@ use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Dashboard\Queries\GetAdminDashboardData;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\Notifications\Services\UnreadNotificationCount;
+use App\Modules\ResearchProgress\Queries\GetFacilitatorProgressData;
 use App\Modules\SystemSettings\Services\DocumentUploadLimit;
 use App\Modules\UserManagement\Actions\ManageFacultyDepartmentAssignments;
 use App\Modules\UserManagement\Actions\ManageRoleAccess;
@@ -43,7 +44,6 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -92,7 +92,13 @@ class AdminDashboard extends Component
     /** @var list<int|string> */
     public array $facultyDepartmentIds = [];
 
-    public string $password = '';
+    public ?string $issuedTemporaryPassword = null;
+
+    public ?string $issuedTemporaryPasswordFor = null;
+
+    public ?int $pendingPasswordResetUserId = null;
+
+    public ?string $pendingPasswordResetUserName = null;
 
     public ?string $successMessage = null;
 
@@ -425,7 +431,6 @@ class AdminDashboard extends Component
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
-            'password' => ['required', 'string', Password::min(12)->mixedCase()->letters()->numbers()->symbols()],
         ];
 
         $isDean = $this->isCollegeDean
@@ -479,20 +484,58 @@ class AdminDashboard extends Component
             }
         }
 
-        $user = $manageUserAccount->createStaff([
+        $provisioned = $manageUserAccount->createStaff([
             'name' => $this->name,
             'email' => $this->email,
-            'password' => $this->password,
             'department' => $finalDepartment,
             'department_id' => $departmentId,
             'department_ids' => $isDean ? [] : array_map('intval', $this->additionalDepartmentIds),
         ], $this->administrator());
 
+        $user = $provisioned['user'];
+        $this->issuedTemporaryPassword = $provisioned['temporary_password'];
+        $this->issuedTemporaryPasswordFor = $user->name;
         $this->clearDashboardCache();
         $this->successMessage = "Faculty account for {$user->name} created. Assign a role when access is required.";
 
-        $this->reset(['name', 'email', 'password', 'department', 'additionalDepartmentIds', 'isCollegeDean']);
+        $this->reset(['name', 'email', 'department', 'additionalDepartmentIds', 'isCollegeDean']);
         $this->dispatch('staff-account-created');
+    }
+
+    public function confirmPasswordReset(int $userId): void
+    {
+        $subject = User::query()->findOrFail($userId);
+        Gate::authorize('update', $subject);
+        abort_if($subject->is($this->administrator()), 403);
+
+        $this->pendingPasswordResetUserId = (int) $subject->getKey();
+        $this->pendingPasswordResetUserName = $subject->name;
+        $this->resetValidation();
+    }
+
+    public function cancelPasswordReset(): void
+    {
+        $this->reset(['pendingPasswordResetUserId', 'pendingPasswordResetUserName']);
+    }
+
+    public function issueTemporaryPassword(ManageUserAccount $manageUserAccount): void
+    {
+        abort_if($this->pendingPasswordResetUserId === null, 404);
+
+        $subject = User::query()->findOrFail($this->pendingPasswordResetUserId);
+        Gate::authorize('update', $subject);
+        $temporaryPassword = $manageUserAccount->issueTemporaryPassword($subject, $this->administrator());
+
+        $this->issuedTemporaryPassword = $temporaryPassword;
+        $this->issuedTemporaryPasswordFor = $subject->name;
+        $this->cancelPasswordReset();
+        $this->clearDashboardCache();
+        $this->successMessage = "A new temporary password was issued for {$subject->name}.";
+    }
+
+    public function closeTemporaryPassword(): void
+    {
+        $this->reset(['issuedTemporaryPassword', 'issuedTemporaryPasswordFor']);
     }
 
     public function openFacultyDepartmentsEditor(int $userId): void
@@ -1286,7 +1329,7 @@ class AdminDashboard extends Component
         $this->clearDashboardCache();
     }
 
-    public function render(GetAdminDashboardData $getAdminDashboardData, GetDocumentRepositoryData $repositoryData, GetAuditLogsForAdmin $auditLogs)
+    public function render(GetAdminDashboardData $getAdminDashboardData, GetDocumentRepositoryData $repositoryData, GetAuditLogsForAdmin $auditLogs, GetFacilitatorProgressData $progressData)
     {
         $administrator = $this->administrator();
         $data = [
@@ -1310,6 +1353,11 @@ class AdminDashboard extends Component
             'researchByProgram' => [],
             'monthlyResearchSubmissions' => [],
             'researchLifecycle' => ['title' => null, 'progress' => 0, 'completed' => 0, 'in_progress' => 0, 'pending' => 0, 'milestones' => []],
+            'progressGroups' => null,
+            'progressSearch' => '',
+            'progressGroupStatus' => 'active',
+            'progressGroupId' => null,
+            'allFilterGroups' => collect(),
             'revisionStats' => ['pending' => 0, 'completed' => 0, 'overdue' => 0],
             'revisionHistory' => [],
             'pendingActions' => [],
@@ -1329,7 +1377,17 @@ class AdminDashboard extends Component
             'dashboard' => array_merge($this->dashboardData(), $getAdminDashboardData->forTab('dashboard')),
             'users' => array_merge($this->userManagementData(), $this->roleManagementData()),
             'permissions', 'assign-roles' => $this->roleManagementData(),
-            'research', 'reports', 'defenses', 'forms' => $getAdminDashboardData->forTab($this->tab),
+            'research' => array_merge(
+                $getAdminDashboardData->forTab('research'),
+                $progressData->for(
+                    $administrator,
+                    request()->query('progress_search'),
+                    request()->query('progress_group_status'),
+                    request()->query('progress_page'),
+                    request()->query('progress_group_id'),
+                ),
+            ),
+            'reports', 'defenses', 'forms' => $getAdminDashboardData->forTab($this->tab),
             'repository' => $repositoryData->for($administrator, request()->query()),
             'audit' => $this->auditLogData($auditLogs),
             'backups' => $this->systemBackupData(),

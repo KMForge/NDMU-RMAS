@@ -85,7 +85,7 @@ class GetAdminDashboardData
     /** @return array{pending_users:int,active_research:int,pending_defenses:int} */
     public function sidebarSummary(): array
     {
-        return Cache::remember('admin-dashboard.sidebar-summary', now()->addSeconds(30), function (): array {
+        $compute = function (): array {
             return [
                 'pending_users' => User::query()
                     ->where('user_type', 'student')
@@ -102,7 +102,13 @@ class GetAdminDashboardData
                     ? DB::table('defenses')->whereIn('status', ['pending', 'requested'])->count()
                     : 0,
             ];
-        });
+        };
+
+        if (app()->environment('testing')) {
+            return $compute();
+        }
+
+        return Cache::remember('admin-dashboard.sidebar-summary', now()->addSeconds(30), $compute);
     }
 
     /**
