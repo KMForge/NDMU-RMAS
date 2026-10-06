@@ -11,6 +11,7 @@ use App\Models\ResearchClassGroup;
 use App\Models\User;
 use App\Models\UserSignature;
 use App\Modules\Classes\Actions\RequestAdviserForResearchClassGroup;
+use App\Modules\Dashboard\Services\UserLiveStateService;
 use App\Modules\OfficialForms\Actions\ApplyOfficialFormSignature;
 use App\Modules\OfficialForms\Actions\CreateOfficialFormInstance;
 use App\Modules\OfficialForms\Actions\SaveOfficialFormDraft;
@@ -710,6 +711,47 @@ class OfficialFormSignatureTest extends TestCase
 
         // Verify all 3 signatures are registered
         $this->assertCount(3, $instance->currentVersion->signatures);
+    }
+
+    public function test_unexpected_signature_failure_is_not_reported_as_a_success(): void
+    {
+        [$adviser, $instance] = $this->createFormInstanceForAdviser();
+        $this->mock(ApplyOfficialFormSignature::class, function ($mock): void {
+            $mock->shouldReceive('handle')->once()->andThrow(new \RuntimeException('Signature storage unavailable'));
+        });
+
+        $this->actingAs($adviser)
+            ->post(route('official-forms.workspace.sign-action', [$instance, 'endorse']), [
+                'expected_version_id' => $instance->current_version_id,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('official_form')
+            ->assertSessionMissing('official_form_success');
+
+        $this->assertDatabaseCount('official_form_signatures', 0);
+    }
+
+    public function test_broadcast_failure_does_not_hide_a_successfully_saved_signature(): void
+    {
+        [$adviser, $instance] = $this->createFormInstanceForAdviser();
+        $this->enrollSignature($adviser);
+        $this->mock(UserLiveStateService::class, function ($mock): void {
+            $mock->shouldReceive('broadcast')->once()->andThrow(new \RuntimeException('Broadcast unavailable'));
+        });
+
+        $this->actingAs($adviser)
+            ->post(route('official-forms.workspace.sign-action', [$instance, 'endorse']), [
+                'expected_version_id' => $instance->current_version_id,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('official_form_success', 'Digital signature attestation recorded.');
+
+        $this->assertDatabaseHas('official_form_signatures', [
+            'official_form_instance_id' => $instance->id,
+            'signer_user_id' => $adviser->id,
+            'academic_action' => 'endorse',
+        ]);
     }
 
     private function createFormInstanceForAdviser(string $code = 'RES-040'): array

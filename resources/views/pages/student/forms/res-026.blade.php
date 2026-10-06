@@ -30,9 +30,9 @@
                     <div class="min-h-7 border-b border-[#173c30] px-1 pt-1 font-medium">{{ $panelByPosition->get($panelRole['position'])?->user?->name }}</div>
                     <span class="text-[10px] italic">{{ $panelRole['label'] }}</span>
                 </div>
-                <div class="res-026-panel-signature"><x-official-signature-field :label="$panelRole['label'].' signature'" :actor-type="$panelRole['actor']" :academic-action="$panelRole['action']" /></div>
+                <div class="res-026-panel-signature"><x-official-signature-field :instance="$officialFormInstance" :label="$panelRole['label'].' signature'" :actor-type="$panelRole['actor']" :academic-action="$panelRole['action']" /></div>
             @endforeach
         </div>
-        <div class="official-signature-row grid grid-cols-2 gap-6 pt-2 text-center"><x-official-signature-field actor-type="program_coordinator" name-field="program_coordinator_name" label="Noted: Program Coordinator (Name & Signature)" /><x-official-signature-field actor-type="dean" name-field="college_dean_name" label="College Dean (Name & Signature)" /></div>
+        <div class="official-signature-row grid grid-cols-2 gap-6 pt-2 text-center"><x-official-signature-field :instance="$officialFormInstance" actor-type="program_coordinator" academic-action="endorse" name-field="program_coordinator_name" label="Noted: Program Coordinator (Name & Signature)" /><x-official-signature-field :instance="$officialFormInstance" actor-type="dean" academic-action="approve" name-field="college_dean_name" label="College Dean (Name & Signature)" /></div>
         </div>
     </x-student-official-form></div>

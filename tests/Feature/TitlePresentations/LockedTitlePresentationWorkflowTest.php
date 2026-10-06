@@ -357,6 +357,24 @@ class LockedTitlePresentationWorkflowTest extends TestCase
         ]);
     }
 
+    public function test_submitted_res026_does_not_claim_signatures_or_dean_approval(): void
+    {
+        $this->titleDocument(DocumentStatus::ApprovedForPresentation);
+        $instance = app(CreateOfficialFormInstance::class)->handle($this->student, 'RES-026', $this->group->id);
+        app(SubmitOfficialFormVersion::class)->handle($this->student, $instance, [
+            'topics' => ['Title A', 'Title B', 'Title C'],
+        ]);
+
+        $this->actingAs($this->student)
+            ->get(route('official-forms.workspace.show', $instance))
+            ->assertOk()
+            ->assertSee('Submitted - Signatures and Dean Approval Pending')
+            ->assertDontSee('Evaluation Submitted &amp; Signed', false);
+
+        $this->assertDatabaseCount('official_form_signatures', 0);
+        $this->assertDatabaseMissing('official_form_instances', ['id' => $instance->id, 'status' => 'approved']);
+    }
+
     public function test_exact_panel_coordinator_and_dean_signatures_finalize_the_canonical_title(): void
     {
         $this->seedCanonicalResearchContext();
@@ -437,6 +455,25 @@ class LockedTitlePresentationWorkflowTest extends TestCase
             ])
             ->assertRedirect();
         $this->assertSame('awaiting_program_coordinator', $presentation->fresh()->status);
+        $panelSignatures = $instance->fresh()->currentVersion->signatures;
+        $this->assertCount(3, $panelSignatures);
+        $panelResponse = $this->actingAs($this->student)
+            ->get(route('official-forms.workspace.show', $instance))
+            ->assertOk()
+            ->assertSee('Awaiting Program Coordinator signature')
+            ->assertDontSee('Evaluation Submitted &amp; Signed', false);
+        foreach ($panelSignatures as $signature) {
+            $panelResponse->assertSee(route('official-forms.workspace.signature-image', $signature), false);
+        }
+        $this->assertSame(3, substr_count($panelResponse->getContent(), 'data-digital-signature-status="verified"'));
+
+        $this->actingAs($dean)
+            ->post(route('official-forms.workspace.sign-action', [$instance, 'approve']), [
+                'expected_version_id' => $versionId,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('official_form');
+        $this->assertSame('awaiting_program_coordinator', $presentation->fresh()->status);
         $this->actingAs($coordinator)
             ->get(route('official-forms.workspace.show', $instance))
             ->assertOk()
@@ -445,6 +482,15 @@ class LockedTitlePresentationWorkflowTest extends TestCase
 
         $sign->handle($coordinator, $instance->id, $versionId, 'endorse');
         $this->assertSame('awaiting_dean', $presentation->fresh()->status);
+        $coordinatorResponse = $this->actingAs($this->student)
+            ->get(route('official-forms.workspace.show', $instance))
+            ->assertOk()
+            ->assertSee('Awaiting Dean approval');
+        $this->assertSame(4, substr_count($coordinatorResponse->getContent(), 'data-digital-signature-status="verified"'));
+        $this->assertDatabaseMissing('official_form_signatures', [
+            'official_form_instance_id' => $instance->id,
+            'academic_action' => 'approve',
+        ]);
 
         $deanPendingActions = app(GetPendingAcademicActionsForUser::class)->execute($dean);
         $this->assertTrue($deanPendingActions->contains(
@@ -457,8 +503,34 @@ class LockedTitlePresentationWorkflowTest extends TestCase
             ->assertSee($dean->name)
             ->assertSee('Sign &amp; Approve', false);
 
+        UserSignature::query()->where('user_id', $dean->id)->delete();
+        $this->actingAs($dean)
+            ->post(route('official-forms.workspace.action', [$instance, 'approve']))
+            ->assertRedirect()
+            ->assertSessionHasErrors('official_form');
+        $this->assertSame('endorsed', $instance->fresh()->status);
+        $this->assertSame('awaiting_dean', $presentation->fresh()->status);
+        $this->assertDatabaseMissing('official_form_signatures', [
+            'official_form_instance_id' => $instance->id,
+            'academic_action' => 'approve',
+        ]);
+        $this->enrollSignature($dean);
+
         $sign->handle($dean, $instance->id, $versionId, 'approve');
         $this->assertSame('finalized', $presentation->fresh()->status);
+        $finalResponse = $this->actingAs($this->student)
+            ->get(route('official-forms.workspace.show', $instance))
+            ->assertOk()
+            ->assertSee('Approved - All required signatures recorded');
+        $this->assertSame(5, substr_count($finalResponse->getContent(), 'data-digital-signature-status="verified"'));
+        $printResponse = $this->actingAs($this->student)
+            ->get(route('official-forms.print', $instance))
+            ->assertOk();
+        foreach ($instance->fresh()->currentVersion->signatures as $signature) {
+            $printResponse->assertSee(route('official-forms.workspace.signature-image', $signature), false);
+            $this->get(route('official-forms.workspace.signature-image', $signature))->assertOk();
+        }
+        $this->assertSame(5, substr_count($printResponse->getContent(), 'data-digital-signature-status="verified"'));
         $this->assertDatabaseHas('research_projects', [
             'research_group_id' => $this->group->fresh()->research_group_id,
             'title' => 'Canonical Title B',

@@ -293,10 +293,12 @@
                 </button>
                 @endif
             @endcan
-            @if ($instance->status === 'submitted')
-                <div class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black {{ $isRes036 && ! $hasRes036EvaluationSignature ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800' }}">
-                    <span class="inline-block h-2 w-2 rounded-full {{ $isRes036 && ! $hasRes036EvaluationSignature ? 'bg-amber-500' : 'bg-emerald-500' }}"></span>
-                    {{ $isRes036 && ! $hasRes036EvaluationSignature ? 'Evaluation Submitted — Signature Pending' : 'Evaluation Submitted & Signed' }}
+            @if (strtoupper($instance->definition->code) === 'RES-026' && in_array($instance->status, ['submitted', 'in_progress', 'endorsed', 'approved'], true))
+                <x-res026-approval-status :instance="$instance" />
+            @elseif ($instance->status === 'submitted')
+                <div class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black {{ $isRes036 && $hasRes036EvaluationSignature ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">
+                    <span class="inline-block h-2 w-2 rounded-full {{ $isRes036 && $hasRes036EvaluationSignature ? 'bg-emerald-500' : 'bg-amber-500' }}"></span>
+                    {{ $isRes036 ? ($hasRes036EvaluationSignature ? 'Evaluation Submitted & Signed' : 'Evaluation Submitted — Signature Pending') : 'Submitted - Awaiting required reviews and signatures' }}
                 </div>
             @endif
             @if (strtoupper($instance->definition->code) === 'RES-030' && ($availableActions->contains('approve') || $availableActions->contains('reject')))

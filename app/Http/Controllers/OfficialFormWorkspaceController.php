@@ -444,11 +444,15 @@ class OfficialFormWorkspaceController extends Controller
             $hasSignatureSpecimen = $user->isEligibleForSignatureEnrollment()
                 && UserSignature::query()->where('user_id', $user->id)->exists();
 
-            if ($hasSignatureSpecimen && $instance->currentVersion) {
+            $requiresRes026Signature = strtoupper((string) $instance->definition?->code) === 'RES-026';
+
+            // RES-026 cannot advance through the unsigned legacy action path.
+            // The signed action also enforces the exact panel/coordinator/dean order.
+            if ($requiresRes026Signature || ($hasSignatureSpecimen && $instance->currentVersion)) {
                 $applySignature->handle(
                     $user,
                     $instance->id,
-                    (int) $instance->currentVersion->id,
+                    (int) ($instance->currentVersion?->id ?? 0),
                     $action,
                     $request
                 );
@@ -507,11 +511,21 @@ class OfficialFormWorkspaceController extends Controller
                 $action,
                 $request
             );
-            app(UserLiveStateService::class)->broadcast($request->user());
         } catch (InvalidArgumentException $exception) {
             return back()->withErrors(['official_form' => $exception->getMessage()]);
-        } catch (\Throwable $e) {
-            // Non-blocking
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->withErrors([
+                'official_form' => 'The digital signature could not be recorded. Please try again or contact the administrator.',
+            ]);
+        }
+
+        try {
+            app(UserLiveStateService::class)->broadcast($request->user());
+        } catch (\Throwable $exception) {
+            // A notification outage must not hide a successfully saved signature.
+            report($exception);
         }
 
         return back()->with('official_form_success', 'Digital signature attestation recorded.');
