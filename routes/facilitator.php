@@ -102,17 +102,17 @@ Route::prefix('facilitator')->name('facilitator.')->middleware([
         ->whereNumber('researchClass')
         ->group(function (): void {
             Route::get('/defense-committees', [ClassDefenseCommitteeController::class, 'show'])
-                ->middleware('permission:defenses.manage')
+                ->middleware('permission:defenses.manage|classes.assign-advisers')
                 ->name('classes.defense-committees.show');
             Route::post('/defense-committees', [ClassDefenseCommitteeController::class, 'assignClass'])
-                ->middleware('permission:defenses.manage')
+                ->middleware('permission:defenses.manage|classes.assign-advisers')
                 ->name('classes.defense-committees.store');
             Route::put('/groups/{group}/defense-committee', [ClassDefenseCommitteeController::class, 'assignGroup'])
-                ->middleware('permission:defenses.manage')
+                ->middleware('permission:defenses.manage|classes.assign-advisers')
                 ->whereNumber('group')
                 ->name('classes.groups.defense-committee.assign');
             Route::delete('/groups/{group}/defense-committee', [ClassDefenseCommitteeController::class, 'resetGroup'])
-                ->middleware('permission:defenses.manage')
+                ->middleware('permission:defenses.manage|classes.assign-advisers')
                 ->whereNumber('group')
                 ->name('classes.groups.defense-committee.reset');
 

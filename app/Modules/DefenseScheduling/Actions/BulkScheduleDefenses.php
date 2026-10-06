@@ -12,7 +12,9 @@ use App\Models\DefenseSchedule;
 use App\Models\DefenseSession;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
+use App\Models\ResearchClassPanelCommittee;
 use App\Models\User;
+use App\Modules\DefenseScheduling\Services\EffectiveDefenseCommitteeResolver;
 use App\Modules\TitlePresentations\Actions\LinkScheduledTitlePresentation;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -22,6 +24,10 @@ use Illuminate\Validation\ValidationException;
 
 class BulkScheduleDefenses
 {
+    public function __construct(
+        private readonly EffectiveDefenseCommitteeResolver $committeeResolver,
+    ) {}
+
     /**
      * Handle invocation from controller or jobs using model instances.
      */
@@ -104,13 +110,19 @@ class BulkScheduleDefenses
         }
 
         // 3. Validate Groups and verify all have assigned committees
-        $groups = ResearchClassGroup::with(['panelCommittees' => function ($q) use ($defenseType) {
-            $q->where('defense_type', $defenseType)->with('members.user', 'chairperson');
+        $committeeTypes = $this->committeeResolver->sourceTypesFor($defenseType);
+        $groups = ResearchClassGroup::with(['panelCommittees' => function ($q) use ($committeeTypes) {
+            $q->whereIn('defense_type', $committeeTypes)->with('members.user', 'chairperson');
         }])
             ->where('research_class_id', $researchClass->id)
             ->whereIn('id', $orderedGroupIds)
             ->get()
             ->keyBy('id');
+        $classCommittees = ResearchClassPanelCommittee::query()
+            ->where('research_class_id', $researchClass->id)
+            ->whereIn('defense_type', $committeeTypes)
+            ->with(['members.user', 'chairperson'])
+            ->get();
 
         if ($groups->count() !== count($orderedGroupIds)) {
             throw ValidationException::withMessages([
@@ -123,7 +135,8 @@ class BulkScheduleDefenses
 
         foreach ($orderedGroupIds as $groupId) {
             $group = $groups->get($groupId);
-            $committee = $group->panelCommittees->first();
+            $committee = $this->committeeResolver
+                ->resolve($group->panelCommittees, $classCommittees, $defenseType)['committee'];
 
             if (! $committee || ! $committee->chairperson_id || $committee->members->count() < 2) {
                 throw ValidationException::withMessages([

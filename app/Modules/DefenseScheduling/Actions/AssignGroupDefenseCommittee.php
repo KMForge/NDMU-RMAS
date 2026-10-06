@@ -9,6 +9,7 @@ use App\Models\ResearchClassGroup;
 use App\Models\ResearchGroupPanelCommittee;
 use App\Models\ResearchGroupPanelMember;
 use App\Models\User;
+use App\Modules\DefenseScheduling\Services\ManageDefenseCommitteeAccess;
 use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use App\Modules\OfficialForms\Actions\CreateOfficialFormInstance;
 use App\Modules\OfficialForms\Services\InstitutionalActorResolver;
@@ -22,6 +23,7 @@ class AssignGroupDefenseCommittee
         private readonly CreateOfficialFormInstance $createOfficialForm,
         private readonly InstitutionalActorResolver $institutionalActors,
         private readonly WorkflowNotificationDispatcher $notifications,
+        private readonly ManageDefenseCommitteeAccess $access,
     ) {}
 
     /**
@@ -73,11 +75,11 @@ class AssignGroupDefenseCommittee
         $actor = User::findOrFail($assignedByUserId);
         $group = ResearchClassGroup::with('researchClass')->findOrFail($researchClassGroupId);
 
-        if ($actor->user_type !== UserType::Faculty || $actor->status !== AccountStatus::Active || ! $actor->can('defenses.manage')) {
+        if ($actor->user_type !== UserType::Faculty || $actor->status !== AccountStatus::Active) {
             throw new AuthorizationException('Unauthorized to manage defense committees.');
         }
 
-        if (! $group->researchClass || (int) $group->researchClass->facilitator_id !== (int) $actor->id) {
+        if (! $this->access->forGroup($actor, $group)) {
             throw new AuthorizationException('You are not authorized to manage committees for this class group.');
         }
 

@@ -228,6 +228,46 @@ class BulkDefenseSchedulingTest extends TestCase
         );
     }
 
+    public function test_bulk_scheduling_uses_the_latest_prior_stage_committee(): void
+    {
+        app(AssignClassDefenseCommittee::class)->execute(
+            researchClassId: $this->researchClass->id,
+            defenseType: 'title_presentation',
+            chairpersonId: $this->chairperson->id,
+            panelMember1Id: $this->panel1->id,
+            panelMember2Id: $this->panel2->id,
+            assignedByUserId: $this->facilitator->id,
+        );
+
+        $session = app(BulkScheduleDefenses::class)->execute(
+            researchClassId: $this->researchClass->id,
+            defenseType: 'final_defense',
+            roomId: $this->room->id,
+            sessionDate: '2026-10-20',
+            startsAt: '2026-10-20 08:00:00',
+            endsAt: '2026-10-20 12:00:00',
+            orderedGroupIds: [$this->classGroup1->id],
+            scheduledByUserId: $this->facilitator->id,
+        );
+
+        $defense = Defense::query()
+            ->where('research_class_group_id', $this->classGroup1->id)
+            ->where('defense_type', 'final_defense')
+            ->firstOrFail();
+
+        $this->assertSame($session->id, $defense->currentSchedule->defense_session_id);
+        $this->assertDatabaseHas('defense_panel_assignments', [
+            'defense_id' => $defense->id,
+            'user_id' => $this->chairperson->id,
+            'panel_position' => 'chairperson',
+        ]);
+        $this->assertDatabaseHas('defense_panel_assignments', [
+            'defense_id' => $defense->id,
+            'user_id' => $this->panel2->id,
+            'panel_position' => 'member_2',
+        ]);
+    }
+
     public function test_bulk_scheduling_detects_room_conflicts(): void
     {
         // Assign committee

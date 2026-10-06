@@ -17,6 +17,10 @@ use Carbon\CarbonInterface;
 
 class CheckDefenseSchedulingConflicts
 {
+    public function __construct(
+        private readonly EffectiveDefenseCommitteeResolver $committeeResolver,
+    ) {}
+
     /**
      * @param  array<int, int>  $orderedGroupIds  Array of group IDs in presentation order
      * @return array{
@@ -87,18 +91,18 @@ class CheckDefenseSchedulingConflicts
             ->get()
             ->keyBy('id');
 
-        $classCommittee = ResearchClassPanelCommittee::query()
+        $committeeTypes = $this->committeeResolver->sourceTypesFor($defenseType);
+        $classCommittees = ResearchClassPanelCommittee::query()
             ->where('research_class_id', $researchClass->id)
-            ->where('defense_type', $defenseType)
+            ->whereIn('defense_type', $committeeTypes)
             ->with(['chairperson', 'members.user'])
-            ->first();
+            ->get();
 
         $savedGroupCommittees = ResearchGroupPanelCommittee::query()
             ->whereIn('research_class_group_id', $orderedGroupIds)
-            ->where('defense_type', $defenseType)
+            ->whereIn('defense_type', $committeeTypes)
             ->with(['chairperson', 'members.user'])
-            ->get()
-            ->keyBy('research_class_group_id');
+            ->get();
 
         $involvedFacultyIds = [];
 
@@ -149,16 +153,24 @@ class CheckDefenseSchedulingConflicts
             }
 
             // Committee assignment check
-            $committee = $savedGroupCommittees->get($groupId);
-            $chairperson = $committee?->chairperson ?? $classCommittee?->chairperson;
-            $members = $committee?->members ?? $classCommittee?->members ?? collect();
+            $resolution = $this->committeeResolver->resolve(
+                $savedGroupCommittees->where('research_class_group_id', $groupId)->values(),
+                $classCommittees,
+                $defenseType,
+            );
+            $committee = $resolution['committee'];
+            $chairperson = $committee?->chairperson;
+            $members = $committee?->members ?? collect();
             $member1 = $members->firstWhere('panel_position', 'member_1')?->user ?? $members->get(0)?->user ?? null;
             $member2 = $members->firstWhere('panel_position', 'member_2')?->user ?? $members->get(1)?->user ?? null;
 
-            $isCustom = $committee?->is_custom ?? false;
-            $statusLabel = $committee !== null
-                ? ($isCustom ? 'Customized assignment' : 'Uses class assignment')
-                : ($classCommittee !== null ? 'Uses class assignment' : 'Missing assignment');
+            $isCustom = $committee instanceof ResearchGroupPanelCommittee && $committee->is_custom;
+            $statusLabel = match (true) {
+                $resolution['inherited_from_title'] => 'Inherited from Title Presentation',
+                $isCustom => 'Customized assignment',
+                $committee !== null => 'Uses class assignment',
+                default => 'Missing assignment',
+            };
 
             $groupCommittees[$groupId] = [
                 'order' => $orderNum,

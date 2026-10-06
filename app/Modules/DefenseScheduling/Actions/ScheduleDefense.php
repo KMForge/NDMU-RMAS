@@ -10,8 +10,8 @@ use App\Models\DefensePanelAssignment;
 use App\Models\DefenseRoom;
 use App\Models\DefenseSchedule;
 use App\Models\ResearchClassGroup;
-use App\Models\ResearchGroupPanelCommittee;
 use App\Models\User;
+use App\Modules\DefenseScheduling\Services\EffectiveDefenseCommitteeResolver;
 use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -22,6 +22,7 @@ class ScheduleDefense
 {
     public function __construct(
         private readonly WorkflowNotificationDispatcher $notifications = new WorkflowNotificationDispatcher,
+        private readonly EffectiveDefenseCommitteeResolver $committeeResolver = new EffectiveDefenseCommitteeResolver,
     ) {}
 
     public function handle(
@@ -55,14 +56,11 @@ class ScheduleDefense
         }
 
         if ($chairpersonUserId === null || empty($panelUserIds)) {
-            $groupCommittee = ResearchGroupPanelCommittee::with('members')
-                ->where('research_class_group_id', $group->id)
-                ->where('defense_type', $defenseType)
-                ->first();
-            if ($groupCommittee) {
-                $chairpersonUserId = $chairpersonUserId ?? $groupCommittee->chairperson_id;
+            $effectiveCommittee = $this->committeeResolver->forGroup($group, $defenseType)['committee'];
+            if ($effectiveCommittee) {
+                $chairpersonUserId = $chairpersonUserId ?? $effectiveCommittee->chairperson_id;
                 if (empty($panelUserIds)) {
-                    $panelUserIds = $groupCommittee->members->pluck('user_id')->all();
+                    $panelUserIds = $effectiveCommittee->members->pluck('user_id')->all();
                 }
             }
         }

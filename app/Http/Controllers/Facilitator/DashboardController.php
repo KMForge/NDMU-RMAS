@@ -11,6 +11,8 @@ use App\Models\User;
 use App\Modules\Classes\Queries\GetFacilitatorClassData;
 use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use App\Modules\DefenseScheduling\Services\DefenseEndorsementEligibility;
+use App\Modules\DefenseScheduling\Services\EffectiveDefenseCommitteeResolver;
+use App\Modules\DefenseScheduling\Services\ManageDefenseCommitteeAccess;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\Documents\Queries\GetFacilitatorScreeningData;
 use App\Modules\Evaluations\Queries\GetEvaluationRoundData;
@@ -32,6 +34,8 @@ class DashboardController extends Controller
         GetFacilitatorProgressData $progressData,
         GetDefenseScheduleCalendar $defenseCalendar,
         DefenseEndorsementEligibility $endorsementEligibility,
+        EffectiveDefenseCommitteeResolver $committeeResolver,
+        ManageDefenseCommitteeAccess $committeeAccess,
         GetPendingAcademicActionsForUser $pendingActionsService,
         GetNotificationsForUser $notificationQuery,
         GetFacilitatorStatisticsData $statisticsData,
@@ -75,10 +79,29 @@ class DashboardController extends Controller
         $evalData = $activeTab === 'defenses'
             ? app(GetEvaluationRoundData::class)->forFacilitator($request->user())
             : ['rounds' => []];
+        $committeeClasses = collect();
+        if ($activeTab === 'defenses') {
+            $committeeClassQuery = ResearchClass::query()
+                ->with([
+                    'facilitator.facultyProfile',
+                    'groups.members.student.studentProfile.program',
+                    'groups' => fn ($query) => $query->where('status', 'active'),
+                ])
+                ->orderBy('name');
+
+            if (! $request->user()->can('classes.assign-advisers')) {
+                $committeeClassQuery->where('facilitator_id', $request->user()->id);
+            }
+
+            $committeeClasses = $committeeClassQuery->get()
+                ->filter(fn (ResearchClass $researchClass): bool => $committeeAccess->forClass($request->user(), $researchClass))
+                ->values();
+        }
+        $committeeClassIds = $committeeClasses->pluck('id');
         $defenseSchedulingGroups = $activeTab === 'defenses'
             ? ResearchClassGroup::query()
                 ->where('status', 'active')
-                ->whereHas('researchClass', fn ($query) => $query->where('facilitator_id', $request->user()->id))
+                ->whereIn('research_class_id', $committeeClassIds)
                 ->with([
                     'researchClass:id,name,facilitator_id',
                     'researchClass.panelCommittees.chairperson:id,name',
@@ -98,7 +121,7 @@ class DashboardController extends Controller
                 ])
                 ->orderBy('name')
                 ->get()
-                ->map(function (ResearchClassGroup $group) use ($endorsementEligibility): array {
+                ->map(function (ResearchClassGroup $group) use ($endorsementEligibility, $committeeResolver): array {
                     $defenseTypes = [
                         'title_presentation',
                         'proposal_defense',
@@ -119,10 +142,13 @@ class DashboardController extends Controller
                         ?: ($group->adviser?->department
                         ?: ($group->researchClass?->facilitator?->department ?: 'Computer Studies Department'));
 
-                    $committeeAssignments = collect($defenseTypes)->mapWithKeys(function (string $defenseType) use ($group): array {
-                        $groupCommittee = $group->panelCommittees->firstWhere('defense_type', $defenseType);
-                        $classCommittee = $group->researchClass?->panelCommittees->firstWhere('defense_type', $defenseType);
-                        $committee = $groupCommittee ?? $classCommittee;
+                    $committeeAssignments = collect($defenseTypes)->mapWithKeys(function (string $defenseType) use ($group, $committeeResolver): array {
+                        $resolution = $committeeResolver->resolve(
+                            $group->panelCommittees,
+                            $group->researchClass?->panelCommittees ?? collect(),
+                            $defenseType,
+                        );
+                        $committee = $resolution['committee'];
                         $members = $committee?->members?->sortBy('panel_position')->values() ?? collect();
                         $memberOne = $members->firstWhere('panel_position', 'member_1')?->user ?? $members->get(0)?->user;
                         $memberTwo = $members->firstWhere('panel_position', 'member_2')?->user ?? $members->get(1)?->user;
@@ -134,9 +160,14 @@ class DashboardController extends Controller
                             'member_1_name' => $memberOne?->name,
                             'member_2_id' => $memberTwo?->id,
                             'member_2_name' => $memberTwo?->name,
-                            'source_label' => $groupCommittee !== null
-                                ? ($groupCommittee->is_custom ? 'Customized group committee' : 'Class defense committee')
-                                : ($classCommittee !== null ? 'Class defense committee' : null),
+                            'source_label' => match (true) {
+                                $resolution['inherited'] => 'Inherited from '.str($resolution['source_defense_type'])->replace('_', ' ')->title(),
+                                $resolution['scope'] === 'group' && $committee?->is_custom => 'Customized group committee',
+                                $committee !== null => 'Class defense committee',
+                                default => null,
+                            },
+                            'inherited' => $resolution['inherited'],
+                            'inherited_from_title' => $resolution['inherited_from_title'],
                         ]];
                     })->all();
 
@@ -166,11 +197,7 @@ class DashboardController extends Controller
                 })
             : collect();
         $facilitatorClasses = $activeTab === 'defenses'
-            ? ResearchClass::query()
-                ->where('facilitator_id', $request->user()->id)
-                ->with(['groups' => fn ($q) => $q->where('status', 'active')])
-                ->orderBy('name')
-                ->get()
+            ? $committeeClasses
             : collect();
 
         $defensePanelCandidates = $activeTab === 'defenses'

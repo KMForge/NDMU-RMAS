@@ -10,6 +10,7 @@ use App\Models\ResearchGroupPanelCommittee;
 use App\Models\User;
 use App\Modules\DefenseScheduling\Actions\AssignClassDefenseCommittee;
 use App\Modules\DefenseScheduling\Actions\AssignGroupDefenseCommittee;
+use App\Modules\DefenseScheduling\Actions\ResetGroupDefenseCommittee;
 use App\Modules\DefenseScheduling\Queries\GetClassCommitteeAssignments;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
 use Database\Seeders\RolePermissionSeeder;
@@ -333,5 +334,111 @@ class DefenseCommitteeAssignmentTest extends TestCase
 
         $this->assertSame($this->panel2->id, $member1->user_id);
         $this->assertSame($this->panel1->id, $member2->user_id);
+    }
+
+    public function test_latest_prior_stage_committee_is_inherited_until_overridden(): void
+    {
+        $action = app(AssignGroupDefenseCommittee::class);
+        $action->execute(
+            researchClassGroupId: $this->classGroup1->id,
+            defenseType: 'title_presentation',
+            chairpersonId: $this->chairperson->id,
+            panelMember1Id: $this->panel1->id,
+            panelMember2Id: $this->panel2->id,
+            assignedByUserId: $this->facilitator->id,
+        );
+
+        $inheritedFromTitle = app(GetClassCommitteeAssignments::class)
+            ->forClass($this->researchClass, 'final_defense')['groups']
+            ->firstWhere('id', $this->classGroup1->id);
+
+        $this->assertTrue($inheritedFromTitle['committee_inherited']);
+        $this->assertSame('title_presentation', $inheritedFromTitle['committee_source_defense_type']);
+        $this->assertSame($this->chairperson->id, $inheritedFromTitle['chairperson_id']);
+
+        $proposalChair = User::factory()->create(['name' => 'Proposal Chair']);
+        $proposalChair->givePermissionTo('evaluations.create');
+        $action->execute(
+            researchClassGroupId: $this->classGroup1->id,
+            defenseType: 'proposal_defense',
+            chairpersonId: $proposalChair->id,
+            panelMember1Id: $this->panel1->id,
+            panelMember2Id: $this->panel2->id,
+            assignedByUserId: $this->facilitator->id,
+        );
+
+        $inheritedFromProposal = app(GetClassCommitteeAssignments::class)
+            ->forClass($this->researchClass, 'final_defense')['groups']
+            ->firstWhere('id', $this->classGroup1->id);
+
+        $this->assertTrue($inheritedFromProposal['committee_inherited']);
+        $this->assertSame('proposal_defense', $inheritedFromProposal['committee_source_defense_type']);
+        $this->assertSame($proposalChair->id, $inheritedFromProposal['chairperson_id']);
+    }
+
+    public function test_resetting_a_later_stage_override_restores_the_inherited_title_panel(): void
+    {
+        $action = app(AssignGroupDefenseCommittee::class);
+        $action->execute(
+            researchClassGroupId: $this->classGroup1->id,
+            defenseType: 'title_presentation',
+            chairpersonId: $this->chairperson->id,
+            panelMember1Id: $this->panel1->id,
+            panelMember2Id: $this->panel2->id,
+            assignedByUserId: $this->facilitator->id,
+        );
+
+        $proposalChair = User::factory()->create(['name' => 'Temporary Proposal Chair']);
+        $proposalChair->givePermissionTo('evaluations.create');
+        $action->execute(
+            researchClassGroupId: $this->classGroup1->id,
+            defenseType: 'proposal_defense',
+            chairpersonId: $proposalChair->id,
+            panelMember1Id: $this->panel1->id,
+            panelMember2Id: $this->panel2->id,
+            assignedByUserId: $this->facilitator->id,
+        );
+
+        $committee = app(ResetGroupDefenseCommittee::class)->execute(
+            researchClassGroupId: $this->classGroup1->id,
+            defenseType: 'proposal_defense',
+            assignedByUserId: $this->facilitator->id,
+        );
+
+        $this->assertSame('title_presentation', $committee->defense_type);
+        $this->assertSame($this->chairperson->id, $committee->chairperson_id);
+        $this->assertDatabaseMissing('research_group_panel_committees', [
+            'research_class_group_id' => $this->classGroup1->id,
+            'defense_type' => 'proposal_defense',
+        ]);
+    }
+
+    public function test_program_coordinator_can_change_a_committee_for_their_scoped_class(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+
+        $coordinator = User::factory()->create([
+            'user_type' => UserType::Faculty,
+            'approved_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+        $coordinator->assignRole('program-coordinator');
+
+        $committee = app(AssignClassDefenseCommittee::class)->execute(
+            researchClassId: $this->researchClass->id,
+            defenseType: 'title_presentation',
+            chairpersonId: $this->chairperson->id,
+            panelMember1Id: $this->panel1->id,
+            panelMember2Id: $this->panel2->id,
+            assignedByUserId: $coordinator->id,
+        );
+
+        $this->assertSame($this->researchClass->id, $committee->research_class_id);
+        $this->assertSame('title_presentation', $committee->defense_type);
+        $this->assertDatabaseHas('research_group_panel_committees', [
+            'research_class_group_id' => $this->classGroup1->id,
+            'defense_type' => 'title_presentation',
+            'chairperson_id' => $this->chairperson->id,
+        ]);
     }
 }

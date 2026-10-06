@@ -11,12 +11,17 @@ use App\Models\ResearchClassPanelMember;
 use App\Models\ResearchGroupPanelCommittee;
 use App\Models\ResearchGroupPanelMember;
 use App\Models\User;
+use App\Modules\DefenseScheduling\Services\ManageDefenseCommitteeAccess;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class AssignClassDefenseCommittee
 {
+    public function __construct(
+        private readonly ManageDefenseCommitteeAccess $access,
+    ) {}
+
     /**
      * Handle invocation with model instances.
      */
@@ -73,11 +78,11 @@ class AssignClassDefenseCommittee
         $actor = User::findOrFail($assignedByUserId);
         $researchClass = ResearchClass::findOrFail($researchClassId);
 
-        if ($actor->user_type !== UserType::Faculty || $actor->status !== AccountStatus::Active || ! $actor->can('defenses.manage')) {
+        if ($actor->user_type !== UserType::Faculty || $actor->status !== AccountStatus::Active) {
             throw new AuthorizationException('Unauthorized to manage defense committees.');
         }
 
-        if ((int) $researchClass->facilitator_id !== (int) $actor->id) {
+        if (! $this->access->forClass($actor, $researchClass)) {
             throw new AuthorizationException('You are not authorized to manage committees for this class.');
         }
 

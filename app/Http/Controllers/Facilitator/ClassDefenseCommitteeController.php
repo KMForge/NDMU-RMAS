@@ -9,6 +9,7 @@ use App\Modules\DefenseScheduling\Actions\AssignClassDefenseCommittee;
 use App\Modules\DefenseScheduling\Actions\AssignGroupDefenseCommittee;
 use App\Modules\DefenseScheduling\Actions\ResetGroupDefenseCommittee;
 use App\Modules\DefenseScheduling\Queries\GetClassCommitteeAssignments;
+use App\Modules\DefenseScheduling\Services\ManageDefenseCommitteeAccess;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -23,7 +24,12 @@ class ClassDefenseCommitteeController extends Controller
         Request $request,
         ResearchClass $researchClass,
         GetClassCommitteeAssignments $query,
+        ManageDefenseCommitteeAccess $access,
     ): JsonResponse {
+        if (! $access->forClass($request->user(), $researchClass)) {
+            throw new AuthorizationException('You are not authorized to view committees for this class.');
+        }
+
         $defenseType = (string) $request->query('defense_type', 'proposal_defense');
 
         $data = $query->forClass($researchClass, $defenseType);
@@ -200,11 +206,11 @@ class ClassDefenseCommitteeController extends Controller
 
         if ($request->expectsJson()) {
             return response()->json([
-                'message' => 'Group committee reverted to class default.',
+                'message' => 'Group committee reverted to its inherited or class default panel.',
                 'committee' => $committee,
             ]);
         }
 
-        return back()->with('status', 'Group committee reverted to class default.');
+        return back()->with('status', 'Group committee reverted to its inherited or class default panel.');
     }
 }

@@ -9,12 +9,14 @@ use App\Models\ResearchClassPanelCommittee;
 use App\Models\ResearchGroupPanelCommittee;
 use App\Models\User;
 use App\Modules\DefenseScheduling\Services\DefenseEndorsementEligibility;
+use App\Modules\DefenseScheduling\Services\EffectiveDefenseCommitteeResolver;
 use Illuminate\Support\Collection;
 
 class GetClassCommitteeAssignments
 {
     public function __construct(
         private readonly DefenseEndorsementEligibility $endorsementEligibility,
+        private readonly EffectiveDefenseCommitteeResolver $committeeResolver,
     ) {}
 
     /**
@@ -27,18 +29,24 @@ class GetClassCommitteeAssignments
      */
     public function forClass(ResearchClass $researchClass, string $defenseType): array
     {
-        $classCommittee = ResearchClassPanelCommittee::query()
+        $committeeTypes = [
+            EffectiveDefenseCommitteeResolver::TITLE_PRESENTATION,
+            'proposal_defense',
+            'pre_final_defense',
+            'final_defense',
+        ];
+
+        $classCommittees = ResearchClassPanelCommittee::query()
             ->where('research_class_id', $researchClass->id)
-            ->where('defense_type', $defenseType)
+            ->whereIn('defense_type', $committeeTypes)
             ->with(['chairperson:id,name,email,department', 'members.user:id,name,email,department'])
-            ->first();
+            ->get();
 
         $groupCommittees = ResearchGroupPanelCommittee::query()
             ->whereHas('group', fn ($q) => $q->where('research_class_id', $researchClass->id)->where('status', 'active'))
-            ->where('defense_type', $defenseType)
+            ->whereIn('defense_type', $committeeTypes)
             ->with(['chairperson:id,name,email,department', 'members.user:id,name,email,department'])
-            ->get()
-            ->keyBy('research_class_group_id');
+            ->get();
 
         $panelInvitations = OfficialFormInstance::query()
             ->whereHas('group', fn ($query) => $query->where('research_class_id', $researchClass->id))
@@ -53,37 +61,36 @@ class GetClassCommitteeAssignments
             ->with(['adviser:id,name,email,department', 'leader:id,name'])
             ->orderBy('name')
             ->get()
-            ->map(function (ResearchClassGroup $group) use ($groupCommittees, $classCommittee, $defenseType, $panelInvitations): array {
-                $groupCommittee = $groupCommittees->get($group->id);
-
-                if ($groupCommittee !== null) {
-                    $chairperson = $groupCommittee->chairperson;
-                    $members = $groupCommittee->members->sortBy('panel_position')->values();
-                    $isCustom = (bool) $groupCommittee->is_custom;
-                    $statusLabel = $isCustom ? 'Customized assignment' : 'Uses class assignment';
-                } elseif ($classCommittee !== null) {
-                    // Falls back to class default if not explicitly written to group yet
-                    $chairperson = $classCommittee->chairperson;
-                    $members = $classCommittee->members->sortBy('panel_position')->values();
-                    $isCustom = false;
-                    $statusLabel = 'Uses class assignment';
-                } else {
-                    $chairperson = null;
-                    $members = collect();
-                    $isCustom = false;
-                    $statusLabel = 'Missing assignment';
-                }
+            ->map(function (ResearchClassGroup $group) use ($groupCommittees, $classCommittees, $defenseType, $panelInvitations): array {
+                $resolution = $this->committeeResolver->resolve(
+                    $groupCommittees->where('research_class_group_id', $group->id)->values(),
+                    $classCommittees,
+                    $defenseType,
+                );
+                $committee = $resolution['committee'];
+                $chairperson = $committee?->chairperson;
+                $members = $committee?->members?->sortBy('panel_position')->values() ?? collect();
+                $isCustom = $committee instanceof ResearchGroupPanelCommittee && (bool) $committee->is_custom;
+                $sourceLabel = str($resolution['source_defense_type'] ?? '')->replace('_', ' ')->title()->toString();
+                $statusLabel = match (true) {
+                    $resolution['inherited'] => "Inherited from {$sourceLabel}",
+                    $isCustom => 'Customized assignment',
+                    $resolution['scope'] === 'class' => 'Uses class assignment',
+                    $resolution['scope'] === 'group' => 'Uses class assignment',
+                    default => 'Missing assignment',
+                };
 
                 $member1 = $members->firstWhere('panel_position', 'member_1')?->user ?? $members->get(0)?->user ?? null;
                 $member2 = $members->firstWhere('panel_position', 'member_2')?->user ?? $members->get(1)?->user ?? null;
 
                 $isComplete = $chairperson !== null && $member1 !== null && $member2 !== null;
-                $invitationStatus = function (string $position, ?User $invitee) use ($group, $defenseType, $panelInvitations): ?string {
+                $invitationStatus = function (string $position, ?User $invitee) use ($group, $resolution, $panelInvitations): ?string {
                     if ($invitee === null) {
                         return null;
                     }
 
-                    $contextKey = "panel-invitation:{$defenseType}:{$position}";
+                    $invitationDefenseType = $resolution['source_defense_type'];
+                    $contextKey = "panel-invitation:{$invitationDefenseType}:{$position}";
                     $instance = $panelInvitations->first(fn (OfficialFormInstance $form): bool => (int) $form->research_class_group_id === (int) $group->id
                         && $form->context_key === $contextKey
                         && $form->actorAssignments->contains(fn ($assignment): bool => (int) $assignment->user_id === (int) $invitee->id));
@@ -104,9 +111,14 @@ class GetClassCommitteeAssignments
                     'adviser_id' => $group->adviser_id,
                     'adviser_name' => $group->adviser?->name ?? 'Not assigned',
                     'assignment_status' => $statusLabel,
-                    'committee_status' => $groupCommittee !== null ? ($isCustom ? 'custom' : 'class') : ($classCommittee !== null ? 'class' : 'missing'),
+                    'committee_status' => $committee !== null
+                        ? ($resolution['inherited'] ? 'inherited' : ($isCustom ? 'custom' : 'class'))
+                        : 'missing',
                     'committee_status_label' => $statusLabel,
                     'is_custom' => $isCustom,
+                    'committee_inherited' => $resolution['inherited'],
+                    'inherited_from_title' => $resolution['inherited_from_title'],
+                    'committee_source_defense_type' => $resolution['source_defense_type'],
                     'is_complete' => $isComplete,
                     'res033_complete' => $this->endorsementEligibility->isComplete($group, $defenseType),
                     'chairperson_id' => $chairperson?->id,
@@ -135,18 +147,20 @@ class GetClassCommitteeAssignments
                 'name' => $researchClass->name,
             ],
             'defense_type' => $defenseType,
-            'class_committee' => $classCommittee ? [
-                'chairperson' => $classCommittee->chairperson ? [
-                    'id' => $classCommittee->chairperson->id,
-                    'name' => $classCommittee->chairperson->name,
-                    'department' => $classCommittee->chairperson->department,
+            'class_committee' => ($classResolution = $this->committeeResolver->resolve(collect(), $classCommittees, $defenseType))['committee'] ? [
+                'chairperson' => $classResolution['committee']->chairperson ? [
+                    'id' => $classResolution['committee']->chairperson->id,
+                    'name' => $classResolution['committee']->chairperson->name,
+                    'department' => $classResolution['committee']->chairperson->department,
                 ] : null,
-                'members' => $classCommittee->members->map(fn ($m) => [
+                'members' => $classResolution['committee']->members->map(fn ($m) => [
                     'id' => $m->user?->id,
                     'name' => $m->user?->name,
                     'position' => $m->panel_position,
                     'department' => $m->user?->department,
                 ])->all(),
+                'inherited' => $classResolution['inherited'],
+                'source_defense_type' => $classResolution['source_defense_type'],
             ] : null,
             'groups' => $groups,
         ];

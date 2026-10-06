@@ -165,8 +165,8 @@
             </div>
 
             <div class="rounded-2xl border border-blue-200 bg-blue-50/90 p-4 text-xs text-blue-900">
-                Scheduling requirements are checked separately for each defense stage. You are scheduling
-                <span class="font-black" x-text="defenseStageLabel(bulkScheduleForm.type)"></span>; its panel invitations and matching RES-033 must both be complete.
+                You are scheduling <span class="font-black" x-text="defenseStageLabel(bulkScheduleForm.type)"></span>.
+                The accepted Title Presentation panel is inherited unless an authorized facilitator or program coordinator saved a later-stage override. RES-033 remains stage-specific.
             </div>
 
             <!-- Conflicts Alert Box -->
