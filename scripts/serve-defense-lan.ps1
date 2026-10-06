@@ -70,8 +70,13 @@ if ($dockerCheck -like "*Up*") {
     }
 }
 
-# 5. Set PHP Server Workers and Launch Server
+# 5. Set PHP Server Workers and Optimize Caches for Instant Loading
 $env:PHP_CLI_SERVER_WORKERS = '8'
+Write-Host "[*] Pre-compiling routes, views, and configuration for maximum speed..." -ForegroundColor Gray
+php artisan config:cache 2>$null | Out-Null
+php artisan route:cache 2>$null | Out-Null
+php artisan view:cache 2>$null | Out-Null
+Write-Host "[v] System caches pre-compiled and warmed up." -ForegroundColor Green
 
 Write-Host ""
 Write-Host "--------------------------------------------------------------" -ForegroundColor DarkGray
