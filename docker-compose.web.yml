@@ -1,0 +1,47 @@
+name: ndmu-rmas-web
+
+x-php: &php
+  build:
+    context: .
+    dockerfile: docker/Dockerfile.web
+  image: ndmu-rmas-web:local
+  restart: unless-stopped
+  working_dir: /var/www/html
+  volumes:
+    - ./:/var/www/html
+    - php-vendor:/var/www/html/vendor
+    - ./docker/web-php.ini:/usr/local/etc/php/conf.d/ndmu-rmas.ini:ro
+    - ./docker/web-fpm.conf:/usr/local/etc/php-fpm.d/zz-ndmu-rmas.conf:ro
+  environment:
+    APP_CONFIG_CACHE: /tmp/ndmu-rmas-config.php
+    APP_SERVICES_CACHE: /tmp/ndmu-rmas-services.php
+    APP_PACKAGES_CACHE: /tmp/ndmu-rmas-packages.php
+    DB_HOST: host.docker.internal
+    REVERB_HOST: host.docker.internal
+    BACKUP_PG_DUMP_DOCKER_CONTAINER: ''
+    BACKUP_PG_DUMP_BINARY: /usr/bin/pg_dump
+    BACKUP_PG_RESTORE_BINARY: /usr/bin/pg_restore
+    QUEUE_CONNECTION: database
+    LOG_LEVEL: warning
+  extra_hosts:
+    - host.docker.internal:host-gateway
+
+services:
+  php:
+    <<: *php
+  web:
+    image: nginx:stable-alpine
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${NDMU_WEB_PORT:-8001}:80'
+    volumes:
+      - ./:/var/www/html:ro
+      - ./docker/web-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php
+  queue:
+    <<: *php
+    command: ['php', 'artisan', 'queue:work', '--queue=default,documents', '--sleep=1', '--tries=2', '--timeout=60']
+
+volumes:
+  php-vendor:
