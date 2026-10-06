@@ -52,7 +52,7 @@ class GetPanelistAssignedDocuments
                             ->where('user_id', $panelist->getKey()),
                         'evaluationRounds' => fn ($rounds) => $rounds
                             ->latest('opened_at')
-                            ->with(['evaluations' => fn ($evaluations) => $evaluations
+                            ->with(['roundPanelists' => fn ($panelists) => $panelists->where('panelist_user_id', $panelist->getKey()), 'evaluations' => fn ($evaluations) => $evaluations
                                 ->where('panelist_user_id', $panelist->getKey())]),
                     ]),
             ])
@@ -71,7 +71,7 @@ class GetPanelistAssignedDocuments
         $defense = $group?->defenses->first(
             fn (Defense $candidate): bool => $candidate->defense_type === $defenseType,
         );
-        $round = $defense?->evaluationRounds->first();
+        $round = $defense?->evaluationRounds->first(fn ($candidate): bool => (int) $candidate->defense_schedule_id === (int) $defense->current_schedule_id);
         $evaluation = $round?->evaluations->first();
         $status = match ($evaluation?->status) {
             'submitted' => 'Evaluated',
@@ -83,6 +83,8 @@ class GetPanelistAssignedDocuments
             ?? $group?->name
             ?? $document->original_filename;
         $scheduleId = $defense?->current_schedule_id ?? $round?->defense_schedule_id ?? $defense?->currentSchedule?->id;
+        $canEvaluate = $round !== null && in_array($round->status, ['open', 'in_progress'], true)
+            && $round->roundPanelists->isNotEmpty() && $evaluation?->status !== 'submitted';
         $res039Instance = $group ? OfficialFormInstance::query()
             ->whereHas('definition', fn ($q) => $q->where('code', 'RES-039'))
             ->where('research_class_group_id', $group->id)
@@ -125,25 +127,22 @@ class GetPanelistAssignedDocuments
                 : 'border-t-4 border-t-blue-500',
             'viewUrl' => route('documents.view', $document),
             'downloadUrl' => route('documents.download', $document),
-            'evaluationUrl' => $scheduleId
+            'canEvaluate' => $canEvaluate,
+            'evaluationUrl' => $canEvaluate && $scheduleId
                 ? route('official-forms.workspace.store-from-source', [
                     'definition' => 'res-036',
                     'sourceKind' => 'defense-schedule',
                     'source' => $scheduleId,
                 ])
-                : route('panelist.dashboard', [
-                    'tab' => in_array($stage, ['title_proposal', 'proposal_defense'], true)
-                        ? 'proposal-eval'
-                        : 'final-eval',
-                ]),
+                : null,
             'res039Url' => $res039Url,
             'reviewUrl' => route('panelist.dashboard', [
                 'tab' => 'recommendations',
                 'document_id' => $document->getKey(),
             ]),
+            'commentUrl' => route('panelist.documents.comments.store', $document),
             'pageMapping' => $document->page_mapping,
             'pageMappingUrl' => route('panelist.documents.page-mapping', $document),
-            'commentUrl' => route('panelist.documents.comments.store', $document),
             'comments' => $document->comments->map(fn ($comment): array => [
                 'id' => $comment->getKey(),
                 'name' => $comment->author?->name ?? 'Panel Member',

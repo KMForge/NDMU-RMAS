@@ -23,6 +23,7 @@ use App\Modules\OfficialForms\Actions\ApplyOfficialFormSignature;
 use App\Modules\OfficialForms\Actions\CreateOfficialFormInstance;
 use App\Modules\OfficialForms\Actions\SubmitOfficialFormVersion;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
+use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -310,6 +311,36 @@ class DefenseEvaluationTest extends TestCase
         $this->assertEquals(100, $evaluation->studentScores->first()->presentation_total);
     }
 
+    public function test_res036_cannot_be_created_before_facilitator_opens_evaluation(): void
+    {
+        $this->assertFalse(app(OfficialFormAuthorization::class)
+            ->canInitiateDefenseEvaluation($this->panelist1, DefenseSchedule::findOrFail($this->defense->current_schedule_id)));
+        $this->expectException(\InvalidArgumentException::class);
+        (new CreateOfficialFormInstance)->handle($this->panelist1, 'RES-036', $this->defense->research_class_group_id,
+            sourceType: DefenseSchedule::class, sourceId: $this->defense->current_schedule_id);
+    }
+
+    public function test_existing_res036_cannot_be_submitted_or_signed_after_round_is_cancelled(): void
+    {
+        $round = (new OpenDefenseEvaluationRound)->handle($this->facilitator, $this->defense, $this->panelist1->id);
+        $instance = (new CreateOfficialFormInstance)->handle($this->panelist1, 'RES-036', $this->defense->research_class_group_id,
+            sourceType: DefenseSchedule::class, sourceId: $this->defense->current_schedule_id);
+        $round->update(['status' => 'cancelled']);
+        $authorization = app(OfficialFormAuthorization::class);
+        $this->assertFalse($authorization->canSubmit($this->panelist1, $instance));
+        $this->assertFalse($authorization->canPerformAction($this->panelist1, $instance, 'evaluate'));
+        $this->expectException(\InvalidArgumentException::class);
+        (new SubmitOfficialFormVersion)->handle($this->panelist1, $instance, $instance->currentVersion->payload);
+    }
+
+    public function test_open_round_requires_the_panelist_in_the_frozen_roster(): void
+    {
+        $round = (new OpenDefenseEvaluationRound)->handle($this->facilitator, $this->defense, $this->panelist1->id);
+        $round->roundPanelists()->where('panelist_user_id', $this->panelist1->id)->delete();
+        $this->assertFalse(app(OfficialFormAuthorization::class)
+            ->canInitiateDefenseEvaluation($this->panelist1, DefenseSchedule::findOrFail($this->defense->current_schedule_id)));
+    }
+
     public function test_panelist_can_sign_and_submit_the_visible_res036_rubric_without_legacy_totals(): void
     {
         (new OpenDefenseEvaluationRound)->handle($this->facilitator, $this->defense, $this->panelist1->id);
@@ -360,6 +391,15 @@ class DefenseEvaluationTest extends TestCase
             ->where('signer_user_id', $this->panelist1->id)
             ->where('academic_action', 'evaluate')
             ->exists());
+
+        // A legacy early-signed form must be explicitly re-submitted and re-signed,
+        // never silently counted in the newly opened round.
+        $instance->fresh()->update(['defense_evaluation_id' => null]);
+        $repairedVersion = (new SubmitOfficialFormVersion)->handle($this->panelist1, $instance->fresh(), $submittedVersion->payload);
+        $this->assertGreaterThan($submittedVersion->version_number, $repairedVersion->version_number);
+        $this->assertNotNull($instance->fresh()->defense_evaluation_id);
+        $this->assertSame(1, $submittedVersion->signatures()->where('academic_action', 'evaluate')->count());
+        $this->assertSame(1, $repairedVersion->signatures()->where('academic_action', 'evaluate')->count());
     }
 
     public function test_signature_on_res037_finalizes_round_and_facilitator_can_release(): void

@@ -99,7 +99,11 @@ class SubmitOfficialFormVersion
                 );
             }
 
-            if ($currentVersion !== null && $currentVersion->payload === $validatedPayload) {
+            $needsFreshEvaluationSignature = $formCode === 'RES-036'
+                && $lockedInstance->defense_evaluation_id === null
+                && $currentVersion?->signatures()->where('academic_action', 'evaluate')->exists();
+
+            if ($currentVersion !== null && $currentVersion->payload === $validatedPayload && ! $needsFreshEvaluationSignature) {
                 $lockedInstance->update(['status' => $nextStatus]);
 
                 if ($formCode === 'RES-036' && $lockedInstance->source_type === DefenseSchedule::class) {
@@ -181,6 +185,7 @@ class SubmitOfficialFormVersion
         $scheduleId = (int) $instance->source_id;
         /** @var DefenseEvaluationRound|null $round */
         $round = DefenseEvaluationRound::query()
+            ->lockForUpdate()
             ->with(['roundPanelists', 'roundStudents', 'evaluations.studentScores'])
             ->where('defense_schedule_id', $scheduleId)
             ->whereIn('status', ['open', 'in_progress'])
@@ -188,12 +193,12 @@ class SubmitOfficialFormVersion
             ->first();
 
         if (! $round) {
-            return;
+            throw new InvalidArgumentException('The facilitator has not opened evaluation for this defense schedule, or the evaluation round is closed.');
         }
 
         $roundPanelist = $round->roundPanelists->firstWhere('panelist_user_id', $actor->id);
         if (! $roundPanelist) {
-            return;
+            throw new InvalidArgumentException('You are not a frozen panelist for this evaluation round.');
         }
 
         $rubric = app(Res036Rubric::class);

@@ -251,6 +251,8 @@ class DefenseDashboardIntegrationTest extends TestCase
             ->assertSee('overflow-y-auto overscroll-contain', false)
             ->assertSeeText('Comments & Feedback')
             ->assertSeeText('Download Annotated PDF')
+            ->assertSeeText('Evaluation unavailable')
+            ->assertDontSeeText('Open Official Scoring (RES-036)')
             ->assertSee('Proposal For Panel Review.pdf');
 
         $response = $this->actingAs($this->panelist)

@@ -288,7 +288,14 @@ class OfficialFormAuthorization
             return false;
         }
 
-        return DefensePanelAssignment::where('defense_id', $defense->id)
+        $hasOpenRound = DefenseEvaluationRound::query()
+            ->where('defense_id', $defense->id)
+            ->where('defense_schedule_id', $schedule->id)
+            ->whereIn('status', ['open', 'in_progress'])
+            ->whereHas('roundPanelists', fn ($query) => $query->where('panelist_user_id', $user->id))
+            ->exists();
+
+        return $hasOpenRound && DefensePanelAssignment::where('defense_id', $defense->id)
             ->where('user_id', $user->id)
             ->whereNull('ended_at')
             ->exists();
@@ -360,6 +367,12 @@ class OfficialFormAuthorization
     public function canSubmit(User $user, OfficialFormInstance $instance): bool
     {
         $code = strtolower($instance->definition->code);
+        if ($code === 'res-036') {
+            $schedule = $instance->source_type === DefenseSchedule::class ? DefenseSchedule::find($instance->source_id) : null;
+            if ($schedule === null || ! $this->canInitiateDefenseEvaluation($user, $schedule)) {
+                return false;
+            }
+        }
         if ($code === 'res-030' && ($instance->group === null || ! $instance->group->isLeader($user))) {
             return false;
         }
@@ -431,6 +444,13 @@ class OfficialFormAuthorization
         }
 
         $code = strtolower($instance->definition->code);
+        if ($code === 'res-036' && ! $instance->defenseEvaluation()
+            ->where('panelist_user_id', $user->id)->where('status', 'submitted')
+            ->whereHas('round', fn ($query) => $query
+                ->where('defense_schedule_id', $instance->source_id)
+                ->whereIn('status', ['open', 'in_progress', 'complete', 'finalized', 'released']))->exists()) {
+            return false;
+        }
         if ($code === 'res-036' && $instance->initiated_by !== null && (int) $instance->initiated_by !== (int) $user->id) {
             return false;
         }

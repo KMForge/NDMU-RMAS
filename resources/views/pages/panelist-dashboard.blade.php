@@ -32,7 +32,7 @@
             'leftBorder' => ($s['schedule_status'] ?? '') === 'current' ? 'border-l-4 border-l-[#10b981]' : 'border-l-4 border-l-slate-300',
             'statusClass' => ($s['schedule_status'] ?? '') === 'current' ? 'bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold px-2.5 py-0.5 rounded-full text-[10px]' : 'bg-slate-100 border border-slate-200 text-slate-700 font-bold px-2.5 py-0.5 rounded-full text-[10px]',
             'has_open_round' => $hasOpenRound,
-            'can_initiate_res036' => (bool) ($s['can_initiate_res036'] ?? false) || $hasOpenRound,
+            'can_initiate_res036' => (bool) ($s['can_initiate_res036'] ?? false),
             'res036_url' => $s['res036_url'] ?? '#',
         ];
     })->values()->toArray();
@@ -1344,7 +1344,7 @@ document.addEventListener('alpine:init', () => {
                                                 <a :href="paper.viewUrl" target="_blank" rel="noopener" class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors cursor-pointer" title="View paper">
                                                     <i class="ph ph-eye text-sm"></i>
                                                 </a>
-                                                <a :href="paper.evaluationUrl" class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center hover:bg-emerald-100 transition-colors cursor-pointer" title="Open evaluation">
+                                                <a x-show="paper.canEvaluate" :href="paper.evaluationUrl" class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center hover:bg-emerald-100 transition-colors cursor-pointer" title="Open evaluation">
                                                     <i class="ph ph-file-text text-sm"></i>
                                                 </a>
                                                 <a :href="paper.downloadUrl" class="w-7 h-7 rounded-lg border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-gray-50 transition-colors cursor-pointer" title="Download paper">
@@ -1577,7 +1577,7 @@ document.addEventListener('alpine:init', () => {
                                             <a :href="p.reviewUrl" class="px-5 py-2.5 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-800 text-xs font-bold rounded-xl transition-all cursor-pointer">
                                                 Review & Comment
                                             </a>
-                                            <a x-show="p.status !== 'Pending Defense'" :href="p.evaluationUrl" class="px-5 py-2.5 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition-all cursor-pointer">
+                                            <a x-show="p.canEvaluate" :href="p.evaluationUrl" class="px-5 py-2.5 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition-all cursor-pointer">
                                                 Open Evaluation
                                             </a>
                                         </div>
@@ -1790,7 +1790,7 @@ document.addEventListener('alpine:init', () => {
                                             <a :href="p.downloadUrl" class="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer">
                                                 Download <span x-text="p.fileType"></span>
                                             </a>
-                                            <a x-show="p.status !== 'Pending Defense'" :href="p.evaluationUrl" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer">
+                                            <a x-show="p.canEvaluate" :href="p.evaluationUrl" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer">
                                                 Open Evaluation
                                             </a>
                                         </div>
@@ -1970,10 +1970,12 @@ document.addEventListener('alpine:init', () => {
                                 </button>
                             @endif
 
+                            @if ($selectedReviewPaper['canEvaluate'])
                             <a href="{{ $selectedReviewPaper['evaluationUrl'] }}" class="inline-flex items-center gap-1.5 rounded-xl bg-[#0e5c3a] hover:bg-[#073823] px-3.5 py-2 text-xs font-bold text-white transition shadow-xs">
                                 <i class="ph ph-check-circle text-sm"></i>
                                 <span>Open Scoring</span>
                             </a>
+                            @endif
 
                             <a href="{{ $selectedReviewPaper['viewUrl'] }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 transition shadow-2xs">
                                 <i class="ph ph-arrows-out-simple text-sm"></i>
@@ -2157,6 +2159,7 @@ document.addEventListener('alpine:init', () => {
                         <span class="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Defense Review Actions</span>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                            @if ($selectedReviewPaper['canEvaluate'])
                             <a
                                 href="{{ $selectedReviewPaper['evaluationUrl'] }}"
                                 class="px-5 py-3 bg-[#0e5c3a] hover:bg-[#073823] text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
@@ -2539,7 +2542,7 @@ document.addEventListener('alpine:init', () => {
                                 <a :href="doc.downloadUrl" class="py-2 rounded-xl bg-white border border-blue-500 hover:bg-blue-50 text-blue-600 text-xs font-bold transition-all cursor-pointer text-center flex items-center justify-center gap-1">
                                     <i class="ph ph-download"></i> Download
                                 </a>
-                                <a :href="doc.evaluationUrl" class="py-2 rounded-xl bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold transition-all cursor-pointer text-center flex items-center justify-center gap-1 shadow-sm">
+                                <a x-show="doc.canEvaluate" :href="doc.evaluationUrl" class="py-2 rounded-xl bg-[#0e5c3a] hover:bg-[#0a4a2e] text-white text-xs font-bold transition-all cursor-pointer text-center flex items-center justify-center gap-1 shadow-sm">
                                     <i class="ph ph-check-square"></i> Evaluate
                                 </a>
                             </div>

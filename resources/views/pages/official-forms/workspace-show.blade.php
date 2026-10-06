@@ -276,6 +276,7 @@
             @endif
             @php
                 $isRes036 = strtoupper($instance->definition->code) === 'RES-036';
+                $hasLinkedRes036Submission = $isRes036 && $instance->defenseEvaluation?->status === 'submitted';
                 $isRes036Owner = ! $isRes036 || (int) $instance->initiated_by === (int) auth()->id();
                 $hasRes036EvaluationSignature = $isRes036 && $instance->currentVersion?->signatures->contains(
                     fn ($signature): bool => $signature->academic_action === 'evaluate',
@@ -287,7 +288,7 @@
                 @endif
             @endcan
             @can('submit', $instance)
-                @if ($isRes036Owner && (in_array($instance->status, ['draft', 'returned_for_correction'], true) || ($isRes036 && in_array($instance->status, ['submitted', 'in_progress'], true) && ! $hasRes036EvaluationSignature)))
+                @if ($isRes036Owner && (in_array($instance->status, ['draft', 'returned_for_correction'], true) || ($isRes036 && in_array($instance->status, ['submitted', 'in_progress'], true) && (! $hasRes036EvaluationSignature || ! $hasLinkedRes036Submission))))
                 <button type="submit" form="official-form-editor" formaction="{{ route('official-forms.workspace.submit', $instance) }}" formmethod="POST" class="rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-blue-700 transition-colors shadow-sm">
                     {{ $isRes036 ? 'Sign & Submit Evaluation' : 'Submit' }}
                 </button>
@@ -295,6 +296,8 @@
             @endcan
             @if (strtoupper($instance->definition->code) === 'RES-026' && in_array($instance->status, ['submitted', 'in_progress', 'endorsed', 'approved'], true))
                 <x-res026-approval-status :instance="$instance" />
+            @elseif ($isRes036 && $instance->status === 'submitted' && ! $hasLinkedRes036Submission)
+                <p class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-800">This saved form is not recorded in an evaluation round. It does not count as a submitted defense evaluation. The facilitator must open evaluation before the panelist can submit through the active round.</p>
             @elseif ($instance->status === 'submitted')
                 <div class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black {{ $isRes036 && $hasRes036EvaluationSignature ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">
                     <span class="inline-block h-2 w-2 rounded-full {{ $isRes036 && $hasRes036EvaluationSignature ? 'bg-emerald-500' : 'bg-amber-500' }}"></span>
