@@ -13,6 +13,7 @@ use App\Models\DefenseSession;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
+use App\Modules\TitlePresentations\Actions\LinkScheduledTitlePresentation;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -282,6 +283,8 @@ class BulkScheduleDefenses
                         'assigned_at' => now(),
                     ]);
                 }
+
+                app(LinkScheduledTitlePresentation::class)->handle($actor, $defense);
 
                 $orderIndex++;
             }

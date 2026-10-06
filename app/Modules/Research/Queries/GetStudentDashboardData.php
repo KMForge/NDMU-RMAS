@@ -5,6 +5,7 @@ namespace App\Modules\Research\Queries;
 use App\Models\Document;
 use App\Models\DocumentReviewComment;
 use App\Models\User;
+use App\Modules\Documents\Services\ExtractPaperMetadata;
 use App\Modules\Documents\Support\DocumentGroupAccess;
 use App\Modules\ResearchProgress\Queries\GetResearchGroupProgress;
 use App\Support\CachesDatabaseSchema;
@@ -217,6 +218,22 @@ class GetStudentDashboardData
                 ->where('is_current', true)
                 ->latest('submitted_at')
                 ->first();
+
+            if ($currentResearchDocument !== null && $project !== null) {
+                $needsExtraction = empty($project->abstract)
+                    || empty($project->keywords)
+                    || $project->keywords === '[]'
+                    || (is_array($project->keywords) && empty($project->keywords));
+
+                if ($needsExtraction) {
+                    try {
+                        app(ExtractPaperMetadata::class)->extractAndSync($currentResearchDocument);
+                        $project = DB::table('research_projects')->where('id', $project->id)->first();
+                    } catch (\Throwable $e) {
+                        report($e);
+                    }
+                }
+            }
         }
 
         if ($isDashboard && $groupDocumentQuery !== null) {
@@ -294,11 +311,18 @@ class GetStudentDashboardData
                 ->get()
             : collect();
 
+        $keywords = [];
+        if ($project !== null && ! empty($project->keywords)) {
+            $rawKeywords = is_array($project->keywords) ? $project->keywords : json_decode((string) $project->keywords, true);
+            $keywords = is_array($rawKeywords) ? $rawKeywords : [];
+        }
+
         return [
             'area' => 'Student Researcher',
             'student' => $user,
             'studentProfile' => $studentProfile,
             'researchProject' => $project,
+            'keywords' => $keywords,
             'program' => $program,
             'teamMembers' => $team,
             'adviser' => $adviser,

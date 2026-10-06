@@ -452,6 +452,17 @@
         }[type] || 'Selected Defense Stage';
     },
 
+    committeeSlotCandidates(group, slot) {
+        const candidates = this.candidateFacultyList;
+        const savedId = group[slot.key + '_id'];
+        if (!savedId || candidates.some(candidate => String(candidate.id) === String(savedId))) return candidates;
+        return [...candidates, {
+            id: savedId,
+            name: group[slot.key + '_name'] || 'Previously assigned faculty',
+            department: 'Saved assignment',
+        }];
+    },
+
     get classCommitteeGroups() {
         return this.classCommitteeForm.groupsData || [];
     },

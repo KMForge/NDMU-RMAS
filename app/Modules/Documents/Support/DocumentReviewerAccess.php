@@ -46,7 +46,7 @@ class DocumentReviewerAccess
     /**
      * Scopes documents specifically for the Adviser Document Review Queue.
      * Requires documents.review permission and active assigned adviser relationship.
-     * Title Proposals are handled exclusively by the Research Instructor/Facilitator and excluded from the Adviser queue.
+     * Includes title proposals for adviser visibility; review authority remains with the facilitator.
      *
      * @param  Builder<Document>  $query
      * @return Builder<Document>
@@ -65,11 +65,7 @@ class DocumentReviewerAccess
                 ->where('review_groups.adviser_id', $reviewer->getKey())
                 ->where('review_groups.status', 'active')
                 ->whereNull('review_groups.disbanded_at');
-        })
-            ->where(function (Builder $stageQuery): void {
-                $stageQuery->where('documents.document_stage', '!=', DocumentStage::TitleProposal->value)
-                    ->orWhereNull('documents.document_stage');
-            });
+        });
     }
 
     /**

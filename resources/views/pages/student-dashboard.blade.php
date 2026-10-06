@@ -908,6 +908,19 @@
             <section class="space-y-8 animate-fade-in">
                 <x-student-section-heading title="Research Details" :description="$researchProject?->title" />
 
+                @if (session('research_success'))
+                    <div class="rounded-3xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-sm font-bold text-emerald-800 flex items-center gap-3 shadow-2xs">
+                        <i class="ph ph-check-circle text-2xl text-emerald-600"></i>
+                        <span>{{ session('research_success') }}</span>
+                    </div>
+                @endif
+                @if (session('research_error'))
+                    <div class="rounded-3xl border border-rose-200 bg-rose-50 px-6 py-4 text-sm font-bold text-rose-800 flex items-center gap-3 shadow-2xs">
+                        <i class="ph ph-warning-circle text-2xl text-rose-600"></i>
+                        <span>{{ session('research_error') }}</span>
+                    </div>
+                @endif
+
                 @if ($researchProject)
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div class="lg:col-span-2 space-y-8">
@@ -947,17 +960,53 @@
                             </div>
 
                             <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-2xs">
-                                <h2 class="font-black text-slate-900 text-lg">Abstract</h2>
-                                <p class="text-sm text-slate-600 leading-relaxed font-medium mt-3">{{ $researchProject->abstract ?: 'No abstract has been provided.' }}</p>
+                                <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-[#0e5c3a] text-base">
+                                            <i class="ph ph-file-text"></i>
+                                        </span>
+                                        <h2 class="font-black text-slate-900 text-lg">Abstract</h2>
+                                    </div>
+                                    @if ($currentResearchDocument)
+                                        <form method="POST" action="{{ route('student.research.fetch-metadata') }}">
+                                            @csrf
+                                            <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-[#0e5c3a] hover:text-white px-3.5 py-1.5 text-xs font-bold text-[#0e5c3a] transition-all cursor-pointer shadow-2xs">
+                                                <i class="ph ph-sparkle text-sm"></i>
+                                                <span>Fetch from Paper</span>
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                                @if (!empty($researchProject->abstract))
+                                    <div class="space-y-3 text-sm text-slate-700 leading-relaxed font-normal">
+                                        @foreach (explode("\n\n", $researchProject->abstract) as $paragraph)
+                                            <p>{{ $paragraph }}</p>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <p class="text-sm text-slate-500 font-medium">No abstract has been provided.</p>
+                                @endif
                             </div>
 
                             <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-2xs">
-                                <h2 class="font-black text-slate-900 text-lg mb-4">Keywords</h2>
-                                @forelse ($keywords as $keyword)
-                                    <span class="inline-flex px-3.5 py-1.5 mr-2 mb-2 bg-emerald-50 border border-emerald-200 text-[#0e5c3a] text-xs font-black rounded-full">{{ $keyword }}</span>
-                                @empty
-                                    <p class="text-sm text-slate-500 font-medium">No keywords have been provided.</p>
-                                @endforelse
+                                <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-[#0e5c3a] text-base">
+                                            <i class="ph ph-tag"></i>
+                                        </span>
+                                        <h2 class="font-black text-slate-900 text-lg">Keywords</h2>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    @forelse ($keywords as $keyword)
+                                        <span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 text-[#0e5c3a] text-xs font-bold rounded-xl shadow-2xs hover:bg-emerald-100 transition-colors">
+                                            <i class="ph ph-tag text-xs text-[#0e5c3a]/70"></i>
+                                            {{ $keyword }}
+                                        </span>
+                                    @empty
+                                        <p class="text-sm text-slate-500 font-medium">No keywords have been provided.</p>
+                                    @endforelse
+                                </div>
                             </div>
                         </div>
 

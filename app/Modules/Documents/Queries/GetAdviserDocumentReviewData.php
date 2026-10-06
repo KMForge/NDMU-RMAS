@@ -77,7 +77,7 @@ class GetAdviserDocumentReviewData
         $documents = (clone $scope)
             ->with([
                 'user:id,name,email,student_id,program',
-                'researchClassGroup:id,name,leader_student_id',
+                'researchClassGroup:id,name,leader_student_id,adviser_id',
                 'researchClassGroup.leader:id,name',
             ])
             ->when(
@@ -85,6 +85,10 @@ class GetAdviserDocumentReviewData
                 function (Builder $query) use ($status): void {
                     if ($status === 'needs_attention') {
                         $query->where('is_current', true)
+                            ->where(function (Builder $stageQuery): void {
+                                $stageQuery->where('document_stage', '!=', DocumentStage::TitleProposal->value)
+                                    ->orWhereNull('document_stage');
+                            })
                             ->whereIn('status', [
                                 DocumentStatus::Pending->value,
                                 DocumentStatus::Submitted->value,

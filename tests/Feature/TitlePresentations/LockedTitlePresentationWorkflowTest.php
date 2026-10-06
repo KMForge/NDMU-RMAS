@@ -16,6 +16,7 @@ use App\Models\ResearchGroupMilestone;
 use App\Models\ResearchGroupPanelCommittee;
 use App\Models\User;
 use App\Models\UserSignature;
+use App\Modules\DefenseScheduling\Actions\BulkScheduleDefenses;
 use App\Modules\Documents\Actions\ScreenTitleProposalDocument;
 use App\Modules\Documents\Actions\SubmitTitleProposalForScreening;
 use App\Modules\OfficialForms\Actions\ApplyOfficialFormSignature;
@@ -27,6 +28,7 @@ use App\Modules\ResearchProgress\Actions\SynchronizeWorkflowMilestone;
 use App\Modules\ResearchProgress\Services\ResearchJourneyService;
 use App\Modules\TitlePresentations\Actions\AssignTitlePresentationPanel;
 use App\Modules\TitlePresentations\Actions\CompleteTitlePresentation;
+use App\Modules\TitlePresentations\Actions\LinkScheduledTitlePresentation;
 use App\Modules\TitlePresentations\Actions\RecordApprovedTitle;
 use App\Modules\TitlePresentations\Actions\ScheduleTitlePresentation;
 use Carbon\Carbon;
@@ -229,6 +231,78 @@ class LockedTitlePresentationWorkflowTest extends TestCase
         $this->assertSame(2, $result->approved_title_number);
         $this->assertSame('Title B', $result->formVersion->payload['topics'][$result->approved_title_number - 1]);
         $this->assertSame('awaiting_panel_signatures', $result->status);
+    }
+
+    public function test_bulk_title_schedule_links_the_exact_submitted_res026_and_panel_without_approving_it(): void
+    {
+        $this->titleDocument(DocumentStatus::ApprovedForPresentation);
+        $instance = app(CreateOfficialFormInstance::class)->handle($this->student, 'RES-026', $this->group->id);
+        app(SubmitOfficialFormVersion::class)->handle($this->student, $instance, ['topics' => ['Title A', 'Title B', 'Title C']]);
+        $committee = ResearchGroupPanelCommittee::query()->create([
+            'research_class_group_id' => $this->group->id,
+            'defense_type' => 'title_presentation',
+            'chairperson_id' => $this->eligibleUser(UserType::Faculty, ['evaluations.create'])->id,
+            'is_custom' => true,
+            'created_by' => $this->facilitator->id,
+            'updated_by' => $this->facilitator->id,
+        ]);
+        $committee->members()->createMany([
+            ['user_id' => $this->eligibleUser(UserType::Faculty, ['evaluations.create'])->id, 'panel_position' => 'member_1'],
+            ['user_id' => $this->eligibleUser(UserType::Faculty, ['evaluations.create'])->id, 'panel_position' => 'member_2'],
+        ]);
+        $starts = now()->addWeek()->startOfHour();
+        $session = app(BulkScheduleDefenses::class)->handle(
+            $this->facilitator, $this->group->researchClass, 'title_presentation', $this->room->id,
+            $starts, $starts->copy()->addHour(), [$this->group->id],
+        );
+        $presentation = $instance->fresh()->titlePresentation;
+        $this->assertNotNull($presentation);
+        $this->assertSame('panel_assigned', $presentation->status);
+        $this->assertSame($instance->fresh()->current_version_id, $presentation->official_form_version_id);
+        $this->assertSame($session->schedules->first()->defense_id, $presentation->defense_id);
+        $this->assertSame('submitted', $instance->fresh()->status);
+        $this->assertNull($presentation->approved_title_number);
+        $this->assertCount(3, $presentation->defense->activePanelAssignments);
+
+        $this->actingAs($this->facilitator)->get(route('official-forms.workspace.show', $instance))
+            ->assertOk()->assertDontSeeText('Schedule Title Presentation');
+        $linked = app(LinkScheduledTitlePresentation::class)->handle($this->facilitator, $presentation->defense);
+        $this->assertSame($presentation->id, $linked->id);
+        $this->assertDatabaseCount('title_presentations', 1);
+
+        // Reproduce schedules created by the old bulk path, which had no form link.
+        $presentation->delete();
+        $this->artisan('title-presentations:link-schedule', ['defense' => $linked->defense_id])->assertSuccessful();
+        $this->artisan('title-presentations:link-schedule', ['defense' => $linked->defense_id])->assertSuccessful();
+        $this->assertDatabaseCount('title_presentations', 1);
+        $this->assertSame('panel_assigned', $instance->fresh()->titlePresentation->status);
+        $this->assertSame('submitted', $instance->fresh()->status);
+    }
+
+    public function test_bulk_title_schedule_requires_res026_and_rolls_back_when_it_is_missing(): void
+    {
+        $committee = ResearchGroupPanelCommittee::query()->create([
+            'research_class_group_id' => $this->group->id, 'defense_type' => 'title_presentation',
+            'chairperson_id' => $this->eligibleUser(UserType::Faculty, ['evaluations.create'])->id,
+            'created_by' => $this->facilitator->id, 'updated_by' => $this->facilitator->id,
+        ]);
+        $committee->members()->createMany([
+            ['user_id' => $this->eligibleUser(UserType::Faculty, ['evaluations.create'])->id, 'panel_position' => 'member_1'],
+            ['user_id' => $this->eligibleUser(UserType::Faculty, ['evaluations.create'])->id, 'panel_position' => 'member_2'],
+        ]);
+        $starts = now()->addWeek()->startOfHour();
+        try {
+            app(BulkScheduleDefenses::class)->handle(
+                $this->facilitator, $this->group->researchClass, 'title_presentation', $this->room->id,
+                $starts, $starts->copy()->addHour(), [$this->group->id],
+            );
+            $this->fail('Scheduling must require a submitted RES-026.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('submitted RES-026', $exception->getMessage());
+        }
+        $this->assertDatabaseCount('defense_sessions', 0);
+        $this->assertDatabaseCount('defenses', 0);
+        $this->assertDatabaseCount('title_presentations', 0);
     }
 
     public function test_saved_title_presentation_committee_can_be_reused_without_a_historical_change_reason(): void

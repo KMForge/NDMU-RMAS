@@ -291,6 +291,17 @@ class DefenseCommitteeAssignmentTest extends TestCase
         $this->assertSame('pending', $statuses['chairperson_invitation_status']);
         $this->assertSame('rejected', $statuses['member_1_invitation_status']);
         $this->assertSame('pending', $statuses['member_2_invitation_status']);
+
+        $chairInvitation = $invitations->first(fn (OfficialFormInstance $instance): bool => $instance->actorAssignments->contains('user_id', $this->chairperson->id));
+        $chairInvitation->update(['status' => 'approved']);
+        $accepted = app(GetClassCommitteeAssignments::class)
+            ->forClass($this->researchClass, 'proposal_defense')['groups']
+            ->firstWhere('id', $this->classGroup1->id);
+        $this->assertSame('accepted', $accepted['chairperson_invitation_status']);
+        $this->assertSame($this->chairperson->id, $accepted['chairperson_id']);
+        $this->assertSame($this->chairperson->name, $accepted['chairperson_name']);
+        $this->assertSame($this->panel1->id, $accepted['member_1_id']);
+        $this->assertSame($this->panel2->id, $accepted['member_2_id']);
     }
 
     public function test_swapping_group_panel_members_does_not_violate_unique_constraint(): void

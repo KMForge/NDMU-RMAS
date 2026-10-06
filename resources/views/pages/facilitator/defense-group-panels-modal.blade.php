@@ -46,12 +46,11 @@
                             <template x-for="slot in [{key:'chairperson',label:'Chairperson',model:'editChairpersonId',name:'chairperson_name',status:'chairperson_invitation_status'},{key:'member_1',label:'Panel Member 1',model:'editMember1Id',name:'member_1_name',status:'member_1_invitation_status'},{key:'member_2',label:'Panel Member 2',model:'editMember2Id',name:'member_2_name',status:'member_2_invitation_status'}]" :key="slot.key">
                                 <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
                                     <div class="mb-2 flex items-center justify-between gap-2"><label class="text-[10px] font-black uppercase tracking-wider text-slate-600" x-text="slot.label"></label><span x-show="group[slot.status]" class="rounded-full border px-2 py-0.5 text-[9px] font-black uppercase" :class="{'border-amber-200 bg-amber-50 text-amber-700':group[slot.status]==='pending','border-emerald-200 bg-emerald-50 text-emerald-700':group[slot.status]==='accepted','border-rose-200 bg-rose-50 text-rose-700':group[slot.status]==='rejected'}" x-text="group[slot.status]"></span></div>
-                                    <select x-model="group[slot.model]" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-emerald-600">
+                                    <select x-model="group[slot.model]" x-effect="const selectedId = String(group[slot.model] || ''); $nextTick(() => { $el.value = selectedId; })" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-emerald-600">
                                         <option value="" x-text="'Select ' + slot.label"></option>
-                                        <template x-if="group[slot.model]">
-                                            <option :value="String(group[slot.model])" x-text="(group[slot.name] || slot.label) + ' (Assigned)'"></option>
+                                        <template x-for="candidate in committeeSlotCandidates(group, slot)" :key="group.id+'-'+slot.key+'-'+candidate.id">
+                                            <option :value="String(candidate.id)" :selected="String(candidate.id) === String(group[slot.model])" x-text="candidate.name + ' (' + (candidate.department || 'Faculty') + ')' "></option>
                                         </template>
-                                        <template x-for="candidate in candidateFacultyList.filter(candidate => String(candidate.id) !== String(group[slot.model] || ''))" :key="slot.key+'-'+candidate.id"><option :value="String(candidate.id)" x-text="candidate.name + ' (' + (candidate.department || 'Faculty') + ')' "></option></template>
                                     </select>
                                 </div>
                             </template>

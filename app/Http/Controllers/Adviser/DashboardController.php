@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Adviser;
 
+use App\Enums\DocumentStage;
 use App\Enums\DocumentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\ConsultationRequest;
@@ -104,6 +105,7 @@ class DashboardController extends Controller
 
         $pendingDocReviewsCount = Document::query()
             ->whereHas('researchClassGroup', fn ($g) => $g->where('adviser_id', $user->getKey())->where('status', 'active')->whereNull('disbanded_at'))
+            ->where(fn ($query) => $query->where('document_stage', '!=', DocumentStage::TitleProposal->value)->orWhereNull('document_stage'))
             ->where('is_current', true)
             ->whereIn('status', [
                 DocumentStatus::Pending->value,

@@ -1,13 +1,42 @@
 <?php
 
 use App\Enums\AccountStatus;
+use App\Models\Defense;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
+use App\Modules\Administration\Actions\CreateSystemBackup;
 use App\Modules\Administration\Actions\RunScheduledSystemBackup;
 use App\Modules\ResearchProgress\Actions\ReconcileWorkflowMilestones;
 use App\Modules\ResearchProgress\Actions\ResetDryRunGroupProgress;
+use App\Modules\TitlePresentations\Actions\LinkScheduledTitlePresentation;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+
+Artisan::command('title-presentations:link-schedule {defense : Existing title-presentation defense ID}', function (int $defense, LinkScheduledTitlePresentation $action): int {
+    $record = Defense::with('group.researchClass.facilitator')->findOrFail($defense);
+    if ($record->defense_type !== 'title_presentation') {
+        $this->error('This defense is not a Title Presentation.');
+
+        return 1;
+    }
+    $actor = $record->group?->researchClass?->facilitator;
+    if ($actor === null) {
+        $this->error('The owning facilitator could not be resolved.');
+
+        return 1;
+    }
+    try {
+        $presentation = $action->handle($actor, $record);
+        $this->info("Defense #{$record->id} is linked to RES-026 instance #{$presentation->official_form_instance_id} ({$presentation->status}). No approval or signature was changed.");
+
+        return 0;
+    } catch (InvalidArgumentException|AuthorizationException $exception) {
+        $this->error($exception->getMessage());
+
+        return 1;
+    }
+})->purpose('Link an existing title schedule and panel to its unambiguous submitted RES-026, preserving approvals');
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -18,6 +47,28 @@ Artisan::command('system-backup:run-scheduled', function (RunScheduledSystemBack
 
     return 0;
 })->purpose('Create the due scheduled system backup');
+
+Artisan::command('system-backup:create', function (CreateSystemBackup $action): int {
+    $this->info('Creating system backup...');
+    try {
+        $backup = $action->handle(null, 'manual');
+        if ($backup->status === 'completed') {
+            $sizeMb = round(($backup->size_bytes ?? 0) / 1024 / 1024, 2);
+            $this->info("Backup completed successfully: {$backup->filename} ({$sizeMb} MB)");
+            $this->line("Location: storage/app/{$backup->storage_path}");
+
+            return 0;
+        }
+
+        $this->error("Backup failed: {$backup->failure_message}");
+
+        return 1;
+    } catch (Throwable $e) {
+        $this->error("Backup error: {$e->getMessage()}");
+
+        return 1;
+    }
+})->purpose('Create an immediate manual system backup archive');
 
 Artisan::command('research-progress:reconcile', function (ReconcileWorkflowMilestones $action): void {
     $result = $action->execute();

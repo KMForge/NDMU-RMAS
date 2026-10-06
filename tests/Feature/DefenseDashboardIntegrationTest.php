@@ -266,7 +266,28 @@ class DefenseDashboardIntegrationTest extends TestCase
             ->first();
 
         $this->assertNotNull($res039);
-        $response->assertRedirect(route('official-forms.workspace.show', $res039));
+        $response->assertRedirect(route('panelist.dashboard', [
+            'tab' => 'recommendations',
+            'document_id' => $document->id,
+        ]));
+
+        $this->actingAs($this->panelist)
+            ->postJson(route('panelist.documents.comments.store', $document), [
+                'comment' => 'Also explain the participant inclusion criteria.',
+                'severity' => 'comment',
+                'page_number' => 9,
+            ])
+            ->assertOk()
+            ->assertJsonPath('comment.text', 'Also explain the participant inclusion criteria.')
+            ->assertJsonPath('revision_chart_url', route('official-forms.workspace.show', $res039))
+            ->assertJsonMissingPath('redirect_url');
+
+        $this->assertDatabaseHas('document_review_comments', [
+            'document_id' => $document->id,
+            'author_id' => $this->panelist->id,
+            'comment' => 'Also explain the participant inclusion criteria.',
+        ]);
+        $this->assertStringContainsString('Also explain the participant inclusion criteria.', json_encode($res039->fresh()->currentVersion->payload));
         $this->assertStringContainsString('Clarify the sampling method before the defense.', json_encode($res039->fresh()->currentVersion->payload));
 
         $this->actingAs($this->panelist)

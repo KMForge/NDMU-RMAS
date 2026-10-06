@@ -15,6 +15,7 @@ use App\Modules\AuditLogs\Services\AuditLogWriter;
 use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
 use App\Modules\Documents\Exceptions\DocumentUploadFailed;
 use App\Modules\Documents\Exceptions\DuplicateDocumentSubmission;
+use App\Modules\Documents\Services\ExtractPaperMetadata;
 use App\Modules\Documents\Support\DocumentFilenameSanitizer;
 use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use App\Modules\Revisions\Exceptions\RevisionWorkflowException;
@@ -251,6 +252,12 @@ class SubmitDocument
                 ]);
 
                 $this->audit->success($document, $user, $file, $ipAddress, $lockedGroup);
+
+                try {
+                    app(ExtractPaperMetadata::class)->extractAndSync($document);
+                } catch (Throwable $e) {
+                    report($e);
+                }
 
                 if ($lockedRevision !== null) {
                     $from = $lockedRevision->status;

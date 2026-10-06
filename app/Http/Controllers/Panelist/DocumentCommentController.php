@@ -55,12 +55,14 @@ class DocumentCommentController extends Controller
                         default => 'border-l-4 border-l-blue-500 border-slate-200 bg-blue-50/20',
                     },
                 ],
-                'redirect_url' => $res039Url,
+                'revision_chart_url' => $res039Url,
             ]);
         }
 
-        return redirect()->to($res039Url)
-            ->with('official_form_success', 'Comment posted and recorded in Research Revision Chart (RES-039).');
+        return to_route('panelist.dashboard', [
+            'tab' => 'recommendations',
+            'document_id' => $document->getKey(),
+        ])->with('success', 'Comment posted and recorded in Research Revision Chart (RES-039). You can add another critique or finish your review.');
     }
 
     private function resolveRes039Url(User $user, Document $document, DocumentReviewComment $comment): string
