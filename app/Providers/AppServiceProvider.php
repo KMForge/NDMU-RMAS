@@ -65,6 +65,10 @@ class AppServiceProvider extends ServiceProvider
                 'file',
                 'max:'.(max(1, (int) config('backups.max_import_limit_mb', 1024)) * 1024),
             ],
+            'livewire.temporary_file_upload.max_upload_time' => max(
+                5,
+                (int) config('backups.upload_timeout_minutes', 30),
+            ),
         ]);
 
         if (request()->hasHeader('x-forwarded-proto') && request()->header('x-forwarded-proto') === 'https') {

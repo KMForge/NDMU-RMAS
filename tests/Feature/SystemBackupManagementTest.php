@@ -160,6 +160,14 @@ class SystemBackupManagementTest extends TestCase
         $this->assertSame(10, $settings->max_import_mb);
     }
 
+    public function test_livewire_upload_timeout_supports_large_backup_imports(): void
+    {
+        $this->assertSame(
+            max(5, (int) config('backups.upload_timeout_minutes')),
+            config('livewire.temporary_file_upload.max_upload_time'),
+        );
+    }
+
     public function test_administrator_can_verify_a_complete_backup_archive(): void
     {
         Storage::fake('local');
