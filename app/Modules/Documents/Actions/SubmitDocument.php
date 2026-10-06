@@ -114,14 +114,15 @@ class SubmitDocument
         if ($hash !== false) {
             $exactDuplicateExists = Document::query()
                 ->where('research_class_group_id', $group->getKey())
+                ->where('document_stage', $documentStage->value)
                 ->where('is_current', true)
                 ->where('content_sha256', $hash)
                 ->exists();
 
             if ($exactDuplicateExists) {
-                $this->audit->failure($user, $file, $ipAddress, 'This exact file has already been submitted for your research group.', $group);
+                $this->audit->failure($user, $file, $ipAddress, 'This exact file has already been submitted for your research group in this stage.', $group);
 
-                throw new DuplicateDocumentSubmission('This exact file has already been submitted for your research group.');
+                throw new DuplicateDocumentSubmission('This exact file has already been submitted for your research group in this stage.');
             }
         }
 
@@ -179,13 +180,14 @@ class SubmitDocument
 
                 $duplicateInsideTx = Document::query()
                     ->where('research_class_group_id', $lockedGroup->getKey())
+                    ->where('document_stage', $documentStage->value)
                     ->where('is_current', true)
                     ->where('content_sha256', $hash)
                     ->lockForUpdate()
                     ->exists();
 
                 if ($duplicateInsideTx) {
-                    throw new DuplicateDocumentSubmission('This exact file has already been submitted for your research group.');
+                    throw new DuplicateDocumentSubmission('This exact file has already been submitted for your research group in this stage.');
                 }
 
                 $lockedRevision = null;

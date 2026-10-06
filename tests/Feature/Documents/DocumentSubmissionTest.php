@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Documents;
 
+use App\Http\Middleware\ThrottleRequestsUnlessHighTrafficMode;
 use App\Models\Document;
 use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
@@ -9,14 +10,14 @@ use App\Models\ResearchClassGroupMember;
 use App\Models\User;
 use App\Modules\Classes\Actions\CreateResearchClass;
 use App\Modules\Documents\Actions\RecordDocumentUploadAttempt;
-use Database\Seeders\RolePermissionSeeder;
 use App\Modules\Documents\Jobs\ExtractDocumentMetadata;
 use App\Modules\Documents\Services\ExtractPaperMetadata;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Contracts\Bus\Dispatcher;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Mockery;
 use RuntimeException;
@@ -34,8 +35,8 @@ class DocumentSubmissionTest extends TestCase
         parent::setUp();
 
         Storage::fake('local');
-        $this->seed(RolePermissionSeeder::class);
         Queue::fake();
+        $this->seed(RolePermissionSeeder::class);
     }
 
     public function test_guest_cannot_submit_a_document(): void
@@ -94,7 +95,6 @@ class DocumentSubmissionTest extends TestCase
         ]);
     }
 
-    public function test_authorized_student_group_leader_can_submit_a_valid_docx(): void
     public function test_upload_queues_metadata_without_parsing_in_the_request(): void
     {
         ['user' => $user] = $this->studentGroupLeader();
@@ -143,6 +143,7 @@ class DocumentSubmissionTest extends TestCase
         (new ExtractDocumentMetadata($document->id + 1000))->handle($extractor);
     }
 
+    public function test_authorized_student_group_leader_can_submit_a_valid_docx(): void
     {
         ['user' => $user, 'group' => $group] = $this->studentGroupLeader();
 
@@ -278,9 +279,49 @@ class DocumentSubmissionTest extends TestCase
             'document_stage' => 'proposal_defense',
             'document' => $this->pdf('paper_copy.pdf'),
         ])->assertStatus(409)
-            ->assertJsonPath('message', 'This exact file has already been submitted for your research group.');
+            ->assertJsonPath('message', 'This exact file has already been submitted for your research group in this stage.');
 
         $this->assertDatabaseCount('documents', 1);
+    }
+
+    public function test_identical_paper_can_be_submitted_to_different_stages_without_voiding_earlier_stage(): void
+    {
+        $this->withoutMiddleware(ThrottleRequestsUnlessHighTrafficMode::class);
+        ['user' => $leader] = $this->studentGroupLeader();
+
+        foreach (['title_proposal', 'proposal_defense', 'pre_final_defense', 'final_defense', 'final_manuscript'] as $stage) {
+            $this->actingAs($leader)->postJson(route('student.documents.store'), [
+                'submission_token' => (string) Str::uuid(),
+                'document_stage' => $stage,
+                'document' => $this->pdf('same-paper.pdf'),
+            ])->assertCreated()->assertJsonPath('document.document_stage', $stage)->assertJsonPath('document.version_number', 1);
+        }
+
+        $this->assertDatabaseCount('documents', 5);
+        $this->assertSame(5, Document::where('is_current', true)->count());
+        $this->assertSame(1, Document::distinct()->count('content_sha256'));
+
+        $this->actingAs($leader)->postJson(route('student.documents.store'), [
+            'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'final_defense',
+            'document' => $this->pdf('renamed-paper.pdf'),
+        ])->assertStatus(409);
+        $this->assertDatabaseCount('documents', 5);
+    }
+
+    public function test_a_tiny_content_revision_in_the_same_stage_creates_a_new_version(): void
+    {
+        ['user' => $leader] = $this->studentGroupLeader();
+        $this->actingAs($leader)->postJson(route('student.documents.store'), [
+            'submission_token' => (string) Str::uuid(), 'document_stage' => 'proposal_defense', 'document' => $this->pdf(),
+        ])->assertCreated();
+
+        $changed = UploadedFile::fake()->createWithContent('paper.pdf', "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n% Small revision\n%%EOF\n");
+        $this->actingAs($leader)->postJson(route('student.documents.store'), [
+            'submission_token' => (string) Str::uuid(), 'document_stage' => 'proposal_defense', 'document' => $changed,
+        ])->assertCreated()->assertJsonPath('document.version_number', 2);
+        $this->assertSame(1, Document::where('is_current', true)->count());
+        $this->assertDatabaseCount('documents', 2);
     }
 
     public function test_submitting_new_version_marks_previous_version_as_void_and_new_as_current(): void

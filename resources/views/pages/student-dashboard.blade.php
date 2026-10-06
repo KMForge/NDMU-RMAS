@@ -1081,14 +1081,14 @@
                                     <span>Submit Research Document</span>
                                 </h3>
                                 <p class="text-xs text-slate-500 font-medium mt-1">
-                                    Only PDF and DOCX formats are accepted (max {{ number_format($documentMaxUploadMb) }} MB). Submitting a new file will automatically mark the prior submission as VOID.
+                                    Only PDF and DOCX formats are accepted (max {{ number_format($documentMaxUploadMb) }} MB). The same file may be submitted in a different stage. A replacement supersedes only the prior submission in the selected stage.
                                 </p>
                             </div>
 
                             @if ($groupDocuments->where('is_current', true)->isNotEmpty())
                                 <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold flex items-center gap-3">
                                     <i class="ph ph-info text-xl shrink-0 text-amber-600"></i>
-                                    <span>A current document already exists for your group. Uploading a new file will set the previous version to <strong>VOID</strong> and make the new file <strong>CURRENT</strong>.</span>
+                                    <span>Your group has submitted documents. A replacement sets only the previous version in the <strong>selected stage</strong> to <strong>VOID</strong>. Papers and reviews from other stages remain unchanged.</span>
                                 </div>
                             @endif
 
