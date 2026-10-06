@@ -7,6 +7,7 @@ use App\Models\ResearchProject;
 use DOMDocument;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\Process\Process;
 use Throwable;
 use ZipArchive;
 
@@ -162,13 +163,11 @@ class ExtractPaperMetadata
 
         // Strategy 1: Attempt pdftotext if available on the system
         try {
-            $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-            $redirect = $isWindows ? ' 2>nul' : ' 2>/dev/null';
-            $output = [];
-            $returnVar = 0;
-            @exec('pdftotext -f 1 -l 5 '.escapeshellarg($fullPath).' -'.$redirect, $output, $returnVar);
-            if ($returnVar === 0 && ! empty($output)) {
-                $text = implode("\n", $output);
+            $process = new Process(['pdftotext', '-f', '1', '-l', '5', $fullPath, '-']);
+            $process->setTimeout(10);
+            $process->run();
+            if ($process->isSuccessful()) {
+                $text = $process->getOutput();
             }
         } catch (Throwable) {
             // Fallback to internal parser
@@ -308,11 +307,11 @@ class ExtractPaperMetadata
     {
         $text = '';
         // Match uncompressed or flate-decoded streams
-        preg_match_all('/stream[\r\n]+(.*?)[\r\n]+endstream/s', $content, $streams);
+        preg_match_all('/stream[\r\n]+(.*?)[\r\n]+endstream/s', substr($content, 0, 8 * 1024 * 1024), $streams);
 
-        foreach ($streams[1] as $stream) {
+        foreach (array_slice($streams[1], 0, 100) as $stream) {
             $data = $stream;
-            $uncompressed = @gzuncompress($data);
+            $uncompressed = @gzuncompress($data, 4 * 1024 * 1024);
             if ($uncompressed !== false) {
                 $data = $uncompressed;
             }

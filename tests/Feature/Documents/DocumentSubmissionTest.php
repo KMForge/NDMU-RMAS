@@ -10,9 +10,13 @@ use App\Models\User;
 use App\Modules\Classes\Actions\CreateResearchClass;
 use App\Modules\Documents\Actions\RecordDocumentUploadAttempt;
 use Database\Seeders\RolePermissionSeeder;
+use App\Modules\Documents\Jobs\ExtractDocumentMetadata;
+use App\Modules\Documents\Services\ExtractPaperMetadata;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Mockery;
 use RuntimeException;
@@ -31,6 +35,7 @@ class DocumentSubmissionTest extends TestCase
 
         Storage::fake('local');
         $this->seed(RolePermissionSeeder::class);
+        Queue::fake();
     }
 
     public function test_guest_cannot_submit_a_document(): void
@@ -90,6 +95,54 @@ class DocumentSubmissionTest extends TestCase
     }
 
     public function test_authorized_student_group_leader_can_submit_a_valid_docx(): void
+    public function test_upload_queues_metadata_without_parsing_in_the_request(): void
+    {
+        ['user' => $user] = $this->studentGroupLeader();
+        $this->mock(ExtractPaperMetadata::class)->shouldNotReceive('extractAndSync');
+
+        $this->actingAs($user)->postJson(route('student.documents.store'), [
+            'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'proposal_defense',
+            'document' => $this->pdf(),
+        ])->assertCreated();
+
+        $document = Document::query()->sole();
+        Queue::assertPushedOn('documents', ExtractDocumentMetadata::class, fn ($job) => $job->documentId === $document->id);
+        $this->assertTrue(Storage::disk('local')->exists($document->storage_path));
+    }
+
+    public function test_metadata_queue_failure_does_not_remove_the_committed_upload(): void
+    {
+        ['user' => $user] = $this->studentGroupLeader();
+        $this->mock(Dispatcher::class)
+            ->shouldReceive('dispatch')->once()->andThrow(new RuntimeException('Metadata queue unavailable'));
+
+        $this->actingAs($user)->postJson(route('student.documents.store'), [
+            'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'proposal_defense', 'document' => $this->pdf(),
+        ])->assertCreated();
+
+        $document = Document::query()->sole();
+        Storage::disk('local')->assertExists($document->storage_path);
+        $this->assertDatabaseHas('document_upload_audits', ['document_id' => $document->id, 'upload_status' => 'success']);
+    }
+
+    public function test_metadata_job_processes_current_upload_and_skips_superseded_or_deleted_documents(): void
+    {
+        ['user' => $user] = $this->studentGroupLeader();
+        $this->actingAs($user)->postJson(route('student.documents.store'), [
+            'submission_token' => (string) Str::uuid(),
+            'document_stage' => 'proposal_defense', 'document' => $this->pdf(),
+        ])->assertCreated();
+        $document = Document::query()->sole();
+        $extractor = Mockery::mock(ExtractPaperMetadata::class);
+        $extractor->shouldReceive('extractAndSync')->once()->withArgs(fn ($value) => $value->is($document))->andReturnNull();
+        (new ExtractDocumentMetadata($document->id))->handle($extractor);
+        $document->update(['is_current' => false]);
+        (new ExtractDocumentMetadata($document->id))->handle($extractor);
+        (new ExtractDocumentMetadata($document->id + 1000))->handle($extractor);
+    }
+
     {
         ['user' => $user, 'group' => $group] = $this->studentGroupLeader();
 
