@@ -717,7 +717,16 @@ class ResearchJourneyService
                 continue;
             }
 
-            $form = OfficialResearchWorkflowRegistry::FORMS[strtolower($instance->definition->code)] ?? null;
+            $code = strtolower($instance->definition->code);
+
+            // Staff may accept adviser/panel invitations before students begin
+            // their work. Retained assignments do not prove earlier stages were
+            // completed, including after an administrative activity reset.
+            if (in_array($code, ['res-027', 'res-028'], true)) {
+                continue;
+            }
+
+            $form = OfficialResearchWorkflowRegistry::FORMS[$code] ?? null;
             if ($form !== null) {
                 $furthestStage = max($furthestStage, (int) $form['stage']);
             }

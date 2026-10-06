@@ -10,6 +10,8 @@ use App\Models\AcademicYear;
 use App\Models\Defense;
 use App\Models\Document;
 use App\Models\MilestoneDefinition;
+use App\Models\OfficialFormDefinition;
+use App\Models\OfficialFormInstance;
 use App\Models\Program;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
@@ -23,6 +25,7 @@ use App\Models\ResearchProject;
 use App\Models\StudentProfile;
 use App\Models\User;
 use App\Modules\Classes\Actions\CreateResearchClassGroup;
+use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
 use App\Modules\Research\Queries\GetStudentDashboardData;
 use App\Modules\ResearchProgress\Actions\SyncResearchMilestoneDefinitions;
 use App\Modules\ResearchProgress\Queries\GetAdviserProgressData;
@@ -683,6 +686,31 @@ class ResearchProgressMilestoneTest extends TestCase
 
         $journey = app(ResearchJourneyService::class)->getJourneyForGroup($this->group->fresh(), $this->student);
         $this->assertTrue($journey['stages'][5]['is_completed']);
+    }
+
+    public function test_accepted_staff_invitations_do_not_restore_progress_after_a_student_activity_reset(): void
+    {
+        app(SyncOfficialFormCatalog::class)->handle();
+
+        foreach (['RES-027', 'RES-028'] as $code) {
+            $definition = OfficialFormDefinition::query()->where('code', $code)->firstOrFail();
+            OfficialFormInstance::query()->create([
+                'official_form_definition_id' => $definition->getKey(),
+                'research_class_group_id' => $this->group->getKey(),
+                'research_class_id' => $this->researchClass->getKey(),
+                'context_key' => 'retained-invitation-'.$code,
+                'initiated_by' => $this->facilitator->getKey(),
+                'status' => 'approved',
+            ]);
+        }
+
+        $summary = app(GetResearchGroupProgress::class)->for($this->group);
+
+        $this->assertSame(0, $summary['progress_percentage']);
+        $this->assertSame(1, $summary['journey']['current_stage']);
+        $this->assertSame(0, $summary['completed_count']);
+        $this->assertDatabaseCount('official_form_instances', 2);
+        $this->assertDatabaseMissing('research_group_milestones', ['status' => 'completed']);
     }
 
     private function milestones()
