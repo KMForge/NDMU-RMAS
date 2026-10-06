@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'author_id',
     'parent_id',
     'page_number',
+    'page_label',
     'severity',
     'comment',
     'resolved_by',
@@ -19,6 +20,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 ])]
 class DocumentReviewComment extends Model
 {
+    public function pageReference(): string
+    {
+        return $this->page_label !== null
+            ? (ctype_digit($this->page_label) ? 'Page '.$this->page_label : $this->page_label)
+            : ($this->page_number ? 'Page '.$this->page_number : 'General Reference');
+    }
+
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'author_id');

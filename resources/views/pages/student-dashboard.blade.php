@@ -1486,7 +1486,7 @@
                                     <p class="mt-1 text-xs text-slate-500 font-medium">
                                         {{ $feedback->author?->name ?? 'Assigned reviewer' }}
                                         @if ($feedback->page_number)
-                                            · Page {{ $feedback->page_number }}
+                                            · {{ $feedback->pageReference() }}
                                         @endif
                                         · {{ $feedback->created_at?->format('M j, Y g:i A') }}
                                     </p>

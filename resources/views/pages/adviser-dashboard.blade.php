@@ -1499,7 +1499,7 @@
                                                                 {{ strtoupper($comm->severity) }}
                                                             </span>
                                                             @if($comm->page_number)
-                                                                <span class="font-bold text-gray-500">Page {{ $comm->page_number }}</span>
+                                                                <span class="font-bold text-gray-500">{{ $comm->pageReference() }}</span>
                                                             @endif
                                                             <span class="font-bold text-gray-700">{{ $comm->author?->name ?? 'Adviser' }}</span>
                                                         </div>

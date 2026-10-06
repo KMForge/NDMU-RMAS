@@ -164,7 +164,7 @@
                         'suggestions' => $dc->comment,
                         'recommended_by' => $dc->author?->name ?? 'Panel Member',
                         'revision_made' => '',
-                        'pages' => $dc->page_number ? 'Page '.$dc->page_number : '',
+                        'pages' => $dc->page_number ? $dc->pageReference() : '',
                         'approval' => '',
                     ];
                 }

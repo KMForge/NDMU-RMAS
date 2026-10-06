@@ -11,6 +11,7 @@
             ? \Illuminate\Support\Str::headline($comment->author->roles->first()->name)
             : 'Reviewer',
         'page_number' => $comment->page_number,
+        'page' => $comment->pageReference(),
         'severity' => $comment->severity,
         'comment' => $comment->comment,
         'resolved' => $comment->resolved_at !== null,
@@ -269,7 +270,7 @@
                             <div class="flex items-center justify-between pt-1 text-[10px] font-bold text-slate-500">
                                 <span class="flex items-center gap-1">
                                     <i class="ph ph-file-text"></i>
-                                    {{ $comment->page_number ? 'Page ' . $comment->page_number : 'General Reference' }}
+                                    {{ $comment->pageReference() }}
                                 </span>
                                 @if ($comment->resolved_at)
                                     <span class="text-emerald-700 font-black flex items-center gap-1">

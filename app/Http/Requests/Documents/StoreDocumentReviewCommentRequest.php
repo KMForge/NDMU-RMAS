@@ -27,7 +27,7 @@ class StoreDocumentReviewCommentRequest extends FormRequest
 
         return [
             'comment' => ['bail', 'required', 'string', 'min:2', 'max:5000'],
-            'page_number' => $isDocx
+            'page_number' => $isDocx && ! $this->routeIs('panelist.*')
                 ? ['bail', 'prohibited']
                 : ['bail', 'nullable', 'integer', 'min:1', 'max:10000'],
             'severity' => ['bail', 'required', Rule::in(['comment', 'revision', 'critical'])],

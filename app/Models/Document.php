@@ -28,6 +28,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'content_sha256',
     'submitted_at',
     'status',
+    'page_mapping',
 ])]
 #[Hidden(['submission_token', 'stored_filename', 'storage_disk', 'storage_path', 'content_sha256'])]
 class Document extends Model
@@ -105,6 +106,7 @@ class Document extends Model
     {
         return [
             'file_size' => 'integer',
+            'page_mapping' => 'array',
             'version_number' => 'integer',
             'is_current' => 'boolean',
             'submitted_at' => 'immutable_datetime',

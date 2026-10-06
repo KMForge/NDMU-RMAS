@@ -122,6 +122,36 @@ document.addEventListener('alpine:init', () => {
         selectedReviewPaper: config.selectedReviewPaper,
         recommendationComments: config.selectedReviewPaper?.comments || [],
         activePageNumber: 1,
+        previewPageCount: 0,
+        mappingBodyStart: config.selectedReviewPaper?.pageMapping?.body_start || 1,
+        mappingPreliminaryLabels: (config.selectedReviewPaper?.pageMapping?.preliminary_labels || []).join('\n'),
+        isSavingPageMapping: false,
+        get activeManuscriptLabel() {
+            return window.manuscriptPageLabel?.(this.selectedReviewPaper?.pageMapping, this.activePageNumber) || String(this.activePageNumber);
+        },
+        async savePageMapping() {
+            if (this.isSavingPageMapping) return;
+            this.isSavingPageMapping = true;
+            this.critiqueError = '';
+            this.critiqueMessage = '';
+            try {
+                const labels = this.mappingPreliminaryLabels.trim() === '' ? [] : this.mappingPreliminaryLabels.split('\n').map(label => label.trim());
+                if (this.previewPageCount && Number(this.mappingBodyStart) > this.previewPageCount) throw new Error('Page 1 must begin on an existing preview page.');
+                const response = await fetch(this.selectedReviewPaper.pageMappingUrl, {
+                    method: 'PUT',
+                    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                    body: JSON.stringify({ body_start: Number(this.mappingBodyStart), preliminary_labels: labels }),
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(Object.values(data.errors || {}).flat().join(' ') || data.message);
+                this.selectedReviewPaper.pageMapping = data.mapping;
+                this.critiqueMessage = data.message;
+            } catch (error) {
+                this.critiqueError = error.message || 'Unable to save page numbering.';
+            } finally {
+                this.isSavingPageMapping = false;
+            }
+        },
         isSubmittingCritique: false,
         critiqueMessage: '',
         critiqueError: '',
@@ -142,6 +172,14 @@ document.addEventListener('alpine:init', () => {
             }
         },
         async submitCritique(event) {
+            if (!this.previewPageCount) {
+                this.critiqueError = 'Wait for the manuscript preview to finish loading before posting a critique.';
+                return;
+            }
+            if (!this.selectedReviewPaper?.pageMapping) {
+                this.critiqueError = 'Set manuscript page numbering before posting a page-specific critique.';
+                return;
+            }
             if (this.isSubmittingCritique) return;
             const form = event.target;
             const formData = new FormData(form);
@@ -2043,7 +2081,18 @@ document.addEventListener('alpine:init', () => {
                             </div>
 
                             <!-- Post Comment / Critique Form -->
-                            <form method="POST" action="{{ $selectedReviewPaper['commentUrl'] }}" class="shrink-0 space-y-3 border-t border-slate-100 pt-4" @submit.prevent="submitCritique($event)" @document-page-change.window="activePageNumber = $event.detail.page">
+                            <details class="shrink-0 rounded-xl border border-slate-200 p-3 text-xs">
+                                <summary class="cursor-pointer font-bold">Set manuscript page numbering (this version)</summary>
+                                <p class="my-2 text-slate-500">Match the numbering printed on the paper. Preview pages include the cover. DOCX pagination may differ from Word; PDF provides stable pagination.</p>
+                                <label class="block">Preview page where manuscript Page 1 begins
+                                    <input type="number" min="1" max="10000" x-model="mappingBodyStart" class="my-2 w-full rounded-lg border border-slate-200 p-2">
+                                </label>
+                                <label class="block">Earlier page labels, one per line in preview order (e.g. Cover, i, ii)
+                                    <textarea x-model="mappingPreliminaryLabels" rows="3" class="my-2 w-full rounded-lg border border-slate-200 p-2" placeholder="Cover&#10;i&#10;ii"></textarea>
+                                </label>
+                                <button type="button" @click="savePageMapping()" :disabled="isSavingPageMapping" class="rounded-lg bg-[#0e5c3a] px-3 py-2 font-bold text-white">Save Page Numbering</button>
+                            </details>
+                            <form method="POST" action="{{ $selectedReviewPaper['commentUrl'] }}" class="shrink-0 space-y-3 border-t border-slate-100 pt-4" @submit.prevent="submitCritique($event)" @document-page-change.window="activePageNumber = $event.detail.page; previewPageCount = $event.detail.count || previewPageCount">
                                 @csrf
                                 <textarea
                                     name="comment"
@@ -2068,22 +2117,21 @@ document.addEventListener('alpine:init', () => {
                                         <div class="flex items-center justify-between mb-1">
                                             <label class="text-[10px] font-bold text-slate-400 uppercase">Page Reference</label>
                                             <span class="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md inline-flex items-center gap-1">
-                                                Page <span x-text="activePageNumber"></span>
+                                                <span x-text="activeManuscriptLabel"></span>
                                             </span>
                                         </div>
                                         <input
-                                            type="number"
-                                            name="page_number"
-                                            min="1"
-                                            max="10000"
-                                            x-model="activePageNumber"
-                                            placeholder="e.g. 12"
+                                            type="text"
+                                            :value="activeManuscriptLabel"
+                                            readonly
                                             class="w-full rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs font-bold text-slate-800 focus:border-[#0e5c3a] focus:outline-none"
                                         >
                                     </div>
                                 </div>
 
                                 @error('comment')<p class="text-[10px] font-bold text-red-600">{{ $message }}</p>@enderror
+                                <input type="hidden" name="page_number" :value="activePageNumber">
+                                <p class="text-[10px] text-slate-500">Page reference follows the visible preview page. <span x-show="!selectedReviewPaper?.pageMapping">Set page numbering above to match the manuscript.</span></p>
                                 @error('page_number')<p class="text-[10px] font-bold text-red-600">{{ $message }}</p>@enderror
 
                                 <button
@@ -2116,6 +2164,9 @@ document.addEventListener('alpine:init', () => {
                                 <i class="ph ph-check-circle text-base"></i>
                                 <span>Open Official Scoring (RES-036)</span>
                             </a>
+                            @else
+                                <span class="rounded-xl border border-slate-200 bg-slate-100 px-5 py-3 text-xs font-bold text-slate-500">{{ $selectedReviewPaper['status'] === 'Evaluated' ? 'Evaluation already submitted' : 'Evaluation unavailable — facilitator must open an active round' }}</span>
+                            @endif
                                 <a
                                     x-show="selectedReviewPaper?.res039Url"
                                     :href="selectedReviewPaper?.res039Url"

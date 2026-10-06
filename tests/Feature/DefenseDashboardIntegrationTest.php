@@ -414,6 +414,85 @@ class DefenseDashboardIntegrationTest extends TestCase
         $this->assertSame('Customized group committee', $committee['source_label']);
     }
 
+    public function test_page_mapping_is_version_scoped_and_critique_label_is_a_snapshot(): void
+    {
+        $document = $this->pageMappingDocument();
+        $mapping = ['body_start' => 4, 'preliminary_labels' => ['Cover', 'i', 'ii']];
+        $this->actingAs($this->panelist)
+            ->putJson(route('panelist.documents.page-mapping', $document), $mapping)
+            ->assertOk()->assertJsonPath('mapping.body_start', 4);
+        $this->assertSame($mapping, $document->fresh()->page_mapping);
+        $this->assertDatabaseHas('document_review_audits', ['document_id' => $document->id, 'action' => 'page_mapping_updated']);
+
+        $this->actingAs($this->panelist)->postJson(route('panelist.documents.comments.store', $document), [
+            'comment' => 'Clarify this paragraph.', 'severity' => 'comment', 'page_number' => 5,
+        ])->assertOk()->assertJsonPath('comment.page', 'Page 2')->assertJsonPath('comment.page_number', 5);
+        $this->assertDatabaseHas('document_review_comments', ['document_id' => $document->id, 'page_number' => 5, 'page_label' => '2']);
+        $this->actingAs($this->panelist)->postJson(route('panelist.documents.comments.store', $document), [
+            'comment' => 'Check the preliminary page.', 'severity' => 'comment', 'page_number' => 3,
+        ])->assertOk()->assertJsonPath('comment.page', 'ii')->assertJsonPath('comment.page_number', 3);
+
+        $this->actingAs($this->panelist)->putJson(route('panelist.documents.page-mapping', $document), [
+            'body_start' => 1, 'preliminary_labels' => [],
+        ])->assertOk();
+        $this->assertSame('Page 2', $document->comments()->firstOrFail()->pageReference());
+        $this->assertNull($this->pageMappingDocument()->page_mapping);
+
+        $this->actingAs($this->panelist)->get(route('panelist.dashboard', ['tab' => 'recommendations', 'document_id' => $document->id]))
+            ->assertOk()->assertSeeText('Set manuscript page numbering (this version)')->assertSee('Page 2');
+    }
+
+    public function test_page_mapping_rejects_wrong_labels_unassigned_reviewers_and_old_versions(): void
+    {
+        $document = $this->pageMappingDocument();
+        $this->actingAs($this->panelist)->putJson(route('panelist.documents.page-mapping', $document), [
+            'body_start' => 3, 'preliminary_labels' => ['Cover'],
+        ])->assertUnprocessable()->assertJsonValidationErrors('preliminary_labels');
+        $this->actingAs($this->panelist)->putJson(route('panelist.documents.page-mapping', $document), [
+            'body_start' => 2, 'preliminary_labels' => ['<script>'],
+        ])->assertUnprocessable();
+        $this->adviser->givePermissionTo(['dashboards.panelist.view', 'evaluations.create']);
+        $this->actingAs($this->adviser)->putJson(route('panelist.documents.page-mapping', $document), [
+            'body_start' => 1, 'preliminary_labels' => [],
+        ])->assertForbidden();
+        $document->update(['is_current' => false]);
+        $this->actingAs($this->panelist)->putJson(route('panelist.documents.page-mapping', $document), [
+            'body_start' => 1, 'preliminary_labels' => [],
+        ])->assertUnprocessable();
+        $this->assertNull($document->fresh()->page_mapping);
+    }
+
+    public function test_assigned_panelist_can_attach_docx_critique_to_cover_preview_page(): void
+    {
+        $document = $this->pageMappingDocument('docx');
+        $document->update(['page_mapping' => ['body_start' => 2, 'preliminary_labels' => ['Cover']]]);
+        $this->actingAs($this->panelist)->postJson(route('panelist.documents.comments.store', $document), [
+            'comment' => 'Correct the title on this cover.', 'severity' => 'revision', 'page_number' => 1,
+        ])->assertOk()->assertJsonPath('comment.page', 'Cover')->assertJsonPath('comment.page_number', 1);
+    }
+
+    private function pageMappingDocument(string $type = 'pdf'): Document
+    {
+        return Document::query()->create([
+            'user_id' => $this->student->id,
+            'research_class_group_id' => $this->group->id,
+            'submission_token' => (string) Str::uuid(),
+            'original_filename' => 'Mapped Paper.'.$type,
+            'stored_filename' => Str::uuid().'.'.$type,
+            'file_type' => $type,
+            'mime_type' => $type === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'document_stage' => DocumentStage::ProposalDefense,
+            'version_number' => 1,
+            'is_current' => true,
+            'file_size' => 2048,
+            'storage_disk' => 'local',
+            'storage_path' => 'documents/'.Str::uuid().'.'.$type,
+            'content_sha256' => hash('sha256', (string) Str::uuid()),
+            'submitted_at' => now(),
+            'status' => DocumentStatus::Accepted,
+        ]);
+    }
+
     private function ensureThreePanelAssignments(): void
     {
         Permission::firstOrCreate(['name' => 'forms.res-037.sign', 'guard_name' => 'web']);

@@ -202,7 +202,7 @@
                                                                 {{ strtoupper($c->severity) }}
                                                             </span>
                                                             @if($c->page_number)
-                                                                <span class="font-bold text-slate-500">Page {{ $c->page_number }}</span>
+                                                                <span class="font-bold text-slate-500">{{ $c->pageReference() }}</span>
                                                             @endif
                                                             <span class="font-bold text-slate-800">{{ $c->author?->name ?? 'Adviser' }}</span>
                                                         </div>

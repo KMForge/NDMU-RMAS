@@ -9,6 +9,7 @@ use App\Models\DocumentReviewComment;
 use App\Models\User;
 use App\Modules\Documents\Exceptions\DocumentReviewException;
 use App\Modules\Documents\Support\DocumentReviewerAccess;
+use App\Modules\Documents\Support\ManuscriptPageMapping;
 use App\Modules\Notifications\Services\WorkflowNotificationDispatcher;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -61,7 +62,7 @@ class AddDocumentReviewComment
                     );
                 }
 
-                if (strtolower((string) $lockedDocument->file_type) === 'docx' && ($data['page_number'] ?? null) !== null) {
+                if (strtolower((string) $lockedDocument->file_type) === 'docx' && ($data['page_number'] ?? null) !== null && ! $isAssignedPanelist) {
                     throw new DocumentReviewException(
                         'Page numbers are not supported for DOCX files.',
                     );
@@ -72,7 +73,10 @@ class AddDocumentReviewComment
                     'author_id' => $reviewer->getKey(),
                     'comment' => $data['comment'],
                     'severity' => $data['severity'],
-                    'page_number' => strtolower((string) $lockedDocument->file_type) === 'pdf' ? ($data['page_number'] ?? null) : null,
+                    'page_number' => $data['page_number'] ?? null,
+                    'page_label' => isset($data['page_number']) && $lockedDocument->page_mapping !== null
+                        ? ManuscriptPageMapping::label($lockedDocument->page_mapping, (int) $data['page_number'])
+                        : null,
                 ]);
 
                 if ($lockedDocument->status === DocumentStatus::Pending) {

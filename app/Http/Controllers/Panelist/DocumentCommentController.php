@@ -46,7 +46,8 @@ class DocumentCommentController extends Controller
                     'role' => 'Defense Panelist',
                     'time' => 'Just now',
                     'text' => $comment->comment,
-                    'page' => $comment->page_number ? 'Page '.$comment->page_number : 'General Reference',
+                    'page' => $comment->pageReference(),
+                    'page_label' => $comment->page_label,
                     'page_number' => $comment->page_number,
                     'severity' => $comment->severity,
                     'borderClass' => match ($comment->severity) {
@@ -126,7 +127,7 @@ class DocumentCommentController extends Controller
                     'suggestions' => $commentText,
                     'recommended_by' => $user->name,
                     'revision_made' => '',
-                    'pages' => $comment->page_number ? 'Page '.$comment->page_number : '',
+                    'pages' => $comment->page_number ? $comment->pageReference() : '',
                     'approval' => '',
                 ];
                 $revisions['others'] = $others;

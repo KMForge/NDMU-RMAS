@@ -1,5 +1,8 @@
 import './bootstrap';
 import './research-progress';
+import { manuscriptPageLabel, visibleManuscriptPage } from './manuscript-pages';
+
+window.manuscriptPageLabel = manuscriptPageLabel;
 
 let docxLibraryPromise;
 let pdfJsLibraryPromise;
@@ -75,7 +78,7 @@ function appendReviewerNote(pageElement, comment, pageNumber = 1) {
 
     const pageTag = document.createElement('span');
     pageTag.className = 'reviewer-note-page-tag';
-    pageTag.textContent = `Page ${pageNumber}`;
+    pageTag.textContent = comment?.page || `Page ${pageNumber}`;
 
     const body = document.createElement('div');
     body.className = 'reviewer-note-body';
@@ -182,7 +185,7 @@ async function downloadAnnotatedPdf({ downloadUrl, filename, comments = [] }) {
                 font: boldFont,
                 color: rgb(0.06, 0.36, 0.23),
             });
-            sheet.drawText(referencedPage ? `Reviewer Comments - Original Page ${referencedPage}` : 'General Reviewer Comments', {
+            sheet.drawText(referencedPage ? `Reviewer Comments - ${printablePdfText(attachedComments[0]?.page || `Page ${referencedPage}`)}` : 'General Reviewer Comments', {
                 x: margin,
                 y: height - 82,
                 size: 17,
@@ -416,7 +419,7 @@ function initializeDocxViewers(root = document) {
                             const callout = document.createElement('div');
                             callout.className = 'reviewer-note-callout';
                             const authorLabel = c.name ? `${c.name}${c.role ? ' (' + c.role + ')' : ''}` : 'Reviewer Note';
-                            const pageLabel = targetPageNum ? `Page ${targetPageNum}` : 'General';
+                            const pageLabel = String(c.page || `Page ${targetPageNum}`).replace(/</g, '&lt;').replace(/>/g, '&gt;');
                             const commentBody = (c.text || c.comment || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                             
                             callout.innerHTML = `
@@ -440,27 +443,18 @@ function initializeDocxViewers(root = document) {
                 const scrollContainer = container.closest('.overflow-auto') || container.closest('.overflow-y-auto') || window;
                 const updateCurrentPage = () => {
                     if (pageElements.length <= 1) {
-                        window.dispatchEvent(new CustomEvent('document-page-change', { detail: { page: 1 } }));
+                        window.dispatchEvent(new CustomEvent('document-page-change', { detail: { page: 1, count: pageElements.length } }));
                         return;
                     }
                     const containerRect = scrollContainer === window
                         ? { top: 0, height: window.innerHeight }
                         : scrollContainer.getBoundingClientRect();
-                    const containerMidY = containerRect.top + (containerRect.height / 3);
-
-                    let closestPage = 1;
-                    let minDistance = Infinity;
-
-                    pageElements.forEach((p, idx) => {
-                        const r = p.getBoundingClientRect();
-                        const dist = Math.abs(r.top - containerMidY);
-                        if (dist < minDistance) {
-                            minDistance = dist;
-                            closestPage = idx + 1;
-                        }
+                    const closestPage = visibleManuscriptPage(pageElements, {
+                        top: Math.max(0, containerRect.top),
+                        bottom: Math.min(window.innerHeight, containerRect.top + containerRect.height),
                     });
 
-                    window.dispatchEvent(new CustomEvent('document-page-change', { detail: { page: closestPage } }));
+                    window.dispatchEvent(new CustomEvent('document-page-change', { detail: { page: closestPage, count: pageElements.length } }));
                 };
 
                 if (scrollContainer !== window) {
@@ -571,7 +565,7 @@ function initializePdfViewers(root = document) {
                                 const callout = document.createElement('div');
                                 callout.className = 'reviewer-note-callout';
                                 const authorLabel = c.name ? `${c.name}${c.role ? ' (' + c.role + ')' : ''}` : 'Reviewer Note';
-                                const pageLabel = `Page ${pageNum}`;
+                                const pageLabel = String(c.page || `Page ${pageNum}`).replace(/</g, '&lt;').replace(/>/g, '&gt;');
                                 const commentBody = (c.text || c.comment || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
                                 callout.innerHTML = `
@@ -599,27 +593,18 @@ function initializePdfViewers(root = document) {
                 const scrollContainer = container.closest('.overflow-auto') || container.closest('.overflow-y-auto') || window;
                 const updateCurrentPage = () => {
                     if (pageElements.length <= 1) {
-                        window.dispatchEvent(new CustomEvent('document-page-change', { detail: { page: 1 } }));
+                        window.dispatchEvent(new CustomEvent('document-page-change', { detail: { page: 1, count: pageElements.length } }));
                         return;
                     }
                     const containerRect = scrollContainer === window
                         ? { top: 0, height: window.innerHeight }
                         : scrollContainer.getBoundingClientRect();
-                    const containerMidY = containerRect.top + (containerRect.height / 3);
-
-                    let closestPage = 1;
-                    let minDistance = Infinity;
-
-                    pageElements.forEach((p, idx) => {
-                        const r = p.getBoundingClientRect();
-                        const dist = Math.abs(r.top - containerMidY);
-                        if (dist < minDistance) {
-                            minDistance = dist;
-                            closestPage = idx + 1;
-                        }
+                    const closestPage = visibleManuscriptPage(pageElements, {
+                        top: Math.max(0, containerRect.top),
+                        bottom: Math.min(window.innerHeight, containerRect.top + containerRect.height),
                     });
 
-                    window.dispatchEvent(new CustomEvent('document-page-change', { detail: { page: closestPage } }));
+                    window.dispatchEvent(new CustomEvent('document-page-change', { detail: { page: closestPage, count: pageElements.length } }));
                 };
 
                 if (scrollContainer !== window) {

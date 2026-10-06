@@ -141,6 +141,8 @@ class GetPanelistAssignedDocuments
                 'tab' => 'recommendations',
                 'document_id' => $document->getKey(),
             ]),
+            'pageMapping' => $document->page_mapping,
+            'pageMappingUrl' => route('panelist.documents.page-mapping', $document),
             'commentUrl' => route('panelist.documents.comments.store', $document),
             'comments' => $document->comments->map(fn ($comment): array => [
                 'id' => $comment->getKey(),
@@ -148,7 +150,8 @@ class GetPanelistAssignedDocuments
                 'role' => 'Reviewer',
                 'time' => $comment->created_at?->diffForHumans() ?? '',
                 'text' => $comment->comment,
-                'page' => $comment->page_number === null ? 'General' : 'Page '.$comment->page_number,
+                'page' => $comment->pageReference(),
+                'page_label' => $comment->page_label,
                 'page_number' => $comment->page_number,
                 'severity' => $comment->severity,
                 'borderClass' => match ($comment->severity) {
