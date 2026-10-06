@@ -182,7 +182,7 @@ final class RestoreSystemBackup
 
         $binary = (string) config('backups.pg_restore_binary', 'pg_restore');
         $input = null;
-        if ($this->binaryIsAvailable($binary)) {
+        if (trim((string) config('backups.pg_dump_docker_container')) === '' && $this->binaryIsAvailable($binary)) {
             $process = new Process([
                 $binary,
                 '--clean', '--if-exists', '--no-owner', '--no-privileges', '--single-transaction', '--exit-on-error',
@@ -202,15 +202,18 @@ final class RestoreSystemBackup
             }
 
             $process = new Process([
-                'docker', 'exec', '-i',
-                '-e', 'PGPASSWORD='.(string) ($connection['password'] ?? ''),
-                '-e', 'PGSSLMODE='.(string) ($connection['sslmode'] ?? 'prefer'),
+                (string) config('backups.docker_binary', 'docker'), 'exec', '-i',
+                '-e', 'PGPASSWORD',
+                '-e', 'PGSSLMODE',
                 $container,
                 'pg_restore', '--clean', '--if-exists', '--no-owner', '--no-privileges', '--single-transaction', '--exit-on-error',
                 '--host='.(string) $connection['host'],
                 '--port='.(string) $connection['port'],
                 '--username='.(string) $connection['username'],
                 '--dbname='.(string) $connection['database'],
+            ], null, [
+                'PGPASSWORD' => (string) ($connection['password'] ?? ''),
+                'PGSSLMODE' => (string) ($connection['sslmode'] ?? 'prefer'),
             ]);
             $input = fopen($databaseDump, 'rb');
             if (! is_resource($input)) {

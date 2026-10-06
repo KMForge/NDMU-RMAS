@@ -121,7 +121,7 @@ final class CreateSystemBackup
         }
 
         $binary = (string) config('backups.pg_dump_binary', 'pg_dump');
-        if (! $this->binaryIsAvailable($binary)) {
+        if (trim((string) config('backups.pg_dump_docker_container')) !== '' || ! $this->binaryIsAvailable($binary)) {
             $this->dumpDatabaseFromDocker($target, $connection);
 
             return;
@@ -176,15 +176,18 @@ final class CreateSystemBackup
         }
 
         $process = new Process([
-            'docker', 'exec',
-            '-e', 'PGPASSWORD='.(string) ($connection['password'] ?? ''),
-            '-e', 'PGSSLMODE='.(string) ($connection['sslmode'] ?? 'prefer'),
+            (string) config('backups.docker_binary', 'docker'), 'exec',
+            '-e', 'PGPASSWORD',
+            '-e', 'PGSSLMODE',
             $container,
             'pg_dump', '--format=custom', '--no-owner', '--no-privileges', '--schema=public', '--blobs',
             '--host='.(string) $connection['host'],
             '--port='.(string) $connection['port'],
             '--username='.(string) $connection['username'],
             (string) $connection['database'],
+        ], null, [
+            'PGPASSWORD' => (string) ($connection['password'] ?? ''),
+            'PGSSLMODE' => (string) ($connection['sslmode'] ?? 'prefer'),
         ]);
         $process->setTimeout((int) config('backups.timeout_seconds', 600));
 
