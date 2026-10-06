@@ -52,6 +52,7 @@ class DashboardController extends Controller
                 $request->query('progress_group_status'),
                 $request->query('progress_page'),
                 $request->query('progress_group_id'),
+                $request->query('progress_class_id'),
             )
             : [];
         $notificationsData = $activeTab === 'notifications'

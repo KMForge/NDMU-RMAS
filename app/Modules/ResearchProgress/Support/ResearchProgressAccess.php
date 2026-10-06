@@ -7,9 +7,12 @@ use App\Models\ResearchClassGroupAdviserHistory;
 use App\Models\ResearchClassGroupMember;
 use App\Models\ResearchClassGroupMemberHistory;
 use App\Models\User;
+use App\Modules\OfficialForms\Services\InstitutionalActorResolver;
 
 class ResearchProgressAccess
 {
+    public function __construct(private readonly InstitutionalActorResolver $institutionalActors) {}
+
     public function canView(User $user, ResearchClassGroup $group): bool
     {
         $group->loadMissing('researchClass');
@@ -33,6 +36,11 @@ class ResearchProgressAccess
         }
 
         if ($user->can('progress.view-owned-classes') && $group->researchClass?->facilitator_id === $user->getKey()) {
+            return true;
+        }
+
+        if ($user->can('classes.assign-advisers')
+            && $this->institutionalActors->isProgramCoordinator($user, $group->researchClass, $group)) {
             return true;
         }
 

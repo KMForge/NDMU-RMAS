@@ -2,14 +2,17 @@
 
 namespace App\Modules\ResearchProgress\Queries;
 
+use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
+use App\Modules\Classes\Queries\GetFacilitatorClassData;
 use Illuminate\Support\Str;
 
 class GetFacilitatorProgressData
 {
     public function __construct(
         private readonly GetResearchGroupProgress $progress,
+        private readonly GetFacilitatorClassData $classData,
     ) {}
 
     /** @return array<string, mixed> */
@@ -19,14 +22,22 @@ class GetFacilitatorProgressData
         mixed $status = null,
         mixed $page = null,
         mixed $groupId = null,
+        mixed $classId = null,
     ): array {
         $search = Str::limit(strip_tags(trim(is_string($search) ? $search : '')), 100, '');
         $status = in_array($status, ['active', 'disbanded'], true) ? $status : 'active';
         $groupId = is_numeric($groupId) && (int) $groupId > 0 ? (int) $groupId : null;
+        $classId = is_numeric($classId) && (int) $classId > 0 ? (int) $classId : null;
         $isGlobal = $facilitator->can('progress.view-all');
 
+        $allFilterClasses = $isGlobal
+            ? ResearchClass::query()->orderBy('name')->orderBy('id')->get(['id', 'name'])
+            : $this->classData->for($facilitator, activeTab: 'classes')['researchClasses']->sortBy('name')->values();
+        $visibleClassIds = $allFilterClasses->pluck('id');
+
         $allFilterGroups = ResearchClassGroup::query()
-            ->when(! $isGlobal, fn ($query) => $query->whereHas('researchClass', fn ($q) => $q->where('facilitator_id', $facilitator->getKey())))
+            ->whereIn('research_class_id', $visibleClassIds)
+            ->when($classId !== null, fn ($query) => $query->where('research_class_id', $classId))
             ->with([
                 'researchClass:id,name',
                 'researchGroup.currentProject' => fn ($query) => $query->select([
@@ -39,7 +50,8 @@ class GetFacilitatorProgressData
             ->get(['id', 'name', 'research_class_id', 'research_group_id']);
 
         $groups = ResearchClassGroup::query()
-            ->when(! $isGlobal, fn ($query) => $query->whereHas('researchClass', fn ($q) => $q->where('facilitator_id', $facilitator->getKey())))
+            ->whereIn('research_class_id', $visibleClassIds)
+            ->when($classId !== null, fn ($query) => $query->where('research_class_id', $classId))
             ->when($status === 'active', fn ($query) => $query->where('status', 'active')->whereNull('disbanded_at'))
             ->when($status === 'disbanded', fn ($query) => $query->where('status', 'disbanded'))
             ->when($groupId !== null, fn ($query) => $query->where('id', $groupId))
@@ -79,6 +91,8 @@ class GetFacilitatorProgressData
             'progressSearch' => $search,
             'progressGroupStatus' => $status,
             'progressGroupId' => $groupId,
+            'progressClassId' => $classId,
+            'allFilterClasses' => $allFilterClasses,
             'allFilterGroups' => $allFilterGroups,
         ];
     }

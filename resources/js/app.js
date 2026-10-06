@@ -1,4 +1,5 @@
 import './bootstrap';
+import './research-progress';
 
 let docxLibraryPromise;
 let pdfJsLibraryPromise;

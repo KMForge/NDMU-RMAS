@@ -2288,6 +2288,8 @@
                         :group-status="$progressGroupStatus"
                         :group-id="$progressGroupId ?? null"
                         :all-filter-groups="$allFilterGroups ?? null"
+                        :class-id="$progressClassId ?? null"
+                        :all-filter-classes="$allFilterClasses ?? null"
                     />
                 @else
                     <div class="rounded-3xl border border-gray-100 bg-white p-12 text-center text-gray-500">

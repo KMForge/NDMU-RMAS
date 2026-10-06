@@ -32,12 +32,14 @@ use App\Modules\ResearchProgress\Queries\GetAdviserProgressData;
 use App\Modules\ResearchProgress\Queries\GetFacilitatorProgressData;
 use App\Modules\ResearchProgress\Queries\GetResearchGroupProgress;
 use App\Modules\ResearchProgress\Services\ResearchJourneyService;
+use App\Modules\ResearchProgress\Support\ResearchProgressAccess;
 use App\Notifications\AcademicWorkflowNotification;
 use Database\Seeders\AcademicStructureSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use Illuminate\Support\ViewErrorBag;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
@@ -688,6 +690,48 @@ class ResearchProgressMilestoneTest extends TestCase
         $this->assertTrue($journey['stages'][5]['is_completed']);
     }
 
+    public function test_later_manually_completed_milestone_can_be_corrected_with_an_authorized_order_override(): void
+    {
+        $milestone = $this->milestones()->firstWhere('definition.sequence', 6);
+        $this->actingAs($this->facilitator)->patchJson(route('facilitator.progress.complete', $milestone), [
+            'override_order' => true, 'direct_completion' => true, 'reason' => 'Manual completion.',
+        ])->assertOk();
+
+        $this->actingAs($this->facilitator)->patchJson(route('facilitator.progress.correct', $milestone), [
+            'status' => 'in_progress', 'override_order' => true,
+        ])->assertUnprocessable()->assertJsonValidationErrors('reason');
+
+        $other = $this->user('research-facilitator');
+        $this->actingAs($other)->patchJson(route('facilitator.progress.correct', $milestone), [
+            'status' => 'in_progress', 'override_order' => true, 'reason' => 'Still needs review.',
+        ])->assertForbidden();
+
+        $this->actingAs($this->facilitator)->patchJson(route('facilitator.progress.correct', $milestone), [
+            'status' => 'in_progress', 'override_order' => true, 'reason' => 'Still needs review.',
+        ])->assertOk();
+
+        $this->assertSame(ResearchMilestoneStatus::InProgress, $milestone->fresh()->status);
+        $this->assertNull($milestone->fresh()->completed_at);
+        $this->assertDatabaseHas('research_group_milestone_events', [
+            'research_group_milestone_id' => $milestone->id, 'event' => 'status_corrected',
+            'from_status' => 'completed', 'to_status' => 'in_progress',
+            'override_order' => true, 'reason' => 'Still needs review.',
+        ]);
+    }
+
+    public function test_monitoring_has_stable_milestone_anchors_and_submits_the_correction_override(): void
+    {
+        $milestone = $this->milestones()->firstWhere('definition.sequence', 6);
+        $milestone->update(['status' => ResearchMilestoneStatus::Completed]);
+        $groups = app(GetFacilitatorProgressData::class)->for($this->facilitator)['progressGroups'];
+        view()->share('errors', new ViewErrorBag);
+        $this->blade('<x-research-progress.facilitator-monitoring :groups="$groups" />', ['groups' => $groups])
+            ->assertSee('data-progress-monitoring', false)
+            ->assertSee('id="progress-milestone-'.$milestone->id.'"', false)
+            ->assertSee('name="status" value="in_progress"', false)
+            ->assertSee('name="override_order" value="1"', false);
+    }
+
     public function test_accepted_staff_invitations_do_not_restore_progress_after_a_student_activity_reset(): void
     {
         app(SyncOfficialFormCatalog::class)->handle();
@@ -711,6 +755,96 @@ class ResearchProgressMilestoneTest extends TestCase
         $this->assertSame(0, $summary['completed_count']);
         $this->assertDatabaseCount('official_form_instances', 2);
         $this->assertDatabaseMissing('research_group_milestones', ['status' => 'completed']);
+    }
+
+    public function test_monitoring_filters_groups_by_class_and_keeps_all_owned_classes_visible(): void
+    {
+        [$secondClass, $secondGroup] = $this->monitoringClassGroup($this->facilitator, 'Second Class', 'Second Class Group');
+        [$foreignClass, $foreignGroup] = $this->monitoringClassGroup($this->user('research-facilitator'), 'Foreign Class', 'Foreign Group');
+        $query = app(GetFacilitatorProgressData::class);
+        $all = $query->for($this->facilitator);
+        $this->assertEqualsCanonicalizing([$this->group->id, $secondGroup->id], $all['progressGroups']->pluck('id')->all());
+        $this->assertEqualsCanonicalizing([$this->researchClass->id, $secondClass->id], $all['allFilterClasses']->pluck('id')->all());
+
+        $filtered = $query->for($this->facilitator, classId: $secondClass->id);
+        $this->assertSame([$secondGroup->id], $filtered['progressGroups']->pluck('id')->all());
+        $this->assertSame([$secondGroup->id], $filtered['allFilterGroups']->pluck('id')->all());
+        $this->assertSame($secondClass->id, $filtered['progressClassId']);
+        $this->assertCount(0, $query->for($this->facilitator, classId: $foreignClass->id)['progressGroups']);
+
+        $this->actingAs($this->facilitator)->get(route('facilitator.dashboard', ['tab' => 'monitoring', 'progress_class_id' => $secondClass->id]))
+            ->assertOk()->assertSee('name="progress_class_id"', false)->assertSeeText('All Research Classes')
+            ->assertSeeText('Second Class Group')->assertDontSeeText('Foreign Group');
+
+        $admin = $this->user('administrator');
+        $adminAll = $query->for($admin);
+        $this->assertCount(3, $adminAll['allFilterClasses']);
+        $this->assertCount(3, $adminAll['progressGroups']);
+        $adminFiltered = $query->for($admin, classId: $foreignClass->id);
+        $this->assertSame([$foreignGroup->id], $adminFiltered['progressGroups']->pluck('id')->all());
+        $this->assertSame([$foreignGroup->id], $adminFiltered['allFilterGroups']->pluck('id')->all());
+    }
+
+    public function test_class_filter_applies_to_disbanded_history_and_does_not_override_group_filter(): void
+    {
+        [$secondClass, $secondGroup] = $this->monitoringClassGroup($this->facilitator, 'History Class', 'History Group');
+        $secondGroup->update(['status' => 'disbanded', 'disbanded_at' => now()]);
+        $query = app(GetFacilitatorProgressData::class);
+        $history = $query->for($this->facilitator, status: 'disbanded', classId: $secondClass->id);
+        $this->assertSame([$secondGroup->id], $history['progressGroups']->pluck('id')->all());
+        $this->assertCount(0, $query->for($this->facilitator, classId: $secondClass->id)['progressGroups']);
+        $this->assertCount(0, $query->for($this->facilitator, groupId: $this->group->id, classId: $secondClass->id)['progressGroups']);
+    }
+
+    public function test_coordinator_can_monitor_another_facilitators_class_but_cannot_change_its_progress(): void
+    {
+        $coordinator = $this->user('program-coordinator');
+        $coordinator->forceFill(['user_type' => 'faculty'])->save();
+        $query = app(GetFacilitatorProgressData::class);
+        $data = $query->for($coordinator);
+        $this->assertContains($this->researchClass->id, $data['allFilterClasses']->pluck('id')->all());
+        $this->assertContains($this->group->id, $data['progressGroups']->pluck('id')->all());
+        $access = app(ResearchProgressAccess::class);
+        $this->assertTrue($access->canView($coordinator, $this->group->fresh()));
+        $this->assertFalse($access->canManage($coordinator, $this->group->fresh()));
+        $milestone = $this->milestones()->first();
+        $this->actingAs($coordinator)->patchJson(route('facilitator.progress.start', $milestone))->assertForbidden();
+    }
+
+    public function test_reassigned_facilitator_inherits_existing_progress_and_previous_owner_loses_management(): void
+    {
+        $milestone = $this->milestones()->first();
+        $this->startAndComplete($milestone);
+        $eventsBefore = ResearchGroupMilestoneEvent::count();
+        $newFacilitator = $this->user('research-facilitator');
+        $this->researchClass->update(['facilitator_id' => $newFacilitator->id]);
+        $query = app(GetFacilitatorProgressData::class);
+        $this->assertCount(0, $query->for($this->facilitator)['progressGroups']);
+        $this->assertCount(0, $query->for($this->facilitator)['allFilterClasses']);
+        $this->assertSame([$this->group->id], $query->for($newFacilitator)['progressGroups']->pluck('id')->all());
+        $access = app(ResearchProgressAccess::class);
+        $this->assertFalse($access->canView($this->facilitator, $this->group->fresh()));
+        $this->assertFalse($access->canManage($this->facilitator, $this->group->fresh()));
+        $this->assertTrue($access->canManage($newFacilitator, $this->group->fresh()));
+        $this->assertSame(ResearchMilestoneStatus::Completed, $milestone->fresh()->status);
+        $this->assertSame($eventsBefore, ResearchGroupMilestoneEvent::count());
+        $next = $this->milestones()->skip(1)->first();
+        $this->actingAs($this->facilitator)->patchJson(route('facilitator.progress.start', $next))->assertForbidden();
+        $this->actingAs($newFacilitator)->patchJson(route('facilitator.progress.start', $next))->assertOk();
+    }
+
+    private function monitoringClassGroup(User $facilitator, string $className, string $groupName): array
+    {
+        $class = $this->researchClass->replicate();
+        $class->fill(['facilitator_id' => $facilitator->id, 'creation_token' => (string) Str::uuid(), 'name' => $className]);
+        $class->join_code_hash = hash('sha256', (string) Str::uuid());
+        $class->save();
+        $group = ResearchClassGroup::query()->create([
+            'research_class_id' => $class->id, 'creation_token' => (string) Str::uuid(), 'name' => $groupName,
+            'created_by' => $facilitator->id, 'status' => 'active',
+        ]);
+
+        return [$class, $group];
     }
 
     private function milestones()

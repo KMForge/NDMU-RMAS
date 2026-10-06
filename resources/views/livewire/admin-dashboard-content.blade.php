@@ -2178,6 +2178,8 @@
                         :group-status="$progressGroupStatus"
                         :group-id="$progressGroupId ?? null"
                         :all-filter-groups="$allFilterGroups ?? null"
+                        :class-id="$progressClassId ?? null"
+                        :all-filter-classes="$allFilterClasses ?? null"
                         :read-only="true"
                         :form-action="route('admin.dashboard')"
                         :tab-value="'research'"

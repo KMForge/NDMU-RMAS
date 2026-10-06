@@ -16,6 +16,7 @@ class CorrectMilestoneRequest extends FormRequest
     {
         return [
             'status' => ['required', Rule::in(['pending', 'in_progress', 'not_applicable'])],
+            'override_order' => ['sometimes', 'boolean'],
             'reason' => ['required', 'string', 'max:2000'], 'remarks' => ['nullable', 'string', 'max:4000'],
         ];
     }

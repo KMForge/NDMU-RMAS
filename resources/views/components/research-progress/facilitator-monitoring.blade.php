@@ -1,6 +1,6 @@
-@props(['groups', 'search' => '', 'groupStatus' => 'active', 'groupId' => null, 'allFilterGroups' => null, 'readOnly' => false, 'formAction' => null, 'tabValue' => 'monitoring', 'portalName' => null])
+@props(['groups', 'search' => '', 'groupStatus' => 'active', 'groupId' => null, 'allFilterGroups' => null, 'classId' => null, 'allFilterClasses' => null, 'readOnly' => false, 'formAction' => null, 'tabValue' => 'monitoring', 'portalName' => null])
 
-<div class="space-y-8">
+<div class="space-y-8" data-progress-monitoring>
     <!-- Header -->
     <div class="flex flex-col gap-1">
         <div class="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
@@ -52,6 +52,16 @@
             >
         </div>
         
+        <label class="text-xs font-bold text-slate-700">
+            Research Class
+            <select name="progress_class_id" onchange="const group = this.form.elements.namedItem('progress_group_id'); if (group) group.value = ''; this.form.submit()" class="ml-2 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-2.5 text-xs font-bold text-slate-700 focus:border-[#0e5c3a] focus:outline-none">
+                <option value="">All Research Classes</option>
+                @foreach ($allFilterClasses ?? [] as $filterClass)
+                    <option value="{{ $filterClass->id }}" @selected((int) $classId === (int) $filterClass->id)>{{ $filterClass->name }}</option>
+                @endforeach
+            </select>
+        </label>
+
         @if (isset($allFilterGroups) && count($allFilterGroups) > 0)
             <select
                 name="progress_group_id"
@@ -93,7 +103,9 @@
             refreshTimer: null,
             refreshing: false,
             async refreshFromServer() {
-                if (this.refreshing || document.visibilityState !== 'visible') return;
+                if (this.refreshing || document.visibilityState !== 'visible'
+                    || this.$root.closest('[data-progress-monitoring]')?.dataset.saving === 'true'
+                    || this.$root.querySelector('details[open]')) return;
                 this.refreshing = true;
 
                 try {
@@ -231,8 +243,8 @@
                             @php
                                 $persistedStatusVal = $milestone->status->value;
                                 $journeyStage = $summary['journey']['stages'][$milestone->definition->sequence] ?? null;
-                                $statusVal = $persistedStatusVal === 'completed'
-                                    ? 'completed'
+                                $statusVal = in_array($persistedStatusVal, ['completed', 'in_progress'], true)
+                                    ? $persistedStatusVal
                                     : ($persistedStatusVal === 'not_applicable'
                                         ? 'not_applicable'
                                         : ($journeyStage
@@ -250,7 +262,7 @@
                                     default => 'bg-slate-50 text-slate-600 border-slate-200',
                                 };
                             @endphp
-                            <article @class([
+                            <article id="progress-milestone-{{ $milestone->id }}" @class([
                                 'rounded-2xl border p-4 sm:p-5 transition-all duration-200',
                                 'border-emerald-200 bg-emerald-50/30 hover:border-emerald-300' => $statusVal === 'completed',
                                 'border-amber-200 bg-amber-50/40 ring-2 ring-amber-400/20' => $statusVal === 'in_progress',
@@ -363,6 +375,7 @@
                                                 <form method="POST" action="{{ route('facilitator.progress.correct', $milestone) }}" class="space-y-2 rounded-xl border border-slate-200 bg-white p-3">
                                                     @csrf @method('PATCH')
                                                     <input type="hidden" name="status" value="in_progress">
+                                                    <input type="hidden" name="override_order" value="1">
                                                     <label class="text-[11px] font-bold uppercase tracking-wider text-slate-700 block">Status Correction</label>
                                                     <textarea required name="reason" maxlength="2000" placeholder="Required correction reason" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs focus:outline-none"></textarea>
                                                     <button class="text-xs font-bold text-rose-700 hover:underline cursor-pointer">Return to In Progress</button>
