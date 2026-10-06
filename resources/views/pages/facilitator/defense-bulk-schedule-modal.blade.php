@@ -75,7 +75,7 @@
                             class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-2xs focus:border-[#0e5c3a] focus:ring-1 focus:ring-[#0e5c3a] outline-none"
                         >
                             <template x-for="rc in facilitatorClasses" :key="'bulk-rc-' + rc.id">
-                                <option :value="rc.id" x-text="rc.name + ' (' + rc.code + ')'"></option>
+                                <option :value="rc.id" x-text="rc.name + (rc.code ? ' (' + rc.code + ')' : '')"></option>
                             </template>
                         </select>
                     </div>
@@ -162,6 +162,11 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div class="rounded-2xl border border-blue-200 bg-blue-50/90 p-4 text-xs text-blue-900">
+                Scheduling requirements are checked separately for each defense stage. You are scheduling
+                <span class="font-black" x-text="defenseStageLabel(bulkScheduleForm.type)"></span>; its panel invitations and matching RES-033 must both be complete.
             </div>
 
             <!-- Conflicts Alert Box -->
@@ -295,7 +300,8 @@
                                         <div class="font-black text-slate-900" x-text="grp.group_name"></div>
                                         <div class="text-[11px] text-slate-500 truncate max-w-sm" x-text="grp.title || 'No Approved Proposal Title'"></div>
                                         <span x-show="!grp.res033_complete" x-cloak class="mt-1 inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9px] font-black uppercase text-amber-700">
-                                            <i class="ph ph-lock-key"></i> RES-033 incomplete
+                                            <i class="ph ph-lock-key"></i>
+                                            <span x-text="defenseStageLabel(bulkScheduleForm.type) + ' RES-033 incomplete'"></span>
                                         </span>
                                     </td>
 

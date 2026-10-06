@@ -443,6 +443,15 @@
         return this.defensePanelCandidates || [];
     },
 
+    defenseStageLabel(type) {
+        return {
+            title_presentation: 'Title Presentation',
+            proposal_defense: 'Proposal Defense',
+            pre_final_defense: 'Pre-Final Defense',
+            final_defense: 'Final Defense',
+        }[type] || 'Selected Defense Stage';
+    },
+
     get classCommitteeGroups() {
         return this.classCommitteeForm.groupsData || [];
     },
