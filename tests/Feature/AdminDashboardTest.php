@@ -113,6 +113,64 @@ class AdminDashboardTest extends TestCase
             ->assertSee('Administrator');
     }
 
+    public function test_admin_can_search_all_user_types_and_cancel_role_editing_with_an_active_search(): void
+    {
+        $this->seed(AcademicStructureSeeder::class);
+
+        $admin = User::factory()->create([
+            'name' => 'System Search Administrator',
+            'user_type' => UserType::Admin,
+        ]);
+        $admin->assignRole('system-administrator');
+
+        $student = User::factory()->create([
+            'name' => 'Student Search Result',
+            'email' => 'student.search@ndmu.edu.ph',
+            'student_id' => '2023999',
+            'user_type' => UserType::Student,
+        ]);
+        $student->assignRole('student-researcher');
+
+        $faculty = User::factory()->create([
+            'name' => 'Faculty Search Result',
+            'email' => 'faculty.search@ndmu.edu.ph',
+            'user_type' => UserType::Faculty,
+        ]);
+        $faculty->assignRole('research-facilitator');
+
+        FacultyProfile::query()->create([
+            'user_id' => $faculty->id,
+            'department_id' => Department::query()->where('code', 'CSD')->firstOrFail()->id,
+            'employee_number' => 'EMP-SEARCH-001',
+        ]);
+
+        $this->actingAs($admin);
+
+        foreach ([
+            '2023999' => $student->name,
+            'EMP-SEARCH-001' => $faculty->name,
+            'student.search' => $student->name,
+            'System Search' => $admin->name,
+        ] as $search => $expectedName) {
+            Livewire::test(AdminDashboard::class)
+                ->set('tab', 'users')
+                ->set('searchQuery', $search)
+                ->assertSee($expectedName)
+                ->assertOk();
+        }
+
+        Livewire::test(AdminDashboard::class)
+            ->set('tab', 'users')
+            ->set('searchQuery', 'Faculty Search')
+            ->call('openRoleAssignment', $faculty->id)
+            ->assertSet('roleAssignmentUserId', $faculty->id)
+            ->call('closeRoleAssignment')
+            ->assertSet('roleAssignmentUserId', null)
+            ->assertSet('tab', 'users')
+            ->assertDispatched('role-assignment-closed')
+            ->assertOk();
+    }
+
     public function test_admin_dashboard_shortcuts_target_existing_content_tabs(): void
     {
         $admin = User::factory()->create();

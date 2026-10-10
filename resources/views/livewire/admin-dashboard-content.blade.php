@@ -1222,8 +1222,8 @@
                                                                     <div class="text-[11px] text-slate-400 font-semibold mt-0.5">
                                                                         @if ($user->student_id)
                                                                             <span class="font-mono text-slate-600">ID: {{ $user->student_id }}</span>
-                                                                        @elseif ($user->employee_id)
-                                                                            <span class="font-mono text-slate-600">Emp: {{ $user->employee_id }}</span>
+                                                                        @elseif ($user->facultyProfile?->employee_number)
+                                                                            <span class="font-mono text-slate-600">Emp: {{ $user->facultyProfile->employee_number }}</span>
                                                                         @else
                                                                             <span class="text-slate-400">#{{ $user->id }}</span>
                                                                         @endif

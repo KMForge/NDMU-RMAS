@@ -1667,7 +1667,9 @@ class AdminDashboard extends Component
                     $query->where('name', 'like', '%'.$this->searchQuery.'%')
                         ->orWhere('email', 'like', '%'.$this->searchQuery.'%')
                         ->orWhere('student_id', 'like', '%'.$this->searchQuery.'%')
-                        ->orWhere('employee_id', 'like', '%'.$this->searchQuery.'%');
+                        ->orWhereHas('facultyProfile', function ($facultyProfiles) {
+                            $facultyProfiles->where('employee_number', 'like', '%'.$this->searchQuery.'%');
+                        });
                 });
             })
             ->when($this->selectedDepartment !== 'all', function ($query) {
