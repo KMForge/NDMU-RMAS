@@ -245,20 +245,7 @@ class ApplyOfficialFormSignature
                 }
 
                 if (strtoupper($lockedInstance->definition->code) === 'RES-041' && in_array($lockedInstance->status, ['approved', 'completed'], true)) {
-                    $class = $lockedInstance->researchClass ?? $lockedInstance->group?->researchClass;
-                    if ($class) {
-                        $class->loadMissing('groups');
-                        foreach ($class->groups as $classGroup) {
-                            $this->synchronizeMilestone->complete(
-                                $classGroup,
-                                'revision-research-proposal',
-                                $actor,
-                                'official_form',
-                                $lockedInstance->id,
-                                'Completed Revision of Research Proposal Paper (RES-041).',
-                            );
-                        }
-                    } elseif ($lockedInstance->group) {
+                    if ($lockedInstance->group) {
                         $this->synchronizeMilestone->complete(
                             $lockedInstance->group,
                             'revision-research-proposal',

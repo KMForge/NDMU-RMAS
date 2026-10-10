@@ -142,10 +142,11 @@ class ReconcileWorkflowMilestones
         // Stage 4: RES-041 approved
         OfficialFormInstance::query()
             ->whereHas('definition', fn ($q) => $q->where('code', 'RES-041'))
+            ->whereNotNull('research_class_group_id')
             ->whereIn('status', ['approved', 'completed'])
             ->with(['researchClass.groups', 'group'])
             ->each(function (OfficialFormInstance $instance) use (&$completed): void {
-                $groups = $instance->researchClass?->groups ?? ($instance->group ? collect([$instance->group]) : collect());
+                $groups = $instance->group ? collect([$instance->group]) : collect();
                 $actor = User::query()->find($instance->initiated_by) ?? User::query()->first();
                 if ($actor === null) {
                     return;

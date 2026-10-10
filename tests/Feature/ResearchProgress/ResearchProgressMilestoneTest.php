@@ -27,6 +27,9 @@ use App\Models\User;
 use App\Modules\Classes\Actions\CreateResearchClassGroup;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
 use App\Modules\Research\Queries\GetStudentDashboardData;
+use App\Modules\ResearchProgress\Actions\CorrectClassWideEndorsementProgress;
+use App\Modules\ResearchProgress\Actions\ReconcileWorkflowMilestones;
+use App\Modules\ResearchProgress\Actions\SynchronizeWorkflowMilestone;
 use App\Modules\ResearchProgress\Actions\SyncResearchMilestoneDefinitions;
 use App\Modules\ResearchProgress\Queries\GetAdviserProgressData;
 use App\Modules\ResearchProgress\Queries\GetFacilitatorProgressData;
@@ -831,6 +834,38 @@ class ResearchProgressMilestoneTest extends TestCase
         $next = $this->milestones()->skip(1)->first();
         $this->actingAs($this->facilitator)->patchJson(route('facilitator.progress.start', $next))->assertForbidden();
         $this->actingAs($newFacilitator)->patchJson(route('facilitator.progress.start', $next))->assertOk();
+    }
+
+    public function test_class_endorsement_cannot_advance_groups_and_repair_preserves_manual_completion(): void
+    {
+        app(SyncOfficialFormCatalog::class)->handle();
+        $form = OfficialFormInstance::create([
+            'official_form_definition_id' => OfficialFormDefinition::where('code', 'RES-041')->firstOrFail()->id,
+            'research_class_id' => $this->researchClass->id, 'context_key' => 'shared-endorsement',
+            'initiated_by' => $this->facilitator->id, 'status' => 'approved',
+        ]);
+        $journey = app(ResearchJourneyService::class)->getJourneyForGroup($this->group);
+        $this->assertSame(0, $journey['percentage']);
+        $this->assertSame(1, $journey['current_stage']);
+        app(ReconcileWorkflowMilestones::class)->execute();
+        $this->assertDatabaseMissing('research_group_milestones', ['research_class_group_id' => $this->group->id, 'status' => 'completed']);
+        $falseCompletion = app(SynchronizeWorkflowMilestone::class)
+            ->complete($this->group, 'revision-research-proposal', $this->facilitator, 'official_form', $form->id);
+        [, $manualGroup] = $this->monitoringClassGroup($this->facilitator, 'Manual class', 'Manual group');
+        $manualGroup->update(['research_class_id' => $this->researchClass->id]);
+        $manualMilestone = app(GetResearchGroupProgress::class)->for($manualGroup)['milestones']->firstWhere('definition.sequence', 4);
+        $this->actingAs($this->facilitator)->patchJson(route('facilitator.progress.complete', $manualMilestone), [
+            'override_order' => true, 'direct_completion' => true, 'reason' => 'Verified manual revision.',
+        ])->assertOk();
+        $admin = $this->user('administrator');
+        $repair = app(CorrectClassWideEndorsementProgress::class);
+        $this->assertSame([$falseCompletion->id], $repair->execute($this->researchClass, $admin));
+        $this->assertSame(ResearchMilestoneStatus::Pending, $falseCompletion->fresh()->status);
+        $this->assertSame(ResearchMilestoneStatus::Completed, $manualMilestone->fresh()->status);
+        $this->assertCount(1, $falseCompletion->evidences);
+        $this->assertSame([], $repair->execute($this->researchClass, $admin));
+        $this->assertSame(0, app(ResearchJourneyService::class)->getJourneyForGroup($this->group->fresh())['percentage']);
+        $this->assertDatabaseHas('audit_logs', ['event' => 'research_milestone.class_scope_corrected', 'auditable_id' => $falseCompletion->id]);
     }
 
     private function monitoringClassGroup(User $facilitator, string $className, string $groupName): array

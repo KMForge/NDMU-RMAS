@@ -47,7 +47,10 @@ class ResearchJourneyService
                 }
             })
             ->with(['definition', 'actorAssignments.user', 'titlePresentation.defense.currentSchedule.room', 'titlePresentation.defense.activePanelAssignments.user'])
-            ->get();
+            ->get()
+            // A class endorsement does not prove every group revised its paper.
+            ->reject(fn (OfficialFormInstance $instance): bool => strtoupper($instance->definition->code) === 'RES-041'
+                && (int) $instance->research_class_group_id !== (int) $group->id);
         $instanceGroups = $instanceRecords
             ->groupBy(fn (OfficialFormInstance $instance): string => strtolower($instance->definition->code));
         $instances = $instanceGroups
