@@ -31,6 +31,7 @@ final class AuditEvent
         'academic.department.created',
         'academic.department.status-updated',
         'academic.program.created',
+        'academic.program.coordinator-assigned',
         'academic.program.status-updated',
         'defense-room.created',
         'defense-room.status-updated',

@@ -1,4 +1,4 @@
-<section class="space-y-8" x-data="{ showCreateClassModal: @js(isset($errors) && $errors->hasAny(['class', 'creation_token', 'name', 'description', 'max_students'])), copiedJoinCode: null }">
+<section class="space-y-8" x-data="{ showCreateClassModal: @js(isset($errors) && $errors->hasAny(['class', 'creation_token', 'name', 'description', 'max_students', 'program_id'])), copiedJoinCode: null }">
     <!-- Header Row -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -83,6 +83,9 @@
                         <h2 class="text-base sm:text-lg font-black font-heading text-slate-900 tracking-tight group-hover:text-[#0e5c3a] transition-colors line-clamp-1">
                             {{ $researchClass->name }}
                         </h2>
+                        @if ($researchClass->program)
+                            <p class="text-xs font-bold text-[#0e5c3a]">{{ $researchClass->program->code }}</p>
+                        @endif
                         @if ($researchClass->description)
                             <p class="text-xs text-slate-500 font-medium line-clamp-2 leading-relaxed">
                                 {{ $researchClass->description }}
@@ -169,6 +172,17 @@
             <form method="POST" action="{{ route('facilitator.classes.store') }}" class="space-y-4">
                 @csrf
                 <input type="hidden" name="creation_token" value="{{ old('creation_token', (string) Illuminate\Support\Str::uuid()) }}">
+
+                <div class="space-y-1.5">
+                    <label for="facilitator_class_program" class="block text-xs font-bold">Academic Program</label>
+                    <select id="facilitator_class_program" name="program_id" class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-xs">
+                        <option value="">Infer from students (legacy / mixed class)</option>
+                        @foreach ($classPrograms as $program)
+                            <option value="{{ $program->id }}" @selected((string) old('program_id') === (string) $program->id)>{{ $program->code }} — {{ $program->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('program_id') <p class="text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
 
                 <div class="space-y-1.5">
                     <label for="facilitator_class_name" class="text-[11px] font-bold uppercase tracking-wider text-slate-700 block">Class Name</label>

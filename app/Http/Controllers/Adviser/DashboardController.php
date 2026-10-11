@@ -89,7 +89,7 @@ class DashboardController extends Controller
             ->where('status', 'active');
         $assignedGroups = in_array($activeTab, ['dashboard', 'classes', 'researchers'], true)
             ? (clone $assignedGroupsQuery)->with([
-                'researchClass:id,name,facilitator_id',
+                'researchClass:id,name,facilitator_id,program_id',
                 'members' => fn ($query) => $query->with('student:id,name,email,student_id,program,year_level'),
             ])
                 ->latest()

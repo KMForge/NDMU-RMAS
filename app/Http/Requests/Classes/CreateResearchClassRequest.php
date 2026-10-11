@@ -4,6 +4,7 @@ namespace App\Http\Requests\Classes;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\Rule;
 
 class CreateResearchClassRequest extends FormRequest
 {
@@ -21,6 +22,7 @@ class CreateResearchClassRequest extends FormRequest
     {
         return [
             'creation_token' => ['bail', 'required', 'uuid'],
+            'program_id' => ['bail', 'nullable', 'integer', Rule::exists('programs', 'id')->where('is_active', true)],
             'name' => ['bail', 'required', 'string', 'min:3', 'max:120'],
             'description' => ['bail', 'nullable', 'string', 'max:1000'],
             'max_students' => ['bail', 'required', 'integer', 'min:1', 'max:100'],

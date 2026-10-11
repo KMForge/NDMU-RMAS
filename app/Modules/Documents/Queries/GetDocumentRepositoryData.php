@@ -37,7 +37,7 @@ class GetDocumentRepositoryData
             ->with([
                 'user:id,name,email',
                 'researchClassGroup:id,research_class_id,name,status,disbanded_at',
-                'researchClassGroup.researchClass:id,name,facilitator_id',
+                'researchClassGroup.researchClass:id,name,facilitator_id,program_id',
             ])
             ->orderBy('submitted_at', $filters['sort'] === 'oldest' ? 'asc' : 'desc')
             ->paginate(10, ['*'], 'repository_page')

@@ -3,6 +3,7 @@
 namespace App\Modules\Classes\Queries;
 
 use App\Enums\AccountStatus;
+use App\Models\Program;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\User;
@@ -22,6 +23,7 @@ class GetFacilitatorClassData
         $classesQuery = ResearchClass::query()
             ->when(! $canAssignAdvisers, fn ($query) => $query->where('facilitator_id', $facilitator->getKey()));
         if (in_array($activeTab, ['dashboard', 'classes'], true)) {
+            $classesQuery->with('program:id,code,name');
             if ($canAssignAdvisers) {
                 $classesQuery->with(['facilitator.facultyProfile', 'groups.members.student.studentProfile.program']);
             }
@@ -31,7 +33,7 @@ class GetFacilitatorClassData
             ])
                 ->latest();
         } else {
-            $classesQuery->select(['id', 'facilitator_id']);
+            $classesQuery->select(['id', 'facilitator_id', 'program_id']);
             if ($canAssignAdvisers) {
                 $classesQuery->with(['facilitator.facultyProfile', 'groups.members.student.studentProfile.program']);
             }
@@ -75,7 +77,7 @@ class GetFacilitatorClassData
             if ($activeTab === 'join-requests') {
                 $joinRequests = (clone $baseRequestQuery)
                     ->with([
-                        'researchClass:id,name,facilitator_id',
+                        'researchClass:id,name,facilitator_id,program_id',
                         'student:id,name,email,student_id,program,year_level',
                     ])
                     ->when($requestStatus !== 'all', fn ($query) => $query->where('status', $requestStatus))
@@ -110,6 +112,9 @@ class GetFacilitatorClassData
             : collect();
 
         return [
+            'classPrograms' => $activeTab === 'classes'
+                ? Program::query()->where('is_active', true)->whereHas('department', fn ($query) => $query->where('is_active', true))->orderBy('code')->get(['id', 'code', 'name'])
+                : collect(),
             'researchClasses' => $classes,
             'classJoinRequests' => $joinRequests,
             'classRequestStats' => $classRequestStats,

@@ -33,6 +33,7 @@ class ResearchClassController extends Controller
                 $request->string('name')->toString(),
                 $request->input('description'),
                 $request->integer('max_students'),
+                $request->filled('program_id') ? $request->integer('program_id') : null,
             );
         } catch (DuplicateClassOperation $exception) {
             return $this->errorResponse($request, $exception->getMessage(), 409);

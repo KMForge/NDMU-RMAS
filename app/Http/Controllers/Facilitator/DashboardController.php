@@ -104,7 +104,7 @@ class DashboardController extends Controller
                 ->where('status', 'active')
                 ->whereIn('research_class_id', $committeeClassIds)
                 ->with([
-                    'researchClass:id,name,facilitator_id',
+                    'researchClass:id,name,facilitator_id,program_id',
                     'researchClass.panelCommittees.chairperson:id,name',
                     'researchClass.panelCommittees.members.user:id,name',
                     'researchGroup.currentProject' => fn ($query) => $query->select([

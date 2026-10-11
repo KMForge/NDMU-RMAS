@@ -127,7 +127,9 @@ class OfficialFormWorkspaceController extends Controller
         $resolver = app(InstitutionalActorResolver::class);
         $autoResolvedActors = [
             'dean' => $resolver->dean(),
-            'program_coordinator' => $resolver->programCoordinatorForGroup($instance->group) ?? $resolver->programCoordinatorForClass($instance->researchClass),
+            'program_coordinator' => $instance->group !== null
+                ? $resolver->programCoordinatorForGroup($instance->group)
+                : $resolver->programCoordinatorForClass($instance->researchClass),
             'facilitator' => $instance->group?->researchClass?->facilitator ?? $instance->researchClass?->facilitator,
             'adviser' => $instance->group?->adviser,
         ];

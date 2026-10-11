@@ -7,9 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['department_id', 'code', 'name', 'degree_level', 'is_active'])]
+#[Fillable(['department_id', 'coordinator_user_id', 'code', 'name', 'degree_level', 'is_active'])]
 class Program extends Model
 {
+    public function coordinator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'coordinator_user_id');
+    }
+
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);

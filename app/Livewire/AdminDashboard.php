@@ -102,6 +102,8 @@ class AdminDashboard extends Component
 
     public ?string $successMessage = null;
 
+    public ?int $lastSavedCoordinatorProgramId = null;
+
     public ?int $editingRoleId = null;
 
     public bool $showRoleEditor = false;
@@ -1292,6 +1294,22 @@ class AdminDashboard extends Component
         $this->clearDashboardCache();
     }
 
+    public function assignProgramCoordinator(int $programId, ?int $userId, ManageAcademicConfiguration $configuration): void
+    {
+        $this->lastSavedCoordinatorProgramId = null;
+        $this->resetErrorBag("programCoordinator.{$programId}");
+        try {
+            $configuration->assignProgramCoordinator($this->administrator(), Program::query()->findOrFail($programId), $userId);
+        } catch (ValidationException $exception) {
+            $this->addError("programCoordinator.{$programId}", $exception->errors()['configuration'][0] ?? 'The coordinator could not be saved.');
+
+            return;
+        }
+        $this->lastSavedCoordinatorProgramId = $programId;
+        $this->clearDashboardCache();
+        $this->successMessage = 'Program coordinator saved. Existing signatures and saved versions were not changed.';
+    }
+
     public function createDefenseRoom(ManageAcademicConfiguration $configuration): void
     {
         abort_unless($this->administrator()->can('settings.manage'), 403);
@@ -1987,6 +2005,7 @@ class AdminDashboard extends Component
                         'assignedFacultyProfiles as active_faculty_count' => fn ($faculty) => $faculty->whereHas('user', fn ($users) => $users->where('status', AccountStatus::Active)),
                     ])
                     ->with(['programs' => fn ($programs) => $programs
+                        ->with('coordinator:id,name')
                         ->withCount([
                             'studentProfiles as active_students_count' => fn ($students) => $students->whereHas('user', fn ($users) => $users->where('status', AccountStatus::Active)),
                             'researchGroups',
@@ -1994,6 +2013,10 @@ class AdminDashboard extends Component
                         ->orderBy('name')])
                     ->orderBy('name')])
                 ->first(),
+            'configurationCoordinators' => User::query()->where('user_type', 'faculty')->where('status', AccountStatus::Active)
+                ->whereNotNull('approved_at')->whereNotNull('email_verified_at')
+                ->whereHas('roles', fn ($query) => $query->whereIn('name', ['program-coordinator', 'department-chair']))
+                ->with('facultyProfile.departments')->orderBy('name')->get(),
             'configurationDefenseRooms' => DefenseRoom::query()
                 ->withCount([
                     'schedules',

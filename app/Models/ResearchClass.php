@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Crypt;
 
 #[Fillable([
     'facilitator_id',
+    'program_id',
     'creation_token',
     'name',
     'description',
@@ -20,6 +21,11 @@ use Illuminate\Support\Facades\Crypt;
 #[Hidden(['creation_token', 'join_code_hash', 'join_code_encrypted'])]
 class ResearchClass extends Model
 {
+    public function program(): BelongsTo
+    {
+        return $this->belongsTo(Program::class);
+    }
+
     public function facilitator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'facilitator_id');

@@ -173,7 +173,29 @@
                             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                                 @foreach ($department->programs as $program)
                                     @php($programUsage = (int) $program->active_students_count + (int) $program->research_groups_count)
-                                    <div class="group relative flex flex-col justify-between rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs transition-all duration-200 hover:border-emerald-300 hover:shadow-xs">
+                                    <div wire:key="program-{{ $program->id }}" class="group relative flex flex-col justify-between rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs transition-all duration-200 hover:border-emerald-300 hover:shadow-xs">
+                                        <div class="mb-3" x-data="{ coordinator: @js($program->coordinator_user_id ?? '') }">
+                                            <label for="program-coordinator-{{ $program->id }}" class="block text-xs font-bold">Program Coordinator</label>
+                                            <select id="program-coordinator-{{ $program->id }}" x-model="coordinator" class="mt-1 w-full rounded-lg border border-slate-200 px-2 py-2 text-xs">
+                                                <option value="">Unassigned (unique department coordinator only)</option>
+                                                @foreach ($configurationCoordinators as $candidate)
+                                                    @if ((int) $candidate->facultyProfile?->department_id === (int) $department->id || $candidate->facultyProfile?->departments->contains('id', $department->id))
+                                                        <option value="{{ $candidate->id }}">{{ $candidate->name }}</option>
+                                                    @endif
+                                                @endforeach
+                                            </select>
+                                            <button type="button" @click="$wire.assignProgramCoordinator({{ $program->id }}, coordinator === '' ? null : Number(coordinator))" wire:loading.attr="disabled" wire:target="assignProgramCoordinator" class="mt-2 rounded-lg bg-[#0e5c3a] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50">
+                                                <span wire:loading.remove wire:target="assignProgramCoordinator">Save Coordinator</span>
+                                                <span wire:loading wire:target="assignProgramCoordinator">Saving…</span>
+                                            </button>
+                                            <p class="mt-2 text-xs text-slate-600">Saved coordinator: <span class="font-bold">{{ $program->coordinator?->name ?? 'No explicit assignment' }}</span></p>
+                                            @if ($lastSavedCoordinatorProgramId === (int) $program->id)
+                                                <p role="status" aria-live="polite" class="mt-1 text-xs font-bold text-emerald-700">Coordinator saved successfully.</p>
+                                            @endif
+                                            @error('programCoordinator.'.$program->id)
+                                                <p role="alert" class="mt-1 text-xs font-bold text-red-600">{{ $message }}</p>
+                                            @enderror
+                                        </div>
                                         <div>
                                             <div class="flex items-center justify-between gap-2">
                                                 <div class="flex items-center gap-1.5 min-w-0">

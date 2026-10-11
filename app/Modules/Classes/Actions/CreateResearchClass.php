@@ -23,6 +23,7 @@ class CreateResearchClass
         string $name,
         ?string $description,
         int $maxStudents,
+        ?int $programId = null,
     ): ResearchClass {
         $lock = Cache::lock("class-creation:{$facilitator->getKey()}:{$creationToken}", 30);
 
@@ -47,9 +48,11 @@ class CreateResearchClass
                 $description,
                 $joinCode,
                 $maxStudents,
+                $programId,
             ): ResearchClass {
                 $researchClass = new ResearchClass([
                     'facilitator_id' => $facilitator->getKey(),
+                    'program_id' => $programId,
                     'creation_token' => $creationToken,
                     'name' => $name,
                     'description' => $description,
@@ -66,7 +69,7 @@ class CreateResearchClass
                     requestContext: AuditRequestContext::fromRequest(request()),
                     auditable: $researchClass,
                     subjectName: $researchClass->name,
-                    newValues: ['max_students' => $researchClass->max_students, 'is_active' => true],
+                    newValues: ['max_students' => $researchClass->max_students, 'program_id' => $programId, 'is_active' => true],
                     actorContext: 'research-facilitator',
                 );
 

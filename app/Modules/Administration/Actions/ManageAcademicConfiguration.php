@@ -7,6 +7,7 @@ use App\Models\DefenseRoom;
 use App\Models\Department;
 use App\Models\OfficialFormDefinition;
 use App\Models\Program;
+use App\Models\ResearchClass;
 use App\Models\User;
 use App\Modules\AuditLogs\Services\AuditLogWriter;
 use App\Modules\AuditLogs\ValueObjects\AuditRequestContext;
@@ -64,6 +65,36 @@ final class ManageAcademicConfiguration
     public function setProgramActive(User $actor, Program $program, bool $active): Program
     {
         return $this->setActive($actor, $program, $active, 'academic.program.status-updated', 'academic program');
+    }
+
+    public function assignProgramCoordinator(User $actor, Program $program, ?int $userId): Program
+    {
+        abort_unless($actor->can('settings.manage'), 403);
+
+        return DB::transaction(function () use ($actor, $program, $userId): Program {
+            $locked = Program::query()->lockForUpdate()->findOrFail($program->id);
+            if ($userId !== null && ! User::query()->whereKey($userId)
+                ->where('user_type', 'faculty')->where('status', 'active')
+                ->whereNotNull('approved_at')->whereNotNull('email_verified_at')
+                ->whereHas('roles', fn ($query) => $query->whereIn('name', ['program-coordinator', 'department-chair']))
+                ->whereHas('facultyProfile', fn ($query) => $query->where('department_id', $locked->department_id)
+                    ->orWhereHas('departments', fn ($departments) => $departments->whereKey($locked->department_id)))
+                ->exists()) {
+                throw ValidationException::withMessages(['configuration' => 'Choose an active, verified coordinator assigned to this program’s department.']);
+            }
+            $previous = $locked->coordinator_user_id;
+            $locked->update(['coordinator_user_id' => $userId]);
+            $this->auditLogs->write(
+                actor: $actor, event: 'academic.program.coordinator-assigned',
+                description: 'Updated the program coordinator assignment.',
+                requestContext: AuditRequestContext::fromRequest(request()),
+                auditable: $locked, subjectName: $locked->name,
+                oldValues: ['coordinator_user_id' => $previous],
+                newValues: ['coordinator_user_id' => $userId], actorContext: 'administrator',
+            );
+
+            return $locked;
+        });
     }
 
     public function setDefenseRoomActive(User $actor, DefenseRoom $room, bool $active): DefenseRoom
@@ -160,10 +191,11 @@ final class ManageAcademicConfiguration
                 ->whereHas('user', fn ($query) => $query->where('status', 'active'))
                 ->count();
             $researchGroups = $model->researchGroups()->count();
+            $activeClasses = ResearchClass::query()->where('program_id', $model->id)->where('is_active', true)->count();
 
-            if ($activeStudents > 0 || $researchGroups > 0) {
+            if ($activeStudents > 0 || $researchGroups > 0 || $activeClasses > 0) {
                 throw ValidationException::withMessages([
-                    'configuration' => "{$model->code} is in use by {$activeStudents} active student(s) and {$researchGroups} research group(s). Reassign them before disabling the program.",
+                    'configuration' => "{$model->code} is in use by {$activeStudents} active student(s), {$researchGroups} research group(s), and {$activeClasses} active class(es). Reassign them before disabling the program.",
                 ]);
             }
 

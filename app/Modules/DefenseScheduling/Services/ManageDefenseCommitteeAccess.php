@@ -34,7 +34,12 @@ class ManageDefenseCommitteeAccess
 
     public function forGroup(User $actor, ResearchClassGroup $group): bool
     {
+        if ($actor->user_type !== UserType::Faculty || $actor->status !== AccountStatus::Active) {
+            return false;
+        }
+
         return $group->researchClass !== null
-            && $this->forClass($actor, $group->researchClass);
+            && (((int) $group->researchClass->facilitator_id === (int) $actor->id && $actor->can('defenses.manage'))
+                || $this->institutionalActors->isProgramCoordinator($actor, group: $group));
     }
 }

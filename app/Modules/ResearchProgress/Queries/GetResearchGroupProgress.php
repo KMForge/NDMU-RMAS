@@ -59,7 +59,7 @@ class GetResearchGroupProgress
         );
 
         return [
-            'group' => $group->loadMissing(['researchClass:id,name,facilitator_id', 'adviser:id,name,email']),
+            'group' => $group->loadMissing(['researchClass:id,name,facilitator_id,program_id', 'adviser:id,name,email']),
             'milestones' => $milestones,
             'progress_percentage' => $journey['percentage'],
             'completed_count' => $completedStageCount,

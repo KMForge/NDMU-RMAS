@@ -46,7 +46,7 @@ class GetAdviserProgressData
                     ->orWhereIn('research_group_id', fn ($sub) => $sub->select('research_group_id')->from('research_projects')->where('title', 'like', "%{$search}%"));
             }))
             ->with([
-                'researchClass:id,name,facilitator_id',
+                'researchClass:id,name,facilitator_id,program_id',
                 'adviser:id,name,email',
                 'leader:id,name,email',
                 'researchGroup.currentProject' => fn ($query) => $query->select([
