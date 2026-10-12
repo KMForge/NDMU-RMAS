@@ -386,4 +386,13 @@ class SystemBackupManagementTest extends TestCase
             ->call('restoreSystemBackup')
             ->assertHasErrors('backupRestoreConfirmation');
     }
+
+    public function test_restore_request_timeout_covers_the_database_restore_and_cleanup(): void
+    {
+        $this->assertGreaterThan(
+            (int) config('backups.timeout_seconds'),
+            (int) config('backups.restore_request_timeout_seconds'),
+        );
+        $this->assertGreaterThanOrEqual(1800, (int) config('backups.restore_request_timeout_seconds'));
+    }
 }

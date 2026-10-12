@@ -29,6 +29,8 @@ final class RestoreSystemBackup
     public function handle(User $actor, SystemBackup $backup): SystemBackup
     {
         abort_unless($actor->can('settings.manage'), 403);
+        $this->refreshExecutionTimeLimit();
+
         if ($backup->status !== 'completed' || $backup->verification_status !== 'verified' || ! $backup->storage_path) {
             throw new RuntimeException('Only completed and verified backups can be restored.');
         }
@@ -103,12 +105,30 @@ final class RestoreSystemBackup
 
             throw new RuntimeException($message, previous: $exception);
         } finally {
+            // Reset the timer so post-restore maintenance and large temporary
+            // directory cleanup cannot turn a successful restore into a 500.
+            $this->refreshExecutionTimeLimit();
+
             if ($maintenanceEnabled) {
                 Artisan::call('up');
             }
             File::deleteDirectory($workDirectory);
             $lock->release();
         }
+    }
+
+    private function refreshExecutionTimeLimit(): void
+    {
+        if (! function_exists('set_time_limit')) {
+            return;
+        }
+
+        $seconds = max(
+            (int) config('backups.timeout_seconds', 600) + 300,
+            (int) config('backups.restore_request_timeout_seconds', 1800),
+        );
+
+        @set_time_limit($seconds);
     }
 
     private function copyStoredArchive(SystemBackup $backup, string $targetPath): void

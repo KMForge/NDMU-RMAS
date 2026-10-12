@@ -9,6 +9,7 @@ return [
     'docker_binary' => env('BACKUP_DOCKER_BINARY', 'docker'),
     'include_private_files' => env('BACKUP_INCLUDE_PRIVATE_FILES', true),
     'timeout_seconds' => (int) env('BACKUP_TIMEOUT_SECONDS', 600),
+    'restore_request_timeout_seconds' => (int) env('BACKUP_RESTORE_REQUEST_TIMEOUT_SECONDS', 1800),
     'upload_timeout_minutes' => (int) env('BACKUP_UPLOAD_TIMEOUT_MINUTES', 30),
     'chunk_upload_kilobytes' => (int) env('BACKUP_UPLOAD_CHUNK_KB', 8192),
     'default_import_limit_mb' => (int) env('BACKUP_MAX_IMPORT_MB', 10),
