@@ -4,6 +4,7 @@ namespace Tests\Feature\OfficialForms;
 
 use App\Enums\AccountStatus;
 use App\Enums\UserType;
+use App\Models\AuditLog;
 use App\Models\OfficialFormVersion;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
@@ -13,11 +14,15 @@ use App\Models\UserSignature;
 use App\Modules\Classes\Actions\RequestAdviserForResearchClassGroup;
 use App\Modules\Dashboard\Services\UserLiveStateService;
 use App\Modules\OfficialForms\Actions\ApplyOfficialFormSignature;
+use App\Modules\OfficialForms\Actions\AssignResearchClassFormActor;
+use App\Modules\OfficialForms\Actions\CompleteAuthorshipCertificate;
 use App\Modules\OfficialForms\Actions\CreateOfficialFormInstance;
 use App\Modules\OfficialForms\Actions\SaveOfficialFormDraft;
 use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
+use App\Modules\OfficialForms\Services\GetPendingAcademicActionsForUser;
 use App\Modules\OfficialForms\Services\OfficialFormAuthorization;
 use App\Modules\OfficialForms\Services\OfficialFormSignatureHasher;
+use Carbon\CarbonImmutable;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -169,6 +174,11 @@ class OfficialFormSignatureTest extends TestCase
             payload: ['defense_type' => 'proposal_defense'],
         );
         $this->enrollSignature($adviserCoordinator);
+        $originalPayload = $instance->currentVersion->payload;
+        $unsignedHtml = view('pages.adviser.forms.res-033', ['officialFormInstance' => $instance, 'payload' => ['date_received' => '2000-01-01']])->render();
+        $this->assertStringNotContainsString('2000-01-01', $unsignedHtml);
+        $this->assertStringNotContainsString('name="payload[date_received]"', $unsignedHtml);
+        $this->travelTo(CarbonImmutable::parse('2026-10-12 23:30:00', 'UTC'));
 
         app(ApplyOfficialFormSignature::class)->handle(
             $adviserCoordinator,
@@ -191,6 +201,35 @@ class OfficialFormSignatureTest extends TestCase
             'academic_action' => 'receive',
         ]);
         $this->assertDatabaseCount('official_form_signatures', 2);
+        $receivedInstance = $instance->fresh(['currentVersion.signatures']);
+        $receivedHtml = view('pages.adviser.forms.res-033', ['officialFormInstance' => $receivedInstance, 'payload' => $originalPayload])->render();
+        $this->assertStringContainsString('value="2026-10-13"', $receivedHtml);
+        $this->assertSame($originalPayload, $receivedInstance->currentVersion->payload);
+        $this->actingAs($adviserCoordinator)->get(route('official-forms.print', $receivedInstance))
+            ->assertOk()->assertSee('value="2026-10-13"', false);
+    }
+
+    public function test_res041_displays_coordinator_receipt_without_claiming_an_instructor_endorsement(): void
+    {
+        $group = $this->createGroup();
+        $instructor = $group->researchClass->facilitator;
+        $instructor->update(['status' => AccountStatus::Active, 'approved_at' => now(), 'email_verified_at' => now()]);
+        $instructor->assignRole('research-facilitator', 'program-coordinator');
+        $instructor->givePermissionTo('forms.res-041.fill', 'forms.res-041.receive');
+        app(AssignResearchClassFormActor::class)
+            ->handle($instructor, $group->researchClass, $instructor, 'research_instructor');
+        $this->enrollSignature($instructor);
+        $instance = app(CreateOfficialFormInstance::class)->handle($instructor, 'RES-041', classId: $group->research_class_id);
+
+        app(ApplyOfficialFormSignature::class)->handle($instructor, $instance->id, $instance->current_version_id, 'receive');
+        $instance->refresh()->load('currentVersion.signatures.verification');
+        $html = view('pages.facilitator.forms.res-041', ['officialFormInstance' => $instance, 'payload' => $instance->currentVersion->payload])->render();
+        $this->assertStringContainsString('Received by Program Coordinator', $html);
+        $this->assertSame(1, substr_count($html, 'Signed & Digital Attestation Verified'));
+        $this->assertStringNotContainsString('Digital signature pending approval', $html);
+        $this->assertSame(1, substr_count($html, 'official-signature-field text-center'));
+        $this->actingAs($instructor)->get(route('official-forms.print', $instance))
+            ->assertOk()->assertSee('Signed & Digital Attestation Verified', false)->assertSee('Received by Program Coordinator');
     }
 
     public function test_missing_enrolled_signature_blocks_signed_action(): void

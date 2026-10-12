@@ -3,7 +3,13 @@
     $payload = $payload ?? [];
     $class = $officialFormInstance?->researchClass ?? $officialFormInstance?->group?->researchClass;
     $groups = $class?->groups ?? collect();
-    $facilitatorName = $class?->facilitator?->name ?? '';
+    $signatures = $officialFormInstance?->currentVersion?->signatures ?? collect();
+    $instructorSignature = $signatures->first(fn ($signature) => $signature->actor_type === 'research_instructor' && $signature->academic_action === 'endorse');
+    $coordinatorSignature = $signatures->first(fn ($signature) => $signature->actor_type === 'program_coordinator' && $signature->academic_action === 'receive');
+    $instructorId = $class?->officialFormActorAssignments?->first(fn ($assignment) => $assignment->actor_type === 'research_instructor' && $assignment->status === 'active')?->user_id
+        ?? $class?->facilitator_id;
+    $showInstructorSignature = $instructorSignature !== null || $coordinatorSignature === null
+        || (int) $coordinatorSignature->signer_user_id !== (int) $instructorId;
 
     // Auto-generate entries from class groups if not already customized in payload
     $entries = $payload['entries'] ?? [];
@@ -58,9 +64,13 @@
             </tbody>
         </table>
         <p>Sincerely yours,</p>
+        @if ($showInstructorSignature)
         <div class="ml-auto max-w-sm pt-8 text-center">
-            <x-official-signature-field name-field="res_041_instructor_printed_name" label="Research Instructor" />
-            <p class="mt-1 text-xs font-bold text-slate-800">{{ $facilitatorName }}</p>
+            <x-official-signature-field :instance="$officialFormInstance" actor-type="research_instructor" academic-action="endorse" label="Research Instructor" />
+        </div>
+        @endif
+        <div class="ml-auto max-w-sm pt-4 text-center">
+            <x-official-signature-field :instance="$officialFormInstance" actor-type="program_coordinator" academic-action="receive" label="Received by Program Coordinator" />
         </div>
     </x-student-official-form>
 </div>

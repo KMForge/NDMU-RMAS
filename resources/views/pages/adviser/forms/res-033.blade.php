@@ -1,6 +1,9 @@
 @php
     $officialFormInstance = $officialFormInstance ?? null;
     $payload = $payload ?? [];
+    $receiptSignature = $officialFormInstance?->currentVersion?->signatures
+        ?->first(fn ($signature) => $signature->actor_type === 'program_head' && $signature->academic_action === 'receive');
+    $dateReceived = $receiptSignature?->signed_at?->copy()->timezone('Asia/Manila')->format('Y-m-d') ?? '';
     $group = $officialFormInstance?->group;
     $class = $officialFormInstance?->researchClass ?? $group?->researchClass;
     $resolver = app(\App\Modules\OfficialForms\Services\InstitutionalActorResolver::class);
@@ -67,7 +70,7 @@
             <div class="flex flex-col items-center gap-2">
                 <x-official-signature-field class="mx-auto max-w-[18rem]" actor-type="program_head" academic-action="receive" label="Program Head (Name & Signature)" />
                 <label class="flex items-center justify-center gap-2 text-xs">Date Received:
-                    <input type="date" name="payload[date_received]" value="{{ $payload['date_received'] ?? '' }}" class="w-40">
+                    <input type="date" value="{{ $dateReceived }}" class="w-40" readonly aria-label="Date received (automatically recorded when the program head signs)">
                 </label>
             </div>
         </div>
