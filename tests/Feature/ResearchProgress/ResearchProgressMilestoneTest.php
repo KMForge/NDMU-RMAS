@@ -392,7 +392,9 @@ class ResearchProgressMilestoneTest extends TestCase
 
     public function test_final_defense_progress_is_monotonic_and_consistent_in_both_student_trackers(): void
     {
-        $this->milestones();
+        foreach ($this->milestones()->take(10) as $milestone) {
+            $this->startAndComplete($milestone);
+        }
 
         $defense = Defense::query()->create([
             'research_class_group_id' => $this->group->getKey(),
@@ -834,6 +836,35 @@ class ResearchProgressMilestoneTest extends TestCase
         $next = $this->milestones()->skip(1)->first();
         $this->actingAs($this->facilitator)->patchJson(route('facilitator.progress.start', $next))->assertForbidden();
         $this->actingAs($newFacilitator)->patchJson(route('facilitator.progress.start', $next))->assertOk();
+    }
+
+    public function test_received_res033_and_later_defense_booking_do_not_complete_missing_title_presentation(): void
+    {
+        $this->milestones();
+        app(SyncOfficialFormCatalog::class)->handle();
+        OfficialFormInstance::create([
+            'official_form_definition_id' => OfficialFormDefinition::where('code', 'RES-033')->firstOrFail()->id,
+            'research_class_group_id' => $this->group->id,
+            'research_class_id' => $this->researchClass->id,
+            'context_key' => 'title_presentation',
+            'initiated_by' => $this->facilitator->id,
+            'status' => 'received',
+        ]);
+        Defense::query()->create([
+            'research_class_group_id' => $this->group->id,
+            'defense_type' => 'proposal_defense',
+            'status' => 'scheduled',
+            'created_by' => $this->facilitator->id,
+        ]);
+
+        $journey = app(ResearchJourneyService::class)->getJourneyForGroup($this->group->fresh(), $this->student);
+        $this->assertSame(1, $journey['current_stage']);
+        $this->assertSame(0, $journey['percentage']);
+        $this->assertFalse($journey['stages'][1]['is_completed']);
+        $this->assertFalse($journey['stages'][2]['is_completed']);
+        $this->assertFalse($journey['stages'][1]['is_inferred_complete']);
+        $dashboard = app(GetStudentDashboardData::class)->for($this->student);
+        $this->assertSame(0, $dashboard['dashboardOverview']['progress_percentage']);
     }
 
     public function test_class_endorsement_cannot_advance_groups_and_repair_preserves_manual_completion(): void

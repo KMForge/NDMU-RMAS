@@ -13,7 +13,6 @@ use App\Models\OfficialFormInstance;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchGroupMilestone;
 use App\Models\User;
-use App\Modules\OfficialForms\Services\OfficialResearchWorkflowRegistry;
 use Illuminate\Support\Collection;
 
 class ResearchJourneyService
@@ -78,7 +77,6 @@ class ResearchJourneyService
         $pendingReqs = [];
         $hasCurrentStage = false;
         $previousStagesCompleted = true;
-        $furthestReachedStage = $this->furthestReachedStage($group, $instanceRecords);
 
         $stageCount = count(config('research-progress.milestones', []));
 
@@ -93,9 +91,8 @@ class ResearchJourneyService
                     && $event->override_order,
             );
             $stageDetails['is_auto_completed'] = in_array($stageNum, $automaticStageNumbers, true);
-            $stageDetails['is_inferred_complete'] = ! $stageDetails['is_optional']
-                && ! $stageDetails['is_not_applicable']
-                && $stageNum < $furthestReachedStage;
+            // A later form, paper or booking never proves earlier work was completed.
+            $stageDetails['is_inferred_complete'] = false;
             $stageDetails['is_completed'] = $stageDetails['is_auto_completed']
                 || $stageDetails['is_inferred_complete']
                 || $hasAuthorizedOrderOverride
@@ -708,71 +705,6 @@ class ResearchJourneyService
             $source instanceof DefenseSchedule => $source->defense?->defense_type,
             default => null,
         };
-    }
-
-    /** @param Collection<int, OfficialFormInstance> $instances */
-    private function furthestReachedStage(ResearchClassGroup $group, Collection $instances): int
-    {
-        $furthestStage = 1;
-
-        foreach ($instances as $instance) {
-            if (in_array($instance->status, ['cancelled', 'superseded'], true)) {
-                continue;
-            }
-
-            $code = strtolower($instance->definition->code);
-
-            // Staff may accept adviser/panel invitations before students begin
-            // their work. Retained assignments do not prove earlier stages were
-            // completed, including after an administrative activity reset.
-            if (in_array($code, ['res-027', 'res-028'], true)) {
-                continue;
-            }
-
-            $form = OfficialResearchWorkflowRegistry::FORMS[$code] ?? null;
-            if ($form !== null) {
-                $furthestStage = max($furthestStage, (int) $form['stage']);
-            }
-        }
-
-        foreach ($group->defenses as $defense) {
-            if ($defense->status === 'cancelled') {
-                continue;
-            }
-
-            $stage = match ($defense->defense_type) {
-                'proposal_defense', 'proposal' => 3,
-                'pre_final_defense', 'pre_final' => 10,
-                'final_defense', 'final_oral_defense', 'final' => 11,
-                default => 1,
-            };
-            $furthestStage = max($furthestStage, $stage);
-        }
-
-        $documentStage = Document::query()
-            ->where('research_class_group_id', $group->id)
-            ->where('is_current', true)
-            ->whereIn('status', [
-                DocumentStatus::Submitted->value,
-                DocumentStatus::UnderReview->value,
-                DocumentStatus::ApprovedForPresentation->value,
-                DocumentStatus::Accepted->value,
-            ])
-            ->pluck('document_stage')
-            ->map(function (DocumentStage|string|null $stage): int {
-                $stageValue = $stage instanceof DocumentStage ? $stage->value : $stage;
-
-                return match ($stageValue) {
-                    DocumentStage::ProposalDefense->value => 2,
-                    DocumentStage::PreFinalDefense->value => 10,
-                    DocumentStage::FinalDefense->value => 11,
-                    DocumentStage::FinalManuscript->value => 14,
-                    default => 1,
-                };
-            })
-            ->max();
-
-        return max($furthestStage, (int) ($documentStage ?? 1));
     }
 
     private function determineWaitingOnActor(string $formCode, string $status): string
