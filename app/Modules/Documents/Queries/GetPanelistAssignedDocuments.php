@@ -6,6 +6,7 @@ use App\Models\Defense;
 use App\Models\Document;
 use App\Models\OfficialFormInstance;
 use App\Models\User;
+use App\Modules\Documents\Support\ConfirmedCommitteeDocumentAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -22,17 +23,18 @@ class GetPanelistAssignedDocuments
         return Document::query()
             ->where('is_current', true)
             ->whereNotNull('research_class_group_id')
-            ->whereHas('researchClassGroup.defenses', fn (Builder $defense) => $defense
-                ->where(function (Builder $stage): void {
-                    $stage->whereColumn('defenses.defense_type', 'documents.document_stage')
-                        ->orWhere(function (Builder $title): void {
-                            $title->where('defenses.defense_type', 'title_presentation')
-                                ->where('documents.document_stage', 'title_proposal');
-                        });
-                })
-                ->whereIn('defenses.status', ['scheduled', 'completed'])
-                ->whereHas('activePanelAssignments', fn (Builder $assignment) => $assignment
-                    ->where('user_id', $panelist->getKey())))
+            ->where(fn (Builder $access) => $access->whereIn('documents.id', app(ConfirmedCommitteeDocumentAccess::class)->documentIdsFor($panelist))
+                ->orWhereHas('researchClassGroup.defenses', fn (Builder $defense) => $defense
+                    ->where(function (Builder $stage): void {
+                        $stage->whereColumn('defenses.defense_type', 'documents.document_stage')
+                            ->orWhere(function (Builder $title): void {
+                                $title->where('defenses.defense_type', 'title_presentation')
+                                    ->where('documents.document_stage', 'title_proposal');
+                            });
+                    })
+                    ->whereIn('defenses.status', ['scheduled', 'completed'])
+                    ->whereHas('activePanelAssignments', fn (Builder $assignment) => $assignment
+                        ->where('user_id', $panelist->getKey()))))
             ->with([
                 'user:id,name,email',
                 'comments' => fn ($comments) => $comments
@@ -73,10 +75,12 @@ class GetPanelistAssignedDocuments
         );
         $round = $defense?->evaluationRounds->first(fn ($candidate): bool => (int) $candidate->defense_schedule_id === (int) $defense->current_schedule_id);
         $evaluation = $round?->evaluations->first();
+        $previousSubmission = $round === null ? $defense?->evaluationRounds->first(fn ($candidate) => in_array($candidate->status, ['finalized', 'completed'], true) && $candidate->evaluations->contains('status', 'submitted')) : null;
         $status = match ($evaluation?->status) {
             'submitted' => 'Evaluated',
             'draft' => 'Under Review',
-            default => $round === null ? 'Pending Defense' : 'For Review',
+            default => $previousSubmission !== null ? 'Evaluated'
+                : ($defense?->status === 'completed' ? 'Completed' : ($defense === null ? 'For Review' : ($round === null ? 'Pending Defense' : 'For Review'))),
         };
         $defenseLabel = $document->document_stage?->label() ?? 'Research Defense';
         $researchTitle = $group?->researchGroup?->currentProject?->title
@@ -112,6 +116,7 @@ class GetPanelistAssignedDocuments
             ])->values()->all() ?? [],
             'adviser' => $group?->adviser?->name ?? 'Not assigned',
             'status' => $status,
+            'evaluationFromPreviousSchedule' => $previousSubmission !== null,
             'statusClass' => $this->statusClass($status),
             'defenseType' => $defenseLabel,
             'defenseTypeClass' => $this->defenseTypeClass($stage),
@@ -165,7 +170,7 @@ class GetPanelistAssignedDocuments
     private function statusClass(string $status): string
     {
         return match ($status) {
-            'Evaluated' => 'bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px]',
+            'Evaluated', 'Completed' => 'bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px]',
             'Under Review' => 'bg-blue-50 border border-blue-200 text-blue-700 font-bold px-2 py-0.5 rounded-full text-[10px]',
             'Pending Defense' => 'bg-purple-50 border border-purple-200 text-purple-700 font-bold px-2 py-0.5 rounded-full text-[10px]',
             default => 'bg-amber-50 border border-amber-200 text-amber-700 font-bold px-2 py-0.5 rounded-full text-[10px]',

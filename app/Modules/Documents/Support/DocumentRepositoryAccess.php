@@ -41,6 +41,9 @@ class DocumentRepositoryAccess
         if ($this->isActivePanelistForDocumentStage($user, $document)) {
             return true;
         }
+        if (in_array($document->id, app(ConfirmedCommitteeDocumentAccess::class)->documentIdsFor($user), true)) {
+            return true;
+        }
 
         return Document::query()
             ->whereKey($document->getKey())
@@ -73,51 +76,52 @@ class DocumentRepositoryAccess
         }
 
         return $query->where(function (Builder $access) use ($user): void {
-            $access->where(function (Builder $modern) use ($user): void {
-                $modern->whereNotNull('documents.research_class_group_id')
-                    ->where(function (Builder $groups) use ($user): void {
-                        $groups->whereHas('researchClassGroup.members', fn (Builder $members) => $members
-                            ->where('student_id', $user->getKey())
-                            ->whereHas('researchClassEnrollment', fn (Builder $enrollment) => $enrollment
-                                ->where('status', 'active'))
-                            ->whereHas('researchClassGroup', fn (Builder $group) => $group
-                                ->where('status', 'active')
-                                ->whereNull('disbanded_at')))
-                            ->orWhereHas('researchClassGroup.memberHistories', fn (Builder $history) => $history
+            $access->whereIn('documents.id', app(ConfirmedCommitteeDocumentAccess::class)->documentIdsFor($user))
+                ->orWhere(function (Builder $modern) use ($user): void {
+                    $modern->whereNotNull('documents.research_class_group_id')
+                        ->where(function (Builder $groups) use ($user): void {
+                            $groups->whereHas('researchClassGroup.members', fn (Builder $members) => $members
                                 ->where('student_id', $user->getKey())
-                                ->whereHas('group', fn (Builder $group) => $group
-                                    ->where('status', 'disbanded')
-                                    ->whereNotNull('disbanded_at')))
-                            ->orWhereHas('researchClassGroup', fn (Builder $group) => $group
-                                ->where('adviser_id', $user->getKey())
-                                ->where('status', 'active')
-                                ->whereNull('disbanded_at'))
-                            ->orWhereHas('researchClassGroup.researchClass', fn (Builder $class) => $class
-                                ->where('facilitator_id', $user->getKey()))
-                            ->orWhereHas('researchClassGroup.defenses', fn (Builder $defense) => $defense
-                                ->where(function (Builder $stage): void {
-                                    $stage->whereColumn('defenses.defense_type', 'documents.document_stage')
-                                        ->orWhere(function (Builder $title): void {
-                                            $title->where('defenses.defense_type', 'title_presentation')
-                                                ->where('documents.document_stage', 'title_proposal');
-                                        });
-                                })
-                                ->whereIn('defenses.status', ['scheduled', 'completed'])
-                                ->whereHas('activePanelAssignments', fn (Builder $assignment) => $assignment
-                                    ->where('user_id', $user->getKey())));
-                    });
-            })->orWhere(function (Builder $legacy) use ($user): void {
-                $legacy->whereNull('documents.research_class_group_id')
-                    ->where(function (Builder $legacyAccess) use ($user): void {
-                        $legacyAccess->where('documents.user_id', $user->getKey());
+                                ->whereHas('researchClassEnrollment', fn (Builder $enrollment) => $enrollment
+                                    ->where('status', 'active'))
+                                ->whereHas('researchClassGroup', fn (Builder $group) => $group
+                                    ->where('status', 'active')
+                                    ->whereNull('disbanded_at')))
+                                ->orWhereHas('researchClassGroup.memberHistories', fn (Builder $history) => $history
+                                    ->where('student_id', $user->getKey())
+                                    ->whereHas('group', fn (Builder $group) => $group
+                                        ->where('status', 'disbanded')
+                                        ->whereNotNull('disbanded_at')))
+                                ->orWhereHas('researchClassGroup', fn (Builder $group) => $group
+                                    ->where('adviser_id', $user->getKey())
+                                    ->where('status', 'active')
+                                    ->whereNull('disbanded_at'))
+                                ->orWhereHas('researchClassGroup.researchClass', fn (Builder $class) => $class
+                                    ->where('facilitator_id', $user->getKey()))
+                                ->orWhereHas('researchClassGroup.defenses', fn (Builder $defense) => $defense
+                                    ->where(function (Builder $stage): void {
+                                        $stage->whereColumn('defenses.defense_type', 'documents.document_stage')
+                                            ->orWhere(function (Builder $title): void {
+                                                $title->where('defenses.defense_type', 'title_presentation')
+                                                    ->where('documents.document_stage', 'title_proposal');
+                                            });
+                                    })
+                                    ->whereIn('defenses.status', ['scheduled', 'completed'])
+                                    ->whereHas('activePanelAssignments', fn (Builder $assignment) => $assignment
+                                        ->where('user_id', $user->getKey())));
+                        });
+                })->orWhere(function (Builder $legacy) use ($user): void {
+                    $legacy->whereNull('documents.research_class_group_id')
+                        ->where(function (Builder $legacyAccess) use ($user): void {
+                            $legacyAccess->where('documents.user_id', $user->getKey());
 
-                        if ($user->can('documents.review')) {
-                            $legacyAccess->orWhere(function (Builder $review) use ($user): void {
-                                $this->reviewerAccess->scopeFor($review, $user);
-                            });
-                        }
-                    });
-            });
+                            if ($user->can('documents.review')) {
+                                $legacyAccess->orWhere(function (Builder $review) use ($user): void {
+                                    $this->reviewerAccess->scopeFor($review, $user);
+                                });
+                            }
+                        });
+                });
         });
     }
 

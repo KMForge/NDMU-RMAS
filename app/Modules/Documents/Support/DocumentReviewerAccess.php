@@ -33,6 +33,10 @@ class DocumentReviewerAccess
             return false;
         }
 
+        if (in_array($document->id, app(ConfirmedCommitteeDocumentAccess::class)->documentIdsFor($reviewer), true)) {
+            return true;
+        }
+
         return DB::table('defenses')
             ->join('defense_panel_assignments', 'defense_panel_assignments.defense_id', '=', 'defenses.id')
             ->where('defenses.research_class_group_id', $document->research_class_group_id)

@@ -5,17 +5,23 @@ namespace Tests\Feature\Documents;
 use App\Enums\DocumentStage;
 use App\Enums\DocumentStatus;
 use App\Models\Defense;
+use App\Models\DefenseEvaluation;
+use App\Models\DefenseEvaluationRound;
 use App\Models\DefensePanelAssignment;
 use App\Models\Document;
+use App\Models\OfficialFormDefinition;
+use App\Models\OfficialFormInstance;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassEnrollment;
 use App\Models\ResearchClassGroup;
 use App\Models\ResearchClassGroupMember;
+use App\Models\ResearchGroupPanelCommittee;
 use App\Models\User;
 use App\Modules\Classes\Actions\DisbandResearchClassGroup;
 use App\Modules\Documents\Queries\GetDocumentRepositoryData;
 use App\Modules\Documents\Queries\GetPanelistAssignedDocuments;
 use App\Modules\Documents\Support\DocumentReviewerAccess;
+use App\Modules\OfficialForms\Actions\SyncOfficialFormCatalog;
 use App\Policies\DocumentPolicy;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -220,8 +226,67 @@ class ResearchRepositoryPhase14Test extends TestCase
 
         $this->assertSame([$titlePaper->id], $assignedPapers->pluck('id')->all());
         $this->assertSame($defense->id, $assignedPapers->first()['defenseId']);
+        $this->assertSame('Completed', $assignedPapers->first()['status']);
+        $this->assertFalse($assignedPapers->first()['canEvaluate']);
         $this->assertTrue(app(DocumentPolicy::class)->view($panelist, $titlePaper));
         $this->assertTrue(app(DocumentReviewerAccess::class)->canReview($panelist, $titlePaper));
+    }
+
+    public function test_confirmed_inherited_committee_can_review_accepted_pre_final_paper_before_booking_but_cannot_score(): void
+    {
+        [$group, $facilitator, $leader] = $this->group();
+        $paper = $this->document($leader, $group, 'Pre-final.pdf', DocumentStage::PreFinalDefense, DocumentStatus::Accepted);
+        $panelist = User::factory()->create();
+        $panelist->assignRole('panel-member');
+        app(SyncOfficialFormCatalog::class)->handle();
+        ResearchGroupPanelCommittee::create([
+            'research_class_group_id' => $group->id, 'defense_type' => 'proposal_defense',
+            'chairperson_id' => $panelist->id, 'created_by' => $facilitator->id, 'updated_by' => $facilitator->id,
+        ]);
+        $invitation = OfficialFormInstance::create([
+            'official_form_definition_id' => OfficialFormDefinition::where('code', 'RES-028')->firstOrFail()->id,
+            'research_class_group_id' => $group->id, 'context_key' => 'panel-invitation:proposal_defense:chairperson',
+            'initiated_by' => $facilitator->id, 'status' => 'submitted',
+        ]);
+        $invitation->actorAssignments()->create(['user_id' => $panelist->id, 'actor_type' => 'panelist', 'assigned_by' => $facilitator->id, 'assigned_at' => now(), 'status' => 'active']);
+        $this->assertFalse(app(DocumentPolicy::class)->view($panelist, $paper));
+        $invitation->update(['status' => 'approved']);
+        $assigned = app(GetPanelistAssignedDocuments::class)->for($panelist)->sole();
+        $this->assertSame($paper->id, $assigned['id']);
+        $this->assertSame('For Review', $assigned['status']);
+        $this->assertFalse($assigned['canEvaluate']);
+        $this->assertNull($assigned['evaluationUrl']);
+        $this->assertTrue(app(DocumentPolicy::class)->view($panelist, $paper));
+        $this->assertTrue(app(DocumentReviewerAccess::class)->canCommentAsAssignedPanelist($panelist, $paper));
+        $this->assertSame([$paper->id], app(GetDocumentRepositoryData::class)->for($panelist, [])['repositoryDocuments']->pluck('id')->all());
+        ResearchGroupPanelCommittee::create([
+            'research_class_group_id' => $group->id, 'defense_type' => 'pre_final_defense',
+            'chairperson_id' => $facilitator->id, 'created_by' => $facilitator->id, 'updated_by' => $facilitator->id,
+        ]);
+        $this->assertFalse(app(DocumentPolicy::class)->view($panelist, $paper));
+        $this->assertTrue(app(GetPanelistAssignedDocuments::class)->for($panelist)->isEmpty());
+    }
+
+    public function test_previous_finalized_panel_evaluation_is_displayed_without_unlocking_current_schedule_scoring(): void
+    {
+        [$group, , $leader] = $this->group();
+        $paper = $this->document($leader, $group, 'Proposal.pdf', DocumentStage::ProposalDefense, DocumentStatus::Accepted);
+        $defense = new Defense(['defense_type' => 'proposal_defense', 'status' => 'scheduled']);
+        $defense->forceFill(['id' => 100, 'current_schedule_id' => 200]);
+        $round = new DefenseEvaluationRound(['defense_schedule_id' => 199, 'status' => 'finalized']);
+        $round->setRelation('evaluations', collect([new DefenseEvaluation(['status' => 'submitted'])]));
+        $round->setRelation('roundPanelists', collect());
+        $defense->setRelation('evaluationRounds', collect([$round]));
+        $defense->setRelation('currentSchedule', null);
+        $group->setRelation('defenses', collect([$defense]));
+        $paper->setRelation('researchClassGroup', $group);
+        $paper->setRelation('comments', collect());
+        $format = new \ReflectionMethod(GetPanelistAssignedDocuments::class, 'format');
+        $formatted = $format->invoke(app(GetPanelistAssignedDocuments::class), $paper);
+        $this->assertSame('Evaluated', $formatted['status']);
+        $this->assertTrue($formatted['evaluationFromPreviousSchedule']);
+        $this->assertFalse($formatted['canEvaluate']);
+        $this->assertNull($formatted['evaluationUrl']);
     }
 
     public function test_leader_change_keeps_group_ownership_and_historical_uploader_identity(): void

@@ -1235,7 +1235,7 @@ document.addEventListener('alpine:init', () => {
                                 <i class="ph ph-file-check"></i>
                             </span>
                             <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Evaluated</span>
-                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="assignedPapers.filter(p => ['Evaluated', 'Approved'].includes(p.status)).length">2</span>
+                            <span class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1 block" x-text="assignedPapers.filter(p => ['Evaluated', 'Approved', 'Completed'].includes(p.status)).length">2</span>
                         </div>
                         <span class="text-purple-500 text-xl font-bold">
                             <i class="ph ph-check-circle"></i>
@@ -1270,6 +1270,7 @@ document.addEventListener('alpine:init', () => {
                             <option value="evaluated">Evaluated</option>
                             <option value="pending defense">Pending Defense</option>
                             <option value="approved">Approved</option>
+                            <option value="completed">Completed</option>
                         </select>
                     </div>
                 </div>
@@ -1323,6 +1324,7 @@ document.addEventListener('alpine:init', () => {
                                         <!-- Status Badge -->
                                         <td class="px-6 py-4">
                                             <span :class="paper.statusClass" x-text="paper.status">For Review</span>
+                                            <span x-show="paper.evaluationFromPreviousSchedule" class="mt-1 block text-[10px] text-slate-500">Previous schedule evaluation</span>
                                         </td>
 
                                         <!-- Defense Type -->
@@ -1861,7 +1863,7 @@ document.addEventListener('alpine:init', () => {
                             <div>
                                 <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Evaluated</span>
                                 <span class="text-2xl font-extrabold text-slate-900 tracking-tight mt-0.5 block">
-                                    {{ count(array_filter($assignedPapers ?? [], fn ($p) => in_array($p['status'] ?? '', ['Evaluated', 'Approved']))) }}
+                                    {{ count(array_filter($assignedPapers ?? [], fn ($p) => in_array($p['status'] ?? '', ['Evaluated', 'Approved', 'Completed']))) }}
                                 </span>
                             </div>
                             <span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center text-lg shadow-2xs">
@@ -1926,6 +1928,9 @@ document.addEventListener('alpine:init', () => {
                                     <span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $selectedReviewPaper['statusClass'] }}">
                                         {{ $selectedReviewPaper['status'] }}
                                     </span>
+                                    @if ($selectedReviewPaper['evaluationFromPreviousSchedule'] ?? false)
+                                        <span class="text-[10px] text-slate-500">Previous schedule evaluation</span>
+                                    @endif
                                 </div>
                                 <h2 class="font-extrabold text-sm text-slate-900 truncate mt-1" title="{{ $selectedReviewPaper['filename'] }}">
                                     {{ $selectedReviewPaper['filename'] }}
