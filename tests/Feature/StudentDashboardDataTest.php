@@ -153,6 +153,38 @@ class StudentDashboardDataTest extends TestCase
             ->assertSee('research-paper.pdf');
     }
 
+    public function test_group_submission_history_shows_newest_uploads_first_across_stages_and_versions(): void
+    {
+        $student = $this->student('Submission History Student');
+        $group = $this->activeClassGroupFor($student);
+        $documents = collect();
+        foreach ([
+            ['title_proposal', 5, '2026-10-12 05:03:00'],
+            ['proposal_defense', 1, '2026-10-12 05:49:00'],
+            ['pre_final_defense', 1, '2026-10-12 06:07:00'],
+            ['final_defense', 1, '2026-10-12 06:07:00'],
+        ] as $index => [$stage, $version, $submittedAt]) {
+            $documents->push(Document::query()->create([
+                'user_id' => $student->id, 'research_class_group_id' => $group->id,
+                'submission_token' => (string) Str::uuid(),
+                'original_filename' => "history-{$index}.pdf",
+                'stored_filename' => Str::uuid().'.pdf',
+                'file_type' => 'pdf', 'mime_type' => 'application/pdf', 'file_size' => 2048,
+                'storage_disk' => 'local', 'storage_path' => "documents/test/history-{$index}.pdf",
+                'content_sha256' => hash('sha256', (string) $index),
+                'document_stage' => $stage, 'version_number' => $version,
+                'submitted_at' => $submittedAt, 'status' => 'pending',
+            ]));
+        }
+
+        $this->actingAs($student)->get(route('student.dashboard', ['tab' => 'proposal']))
+            ->assertOk()
+            ->assertViewHas('groupDocuments', fn ($history): bool => $history->pluck('id')->all() === [
+                $documents[3]->id, $documents[2]->id, $documents[1]->id, $documents[0]->id,
+            ])
+            ->assertSeeInOrder(['history-3.pdf', 'history-2.pdf', 'history-1.pdf', 'history-0.pdf']);
+    }
+
     public function test_student_feature_tabs_only_load_their_required_document_data(): void
     {
         $student = $this->student('Tab Scoped Student');

@@ -307,7 +307,8 @@ class GetStudentDashboardData
 
         $groupDocuments = $activeTab === 'proposal' && $groupDocumentQuery !== null
             ? (clone $groupDocumentQuery)
-                ->orderByDesc('version_number')
+                ->orderByDesc('submitted_at')
+                ->orderByDesc('id')
                 ->get()
             : collect();
 
