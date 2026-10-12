@@ -367,6 +367,19 @@ class OfficialFormAuthorization
     public function canSubmit(User $user, OfficialFormInstance $instance): bool
     {
         $code = strtolower($instance->definition->code);
+        $inviteeType = match ($code) {
+            'res-027' => 'adviser',
+            'res-028' => 'panelist',
+            'res-029' => 'language_editor',
+            default => null,
+        };
+        if ($inviteeType !== null) {
+            return $user->status === AccountStatus::Active
+                && $user->approved_at !== null && $user->email_verified_at !== null
+                && $this->hasAnyPermission($user, self::FORM_ACTION_PERMISSIONS[$code]['fill'])
+                && $this->hasInstanceActorAssignment($instance, $user, $inviteeType);
+        }
+
         if ($code === 'res-036') {
             $schedule = $instance->source_type === DefenseSchedule::class ? DefenseSchedule::find($instance->source_id) : null;
             if ($schedule === null || ! $this->canInitiateDefenseEvaluation($user, $schedule)) {
@@ -522,6 +535,22 @@ class OfficialFormAuthorization
             return true;
         }
 
+        $inviteeType = match (strtolower($instance->definition->code)) {
+            'res-027' => 'adviser',
+            'res-028' => 'panelist',
+            'res-029' => 'language_editor',
+            default => null,
+        };
+        if ($inviteeType !== null) {
+            $class = $instance->researchClass ?? $instance->group?->researchClass;
+
+            // Individual invitations are not shared committee forms.
+            return $this->hasInstanceActorAssignment($instance, $user, $inviteeType)
+                || ($class !== null && (int) $class->facilitator_id === (int) $user->id)
+                || $this->checkSpecificActorTypeContext($user, $instance, 'program_coordinator')
+                || $this->checkSpecificActorTypeContext($user, $instance, 'dean');
+        }
+
         return $this->checkDraftContextualAccess($user, $instance);
     }
 
@@ -571,6 +600,17 @@ class OfficialFormAuthorization
 
     private function checkSpecificActorTypeContext(User $user, OfficialFormInstance $instance, string $requiredActorType): bool
     {
+        $inviteeType = match (strtolower($instance->definition->code)) {
+            'res-027' => 'adviser',
+            'res-028' => 'panelist',
+            'res-029' => 'language_editor',
+            default => null,
+        };
+        if ($inviteeType !== null && $requiredActorType === $inviteeType) {
+            // Never inherit an invitee assignment from another invitation or class.
+            return $this->hasInstanceActorAssignment($instance, $user, $inviteeType);
+        }
+
         if ($requiredActorType === 'authorized_reviewer') {
             if (! $user->can('users.manage') && ! $user->hasPermissionTo('forms.res-030.approve')) {
                 return false;
