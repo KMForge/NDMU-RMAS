@@ -5,13 +5,16 @@ namespace Tests\Feature;
 use App\Enums\AccountStatus;
 use App\Enums\UserType;
 use App\Models\Defense;
+use App\Models\DefenseEvaluationRound;
 use App\Models\DefenseRoom;
+use App\Models\DefenseSchedule;
 use App\Models\ResearchClass;
 use App\Models\ResearchClassGroup;
 use App\Models\User;
 use App\Modules\DefenseScheduling\Actions\CancelDefense;
 use App\Modules\DefenseScheduling\Actions\RescheduleDefense;
 use App\Modules\DefenseScheduling\Actions\ScheduleDefense;
+use App\Modules\DefenseScheduling\Queries\GetDefenseScheduleCalendar;
 use Carbon\Carbon;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -33,6 +36,64 @@ class DefenseSchedulingTest extends TestCase
     private ResearchClassGroup $group;
 
     private DefenseRoom $room;
+
+    public function test_defense_management_lists_latest_defense_time_first_with_newest_record_as_tie_breaker(): void
+    {
+        $schedules = collect();
+        foreach (['2026-10-20 10:00:00', '2026-10-12 09:00:00', '2026-10-20 10:00:00'] as $index => $starts) {
+            $defense = Defense::create([
+                'research_class_group_id' => $this->group->id,
+                'defense_type' => ['proposal_defense', 'pre_final_defense', 'final_defense'][$index],
+                'status' => 'scheduled', 'created_by' => $this->facilitator->id,
+            ]);
+            $schedules->push(DefenseSchedule::create([
+                'defense_id' => $defense->id, 'room_id' => $this->room->id,
+                'starts_at' => $starts, 'ends_at' => Carbon::parse($starts)->addHour(),
+                'status' => 'current', 'scheduled_by' => $this->facilitator->id,
+            ]));
+            $defense->update(['current_schedule_id' => $schedules->last()->id]);
+        }
+        $calendar = app(GetDefenseScheduleCalendar::class)->execute($this->facilitator);
+        $this->assertSame([$schedules[2]->id, $schedules[0]->id, $schedules[1]->id], $calendar->pluck('id')->all());
+    }
+
+    public function test_calendar_shows_only_current_schedule_and_does_not_reuse_historical_evaluation(): void
+    {
+        $defense = Defense::create([
+            'research_class_group_id' => $this->group->id,
+            'defense_type' => 'proposal_defense',
+            'status' => 'scheduled', 'created_by' => $this->facilitator->id,
+        ]);
+        $old = DefenseSchedule::create([
+            'defense_id' => $defense->id, 'room_id' => $this->room->id,
+            'starts_at' => '2026-10-13 09:00:00', 'ends_at' => '2026-10-13 10:00:00',
+            'status' => 'superseded', 'scheduled_by' => $this->facilitator->id,
+        ]);
+        $current = DefenseSchedule::create([
+            'defense_id' => $defense->id, 'room_id' => $this->room->id,
+            'starts_at' => '2026-10-12 09:00:00', 'ends_at' => '2026-10-12 10:00:00',
+            'status' => 'current', 'scheduled_by' => $this->facilitator->id,
+        ]);
+        $defense->update(['current_schedule_id' => $current->id]);
+        DefenseEvaluationRound::create([
+            'defense_id' => $defense->id, 'defense_schedule_id' => $old->id,
+            'research_class_group_id' => $this->group->id, 'status' => 'finalized',
+            'opened_by' => $this->facilitator->id, 'opened_at' => now(),
+        ]);
+
+        $query = app(GetDefenseScheduleCalendar::class);
+        $calendar = $query->execute($this->facilitator);
+        $this->assertSame([$current->id], $calendar->pluck('id')->all());
+        $this->assertNull($calendar->first()['evaluation_round']);
+        $this->assertNull($calendar->first()['res037_url']);
+        $this->assertSame('scheduled', $calendar->first()['defense_status']);
+        $this->assertSame(1, $query->activeCount($this->facilitator));
+        $this->assertDatabaseHas('defense_schedules', ['id' => $old->id, 'status' => 'superseded']);
+
+        $defense->update(['status' => 'completed']);
+        $this->assertSame([$current->id], $query->execute($this->facilitator)->pluck('id')->all());
+        $this->assertSame(0, $query->activeCount($this->facilitator));
+    }
 
     protected function setUp(): void
     {

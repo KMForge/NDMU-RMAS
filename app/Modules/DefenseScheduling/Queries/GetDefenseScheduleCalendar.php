@@ -37,7 +37,7 @@ class GetDefenseScheduleCalendar
             'room',
         ]);
 
-        $schedules = $query->orderByDesc('id')->get();
+        $schedules = $query->orderByDesc('starts_at')->orderByDesc('id')->get();
         $roundIds = $schedules
             ->flatMap(fn (DefenseSchedule $schedule) => $schedule->defense?->evaluationRounds?->pluck('id') ?? collect())
             ->unique()
@@ -91,8 +91,7 @@ class GetDefenseScheduleCalendar
                 default => 'Research Defense',
             };
 
-            $round = $defense?->evaluationRounds?->firstWhere('defense_schedule_id', $schedule->id)
-                ?? $defense?->evaluationRounds?->sortByDesc('id')->first();
+            $round = $defense?->evaluationRounds?->firstWhere('defense_schedule_id', $schedule->id);
             $evaluationsSubmittedCount = $round?->evaluations?->where('status', 'submitted')->count() ?? 0;
 
             $isTitlePresentationCompleted = $defense?->defense_type === 'title_presentation'
@@ -177,7 +176,9 @@ class GetDefenseScheduleCalendar
 
     private function visibleScheduleQuery(User $user): ?Builder
     {
-        $query = DefenseSchedule::query();
+        $query = DefenseSchedule::query()
+            ->whereHas('defense', fn (Builder $defense) => $defense
+                ->whereColumn('defenses.current_schedule_id', 'defense_schedules.id'));
 
         if ($user->user_type === UserType::Student) {
             return $query->whereHas('defense.group.members', fn (Builder $members) => $members->where('student_id', $user->id));
