@@ -141,13 +141,13 @@ class LockedTitlePresentationWorkflowTest extends TestCase
         $instance = app(CreateOfficialFormInstance::class)->handle($this->student, 'RES-026', $this->group->id);
 
         try {
-            app(SubmitOfficialFormVersion::class)->handle($this->student, $instance, ['topics' => ['One', 'Two']]);
+            app(SubmitOfficialFormVersion::class)->handle($this->student, $instance, ['date' => now()->format('Y-m-d'), 'topics' => ['One', 'Two']]);
             $this->fail('Two titles must not be accepted.');
         } catch (InvalidArgumentException $exception) {
             $this->assertStringContainsString('exactly three', $exception->getMessage());
         }
 
-        $version = app(SubmitOfficialFormVersion::class)->handle($this->student, $instance, ['topics' => ['Title A', 'Title B', 'Title C']]);
+        $version = app(SubmitOfficialFormVersion::class)->handle($this->student, $instance, ['date' => now()->format('Y-m-d'), 'topics' => ['Title A', 'Title B', 'Title C']]);
         $this->assertSame(['Title A', 'Title B', 'Title C'], $version->payload['topics']);
         $this->assertSame('submitted', $instance->fresh()->status);
     }
@@ -210,7 +210,7 @@ class LockedTitlePresentationWorkflowTest extends TestCase
     {
         $this->titleDocument(DocumentStatus::ApprovedForPresentation);
         $instance = app(CreateOfficialFormInstance::class)->handle($this->student, 'RES-026', $this->group->id);
-        app(SubmitOfficialFormVersion::class)->handle($this->student, $instance, ['topics' => ['Title A', 'Title B', 'Title C']]);
+        app(SubmitOfficialFormVersion::class)->handle($this->student, $instance, ['date' => now()->format('Y-m-d'), 'topics' => ['Title A', 'Title B', 'Title C']]);
 
         $starts = Carbon::now()->addWeek()->setHour(10)->setMinute(0)->setSecond(0);
         $presentation = app(ScheduleTitlePresentation::class)->handle($this->facilitator, $instance->fresh(), $this->room->id, $starts, $starts->copy()->addHour());
@@ -237,7 +237,7 @@ class LockedTitlePresentationWorkflowTest extends TestCase
     {
         $this->titleDocument(DocumentStatus::ApprovedForPresentation);
         $instance = app(CreateOfficialFormInstance::class)->handle($this->student, 'RES-026', $this->group->id);
-        app(SubmitOfficialFormVersion::class)->handle($this->student, $instance, ['topics' => ['Title A', 'Title B', 'Title C']]);
+        app(SubmitOfficialFormVersion::class)->handle($this->student, $instance, ['date' => now()->format('Y-m-d'), 'topics' => ['Title A', 'Title B', 'Title C']]);
         $committee = ResearchGroupPanelCommittee::query()->create([
             'research_class_group_id' => $this->group->id,
             'defense_type' => 'title_presentation',
@@ -309,7 +309,7 @@ class LockedTitlePresentationWorkflowTest extends TestCase
     {
         $this->titleDocument(DocumentStatus::ApprovedForPresentation);
         $instance = app(CreateOfficialFormInstance::class)->handle($this->student, 'RES-026', $this->group->id);
-        app(SubmitOfficialFormVersion::class)->handle($this->student, $instance, ['topics' => ['Title A', 'Title B', 'Title C']]);
+        app(SubmitOfficialFormVersion::class)->handle($this->student, $instance, ['date' => now()->format('Y-m-d'), 'topics' => ['Title A', 'Title B', 'Title C']]);
 
         $chair = $this->eligibleUser(UserType::Faculty, ['evaluations.create']);
         $memberOne = $this->eligibleUser(UserType::Faculty, ['evaluations.create']);
@@ -362,6 +362,7 @@ class LockedTitlePresentationWorkflowTest extends TestCase
         $this->titleDocument(DocumentStatus::ApprovedForPresentation);
         $instance = app(CreateOfficialFormInstance::class)->handle($this->student, 'RES-026', $this->group->id);
         app(SubmitOfficialFormVersion::class)->handle($this->student, $instance, [
+            'date' => now()->format('Y-m-d'),
             'topics' => ['Title A', 'Title B', 'Title C'],
         ]);
 
@@ -380,7 +381,7 @@ class LockedTitlePresentationWorkflowTest extends TestCase
         $this->seedCanonicalResearchContext();
         $this->titleDocument(DocumentStatus::ApprovedForPresentation);
         $instance = app(CreateOfficialFormInstance::class)->handle($this->student, 'RES-026', $this->group->id);
-        app(SubmitOfficialFormVersion::class)->handle($this->student, $instance, ['topics' => ['Title A', 'Canonical Title B', 'Title C']]);
+        app(SubmitOfficialFormVersion::class)->handle($this->student, $instance, ['date' => now()->format('Y-m-d'), 'topics' => ['Title A', 'Canonical Title B', 'Title C']]);
 
         $starts = Carbon::now()->addWeeks(2)->setHour(10)->setMinute(0)->setSecond(0);
         $presentation = app(ScheduleTitlePresentation::class)->handle($this->facilitator, $instance->fresh(), $this->room->id, $starts, $starts->copy()->addHour());

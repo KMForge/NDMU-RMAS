@@ -208,7 +208,9 @@
             </section>
         @endif
 
-        <form id="official-form-editor" method="POST" enctype="multipart/form-data" action="{{ route('official-forms.workspace.save', $instance) }}">
+        <form id="official-form-editor" method="POST" enctype="multipart/form-data" action="{{ route('official-forms.workspace.save', $instance) }}"
+            x-data="{}"
+            x-init="const dates = @js(\App\Modules\OfficialForms\Validators\OfficialFormPayloadValidator::requiredSubmissionDates($instance->definition->code)); $el.querySelectorAll('input[type=date]').forEach(input => { if (dates.some(field => input.name === 'payload[' + field + ']')) input.required = true; })">
             @csrf
             @if (view()->exists($instance->definition->template_view))
                 @include($instance->definition->template_view, [
@@ -284,7 +286,7 @@
             @endphp
             @can('updateDraft', $instance)
                 @if ($isRes036Owner)
-                <button type="submit" form="official-form-editor" class="rounded-xl bg-[#1e684c] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#17533d] transition-colors">Save New Draft Version</button>
+                <button type="submit" form="official-form-editor" formnovalidate class="rounded-xl bg-[#1e684c] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#17533d] transition-colors">Save New Draft Version</button>
                 @endif
             @endcan
             @can('submit', $instance)

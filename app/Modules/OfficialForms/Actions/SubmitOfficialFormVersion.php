@@ -46,7 +46,7 @@ class SubmitOfficialFormVersion
         }
 
         $formCode = strtoupper($instance->definition->code);
-        $validatedPayload = $this->payloadValidator->validate($formCode, $payload);
+        $validatedPayload = $this->payloadValidator->validateForSubmission($formCode, $payload);
 
         if ($formCode === 'RES-026') {
             $topics = array_values(array_filter(

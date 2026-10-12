@@ -207,6 +207,26 @@ class OfficialFormBackendTest extends TestCase
         );
     }
 
+    public function test_blank_date_can_be_saved_in_a_draft_but_cannot_be_submitted(): void
+    {
+        $student = User::factory()->create(['user_type' => 'student']);
+        $group = $this->createGroup(leader: $student);
+        $instance = (new CreateOfficialFormInstance)->handle($student, 'RES-026', $group->id);
+        $payload = ['date' => '', 'topics' => ['Title A', 'Title B', 'Title C']];
+        $draft = (new SaveOfficialFormDraft)->handle($student, $instance, $payload);
+
+        try {
+            (new SubmitOfficialFormVersion)->handle($student, $instance, $payload);
+            $this->fail('Expected a missing-date error.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('date is required', $exception->getMessage());
+        }
+
+        $this->assertSame('draft', $instance->fresh()->status);
+        $this->assertSame($draft->id, $instance->fresh()->current_version_id);
+        $this->assertSame(2, $instance->versions()->count());
+    }
+
     public function test_res026_can_be_submitted_and_printed_but_has_no_unverified_adviser_approval_workflow(): void
     {
         $student = User::factory()->create(['user_type' => 'student']);

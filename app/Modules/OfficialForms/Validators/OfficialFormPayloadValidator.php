@@ -133,6 +133,35 @@ class OfficialFormPayloadValidator
         return $validated;
     }
 
+    /** @return list<string> */
+    public static function requiredSubmissionDates(string $formCode): array
+    {
+        $code = strtoupper($formCode);
+
+        return match ($code) {
+            'RES-036' => ['res_036_date', 'res_036_signed_at'],
+            'RES-037' => ['res_037_date', 'res_037_submitted_at'],
+            'RES-039' => ['date_reviewed'],
+            'RES-048' => ['evaluation_date'],
+            default => array_key_exists('date', self::FIELD_SCHEMAS[$code] ?? []) ? ['date'] : [],
+        };
+    }
+
+    /** @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    public function validateForSubmission(string $formCode, array $payload): array
+    {
+        $validated = $this->validate($formCode, $payload);
+        foreach (self::requiredSubmissionDates($formCode) as $field) {
+            if (! isset($validated[$field]) || $validated[$field] === '') {
+                throw new InvalidArgumentException('The '.str_replace('_', ' ', $field).' is required before submitting '.strtoupper($formCode).'.');
+            }
+        }
+
+        return $validated;
+    }
+
     private function cleanString(mixed $value, string $code, string $key): string
     {
         if (! is_string($value) && ! is_numeric($value)) {
@@ -194,7 +223,7 @@ class OfficialFormPayloadValidator
     /** @param array<string, mixed> $payload */
     private function validateSemantics(string $code, array $payload): void
     {
-        foreach (['date', 'defense_date', 'follow_up_date', 'evaluation_date', 'date_received'] as $dateField) {
+        foreach (['date', 'defense_date', 'follow_up_date', 'evaluation_date', 'date_received', 'date_reviewed', 'res_036_date', 'res_036_signed_at', 'res_037_date', 'res_037_submitted_at'] as $dateField) {
             if (! isset($payload[$dateField]) || $payload[$dateField] === '') {
                 continue;
             }
