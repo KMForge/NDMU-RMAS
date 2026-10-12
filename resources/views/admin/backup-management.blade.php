@@ -140,18 +140,29 @@
         </section>
     </div>
 
-    <form wire:submit="importSystemBackup" class="rounded-[2rem] border border-gray-100 bg-white p-7 shadow-sm">
+    <form
+        data-backup-chunk-upload
+        data-init-url="{{ route('admin.backup-uploads.store') }}"
+        data-upload-base-url="{{ url('/admin/backup-uploads') }}"
+        data-maximum-bytes="{{ $backupImportLimitMb * 1024 * 1024 }}"
+        class="rounded-[2rem] border border-gray-100 bg-white p-7 shadow-sm"
+    >
+        @csrf
         <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div class="max-w-2xl">
-                <div class="flex items-center gap-3"><span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-xl text-blue-700"><i class="ph ph-upload-simple"></i></span><div><h2 class="font-heading text-lg font-extrabold text-gray-800">Import Existing Backup</h2><p class="mt-1 text-xs leading-5 text-gray-500">Upload an NDMU-RMAS ZIP archive up to {{ number_format($backupImportLimitMb) }} MB. It is verified and stored safely; importing does not restore it automatically.</p>@if ($backupServerUploadLimitMb && $backupServerUploadLimitMb < $backupImportLimitMb)<p class="mt-1 text-xs font-semibold text-amber-700">Server upload configuration currently allows only {{ number_format($backupServerUploadLimitMb) }} MB.</p>@endif</div></div>
+                <div class="flex items-center gap-3"><span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-xl text-blue-700"><i class="ph ph-upload-simple"></i></span><div><h2 class="font-heading text-lg font-extrabold text-gray-800">Import Existing Backup</h2><p class="mt-1 text-xs leading-5 text-gray-500">Upload an NDMU-RMAS ZIP archive up to {{ number_format($backupImportLimitMb) }} MB. It is securely uploaded in smaller chunks, verified, and stored safely; importing does not restore it automatically.</p></div></div>
             </div>
             <div class="flex w-full max-w-2xl flex-col gap-3 sm:flex-row sm:items-start">
                 <div class="min-w-0 flex-1">
-                    <input type="file" wire:model="backupImportFile" accept=".zip,application/zip" class="block w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs file:mr-4 file:rounded-xl file:border-0 file:bg-[#0e5c3a] file:px-4 file:py-2 file:text-xs file:font-bold file:text-white">
-                    <p wire:loading wire:target="backupImportFile" class="mt-2 text-xs font-semibold text-blue-700">Uploading archive...</p>
-                    @error('backupImportFile') <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p> @enderror
+                    <input data-backup-upload-file type="file" accept=".zip,application/zip" class="block w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs file:mr-4 file:rounded-xl file:border-0 file:bg-[#0e5c3a] file:px-4 file:py-2 file:text-xs file:font-bold file:text-white">
+                    <div data-backup-upload-progress-wrapper class="mt-3 hidden" aria-live="polite">
+                        <div class="h-2 overflow-hidden rounded-full bg-blue-100"><div data-backup-upload-progress class="h-full rounded-full bg-blue-700 transition-all" style="width: 0%"></div></div>
+                        <p data-backup-upload-status class="mt-2 text-xs font-semibold text-blue-700"></p>
+                    </div>
+                    <p data-backup-upload-error class="mt-2 hidden text-xs font-semibold text-red-600" role="alert"></p>
+                    <p data-backup-upload-success class="mt-2 hidden text-xs font-semibold text-emerald-700" role="status"></p>
                 </div>
-                <button type="submit" wire:loading.attr="disabled" wire:target="backupImportFile,importSystemBackup" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-blue-700 px-5 py-3 text-xs font-bold text-white hover:bg-blue-800 disabled:cursor-wait disabled:opacity-60"><i class="ph ph-shield-check"></i><span wire:loading.remove wire:target="importSystemBackup">Import & Verify</span><span wire:loading wire:target="importSystemBackup">Verifying...</span></button>
+                <button data-backup-upload-submit type="submit" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-blue-700 px-5 py-3 text-xs font-bold text-white hover:bg-blue-800 disabled:cursor-wait disabled:opacity-60"><i class="ph ph-shield-check"></i><span data-backup-upload-button-label>Import & Verify</span></button>
             </div>
         </div>
     </form>

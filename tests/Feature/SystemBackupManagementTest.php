@@ -168,6 +168,21 @@ class SystemBackupManagementTest extends TestCase
         );
     }
 
+    public function test_backup_import_ui_uses_the_configured_total_instead_of_the_php_request_limit(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+        SystemBackupSetting::query()->firstOrFail()->update(['max_import_mb' => 500]);
+
+        $this->actingAs($admin);
+
+        Livewire::test(AdminDashboard::class)
+            ->set('tab', 'backups')
+            ->assertSee('500 MB')
+            ->assertSee('securely uploaded in smaller chunks')
+            ->assertDontSee('Server upload configuration currently allows only');
+    }
+
     public function test_administrator_can_verify_a_complete_backup_archive(): void
     {
         Storage::fake('local');
@@ -256,6 +271,73 @@ class SystemBackupManagementTest extends TestCase
             'user_id' => $admin->id,
             'auditable_id' => $backup->id,
         ]);
+    }
+
+    public function test_administrator_can_import_a_backup_in_chunks_beyond_the_php_request_limit(): void
+    {
+        Storage::fake('local');
+        config(['backups.chunk_upload_kilobytes' => 1]);
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+        SystemBackupSetting::query()->firstOrFail()->update(['max_import_mb' => 500]);
+
+        $dump = random_bytes(3072);
+        $archivePath = storage_path('framework/testing/chunked-import-backup.zip');
+        $zip = new ZipArchive;
+        $zip->open($archivePath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        $zip->addFromString('database/database.dump', $dump);
+        $zip->addFromString('manifest.json', json_encode([
+            'backup_format_version' => 2,
+            'application' => config('app.name'),
+            'database_driver' => 'pgsql',
+            'database_scope' => 'complete_schema_and_data',
+            'database_dump_sha256' => hash('sha256', $dump),
+            'includes_private_files' => false,
+            'private_file_count' => 0,
+        ], JSON_THROW_ON_ERROR));
+        $zip->close();
+        $archive = file_get_contents($archivePath);
+
+        $this->actingAs($admin);
+        $session = $this->postJson(route('admin.backup-uploads.store'), [
+            'original_name' => 'portable-large-backup.zip',
+            'size_bytes' => strlen($archive),
+        ])->assertCreated()->json();
+
+        foreach (str_split($archive, $session['chunk_size_bytes']) as $index => $chunk) {
+            $this->post(route('admin.backup-uploads.chunks.store', [
+                'upload' => $session['upload_id'],
+                'index' => $index,
+            ]), [
+                'chunk' => UploadedFile::fake()->createWithContent("chunk-{$index}.part", $chunk),
+            ])->assertOk();
+        }
+
+        $this->postJson(route('admin.backup-uploads.complete', [
+            'upload' => $session['upload_id'],
+        ]))->assertOk()->assertJsonPath('backup_id', 1);
+
+        $backup = SystemBackup::query()->where('trigger', 'imported')->firstOrFail();
+        $this->assertSame('verified', $backup->verification_status);
+        $this->assertSame(strlen($archive), $backup->size_bytes);
+        Storage::disk('local')->assertExists($backup->storage_path);
+        Storage::disk('local')->assertMissing("backup-upload-chunks/{$admin->id}/{$session['upload_id']}");
+    }
+
+    public function test_chunked_backup_upload_uses_the_configured_total_limit(): void
+    {
+        Storage::fake('local');
+        $admin = User::factory()->create();
+        $admin->assignRole('system-administrator');
+        SystemBackupSetting::query()->firstOrFail()->update(['max_import_mb' => 1]);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.backup-uploads.store'), [
+                'original_name' => 'too-large.zip',
+                'size_bytes' => 2 * 1024 * 1024,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('size_bytes');
     }
 
     public function test_configured_backup_import_limit_is_enforced(): void

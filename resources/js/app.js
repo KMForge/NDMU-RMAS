@@ -36,6 +36,149 @@ function loadPdfLibrary() {
 window.initializeDocxViewers = initializeDocxViewers;
 window.initializePdfViewers = initializePdfViewers;
 
+async function backupUploadResponse(response) {
+    const body = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        const validationMessage = body?.errors
+            ? Object.values(body.errors).flat().find(Boolean)
+            : null;
+
+        throw new Error(validationMessage || body?.message || 'The backup upload failed.');
+    }
+
+    return body;
+}
+
+document.addEventListener('submit', async (event) => {
+    const form = event.target.closest('[data-backup-chunk-upload]');
+    if (!form) {
+        return;
+    }
+
+    event.preventDefault();
+
+    const fileInput = form.querySelector('[data-backup-upload-file]');
+    const submitButton = form.querySelector('[data-backup-upload-submit]');
+    const buttonLabel = form.querySelector('[data-backup-upload-button-label]');
+    const progressWrapper = form.querySelector('[data-backup-upload-progress-wrapper]');
+    const progressBar = form.querySelector('[data-backup-upload-progress]');
+    const status = form.querySelector('[data-backup-upload-status]');
+    const error = form.querySelector('[data-backup-upload-error]');
+    const success = form.querySelector('[data-backup-upload-success]');
+    const file = fileInput?.files?.[0];
+    const maximumBytes = Number.parseInt(form.dataset.maximumBytes || '0', 10);
+    const csrfToken = form.querySelector('input[name="_token"]')?.value;
+    let uploadId = null;
+
+    error.classList.add('hidden');
+    success.classList.add('hidden');
+
+    if (!file) {
+        error.textContent = 'Select an NDMU-RMAS ZIP backup archive.';
+        error.classList.remove('hidden');
+        return;
+    }
+
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+        error.textContent = 'Select a ZIP archive created by NDMU-RMAS Backup Management.';
+        error.classList.remove('hidden');
+        return;
+    }
+
+    if (maximumBytes > 0 && file.size > maximumBytes) {
+        error.textContent = `The backup archive exceeds the configured ${Math.floor(maximumBytes / 1024 / 1024)} MB import limit.`;
+        error.classList.remove('hidden');
+        return;
+    }
+
+    const requestOptions = {
+        credentials: 'same-origin',
+        headers: {
+            Accept: 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+    };
+
+    submitButton.disabled = true;
+    fileInput.disabled = true;
+    progressWrapper.classList.remove('hidden');
+    progressBar.style.width = '0%';
+    status.textContent = 'Preparing secure upload...';
+    buttonLabel.textContent = 'Uploading...';
+
+    try {
+        const session = await backupUploadResponse(await fetch(form.dataset.initUrl, {
+            ...requestOptions,
+            method: 'POST',
+            headers: {
+                ...requestOptions.headers,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                original_name: file.name,
+                size_bytes: file.size,
+            }),
+        }));
+
+        uploadId = session.upload_id;
+
+        for (let index = 0; index < session.total_chunks; index += 1) {
+            const start = index * session.chunk_size_bytes;
+            const end = Math.min(start + session.chunk_size_bytes, file.size);
+            const chunkData = new FormData();
+            chunkData.append('chunk', file.slice(start, end), `chunk-${index}.part`);
+
+            await backupUploadResponse(await fetch(
+                `${form.dataset.uploadBaseUrl}/${uploadId}/chunks/${index}`,
+                {
+                    ...requestOptions,
+                    method: 'POST',
+                    body: chunkData,
+                },
+            ));
+
+            const percentage = Math.round(((index + 1) / session.total_chunks) * 100);
+            progressBar.style.width = `${percentage}%`;
+            status.textContent = `Uploading archive... ${percentage}%`;
+        }
+
+        buttonLabel.textContent = 'Verifying...';
+        status.textContent = 'Upload complete. Verifying the archive...';
+        const result = await backupUploadResponse(await fetch(
+            `${form.dataset.uploadBaseUrl}/${uploadId}/complete`,
+            {
+                ...requestOptions,
+                method: 'POST',
+            },
+        ));
+
+        status.textContent = '';
+        progressWrapper.classList.add('hidden');
+        success.textContent = result.message;
+        success.classList.remove('hidden');
+        fileInput.value = '';
+        buttonLabel.textContent = 'Imported';
+        window.setTimeout(() => window.location.reload(), 1200);
+    } catch (exception) {
+        if (uploadId) {
+            fetch(`${form.dataset.uploadBaseUrl}/${uploadId}`, {
+                ...requestOptions,
+                method: 'DELETE',
+            }).catch(() => {});
+        }
+
+        progressWrapper.classList.add('hidden');
+        error.textContent = exception instanceof Error ? exception.message : 'The backup upload failed.';
+        error.classList.remove('hidden');
+        buttonLabel.textContent = 'Import & Verify';
+    } finally {
+        submitButton.disabled = false;
+        fileInput.disabled = false;
+    }
+});
+
 function commentPageNumber(comment, fallback = 1) {
     const value = comment?.page_number ?? comment?.page;
     const parsed = Number.parseInt(String(value ?? '').replace(/\D/g, ''), 10);

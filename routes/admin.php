@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DefenseRoomController;
 use App\Http\Controllers\Admin\SystemBackupDownloadController;
+use App\Http\Controllers\Admin\SystemBackupUploadController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +15,28 @@ Route::prefix('admin')->name('admin.')->middleware([
         ->middleware(['permission:settings.manage', 'throttle:10,1'])
         ->whereNumber('backup')
         ->name('backups.download');
+
+    Route::prefix('/backup-uploads')
+        ->middleware(['permission:settings.manage'])
+        ->name('backup-uploads.')
+        ->group(function (): void {
+            Route::post('/', [SystemBackupUploadController::class, 'store'])
+                ->middleware('throttle:30,1')
+                ->name('store');
+            Route::post('/{upload}/chunks/{index}', [SystemBackupUploadController::class, 'chunk'])
+                ->middleware('throttle:240,1')
+                ->whereUuid('upload')
+                ->whereNumber('index')
+                ->name('chunks.store');
+            Route::post('/{upload}/complete', [SystemBackupUploadController::class, 'complete'])
+                ->middleware('throttle:10,1')
+                ->whereUuid('upload')
+                ->name('complete');
+            Route::delete('/{upload}', [SystemBackupUploadController::class, 'destroy'])
+                ->middleware('throttle:30,1')
+                ->whereUuid('upload')
+                ->name('destroy');
+        });
 
     Route::prefix('/reports')->middleware(['permission:reports.view', 'throttle:reports'])->group(function (): void {
         Route::get('/', [ReportController::class, 'index'])->name('reports.index');
