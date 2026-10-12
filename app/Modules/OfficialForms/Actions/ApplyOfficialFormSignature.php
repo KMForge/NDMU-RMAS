@@ -228,6 +228,10 @@ class ApplyOfficialFormSignature
 
                 $formCode = strtoupper($lockedInstance->definition->code);
 
+                if ($formCode === 'RES-049' && $academicAction === 'sign_authorship') {
+                    app(CompleteAuthorshipCertificate::class)->handle($lockedInstance, $actor);
+                }
+
                 if ($formCode === 'RES-026') {
                     $this->advanceRes026AfterSignature($lockedInstance, $signatureRecord, $actor);
                 }

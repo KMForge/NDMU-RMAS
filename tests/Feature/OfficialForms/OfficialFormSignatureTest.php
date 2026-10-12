@@ -300,6 +300,8 @@ class OfficialFormSignatureTest extends TestCase
 
         $v1Id = $instance->current_version_id;
 
+        // A completed certificate must be returned for correction before editing.
+        $instance->refresh()->update(['status' => 'returned_for_correction']);
         // Save v2 draft
         app(SaveOfficialFormDraft::class)->handle($student, $instance, ['authorship_confirmed' => true]);
         $instance->refresh();
@@ -317,6 +319,8 @@ class OfficialFormSignatureTest extends TestCase
         $this->assertDatabaseMissing('official_form_signatures', [
             'official_form_version_id' => $v2Id,
         ]);
+        $this->assertFalse(app(CompleteAuthorshipCertificate::class)->handle($instance));
+        $this->assertSame('draft', $instance->fresh()->status);
     }
 
     public function test_missing_signature_verification_key_fails_closed(): void
@@ -357,7 +361,7 @@ class OfficialFormSignatureTest extends TestCase
         );
     }
 
-    public function test_res049_sign_authorship_does_not_change_instance_status_without_verified_rule(): void
+    public function test_res049_completes_when_the_only_required_author_signs(): void
     {
         $student = User::factory()->create([
             'user_type' => UserType::Student,
@@ -380,7 +384,6 @@ class OfficialFormSignatureTest extends TestCase
             'general'
         );
 
-        $initialStatus = $instance->status;
         $this->enrollSignature($student);
 
         $sigRecord = app(ApplyOfficialFormSignature::class)->handle(
@@ -392,8 +395,7 @@ class OfficialFormSignatureTest extends TestCase
 
         $instance->refresh();
 
-        // Status remains unchanged (no invented transition)
-        $this->assertSame($initialStatus, $instance->status);
+        $this->assertSame('completed', $instance->status);
         $this->assertDatabaseHas('official_form_signatures', [
             'id' => $sigRecord->id,
             'official_form_version_id' => $instance->current_version_id,
@@ -401,6 +403,56 @@ class OfficialFormSignatureTest extends TestCase
             'academic_action' => 'sign_authorship',
             'actor_type' => 'student_researcher',
         ]);
+    }
+
+    public function test_res049_requires_all_coauthors_on_the_current_version_and_completion_is_idempotent(): void
+    {
+        $students = collect([1, 2])->map(function () {
+            $student = User::factory()->create([
+                'user_type' => UserType::Student, 'status' => AccountStatus::Active,
+                'approved_at' => now(), 'email_verified_at' => now(),
+            ]);
+            $student->assignRole('student');
+            $student->givePermissionTo('forms.res-049.sign');
+            $this->enrollSignature($student);
+
+            return $student;
+        });
+        $group = $this->createGroup(leader: $students[0]);
+        $enrollment = ResearchClassEnrollment::create([
+            'research_class_id' => $group->research_class_id, 'student_id' => $students[1]->id,
+            'status' => 'active', 'requested_at' => now(), 'joined_at' => now(),
+        ]);
+        $group->members()->create([
+            'student_id' => $students[1]->id, 'research_class_id' => $group->research_class_id,
+            'research_class_enrollment_id' => $enrollment->id, 'assigned_by' => $group->created_by,
+        ]);
+        $instance = app(CreateOfficialFormInstance::class)->handle($students[0], 'RES-049', $group->id);
+        $instance->update(['status' => 'submitted']);
+        $sign = app(ApplyOfficialFormSignature::class);
+        $sign->handle($students[0], $instance->id, $instance->current_version_id, 'sign_authorship');
+        $this->assertSame('submitted', $instance->fresh()->status);
+        $sign->handle($students[1], $instance->id, $instance->current_version_id, 'sign_authorship');
+        $this->assertSame('completed', $instance->fresh()->status);
+        $completion = app(CompleteAuthorshipCertificate::class);
+        $this->assertFalse($completion->handle($instance));
+        $this->assertDatabaseCount('official_form_signatures', 2);
+        $this->assertSame(1, AuditLog::where('event', 'official_form.authorship_completed')->count());
+
+        $oldVersion = $instance->currentVersion;
+        $oldVersion->update(['is_current' => false]);
+        $newVersion = OfficialFormVersion::create([
+            'official_form_instance_id' => $instance->id, 'version_number' => 2,
+            'payload' => $oldVersion->payload, 'created_by' => $students[0]->id,
+            'supersedes_version_id' => $oldVersion->id, 'is_current' => true,
+        ]);
+        $instance->refresh()->update(['current_version_id' => $newVersion->id, 'status' => 'submitted']);
+        $this->assertFalse($completion->handle($instance));
+        $this->assertSame('submitted', $instance->fresh()->status);
+        $sign->handle($students[0], $instance->id, $newVersion->id, 'sign_authorship');
+        $this->assertSame('submitted', $instance->fresh()->status);
+        $sign->handle($students[1], $instance->id, $newVersion->id, 'sign_authorship');
+        $this->assertSame('completed', $instance->fresh()->status);
     }
 
     public function test_actor_type_is_derived_server_side_and_browser_input_is_ignored(): void
@@ -704,7 +756,48 @@ class OfficialFormSignatureTest extends TestCase
         $this->enrollSignature($coordinator);
         $this->enrollSignature($dean);
 
+        $instance->refresh();
         $auth = app(OfficialFormAuthorization::class);
+
+        // Another panelist has their own invitation and a class-level assignment,
+        // neither of which permits access to this panelist's individual invitation.
+        $otherPanelist = User::factory()->create([
+            'user_type' => UserType::Faculty,
+            'status' => AccountStatus::Active,
+            'approved_at' => now(), 'email_verified_at' => now(),
+        ]);
+        $otherPanelist->assignRole('panelist');
+        $otherPanelist->givePermissionTo('forms.res-028.respond', 'forms.res-028.view');
+        $otherInvitation = app(CreateOfficialFormInstance::class)->handle(
+            $coordinator, 'RES-028', $group->id, null, 'another_panelist_invitation'
+        );
+        $otherInvitation->actorAssignments()->create([
+            'user_id' => $otherPanelist->id, 'actor_type' => 'panelist',
+            'status' => 'active', 'assigned_by' => $coordinator->id, 'assigned_at' => now(),
+        ]);
+        $class->officialFormActorAssignments()->create([
+            'user_id' => $otherPanelist->id, 'actor_type' => 'panelist',
+            'status' => 'active', 'assigned_by' => $coordinator->id, 'assigned_at' => now(),
+        ]);
+        $this->assertFalse($auth->canPerformAction($otherPanelist, $instance, 'respond'));
+        $this->assertFalse($auth->canPerformAction($otherPanelist, $instance, 'conforme'));
+        $this->assertFalse($auth->canSubmit($otherPanelist, $instance));
+        $this->actingAs($otherPanelist)->get(route('official-forms.workspace.show', $instance))
+            ->assertForbidden();
+        $this->actingAs($otherPanelist)->post(route('official-forms.workspace.sign-action', [$instance, 'respond']), [
+            'expected_version_id' => $instance->current_version_id,
+        ])->assertSessionHasErrors('official_form');
+        $this->actingAs($otherPanelist)->post(route('official-forms.workspace.panel-invitation.decline', $instance))
+            ->assertForbidden();
+        $this->assertDatabaseMissing('official_form_signatures', [
+            'official_form_instance_id' => $instance->id, 'signer_user_id' => $otherPanelist->id,
+        ]);
+        $this->assertTrue($auth->canPerformAction($panelist, $instance, 'respond'), 'Exact invitee must be allowed to respond.');
+        $this->actingAs($panelist)->get(route('official-forms.workspace.show', $instance))
+            ->assertOk()->assertSee('Sign & Accept Invitation');
+        $this->actingAs($coordinator)->get(route('official-forms.workspace.show', $instance))->assertOk();
+        $this->assertFalse(app(GetPendingAcademicActionsForUser::class)
+            ->execute($otherPanelist)->contains(fn ($action) => $action['instance_id'] === $instance->id));
 
         // Step 1: Panelist signs Conforme (respond)
         $actionHandler = app(ApplyOfficialFormSignature::class);
@@ -756,49 +849,8 @@ class OfficialFormSignatureTest extends TestCase
     {
         [$adviser, $instance] = $this->createFormInstanceForAdviser();
         $this->mock(ApplyOfficialFormSignature::class, function ($mock): void {
-        $instance->refresh();
             $mock->shouldReceive('handle')->once()->andThrow(new \RuntimeException('Signature storage unavailable'));
         });
-        // Another panelist has their own invitation and a class-level assignment,
-        // neither of which permits access to this panelist's individual invitation.
-        $otherPanelist = User::factory()->create([
-            'user_type' => UserType::Faculty,
-            'status' => AccountStatus::Active,
-            'approved_at' => now(), 'email_verified_at' => now(),
-        ]);
-        $otherPanelist->assignRole('panelist');
-        $otherPanelist->givePermissionTo('forms.res-028.respond', 'forms.res-028.view');
-        $otherInvitation = app(CreateOfficialFormInstance::class)->handle(
-            $coordinator, 'RES-028', $group->id, null, 'another_panelist_invitation'
-        );
-        $otherInvitation->actorAssignments()->create([
-            'user_id' => $otherPanelist->id, 'actor_type' => 'panelist',
-            'status' => 'active', 'assigned_by' => $coordinator->id, 'assigned_at' => now(),
-        ]);
-        $class->officialFormActorAssignments()->create([
-            'user_id' => $otherPanelist->id, 'actor_type' => 'panelist',
-            'status' => 'active', 'assigned_by' => $coordinator->id, 'assigned_at' => now(),
-        ]);
-        $this->assertFalse($auth->canPerformAction($otherPanelist, $instance, 'respond'));
-        $this->assertFalse($auth->canPerformAction($otherPanelist, $instance, 'conforme'));
-        $this->assertFalse($auth->canSubmit($otherPanelist, $instance));
-        $this->actingAs($otherPanelist)->get(route('official-forms.workspace.show', $instance))
-            ->assertForbidden();
-        $this->actingAs($otherPanelist)->post(route('official-forms.workspace.sign-action', [$instance, 'respond']), [
-            'expected_version_id' => $instance->current_version_id,
-        ])->assertSessionHasErrors('official_form');
-        $this->actingAs($otherPanelist)->post(route('official-forms.workspace.panel-invitation.decline', $instance))
-            ->assertForbidden();
-        $this->assertDatabaseMissing('official_form_signatures', [
-            'official_form_instance_id' => $instance->id, 'signer_user_id' => $otherPanelist->id,
-        ]);
-        $this->assertTrue($auth->canPerformAction($panelist, $instance, 'respond'), 'Exact invitee must be allowed to respond.');
-        $this->actingAs($panelist)->get(route('official-forms.workspace.show', $instance))
-            ->assertOk()->assertSee('Sign & Accept Invitation');
-        $this->actingAs($coordinator)->get(route('official-forms.workspace.show', $instance))->assertOk();
-        $this->assertFalse(app(GetPendingAcademicActionsForUser::class)
-            ->execute($otherPanelist)->contains(fn ($action) => $action['instance_id'] === $instance->id));
-
 
         $this->actingAs($adviser)
             ->post(route('official-forms.workspace.sign-action', [$instance, 'endorse']), [
